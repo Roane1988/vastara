@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 
 // TODO: Fetch user's saved properties from Supabase joining 'users' and 'properties' tables
 const SAVED_PROPERTIES = [
@@ -93,25 +92,19 @@ export default function SavedPropertiesPage({ onBack }) {
   }
 
   return (
-    <motion.div
-      initial={{ x: '100%' }}
-      animate={{ x: 0 }}
-      exit={{ x: '100%' }}
-      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-      className="min-h-screen bg-white"
-    >
+    <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* ─── Sticky Header ──────────────────────────────────── */}
-      <header className="sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b border-slate-100">
+      <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between px-4 h-14">
           <button
             type="button"
-            onClick={onBack}
-            className="text-slate-700 hover:text-slate-900 transition-colors -ml-1 p-1"
+            onClick={() => onBack?.()}
+            className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors -ml-1 p-1"
           >
             <ArrowLeftIcon />
           </button>
-          <h1 className="text-lg font-semibold text-slate-900">Properti Disimpan</h1>
-          <span className="text-sm text-slate-400 tabular-nums">{SAVED_PROPERTIES.length} Item</span>
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Properti Disimpan</h1>
+          <span className="text-sm text-slate-400 dark:text-slate-500 tabular-nums">{SAVED_PROPERTIES.length} Item</span>
         </div>
       </header>
 
@@ -125,8 +118,8 @@ export default function SavedPropertiesPage({ onBack }) {
               onClick={() => setActiveFilter(f)}
               className={`shrink-0 px-4 py-1.5 text-sm font-medium rounded-full transition-colors outline-none border-none ring-0 ${
                 activeFilter === f
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               {f}
@@ -138,14 +131,14 @@ export default function SavedPropertiesPage({ onBack }) {
       {/* ─── Property List ──────────────────────────────────── */}
       <div className="px-4 pt-2 pb-8 space-y-5">
         {filtered.map((p) => (
-          <div key={p.id} className="bg-white rounded-2xl overflow-hidden border border-slate-100">
+          <div key={p.id} className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
             {/* Image */}
-            <div className="relative aspect-[16/9] bg-slate-100 flex items-center justify-center">
-              <span className="text-xs text-slate-400 font-medium">Gambar Properti</span>
+            <div className="relative aspect-[16/9] bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Gambar Properti</span>
               <button
                 type="button"
                 onClick={() => toggleSaved(p.id)}
-                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-white dark:hover:bg-slate-700 transition-colors"
               >
                 <HeartIcon filled={saved.includes(p.id)} />
               </button>
@@ -155,14 +148,14 @@ export default function SavedPropertiesPage({ onBack }) {
             <div className="p-4">
               <div className="flex items-center justify-between mb-1.5">
                 <StatusBadge status={p.status} />
-                <span className="text-sm font-bold text-slate-900">{p.price}</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">{p.price}</span>
               </div>
-              <h3 className="text-base font-semibold text-slate-900 mb-2">{p.name}</h3>
-              <div className="flex items-center gap-1.5 text-sm text-slate-500">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">{p.name}</h3>
+              <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                 <span>{p.beds} Bed</span>
-                <span className="text-slate-300">•</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
                 <span>{p.baths} Bath</span>
-                <span className="text-slate-300">•</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
                 <span>{p.sqm} m&sup2;</span>
               </div>
             </div>
@@ -170,13 +163,13 @@ export default function SavedPropertiesPage({ onBack }) {
         ))}
 
         {filtered.length === 0 && (
-          <p className="text-center text-sm text-slate-400 pt-10">
+          <p className="text-center text-sm text-slate-400 dark:text-slate-500 pt-10">
             Tidak ada properti dengan status ini.
           </p>
         )}
 
         {/* TODO: Fetch user's saved properties from Supabase joining 'users' and 'properties' tables */}
       </div>
-    </motion.div>
+    </div>
   )
 }

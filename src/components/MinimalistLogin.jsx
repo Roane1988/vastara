@@ -31,7 +31,34 @@ function GoogleIcon() {
   )
 }
 
+import { useDarkMode } from '../context/DarkModeContext'
+
+function MoonIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  )
+}
+
+function SunIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  )
+}
+
 export default function MinimalistLogin({ onLogin }) {
+  const { dark, toggle } = useDarkMode()
   const [isLoginView, setIsLoginView] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
@@ -39,12 +66,40 @@ export default function MinimalistLogin({ onLogin }) {
   const [resetEmail, setResetEmail] = useState('')
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-white px-4">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-white dark:bg-slate-950 px-4 relative">
+      {/* Dark Mode Toggle */}
+      <button
+        type="button"
+        onClick={toggle}
+        className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-slate-100 dark:bg-slate-800"
+      >
+        {dark ? <SunIcon /> : <MoonIcon />}
+      </button>
       <div className="w-full max-w-sm">
-        <div className="text-center mb-10">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            vastara
-          </h1>
+        <div className="text-center mb-10 pt-4">
+          <motion.h1
+            initial={{ opacity: 0, scale: 0.6, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="text-5xl font-bold tracking-[0.15em] text-slate-900 dark:text-white select-none"
+          >
+            V
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
+              ASTARA
+            </motion.span>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.4 }}
+            className="text-xs tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase mt-2"
+          >
+            properti tepercaya
+          </motion.p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -56,7 +111,7 @@ export default function MinimalistLogin({ onLogin }) {
               exit={{ opacity: 0, x: -12 }}
               transition={{ duration: 0.2, ease: 'easeInOut' }}
             >
-              <h2 className="text-xl font-semibold text-slate-900 text-center mb-8">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white text-center mb-8">
                 Masuk ke akun Anda
               </h2>
 
@@ -69,7 +124,7 @@ export default function MinimalistLogin({ onLogin }) {
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full py-3 px-4 text-sm text-slate-900 bg-white border border-gray-200 rounded-lg placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                    className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                   />
                 </div>
 
@@ -81,7 +136,7 @@ export default function MinimalistLogin({ onLogin }) {
                       placeholder="Password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full py-3 px-4 pr-10 text-sm text-slate-900 bg-white border border-gray-200 rounded-lg placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                      className="w-full py-3 px-4 pr-10 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                     />
                     <button
                       type="button"
@@ -110,22 +165,22 @@ export default function MinimalistLogin({ onLogin }) {
               </form>
 
               <div className="flex items-center gap-3 my-6">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-slate-400">atau</span>
-                <div className="flex-1 h-px bg-gray-200" />
+                <div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
+                <span className="text-xs text-slate-400 dark:text-slate-500">atau</span>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
               </div>
 
               <button
                 type="button"
-                className="w-full py-3 flex items-center justify-center gap-2.5 text-sm font-medium text-slate-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full py-3 flex items-center justify-center gap-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
               >
                 <GoogleIcon />
                 Lanjutkan dengan Google
               </button>
 
-              <p className="mt-8 text-center text-xs text-slate-500">
+              <p className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
                 Belum punya akun?{' '}
-                <a href="#" className="font-medium text-slate-900 hover:text-[#FF6B00] transition-colors">
+                <a href="#" className="font-medium text-slate-900 dark:text-white hover:text-[#FF6B00] transition-colors">
                   Daftar
                 </a>
               </p>
@@ -140,10 +195,10 @@ export default function MinimalistLogin({ onLogin }) {
               exit={{ opacity: 0, x: -12 }}
               transition={{ duration: 0.2, ease: 'easeInOut' }}
             >
-              <h2 className="text-xl font-semibold text-slate-900 text-center mb-2">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white text-center mb-2">
                 Atur ulang password
               </h2>
-              <p className="text-xs text-slate-500 text-center mb-8">
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center mb-8">
                 Masukkan email Anda untuk menerima tautan reset.
               </p>
 
@@ -156,7 +211,7 @@ export default function MinimalistLogin({ onLogin }) {
                     placeholder="Email"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    className="w-full py-3 px-4 text-sm text-slate-900 bg-white border border-gray-200 rounded-lg placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                    className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                   />
                 </div>
 
