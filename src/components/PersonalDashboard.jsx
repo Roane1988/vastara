@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import ProfileDrawer from './ProfileDrawer'
-import RescheduleBottomSheet from './RescheduleBottomSheet'
 import NotificationDrawer from './NotificationDrawer'
 
 // ─── Sample Data (TODO: Replace with Supabase queries) ───────────────
@@ -12,20 +11,6 @@ const SAVED_PROPERTIES = [
 ]
 
 // TODO: Fetch from Supabase saved_properties table
-const SURVEY = {
-  date: '22 Juli 2026',
-  time: '10:00 WIB',
-  location: 'BSD Green Village, Blok A5',
-  agent: { name: 'Ahmad Fauzi', initials: 'AF' },
-}
-
-// TODO: Fetch from Supabase transaction_tracker table
-const TRANSACTION_STEPS = [
-  { label: 'Booking Fee Dibayar', status: 'done' },
-  { label: 'Verifikasi Legal oleh Tim', status: 'active' },
-  { label: 'Tanda Tangan Notaris', status: 'pending' },
-]
-
 // TODO: Fetch from Supabase recommendations table
 const RECOMMENDATIONS = [
   { id: 1, name: 'Cluster Mutiara Gading', price: 'Rp 1,8 M', badge: 'Verified Legal' },
@@ -48,43 +33,6 @@ function BookmarkIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-    </svg>
-  )
-}
-
-function CalendarIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  )
-}
-
-function MapPinIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  )
-}
-
-function CheckCircleIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  )
-}
-
-function SpinnerIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF6B00" strokeWidth="2" className="animate-spin">
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
   )
 }
@@ -122,33 +70,6 @@ function PropertyCard({ property }) {
         <p className="text-xs text-slate-500 dark:text-slate-400">{property.price}</p>
       </div>
       <StatusBadge status={property.status} />
-    </div>
-  )
-}
-
-function StepIcon({ status }) {
-  if (status === 'done') return <CheckCircleIcon />
-  if (status === 'active') return <SpinnerIcon />
-  return <div className="w-5 h-5 rounded-full border-2 border-slate-200 dark:border-slate-600" />
-}
-
-function TransactionStep({ step, isLast }) {
-  return (
-    <div className="flex gap-3">
-      <div className="flex flex-col items-center">
-        <div className="flex items-center justify-center w-6 h-6">
-          <StepIcon status={step.status} />
-        </div>
-        {!isLast && <div className="w-px flex-1 bg-slate-200 dark:bg-slate-700 my-1" />}
-      </div>
-      <div className={`pb-5 ${isLast ? 'pb-0' : ''}`}>
-        <p className={`text-sm ${step.status === 'pending' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200 font-medium'}`}>
-          {step.label}
-        </p>
-        {step.status === 'active' && (
-          <p className="text-[11px] text-orange-500 mt-0.5">Sedang diproses...</p>
-        )}
-      </div>
     </div>
   )
 }
@@ -230,7 +151,7 @@ function MobileBottomNav({ onNavigate }) {
         <button
           type="button"
           onClick={() => onNavigate?.('saved')}
-          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-orange-500 font-semibold"
+          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-orange-500 font-semibold hover:brightness-110"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -240,7 +161,7 @@ function MobileBottomNav({ onNavigate }) {
         <button
           type="button"
           onClick={() => onNavigate?.('chat')}
-          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-slate-400 hover:text-slate-600 relative"
+          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 relative"
         >
           <div className="relative">
             <ChatIcon />
@@ -257,7 +178,6 @@ function MobileBottomNav({ onNavigate }) {
 
 export default function PersonalDashboard({ onNavigate, userName }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   return (
@@ -312,62 +232,6 @@ export default function PersonalDashboard({ onNavigate, userName }) {
             {/* TODO: Fetch from Supabase saved_properties table */}
           </div>
 
-          {/* ─── Survey Schedule (top right) ──────────────────── */}
-          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-700/30 rounded-2xl p-5 sm:p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <CalendarIcon />
-              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Jadwal Survei</h2>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                <CalendarIcon />
-                <span>{SURVEY.date} — {SURVEY.time}</span>
-              </div>
-              <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
-                <MapPinIcon />
-                <span>{SURVEY.location}</span>
-              </div>
-              <div className="flex items-center gap-3 pt-1">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-300 dark:from-slate-600 to-slate-400 dark:to-slate-500 flex items-center justify-center text-[10px] text-white font-semibold">
-                  {SURVEY.agent.initials}
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{SURVEY.agent.name}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">Agent</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsRescheduleOpen(true)}
-                className="w-full mt-3 py-2 text-xs font-medium text-white bg-[#FF6B00] rounded-xl hover:bg-[#e86000] transition-colors"
-              >
-                Reschedule
-              </button>
-            </div>
-            {/* TODO: Fetch from Supabase survey_schedule table */}
-          </div>
-
-          {/* ─── Transaction & Legal Tracker (bottom right) ───── */}
-          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-5 sm:p-6 shadow-sm shadow-emerald-500/5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Transaksi Aktif</h2>
-            </div>
-
-            <div className="mt-1">
-              {TRANSACTION_STEPS.map((step, i) => (
-                <TransactionStep
-                  key={step.label}
-                  step={step}
-                  index={i}
-                  isLast={i === TRANSACTION_STEPS.length - 1}
-                />
-              ))}
-            </div>
-            {/* TODO: Fetch from Supabase transaction_tracker table */}
-          </div>
-
           {/* ─── Smart Recommendations (full width bottom) ────── */}
           <div className="md:col-span-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-700/30 rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -402,11 +266,6 @@ export default function PersonalDashboard({ onNavigate, userName }) {
 
       <NotificationDrawer isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
       <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onLogout={() => onNavigate?.('login')} userName={userName} />
-      <RescheduleBottomSheet
-        isOpen={isRescheduleOpen}
-        onClose={() => setIsRescheduleOpen(false)}
-        agent={SURVEY.agent}
-      />
       <MobileBottomNav onNavigate={onNavigate} />
     </div>
   )

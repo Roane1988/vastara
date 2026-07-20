@@ -496,7 +496,7 @@ export default function ExplorePage({ onNavigate, userName }) {
         <div className="flex items-center justify-around h-16">
           <button
             type="button"
-            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-orange-500 font-semibold"
+            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-orange-500 font-semibold hover:brightness-110"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
