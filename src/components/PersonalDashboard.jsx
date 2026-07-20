@@ -401,7 +401,7 @@ export default function PersonalDashboard({ onNavigate, userName }) {
       </div>
 
       <NotificationDrawer isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
-      <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onLogout={() => onNavigate?.('login')} />
+      <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onLogout={() => onNavigate?.('login')} userName={userName} />
       <RescheduleBottomSheet
         isOpen={isRescheduleOpen}
         onClose={() => setIsRescheduleOpen(false)}

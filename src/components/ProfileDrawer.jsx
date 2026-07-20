@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { supabase } from '../supabaseClient'
 import { useDarkMode } from '../context/DarkModeContext'
 
 function XIcon() {
@@ -96,8 +98,17 @@ function SunIcon() {
   )
 }
 
-export default function ProfileDrawer({ isOpen, onClose, onLogout }) {
+export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
   const { dark, toggle } = useDarkMode()
+  const [userEmail, setUserEmail] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      supabase.auth.getUser().then(({ data }) => {
+        setUserEmail(data?.user?.email || '')
+      })
+    }
+  }, [isOpen])
 
   return (
     <AnimatePresence mode="wait">
@@ -157,13 +168,13 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout }) {
                 </div>
 
                 <div className="space-y-4">
-                  {/* TODO: Update user's name in the Supabase 'users' table */}
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase tracking-wide">Nama Lengkap</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase tracking-wide">Nama</label>
                     <input
                       type="text"
-                      defaultValue="Budi Santoso"
-                      className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:border-orange-500 transition-colors"
+                      value={userName || ''}
+                      readOnly
+                      className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -171,7 +182,7 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout }) {
                     <div className="relative">
                       <input
                         type="email"
-                        defaultValue="budi@email.com"
+                        value={userEmail}
                         readOnly
                         className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 focus:outline-none"
                       />
@@ -179,15 +190,6 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout }) {
                         <CheckIcon />
                       </div>
                     </div>
-                  </div>
-                  {/* TODO: Update user's WhatsApp in the Supabase 'users' table */}
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase tracking-wide">Nomor WhatsApp</label>
-                    <input
-                      type="tel"
-                      defaultValue="+6281234567890"
-                      className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:border-orange-500 transition-colors"
-                    />
                   </div>
                 </div>
               </section>
