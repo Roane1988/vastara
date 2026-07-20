@@ -1,6 +1,41 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --font-hero: "Hero", sans-serif;
+  --font-roxborough: "RoxboroughCF", serif;
+}
+
+@font-face {
+  font-family: "RoxboroughCF";
+  src: url("./assets/fonts/RoxboroughCF.woff2") format("woff2"),
+       url("./assets/fonts/RoxboroughCF.woff") format("woff"),
+       url("./assets/fonts/RoxboroughCF.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Hero";
+  src: url("./assets/fonts/Hero.woff2") format("woff2"),
+       url("./assets/fonts/Hero.woff") format("woff"),
+       url("./assets/fonts/Hero.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Hero";
+  src: url("./assets/fonts/Hero-Bold.woff2") format("woff2"),
+       url("./assets/fonts/Hero-Bold.woff") format("woff"),
+       url("./assets/fonts/Hero-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
