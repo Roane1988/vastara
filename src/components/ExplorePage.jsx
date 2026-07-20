@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 
 const location = 'BSD City'
 
@@ -208,6 +209,20 @@ export default function ExplorePage({ onNavigate, userName }) {
         </div>
       </header>
 
+      {/* ─── Listing Stats + Sell Banner ───────────────────────── */}
+      <div className="mx-4 mb-3 p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-slate-800 dark:to-slate-800/80 border border-orange-100 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+        <div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Total Verified Listings</p>
+          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">12</p>
+        </div>
+        <Link
+          to="/sell"
+          className="px-5 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 active:scale-[0.97] transition-all shadow-md shadow-orange-500/20"
+        >
+          Jual Properti
+        </Link>
+      </div>
+
       {/* ─── Categories + Sort ──────────────────────────────────── */}
       <div className="flex items-center gap-2 px-4 py-3">
         <div className="overflow-x-auto no-scrollbar flex-1">
@@ -297,9 +312,9 @@ export default function ExplorePage({ onNavigate, userName }) {
         </h2>
         <div className="flex gap-4 overflow-x-auto no-scrollbar px-4">
           {RECOMMENDED.map((p) => (
-            <div key={p.id} className="w-[260px] shrink-0">
+            <Link key={p.id} to={`/property/${p.id}`} className="w-[260px] shrink-0 group">
               <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-slate-100 dark:bg-slate-800">
-                <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
+                <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 {p.verified && (
                   <span className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
                     Verified Legal
@@ -307,7 +322,7 @@ export default function ExplorePage({ onNavigate, userName }) {
                 )}
                 <button
                   type="button"
-                  onClick={() => toggleSave(p.id)}
+                  onClick={(e) => { e.preventDefault(); toggleSave(p.id) }}
                   className="absolute top-2 right-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1.5 rounded-full text-slate-400 dark:text-slate-500 hover:text-orange-500 transition-colors"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#FF6B00' : 'none'} stroke={saved.includes(p.id) ? '#FF6B00' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -315,12 +330,12 @@ export default function ExplorePage({ onNavigate, userName }) {
                   </svg>
                 </button>
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">{p.price}</h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{p.title}</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#FF6B00] transition-colors">{p.price}</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{p.title}</p>
               <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                 {p.beds} Bed • {p.baths} Bath • {p.sqm} m&sup2;
               </p>
-            </div>
+            </Link>
           ))}
         </div>
         {/* TODO: Fetch recommendations from Supabase with user preference scoring */}
@@ -335,28 +350,33 @@ export default function ExplorePage({ onNavigate, userName }) {
           return true
         }).map((p) => (
           <div key={p.id}>
-            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-800">
-              <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
-              {p.verified && (
-                <span className="absolute top-3 left-3 bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
-                  Verified Legal
-                </span>
-              )}
+            <Link to={`/property/${p.id}`} className="block group">
+              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-800">
+                <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                {p.verified && (
+                  <span className="absolute top-3 left-3 bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
+                    Verified Legal
+                  </span>
+                )}
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white group-hover:text-[#FF6B00] transition-colors">{p.price}</h3>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300 mt-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{p.title}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {p.beds} Bed • {p.baths} Bath • {p.sqm} m&sup2;
+              </p>
+            </Link>
+            <div className="mt-2 flex justify-end">
               <button
                 type="button"
                 onClick={() => toggleSave(p.id)}
-                className="absolute top-3 right-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-2 rounded-full text-slate-400 dark:text-slate-500 hover:text-orange-500 transition-colors shadow-md"
+                className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-orange-500 transition-colors"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#FF6B00' : 'none'} stroke={saved.includes(p.id) ? '#FF6B00' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#FF6B00' : 'none'} stroke={saved.includes(p.id) ? '#FF6B00' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
+                {saved.includes(p.id) ? 'Disimpan' : 'Simpan'}
               </button>
             </div>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">{p.price}</h3>
-            <p className="text-base font-semibold text-slate-700 dark:text-slate-300 mt-1">{p.title}</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {p.beds} Bed • {p.baths} Bath • {p.sqm} m&sup2;
-            </p>
           </div>
         ))}
       </div>
