@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../supabaseClient'
 import { useDarkMode } from '../context/DarkModeContext'
@@ -17,49 +17,6 @@ function UserIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6B00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
-    </svg>
-  )
-}
-
-function ShieldIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  )
-}
-
-function LockIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  )
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  )
-}
-
-function SaveIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-      <polyline points="17 21 17 13 7 13 7 21" />
-      <polyline points="7 3 7 8 15 8" />
     </svg>
   )
 }
@@ -98,23 +55,89 @@ function SunIcon() {
   )
 }
 
+function SpinnerIcon() {
+  return (
+    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  )
+}
+
+function SaveIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+      <polyline points="17 21 17 13 7 13 7 21" />
+      <polyline points="7 3 7 8 15 8" />
+    </svg>
+  )
+}
+
 export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
   const { dark, toggle } = useDarkMode()
-  const [userEmail, setUserEmail] = useState('')
+
+  const [name, setName] = useState(userName || '')
+  const [email, setEmail] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   useEffect(() => {
-    if (isOpen) {
-      supabase.auth.getUser().then(({ data }) => {
-        setUserEmail(data?.user?.email || '')
-      })
-    }
+    if (!isOpen) return
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data?.user?.email || '')
+    })
   }, [isOpen])
+
+  useEffect(() => {
+    if (!notification.show) return
+    const timer = setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 3000)
+    return () => clearTimeout(timer)
+  }, [notification.show])
+
+  const isSaveDisabled = saving || !name.trim() || !email.trim()
+
+  const notify = useCallback((message, type) => {
+    setNotification({ show: true, message, type })
+  }, [])
+
+  async function handleSave() {
+    if (!name.trim() || !email.trim()) return
+
+    setSaving(true)
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (email !== user?.email) {
+      const { error: emailErr } = await supabase.auth.updateUser({ email })
+      if (emailErr) {
+        notify(emailErr.message, 'error')
+        setSaving(false)
+        return
+      }
+    }
+
+    if (user) {
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ full_name: name, updated_at: new Date().toISOString() })
+        .eq('id', user.id)
+
+      if (profileErr) {
+        notify(profileErr.message, 'error')
+        setSaving(false)
+        return
+      }
+    }
+
+    setSaving(false)
+    notify('Perubahan berhasil disimpan', 'success')
+  }
 
   return (
     <AnimatePresence mode="wait">
       {isOpen && (
         <>
-          {/* Overlay */}
           <motion.div
             key="overlay"
             initial={{ opacity: 0 }}
@@ -128,7 +151,6 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
           />
 
-          {/* Drawer */}
           <motion.div
             key="drawer"
             initial={{ x: '100%' }}
@@ -137,9 +159,8 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-slate-900 z-[100] flex flex-col shadow-2xl"
           >
-            {/* ─── Drawer Header ──────────────────────────────── */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-slate-800">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Profil & Pengaturan</h2>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Informasi Pribadi</h2>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -158,9 +179,27 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
               </div>
             </div>
 
-            {/* ─── Scrollable Content ─────────────────────────── */}
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
-              {/* Section 1: Informasi Pribadi */}
+              {notification.show && (
+                <div className={`rounded-lg px-4 py-3 shadow-lg text-sm font-medium flex items-center gap-2 ${
+                  notification.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {notification.type === 'success' ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                  )}
+                  {notification.message}
+                </div>
+              )}
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <UserIcon />
@@ -172,60 +211,25 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
                     <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase tracking-wide">Nama</label>
                     <input
                       type="text"
-                      value={userName || ''}
-                      readOnly
-                      className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 focus:outline-none"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Nama lengkap"
+                      className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors placeholder:text-slate-400"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase tracking-wide">Email (Terverifikasi)</label>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        value={userEmail}
-                        readOnly
-                        className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 focus:outline-none"
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <CheckIcon />
-                      </div>
-                    </div>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase tracking-wide">Email</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors placeholder:text-slate-400"
+                    />
                   </div>
                 </div>
               </section>
 
-              {/* Section 2: Keamanan */}
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <ShieldIcon />
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-200">Keamanan</h3>
-                </div>
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-between border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                >
-                  <span className="tracking-widest">*** Ganti Password</span>
-                  <ChevronDownIcon />
-                </button>
-              </section>
-
-              {/* Section 3: Brankas Dokumen Legal */}
-              <section>
-                <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <LockIcon />
-                    <h3 className="font-bold text-slate-800 dark:text-slate-200">Brankas Dokumen Legal</h3>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-3 leading-relaxed">
-                    Dokumen Anda dienkripsi tingkat tinggi dan hanya digunakan untuk keperluan legalitas transaksi Notaris.
-                  </p>
-                  {/* TODO: Handle file upload to secure storage bucket */}
-                  <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg h-20 bg-white dark:bg-slate-900 flex items-center justify-center">
-                    <p className="text-xs text-slate-400 dark:text-slate-500">Seret & lepas dokumen di sini</p>
-                  </div>
-                </div>
-              </section>
-              {/* ─── Logout ──────────────────────────────────────── */}
               <section>
                 <button
                   type="button"
@@ -238,14 +242,15 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
               </section>
             </div>
 
-            {/* ─── Sticky Footer ──────────────────────────────── */}
             <div className="mt-auto sticky bottom-0 bg-white dark:bg-slate-900 p-4 border-t border-gray-100 dark:border-slate-800">
               <button
                 type="button"
-                className="w-full py-3.5 rounded-lg font-bold text-white bg-[#FF6B00] hover:bg-[#e86000] transition-colors flex items-center justify-center gap-2"
+                onClick={handleSave}
+                disabled={isSaveDisabled}
+                className="w-full py-3.5 rounded-lg font-bold text-white bg-[#FF6B00] hover:bg-[#e86000] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                <SaveIcon />
-                Simpan Perubahan
+                {saving ? <SpinnerIcon /> : <SaveIcon />}
+                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
             </div>
           </motion.div>
