@@ -132,7 +132,7 @@ function StepIcon({ status }) {
   return <div className="w-5 h-5 rounded-full border-2 border-slate-200 dark:border-slate-600" />
 }
 
-function TransactionStep({ step, index, isLast }) {
+function TransactionStep({ step, isLast }) {
   return (
     <div className="flex gap-3">
       <div className="flex flex-col items-center">
@@ -157,7 +157,7 @@ function TransactionStep({ step, index, isLast }) {
 
 function PromoBanner() {
   return (
-    <div className="relative overflow-hidden rounded-2xl shadow-lg shadow-orange-500/15 min-h-[220px] sm:min-h-[260px]">
+    <div className="relative overflow-hidden rounded-2xl shadow-lg shadow-orange-500/15 min-h-[220px] sm:min-h-[260px] flex flex-col justify-end">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -166,7 +166,7 @@ function PromoBanner() {
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-slate-900/30" />
       {/* Content */}
-      <div className="relative z-10 p-6 sm:p-8 flex flex-col justify-end h-full min-h-[220px] sm:min-h-[260px]">
+      <div className="relative z-10 p-6 sm:p-8">
         <span className="inline-block bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full mb-3 w-fit">
           🔥 Hot Deal
         </span>
