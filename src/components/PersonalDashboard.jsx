@@ -255,9 +255,7 @@ function MobileBottomNav({ onNavigate }) {
 
 // ─── Main Dashboard Component ─────────────────────────────────────────
 
-export default function PersonalDashboard({ onNavigate }) {
-  // TODO: Fetch user profile from Supabase
-  const userName = 'Roane'
+export default function PersonalDashboard({ onNavigate, userName }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)

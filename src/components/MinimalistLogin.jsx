@@ -41,6 +41,15 @@ function MoonIcon() {
   )
 }
 
+function SpinnerIcon() {
+  return (
+    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  )
+}
+
 function SunIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -63,11 +72,15 @@ export default function MinimalistLogin({ onLogin }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
+  const [firstName, setFirstName] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [isLogin, setIsLogin] = useState(true)
+
+  function getFirstName(name) {
+    return name?.trim() || 'Pengguna'
+  }
 
   async function handleAuth(e) {
     e.preventDefault()
@@ -80,17 +93,30 @@ export default function MinimalistLogin({ onLogin }) {
 
     setLoading(true)
 
-    const { error: authError } = isLogin
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } })
+    let displayName = ''
 
-    if (authError) {
-      setError(authError.message)
-      setLoading(false)
-      return
+    if (isLogin) {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+        return
+      }
+      displayName = data?.user?.user_metadata?.full_name || ''
+    } else {
+      const { data, error: authError } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { full_name: firstName } },
+      })
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+        return
+      }
+      displayName = firstName || data?.user?.user_metadata?.full_name || ''
     }
 
-    onLogin?.()
+    onLogin?.(getFirstName(displayName))
   }
 
   return (
@@ -163,9 +189,10 @@ export default function MinimalistLogin({ onLogin }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 text-sm font-medium text-white bg-[#FF6B00] rounded-lg hover:bg-[#e86000] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3.5 text-sm font-medium text-white bg-[#FF6B00] rounded-lg hover:bg-[#e86000] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {loading ? 'Loading...' : 'Masuk'}
+                {loading && <SpinnerIcon />}
+                {loading ? 'Memproses...' : 'Masuk'}
               </button>
             </form>
 
@@ -218,15 +245,15 @@ export default function MinimalistLogin({ onLogin }) {
               )}
 
               <div>
-                <label htmlFor="fullName" className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5 block">
-                  Nama Lengkap
+                <label htmlFor="firstName" className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5 block">
+                  Nama Depan
                 </label>
                 <input
-                  id="fullName"
+                  id="firstName"
                   type="text"
-                  placeholder="Masukkan nama lengkap"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Masukkan nama depan"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
                   required
                   className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                 />
@@ -302,9 +329,10 @@ export default function MinimalistLogin({ onLogin }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 text-sm font-medium text-white bg-[#FF6B00] rounded-lg hover:bg-[#e86000] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                className="w-full py-3.5 text-sm font-medium text-white bg-[#FF6B00] rounded-lg hover:bg-[#e86000] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
               >
-                {loading ? 'Loading...' : 'Daftar'}
+                {loading && <SpinnerIcon />}
+                {loading ? 'Memproses...' : 'Daftar'}
               </button>
             </form>
 

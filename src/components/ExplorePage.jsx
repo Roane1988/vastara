@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 
-const userName = 'Roane'
 const location = 'BSD City'
 
 const PROMO_BANNERS = [
@@ -152,7 +151,7 @@ function ChevronDownIcon() {
   )
 }
 
-export default function ExplorePage({ onNavigate }) {
+export default function ExplorePage({ onNavigate, userName }) {
   const [activeCategory, setActiveCategory] = useState('Semua')
   const [saved, setSaved] = useState([])
   const [currentSlide, setCurrentSlide] = useState(0)

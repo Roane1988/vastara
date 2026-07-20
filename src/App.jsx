@@ -19,6 +19,7 @@ const transitionConfig = {
 
 function App() {
   const [page, setPage] = useState('login')
+  const [userName, setUserName] = useState('')
 
   return (
     <AnimatePresence mode="wait">
@@ -31,7 +32,7 @@ function App() {
           exit="exit"
           transition={transitionConfig}
         >
-          <MinimalistLogin onLogin={() => setPage('dashboard')} />
+          <MinimalistLogin onLogin={(name) => { setUserName(name); setPage('dashboard') }} />
         </motion.div>
       )}
       {page === 'dashboard' && (
@@ -43,7 +44,7 @@ function App() {
           exit="exit"
           transition={transitionConfig}
         >
-          <PersonalDashboard onNavigate={(p) => setPage(p)} />
+          <PersonalDashboard userName={userName} onNavigate={(p) => setPage(p)} />
         </motion.div>
       )}
       {page === 'saved' && (
@@ -67,7 +68,7 @@ function App() {
           exit="exit"
           transition={transitionConfig}
         >
-          <ExplorePage onNavigate={(p) => setPage(p)} />
+          <ExplorePage userName={userName} onNavigate={(p) => setPage(p)} />
         </motion.div>
       )}
       {page === 'chat' && (
