@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { supabase } from '../supabaseClient'
 
 function EyeIcon({ visible }) {
   return (
@@ -59,15 +59,42 @@ function SunIcon() {
 
 export default function MinimalistLogin({ onLogin }) {
   const { dark, toggle } = useDarkMode()
-  const [isLoginView, setIsLoginView] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [resetEmail, setResetEmail] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [isLogin, setIsLogin] = useState(true)
+
+  async function handleAuth(e) {
+    e.preventDefault()
+    setError(null)
+
+    if (!isLogin && password !== confirmPassword) {
+      setError('Konfirmasi password tidak cocok')
+      return
+    }
+
+    setLoading(true)
+
+    const { error: authError } = isLogin
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } })
+
+    if (authError) {
+      setError(authError.message)
+      setLoading(false)
+      return
+    }
+
+    onLogin?.()
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-white dark:bg-slate-950 px-4 relative">
-      {/* Dark Mode Toggle */}
       <button
         type="button"
         onClick={toggle}
@@ -76,165 +103,223 @@ export default function MinimalistLogin({ onLogin }) {
         {dark ? <SunIcon /> : <MoonIcon />}
       </button>
       <div className="w-full max-w-sm">
-        <div className="text-center mb-10 pt-4">
-          <motion.h1
-            initial={{ opacity: 0, scale: 0.6, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl font-bold tracking-[0.15em] text-slate-900 dark:text-white select-none"
-          >
-            V
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-            >
-              ASTARA
-            </motion.span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.4 }}
-            className="text-xs tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase mt-2"
-          >
+        <div className="text-center mb-8 pt-4">
+          <h1 className="text-5xl font-bold tracking-[0.15em] text-slate-900 dark:text-white select-none">
+            V<span>ASTARA</span>
+          </h1>
+          <p className="text-xs tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase mt-2">
             properti tepercaya
-          </motion.p>
+          </p>
         </div>
 
-        <AnimatePresence mode="wait">
-          {isLoginView ? (
-            <motion.div
-              key="login"
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
-            >
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white text-center mb-8">
-                Masuk ke akun Anda
-              </h2>
+        {isLogin ? (
+          <>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white text-center mb-8">
+              Masuk ke akun Anda
+            </h2>
 
-              <form onSubmit={(e) => { e.preventDefault(); onLogin?.() }} className="space-y-5">
-                <div>
-                  <label htmlFor="email" className="sr-only">Email</label>
+            <form onSubmit={handleAuth} className="space-y-5">
+              {error && (
+                <p className="text-xs text-red-500 dark:text-red-400 text-center bg-red-50 dark:bg-red-950/40 py-2 px-3 rounded-lg">
+                  {error}
+                </p>
+              )}
+
+              <div>
+                <label htmlFor="email" className="sr-only">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <div className="relative">
                   <input
-                    id="email"
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full py-3 px-4 pr-10 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                   />
-                </div>
-
-                <div>
-                  <div className="relative">
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full py-3 px-4 pr-10 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                      tabIndex={-1}
-                    >
-                      <EyeIcon visible={showPassword} />
-                    </button>
-                  </div>
                   <button
                     type="button"
-                    onClick={() => setIsLoginView(false)}
-                    className="mt-1.5 block ml-auto text-xs text-slate-500 hover:text-orange-500 transition-colors"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    tabIndex={-1}
                   >
-                    Lupa password?
+                    <EyeIcon visible={showPassword} />
                   </button>
                 </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 text-sm font-medium text-white bg-[#FF6B00] rounded-lg hover:bg-[#e86000] transition-colors"
-                >
-                  Masuk
-                </button>
-              </form>
-
-              <div className="flex items-center gap-3 my-6">
-                <div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
-                <span className="text-xs text-slate-400 dark:text-slate-500">atau</span>
-                <div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
               </div>
 
               <button
-                type="button"
-                className="w-full py-3 flex items-center justify-center gap-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 text-sm font-medium text-white bg-[#FF6B00] rounded-lg hover:bg-[#e86000] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <GoogleIcon />
-                Lanjutkan dengan Google
+                {loading ? 'Loading...' : 'Masuk'}
               </button>
+            </form>
 
-              <p className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
-                Belum punya akun?{' '}
-                <a href="#" className="font-medium text-slate-900 dark:text-white hover:text-[#FF6B00] transition-colors">
-                  Daftar
-                </a>
-              </p>
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
+              <span className="text-xs text-slate-400 dark:text-slate-500">atau</span>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-slate-700" />
+            </div>
 
-              {/* TODO: Call supabase.auth.signInWithPassword({ email, password }) */}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="forgot"
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
+            <button
+              type="button"
+              className="w-full py-3 flex items-center justify-center gap-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
             >
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white text-center mb-2">
-                Atur ulang password
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 text-center mb-8">
-                Masukkan email Anda untuk menerima tautan reset.
-              </p>
+              <GoogleIcon />
+              Lanjutkan dengan Google
+            </button>
 
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
-                <div>
-                  <label htmlFor="reset-email" className="sr-only">Email</label>
-                  <input
-                    id="reset-email"
-                    type="email"
-                    placeholder="Email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 text-sm font-medium text-white bg-[#FF6B00] rounded-lg hover:bg-[#e86000] transition-colors"
-                >
-                  Kirim Tautan
-                </button>
-              </form>
-
+            <p className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
+              Belum punya akun?{' '}
               <button
                 type="button"
-                onClick={() => setIsLoginView(true)}
-                className="mt-6 w-full text-center text-xs text-slate-500 hover:text-orange-500 transition-colors"
+                onClick={() => { setIsLogin(false); setError(null) }}
+                className="font-medium text-slate-900 dark:text-white hover:text-[#FF6B00] transition-colors"
               >
-                Kembali ke Login
+                Daftar
               </button>
+            </p>
+          </>
+        ) : (
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-slate-800 dark:to-slate-800/80 border border-orange-100 dark:border-slate-700 rounded-2xl p-6 -mx-2">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-[#FF6B00] flex items-center justify-center text-white text-lg font-bold shrink-0">
+                +
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Buat akun baru
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Isi data diri Anda untuk mendaftar
+                </p>
+              </div>
+            </div>
 
-              {/* TODO: Call supabase.auth.resetPasswordForEmail({ resetEmail }) */}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <form onSubmit={handleAuth} className="space-y-4">
+              {error && (
+                <p className="text-xs text-red-500 dark:text-red-400 text-center bg-red-50 dark:bg-red-950/40 py-2 px-3 rounded-lg">
+                  {error}
+                </p>
+              )}
+
+              <div>
+                <label htmlFor="fullName" className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5 block">
+                  Nama Lengkap
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  placeholder="Masukkan nama lengkap"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="reg-email" className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5 block">
+                  Email
+                </label>
+                <input
+                  id="reg-email"
+                  type="email"
+                  placeholder="Masukkan email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="reg-password" className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5 block">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="reg-password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Minimal 6 karakter"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="w-full py-3 px-4 pr-10 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    tabIndex={-1}
+                  >
+                    <EyeIcon visible={showPassword} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5 block">
+                  Konfirmasi Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Ulangi password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="w-full py-3 px-4 pr-10 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    tabIndex={-1}
+                  >
+                    <EyeIcon visible={showConfirmPassword} />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 text-sm font-medium text-white bg-[#FF6B00] rounded-lg hover:bg-[#e86000] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              >
+                {loading ? 'Loading...' : 'Daftar'}
+              </button>
+            </form>
+
+            <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+              Sudah punya akun?{' '}
+              <button
+                type="button"
+                onClick={() => { setIsLogin(true); setError(null) }}
+                className="font-medium text-slate-900 dark:text-white hover:text-[#FF6B00] transition-colors"
+              >
+                Masuk
+              </button>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
