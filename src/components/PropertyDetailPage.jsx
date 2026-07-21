@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import NotFoundPage from './NotFoundPage'
+import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
 function ArrowLeftIcon() {
   return (
@@ -71,7 +72,7 @@ function formatPrice(value) {
 
 function LoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-white  animate-pulse">
+    <div className="min-h-screen bg-brand-bg animate-pulse">
       <div className="h-72 sm:h-96 bg-slate-200 " />
       <div className="px-5 pt-6 space-y-4">
         <div className="h-8 bg-slate-200  rounded-lg w-3/4" />
@@ -108,6 +109,19 @@ export default function PropertyDetailPage() {
     async function fetchProperty() {
       setLoading(true)
       setError(null)
+
+      if (id.startsWith('dummy-')) {
+        const match = DUMMY_PROPERTIES.find((p) => p.id === id)
+        if (!cancelled) {
+          if (match) {
+            setProperty(match)
+          } else {
+            setError('Properti tidak ditemukan')
+          }
+          setLoading(false)
+        }
+        return
+      }
 
       const { data, error: fetchError } = await supabase
         .from('properties')
@@ -148,7 +162,7 @@ export default function PropertyDetailPage() {
   const waLink = `https://wa.me/${waNumber}?text=${waMessage}`
 
   return (
-    <div className="min-h-screen bg-white  flex flex-col">
+    <div className="min-h-screen bg-brand-bg flex flex-col">
       <div className="relative h-72 sm:h-96 overflow-hidden">
         <img
           src={property.image_url || FALLBACK_IMAGE}
@@ -159,7 +173,7 @@ export default function PropertyDetailPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="absolute top-12 left-4 w-9 h-9 rounded-full bg-white/80  backdrop-blur-sm flex items-center justify-center text-slate-700  shadow-md hover:bg-white  transition-colors"
+          className="absolute top-12 left-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-md hover:bg-white transition-colors"
         >
           <ArrowLeftIcon />
         </button>
@@ -176,42 +190,42 @@ export default function PropertyDetailPage() {
 
       <div className="flex-1 px-5 pt-5 pb-28 space-y-6">
         <div>
-          <p className="text-2xl font-extrabold text-[#FF6B00]">
+          <p className="text-2xl font-extrabold text-brand-primary">
             {formatPrice(property.price)}
           </p>
         </div>
 
         <div className="flex gap-6">
-          <div className="flex items-center gap-2 text-slate-600 ">
+          <div className="flex items-center gap-2 text-brand-muted ">
             <BedIcon />
             <span className="text-sm font-medium">{property.bedrooms} Kamar</span>
           </div>
-          <div className="flex items-center gap-2 text-slate-600 ">
+          <div className="flex items-center gap-2 text-brand-muted ">
             <BathIcon />
             <span className="text-sm font-medium">{property.bathrooms} Kamar Mandi</span>
           </div>
-          <div className="flex items-center gap-2 text-slate-600 ">
+          <div className="flex items-center gap-2 text-brand-muted ">
             <SqmIcon />
             <span className="text-sm font-medium">{property.sqm} m&sup2;</span>
           </div>
         </div>
 
         <div>
-          <h2 className="text-base font-semibold text-slate-900  mb-2">
+          <h2 className="text-base font-semibold text-brand-text mb-2">
             Deskripsi
           </h2>
-          <p className="text-sm text-slate-600  leading-relaxed">
+          <p className="text-sm text-brand-muted  leading-relaxed">
             {property.description || `${property.title} — properti premium dengan ${property.bedrooms} kamar tidur dan ${property.bathrooms} kamar mandi, luas bangunan ${property.sqm} m&sup2;.`}
           </p>
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95  backdrop-blur-md border-t border-gray-100  px-5 py-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4">
         <a
           href={waLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full py-3.5 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 transition-all duration-200 flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/20"
+          className="w-full py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:bg-[#152d4a] active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-lg"
         >
           <WhatsAppIcon />
           Hubungi Agent via WhatsApp
