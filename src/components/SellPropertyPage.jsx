@@ -57,8 +57,6 @@ function FileIcon() {
   )
 }
 
-/* ─── Floating Toast ────────────────────────────────────────────── */
-
 function AppToast({ message, type, visible, onClose }) {
   useEffect(() => {
     if (!visible) return
@@ -80,10 +78,10 @@ function AppToast({ message, type, visible, onClose }) {
         }
       `}</style>
       <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4 animate-fade-in">
-        <div className={`rounded-2xl px-5 py-4 flex items-center gap-3 shadow-2xl border ${
+        <div className={`rounded-2xl px-5 py-4 flex items-center gap-3 shadow-lg border ${
           type === 'error'
-            ? 'bg-red-900/90 border-red-700 text-red-100'
-            : 'bg-emerald-900/90 border-emerald-700 text-emerald-100'
+            ? 'bg-red-50 border-red-200 text-red-700'
+            : 'bg-emerald-50 border-emerald-200 text-emerald-700'
         }`}>
           {type === 'error' ? (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -112,22 +110,20 @@ function AppToast({ message, type, visible, onClose }) {
   )
 }
 
-/* ─── Success Modal ─────────────────────────────────────────────── */
-
 function SuccessModal({ agentWa, onClose }) {
   const waLink = `https://wa.me/${agentWa}?text=${encodeURIComponent('Halo, saya ingin bertanya tentang listing properti saya.')}`
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-gray-900 rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl border border-gray-700">
-        <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-5 border border-emerald-500/20">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl border border-slate-200">
+        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Pengajuan Terkirim!</h2>
-        <p className="text-sm text-gray-400 leading-relaxed">
+        <h2 className="text-xl font-bold text-slate-900 mb-2">Pengajuan Terkirim!</h2>
+        <p className="text-sm text-slate-500 leading-relaxed">
           Listing process started. An agent will contact you soon.
         </p>
         <div className="mt-7 space-y-3">
@@ -145,7 +141,7 @@ function SuccessModal({ agentWa, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-3 rounded-xl font-medium text-sm text-gray-400 bg-gray-800 hover:bg-gray-700 transition-colors border border-gray-700"
+            className="w-full py-3 rounded-xl font-medium text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors border border-slate-200"
           >
             Kembali ke Beranda
           </button>
@@ -154,8 +150,6 @@ function SuccessModal({ agentWa, onClose }) {
     </div>
   )
 }
-
-/* ─── Vertical Stepper ──────────────────────────────────────────── */
 
 function VerticalStepper({ steps, current }) {
   return (
@@ -168,7 +162,6 @@ function VerticalStepper({ steps, current }) {
         return (
           <div key={s.id} className="flex flex-col">
             <div className="flex items-stretch gap-4">
-              {/* Circle + line column */}
               <div className="flex flex-col items-center">
                 <div
                   className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
@@ -176,7 +169,7 @@ function VerticalStepper({ steps, current }) {
                       ? 'bg-orange-500 text-white'
                       : isActive
                       ? 'bg-orange-500 text-white ring-4 ring-orange-500/30'
-                      : 'bg-gray-700 text-gray-400'
+                      : 'bg-slate-100 border border-slate-300 text-slate-500'
                   }`}
                 >
                   {isCompleted ? (
@@ -188,26 +181,25 @@ function VerticalStepper({ steps, current }) {
                 {!isLast && (
                   <div
                     className={`w-0.5 flex-1 min-h-[2rem] transition-colors duration-300 ${
-                      isCompleted ? 'bg-orange-500' : 'bg-gray-700'
+                      isCompleted ? 'bg-orange-500' : 'bg-slate-200'
                     }`}
                   />
                 )}
               </div>
 
-              {/* Label */}
               <div className="pb-6 flex-1 min-w-0">
                 <p
                   className={`text-sm font-semibold transition-colors ${
                     isActive
-                      ? 'text-white'
+                      ? 'text-slate-900'
                       : isCompleted
-                      ? 'text-orange-400'
-                      : 'text-gray-400'
+                      ? 'text-orange-600'
+                      : 'text-slate-500'
                   }`}
                 >
                   {s.label}
                 </p>
-                <p className="text-xs text-gray-500 truncate mt-0.5">{s.desc}</p>
+                <p className="text-xs text-slate-400 truncate mt-0.5">{s.desc}</p>
               </div>
             </div>
           </div>
@@ -216,8 +208,6 @@ function VerticalStepper({ steps, current }) {
     </div>
   )
 }
-
-/* ─── Main Component ────────────────────────────────────────────── */
 
 export default function SellPropertyPage() {
   const navigate = useNavigate()
@@ -357,20 +347,17 @@ export default function SellPropertyPage() {
     navigate('/explore')
   }
 
-  /* ─── Step Content ─────────────────────────────────────────────── */
-
   function renderStep() {
     switch (step) {
-      /* ── Step 1: Kontak ─────────────────────────────────────── */
       case 0:
         return (
           <div className="space-y-5">
             <div>
-              <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
-                Nomor WhatsApp <span className="text-red-400">*</span>
+              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                Nomor WhatsApp <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-500 font-medium">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-medium">
                   +62
                 </span>
                 <input
@@ -378,28 +365,27 @@ export default function SellPropertyPage() {
                   placeholder="81234567890"
                   value={form.whatsapp}
                   onChange={handleChange('whatsapp')}
-                  className="w-full py-4 pl-12 pr-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 pl-12 pr-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1.5">
+              <p className="text-xs text-slate-500 mt-1.5">
                 Tim kami akan menghubungi Anda via nomor ini
               </p>
             </div>
           </div>
         )
 
-      /* ── Step 2: Properti ───────────────────────────────────── */
       case 1:
         return (
           <div className="space-y-5">
             <div>
-              <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
-                Jenis Properti <span className="text-red-400">*</span>
+              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                Jenis Properti <span className="text-red-500">*</span>
               </label>
               <select
                 value={form.jenis_properti}
                 onChange={handleChange('jenis_properti')}
-                className="w-full py-4 px-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors appearance-none"
+                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors appearance-none"
               >
                 <option value="">Pilih jenis properti</option>
                 <option value="Rumah">Rumah</option>
@@ -413,13 +399,13 @@ export default function SellPropertyPage() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
-                Status Sertifikat <span className="text-red-400">*</span>
+              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                Status Sertifikat <span className="text-red-500">*</span>
               </label>
               <select
                 value={form.status_sertifikat}
                 onChange={handleChange('status_sertifikat')}
-                className="w-full py-4 px-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors appearance-none"
+                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors appearance-none"
               >
                 <option value="">Pilih status sertifikat</option>
                 <option value="SHM">SHM (Sertifikat Hak Milik)</option>
@@ -431,11 +417,11 @@ export default function SellPropertyPage() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
-                Estimasi Harga <span className="text-red-400">*</span>
+              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                Estimasi Harga <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-500 font-medium">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-medium">
                   Rp
                 </span>
                 <input
@@ -447,11 +433,11 @@ export default function SellPropertyPage() {
                     const raw = e.target.value.replace(/[^0-9]/g, '')
                     setForm((p) => ({ ...p, estimasi_harga: raw }))
                   }}
-                  className="w-full py-4 pl-10 pr-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 pl-10 pr-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
                 />
               </div>
               {form.estimasi_harga && (
-                <p className="text-xs text-gray-500 mt-1.5">
+                <p className="text-xs text-slate-500 mt-1.5">
                   Rp {Number(form.estimasi_harga).toLocaleString('id-ID')}
                 </p>
               )}
@@ -459,25 +445,24 @@ export default function SellPropertyPage() {
           </div>
         )
 
-      /* ── Step 3: Lokasi ─────────────────────────────────────── */
       case 2:
         return (
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
-                Alamat Lengkap <span className="text-red-400">*</span>
+              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                Alamat Lengkap <span className="text-red-500">*</span>
               </label>
               <textarea
                 rows={2}
                 placeholder="Masukkan alamat properti..."
                 value={form.address}
                 onChange={handleChange('address')}
-                className="w-full py-4 px-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors resize-none"
+                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors resize-none"
               />
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
+              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
                 Link Lokasi Google Maps
               </label>
               <input
@@ -485,23 +470,22 @@ export default function SellPropertyPage() {
                 placeholder="Tempel link Google Maps properti Anda di sini"
                 value={locationUrl}
                 onChange={(e) => setLocationUrl(e.target.value)}
-                className="w-full py-4 px-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
               />
-              <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
                 Cara: Buka Google Maps, cari lokasi properti, klik &quot;Bagikan&quot; (Share), dan pilih &quot;Salin Link&quot;
               </p>
             </div>
           </div>
         )
 
-      /* ── Step 4: Detail ─────────────────────────────────────── */
       case 3:
         return (
           <div className="space-y-5">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
-                  Luas (m&sup2;) <span className="text-red-400">*</span>
+                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                  Luas (m&sup2;) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -509,12 +493,12 @@ export default function SellPropertyPage() {
                   placeholder="150"
                   value={form.sqm}
                   onChange={handleChange('sqm')}
-                  className="w-full py-4 px-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
-                  Kamar Tidur <span className="text-red-400">*</span>
+                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                  Kamar Tidur <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -522,12 +506,12 @@ export default function SellPropertyPage() {
                   placeholder="3"
                   value={form.bedrooms}
                   onChange={handleChange('bedrooms')}
-                  className="w-full py-4 px-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
-                  Kamar Mandi <span className="text-red-400">*</span>
+                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                  Kamar Mandi <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -535,48 +519,47 @@ export default function SellPropertyPage() {
                   placeholder="2"
                   value={form.bathrooms}
                   onChange={handleChange('bathrooms')}
-                  className="w-full py-4 px-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
                 />
               </div>
             </div>
             <div>
-              <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
-                Deskripsi Properti <span className="text-red-400">*</span>
+              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                Deskripsi Properti <span className="text-red-500">*</span>
               </label>
               <textarea
                 rows={4}
                 placeholder="Jelaskan properti Anda secara detail — lingkungan, fasilitas, akses, dll."
                 value={form.description}
                 onChange={handleChange('description')}
-                className="w-full py-4 px-4 text-sm text-white bg-gray-800 border border-gray-700 rounded-xl placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors resize-none"
+                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors resize-none"
               />
             </div>
           </div>
         )
 
-      /* ── Step 5: Dokumen ────────────────────────────────────── */
       case 4:
         return (
           <div className="space-y-5">
             <div>
-              <label className="text-sm font-semibold text-gray-300 mb-1.5 block">
+              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
                 Dokumen Legalitas
               </label>
-              <p className="text-xs text-gray-500 mb-3">
+              <p className="text-xs text-slate-500 mb-3">
                 Upload SHM, PBB, atau dokumen lainnya (PDF/JPG/PNG, maks 5 MB)
               </p>
 
               {!file ? (
-                <label className={`flex flex-col items-center justify-center w-full py-10 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors active:bg-gray-700/50 ${
+                <label className={`flex flex-col items-center justify-center w-full py-10 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors active:bg-slate-50 ${
                   skipUpload
-                    ? 'border-gray-700 bg-gray-800/30 opacity-50'
-                    : 'border-gray-600 bg-gray-800/50 hover:border-orange-500'
+                    ? 'border-slate-200 bg-slate-50/50 opacity-50'
+                    : 'border-slate-300 bg-slate-50 hover:border-orange-400'
                 }`}>
                   <UploadIcon />
-                  <span className="mt-3 text-sm font-medium text-gray-300">
+                  <span className="mt-3 text-sm font-medium text-slate-700">
                     Klik untuk upload dokumen
                   </span>
-                  <span className="mt-1 text-xs text-gray-500">
+                  <span className="mt-1 text-xs text-slate-400">
                     atau seret file ke sini
                   </span>
                   <input
@@ -588,16 +571,16 @@ export default function SellPropertyPage() {
                   />
                 </label>
               ) : (
-                <div className="flex items-center justify-between p-4 border border-gray-700 rounded-xl bg-gray-800">
+                <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
                       <FileIcon />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
+                      <p className="text-sm font-medium text-slate-900 truncate">
                         {file.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-slate-500">
                         {(file.size / 1024).toFixed(1)} KB
                       </p>
                     </div>
@@ -606,7 +589,7 @@ export default function SellPropertyPage() {
                     {uploading ? (
                       <SpinnerIcon />
                     ) : fileUrl ? (
-                      <span className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                      <span className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
@@ -615,7 +598,7 @@ export default function SellPropertyPage() {
                     <button
                       type="button"
                       onClick={removeFile}
-                      className="text-gray-500 hover:text-red-400 transition-colors p-1"
+                      className="text-slate-400 hover:text-red-500 transition-colors p-1"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -626,15 +609,15 @@ export default function SellPropertyPage() {
               )}
 
               {uploadError && (
-                <p className="text-xs text-red-400 mt-2">{uploadError}</p>
+                <p className="text-xs text-red-500 mt-2">{uploadError}</p>
               )}
 
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-slate-500 mt-2">
                 Dokumen tidak wajib, tetapi akan mempercepat proses verifikasi
               </p>
             </div>
 
-            <div className="border-t border-gray-800 pt-5">
+            <div className="border-t border-slate-200 pt-5">
               <button
                 type="button"
                 onClick={() => {
@@ -645,14 +628,14 @@ export default function SellPropertyPage() {
                 }}
                 className={`w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl text-sm font-medium transition-all ${
                   skipUpload
-                    ? 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
-                    : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
+                    ? 'bg-orange-50 text-orange-600 border border-orange-200'
+                    : 'bg-white text-slate-600 border border-slate-300 hover:border-slate-400'
                 }`}
               >
                 <span className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                   skipUpload
                     ? 'bg-orange-500 border-orange-500'
-                    : 'border-gray-600'
+                    : 'border-slate-400'
                 }`}>
                   {skipUpload && (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -671,10 +654,8 @@ export default function SellPropertyPage() {
     }
   }
 
-  /* ─── Render ──────────────────────────────────────────────────── */
-
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <AppToast
         message={notification.message}
         type={notification.type}
@@ -686,43 +667,38 @@ export default function SellPropertyPage() {
         <SuccessModal agentWa={agentWa} onClose={closeSuccess} />
       )}
 
-      {/* Header */}
-      <header className="sticky top-0 bg-gray-900/90 backdrop-blur-md z-30 pt-12 pb-3 px-5 border-b border-gray-800">
+      <header className="sticky top-0 bg-white/90 backdrop-blur-md z-30 pt-12 pb-3 px-5 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors shrink-0"
+            className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-colors shrink-0"
           >
             <ArrowLeftIcon />
           </button>
-          <h1 className="text-lg font-bold text-white">Jual Properti</h1>
+          <h1 className="text-lg font-bold text-slate-900">Jual Properti</h1>
         </div>
       </header>
 
-      {/* Body: Stepper + Form */}
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Stepper Column */}
-        <aside className="md:w-64 md:min-h-screen md:border-r md:border-gray-800 md:bg-gray-900/50 md:sticky md:top-0">
+        <aside className="md:w-64 md:min-h-screen md:border-r md:border-slate-200 md:bg-slate-50/50 md:sticky md:top-0">
           <div className="px-5 py-6 md:py-10 md:px-6">
             <VerticalStepper steps={STEPS} current={step} />
           </div>
         </aside>
 
-        {/* Form Column */}
         <div className="flex-1 flex flex-col">
           <div className="flex-1 px-5 pt-6 pb-4 overflow-y-auto">
             {renderStep()}
           </div>
 
-          {/* Sticky Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-md border-t border-gray-800 px-5 py-4 z-40">
+          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-5 py-4 z-40">
             <div className="flex gap-3 max-w-lg mx-auto">
               {step > 0 && (
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="flex-1 py-4 rounded-xl font-medium text-sm text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors active:scale-[0.98] border border-gray-700"
+                  className="flex-1 py-4 rounded-xl font-medium text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors active:scale-[0.98] border border-slate-200"
                 >
                   Kembali
                 </button>
@@ -732,7 +708,7 @@ export default function SellPropertyPage() {
                   type="button"
                   onClick={nextStep}
                   disabled={!canProceed()}
-                  className="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-orange-600 hover:bg-orange-500 active:bg-orange-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                  className="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
                 >
                   Lanjut
                 </button>
@@ -750,7 +726,6 @@ export default function SellPropertyPage() {
             </div>
           </div>
 
-          {/* Spacer for fixed bottom nav */}
           <div className="h-24" />
         </div>
       </div>

@@ -5,8 +5,6 @@ import { supabase } from './supabaseClient'
 import TopNavbar from './components/TopNavbar'
 import ProfileDrawer from './components/ProfileDrawer'
 import MinimalistLogin from './components/MinimalistLogin'
-import PersonalDashboard from './components/PersonalDashboard'
-import SavedPropertiesPage from './components/SavedPropertiesPage'
 import ExplorePage from './components/ExplorePage'
 import ChatHubPage from './components/ChatHubPage'
 import PropertyDetailPage from './components/PropertyDetailPage'
@@ -55,10 +53,9 @@ function AppContent() {
  navigate('/' + page)
  }
 
- const onLogin = () => {
- const from = location.state?.from
- navigate(from || '/dashboard')
- }
+  const onLogin = () => {
+    navigate('/')
+  }
 
  const handleLogout = useCallback(() => {
  navigate('/')
@@ -85,18 +82,8 @@ function AppContent() {
  <Routes location={location} key={location.pathname}>
  <Route path="/" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
  <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
- <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
- <Route path="/dashboard" element={
- <ProtectedRoute isAuth={isAuth} location={location}>
- <PersonalDashboard userName={userName} onNavigate={onNavigate} onProfileOpen={() => setIsProfileOpen(true)} />
- </ProtectedRoute>
- } />
- <Route path="/saved" element={
- <ProtectedRoute isAuth={isAuth} location={location}>
- <SavedPropertiesPage onBack={() => navigate('/dashboard')} />
- </ProtectedRoute>
- } />
- <Route path="/sell" element={
+          <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
+          <Route path="/sell" element={
  <ProtectedRoute isAuth={isAuth} location={location}>
  <SellPropertyPage />
  </ProtectedRoute>
