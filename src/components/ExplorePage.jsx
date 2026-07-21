@@ -1,11 +1,89 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 
 const CATEGORIES = ['Semua', 'Rumah Baru', 'Apartemen', 'BSD City', 'Jakarta Selatan']
 const SORT_OPTIONS = ['Terbaru', 'Termurah', 'Termahal']
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
+
+const DUMMY_PROPERTIES = [
+  {
+    id: 'dummy-1',
+    title: 'Kos Eksklusif Mahasiswa — Free WiFi & Laundry',
+    location: 'Dekat Kampus BSD, Tangerang',
+    price: 2500000,
+    priceDisplay: 'Rp 2.500.000 / bulan',
+    typeLabel: 'Disewa',
+    category: 'Kos',
+    image_url: 'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?auto=format&fit=crop&w=800&q=80',
+    bedrooms: 1,
+    bathrooms: 1,
+    sqm: 24,
+    agent: 'Aqsha (Marketing)',
+    status: 'verified',
+  },
+  {
+    id: 'dummy-2',
+    title: 'Studio Apartemen BSD — Fully Furnished',
+    location: 'BSD City, Tangerang',
+    price: 4500000,
+    priceDisplay: 'Rp 4.500.000 / bulan',
+    typeLabel: 'Disewa',
+    category: 'Apartemen',
+    image_url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80',
+    bedrooms: 1,
+    bathrooms: 1,
+    sqm: 32,
+    agent: 'Rina (Agent)',
+    status: 'verified',
+  },
+  {
+    id: 'dummy-3',
+    title: 'Cluster Mewah Kavling 7 — BSD City',
+    location: 'Pagedangan, BSD City',
+    price: 1850000000,
+    priceDisplay: 'Rp 1,85 M',
+    typeLabel: 'Dijual',
+    category: 'Rumah',
+    image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
+    bedrooms: 4,
+    bathrooms: 3,
+    sqm: 150,
+    agent: 'Aqsha (Senior Agent)',
+    status: 'verified',
+  },
+  {
+    id: 'dummy-4',
+    title: 'Ruko 2 Lantai Strategis — BSD Central',
+    location: 'BSD City, Tangerang',
+    price: 15000000,
+    priceDisplay: 'Rp 15.000.000 / bulan',
+    typeLabel: 'Disewa',
+    category: 'Kantor',
+    image_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
+    bedrooms: 2,
+    bathrooms: 2,
+    sqm: 96,
+    agent: 'Bambang (Agent)',
+    status: null,
+  },
+  {
+    id: 'dummy-5',
+    title: 'Kos Putra/Putri — 5 Menit ke Kampus',
+    location: 'Dekat Kampus BSD, Tangerang',
+    price: 1200000,
+    priceDisplay: 'Rp 1.200.000 / bulan',
+    typeLabel: 'Disewa',
+    category: 'Kos',
+    image_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80',
+    bedrooms: 1,
+    bathrooms: 1,
+    sqm: 18,
+    agent: 'Dewi (Admin)',
+    status: null,
+  },
+]
 
 function formatPrice(value) {
   if (value == null) return 'Rp 0'
@@ -421,9 +499,42 @@ export default function ExplorePage({ onNavigate }) {
               </div>
             ))}
             {sorted.length === 0 && !loading && (
-              <p className="text-center text-sm text-brand-muted py-20">
-                Tidak ada properti yang ditemukan.
-              </p>
+              <div className="flex flex-col gap-6">
+                {DUMMY_PROPERTIES.map((p) => (
+                  <Link key={p.id} to={`/property/${p.id}`} className="block group">
+                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                      <div className="relative aspect-[4/3]">
+                        <img src={p.image_url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute top-3 left-3 flex gap-2">
+                          <span className="bg-brand-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                            {p.typeLabel}
+                          </span>
+                          {p.status === 'verified' && (
+                            <span className="bg-green-600/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                              Verified Legal
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-lg font-extrabold text-brand-primary">{p.priceDisplay}</h3>
+                        <p className="text-base font-semibold text-brand-text mt-1">{p.title}</p>
+                        <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
+                          <MapPin size={14} /> {p.location}
+                        </p>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                          <div className="flex gap-3 text-xs text-brand-muted">
+                            <span>{p.bedrooms} Bed</span>
+                            <span>{p.bathrooms} Bath</span>
+                            <span>{p.sqm} m&sup2;</span>
+                          </div>
+                          <span className="text-xs font-medium text-brand-secondary">{p.agent}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             )}
           </div>
         </>
