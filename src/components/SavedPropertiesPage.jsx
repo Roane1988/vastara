@@ -31,7 +31,7 @@ function ArrowLeftIcon() {
 function StatusBadge({ status }) {
   const colors = {
     Tersedia: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    'Sedang Nego': 'bg-orange-50 text-orange-600 border-orange-100',
+    'Sedang Nego': 'bg-blue-50 text-brand-secondary border-blue-100',
   }
   const label = status === 'verified' ? 'Tersedia' : 'Sedang Nego'
   return (
@@ -123,7 +123,7 @@ export default function SavedPropertiesPage({ onBack }) {
       <div className="px-4 pt-2 pb-8 space-y-5">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-center text-sm text-slate-400  pt-10">

@@ -120,7 +120,7 @@ function ContactCard({ contact }) {
           <span className="text-sm font-bold text-slate-900 ">{contact.name}</span>
           <span className="text-[10px] text-emerald-500  font-medium">Online</span>
         </div>
-        <p className="text-xs text-orange-500 font-medium mt-0.5">{contact.role}</p>
+        <p className="text-xs text-brand-secondary font-medium mt-0.5">{contact.role}</p>
         <p className="text-xs text-slate-400  mt-1 flex items-center gap-1">
           Klik untuk chat via WhatsApp
           <WhatsAppIcon />
@@ -171,7 +171,7 @@ export default function ChatHubPage({ onNavigate }) {
       {/* ─── Header ────────────────────────────────────────────── */}
       <div className="pt-12 pb-6 px-5">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
+          <div className="w-10 h-10 rounded-full bg-brand-secondary/10 flex items-center justify-center text-brand-secondary">
             <ChatIcon />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 ">Pesan & Bantuan</h1>

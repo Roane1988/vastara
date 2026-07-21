@@ -100,14 +100,14 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
                       onClick={() => setSelectedDate(d.date)}
                       className={`snap-center shrink-0 rounded-xl p-3 flex flex-col items-center min-w-[70px] transition-all outline-none ${
                         isSelected
-                          ? 'border-2 border-orange-500 bg-orange-50 '
+                          ? 'border-2 border-brand-secondary bg-brand-secondary/10 '
                           : 'border border-gray-200  bg-white '
                       }`}
                     >
-                      <span className={`text-xs font-medium ${isSelected ? 'text-orange-600' : 'text-gray-400 '}`}>
+                      <span className={`text-xs font-medium ${isSelected ? 'text-brand-secondary' : 'text-gray-400 '}`}>
                         {d.day}
                       </span>
-                      <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-orange-600' : 'text-slate-900 '}`}>
+                      <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-brand-secondary' : 'text-slate-900 '}`}>
                         {d.date}
                       </span>
                     </button>
@@ -141,7 +141,7 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="w-full py-4 rounded-xl font-bold text-base mt-8 mb-2 bg-[#FF6B00] text-white shadow-lg shadow-orange-500/20 hover:bg-[#e86000] transition-colors"
+                className="w-full py-4 rounded-xl font-bold text-base mt-8 mb-2 bg-brand-primary text-white hover:bg-[#152d4a] transition-colors"
               >
                 Konfirmasi Jadwal
               </button>

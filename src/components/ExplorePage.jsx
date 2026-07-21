@@ -79,14 +79,14 @@ function PromoBanner({ agent }) {
 }
 
 const QUICK_MENU = [
-  { icon: Search, label: 'Carikan Properti', action: null },
+  { icon: Search, label: 'Carikan Properti', action: 'coming-soon' },
   { icon: Megaphone, label: 'Iklankan Properti', action: 'sell' },
-  { icon: Users, label: 'Cari Agen', action: null },
-  { icon: Calculator, label: 'Kalkulator KPR', action: null },
-  { icon: TrendingDown, label: 'Turun Harga', action: null },
-  { icon: MessageCircle, label: 'Tanya Forum', action: null },
-  { icon: ArrowLeftRight, label: 'Pindah KPR', action: null },
-  { icon: LayoutGrid, label: 'Lainnya', action: null },
+  { icon: Users, label: 'Cari Agen', action: 'coming-soon' },
+  { icon: Calculator, label: 'Kalkulator KPR', action: 'coming-soon' },
+  { icon: TrendingDown, label: 'Turun Harga', action: 'coming-soon' },
+  { icon: MessageCircle, label: 'Tanya Forum', action: 'coming-soon' },
+  { icon: ArrowLeftRight, label: 'Pindah KPR', action: 'coming-soon' },
+  { icon: LayoutGrid, label: 'Lainnya', action: 'coming-soon' },
 ]
 
 export default function ExplorePage({ onNavigate }) {
@@ -99,6 +99,7 @@ export default function ExplorePage({ onNavigate }) {
   const [filterType, setFilterType] = useState('')
   const [filterBeds, setFilterBeds] = useState('')
   const [sortIndex, setSortIndex] = useState(0)
+  const [searchCategory, setSearchCategory] = useState('dijual')
 
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
@@ -201,21 +202,49 @@ export default function ExplorePage({ onNavigate }) {
             </p>
           </>
         )}
-        <div className="bg-brand-bg rounded-full flex items-center px-4 py-3 gap-3 border border-brand-border shadow-sm text-brand-muted">
-          <SearchIcon />
-          <input
-            type="text"
-            placeholder="Cari lokasi atau nama properti..."
-            aria-label="Cari properti"
-            className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => setShowFilter(true)}
-            className="text-brand-muted hover:text-brand-secondary transition-colors"
-          >
-            <FilterIcon />
-          </button>
+        <div className="bg-brand-primary rounded-2xl shadow-lg p-4 mt-4">
+          <div className="flex space-x-6 mb-4 border-b border-white/20">
+            {[
+              { key: 'dijual', label: 'Dijual' },
+              { key: 'disewa', label: 'Disewa' },
+              { key: 'baru', label: 'Properti Baru' },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setSearchCategory(tab.key)}
+                className={`pb-2 text-sm transition-colors ${
+                  searchCategory === tab.key
+                    ? 'text-white font-semibold border-b-2 border-white'
+                    : 'text-white/70 font-medium border-b-2 border-transparent hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="bg-white rounded-xl flex items-center px-3 py-2">
+            <SearchIcon />
+            <input
+              type="text"
+              placeholder={
+                searchCategory === 'dijual'
+                  ? 'Cari lokasi atau nama properti...'
+                  : searchCategory === 'disewa'
+                  ? 'Cari properti untuk disewa...'
+                  : 'Cari properti baru...'
+              }
+              aria-label="Cari properti"
+              className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowFilter(true)}
+              className="text-brand-muted hover:text-brand-secondary transition-colors"
+            >
+              <FilterIcon />
+            </button>
+          </div>
         </div>
       </header>
 

@@ -71,7 +71,7 @@ function MegaphoneIcon() {
 const ICON_MAP = {
   legal: { icon: ShieldIcon, bg: 'bg-emerald-100 ', color: 'text-emerald-600 ' },
   survey: { icon: CalendarIcon, bg: 'bg-blue-100 ', color: 'text-blue-600 ' },
-  promo: { icon: MegaphoneIcon, bg: 'bg-orange-100 ', color: 'text-orange-600 ' },
+  promo: { icon: MegaphoneIcon, bg: 'bg-brand-secondary/10 ', color: 'text-brand-secondary ' },
 }
 
 function NotificationCard({ notification }) {
@@ -82,12 +82,12 @@ function NotificationCard({ notification }) {
     <div
       className={`relative flex gap-3 p-4 border-b border-gray-50  transition-colors ${
         notification.unread
-          ? 'bg-orange-50/50 '
+          ? 'bg-brand-secondary/5 '
           : 'hover:bg-slate-50 '
       }`}
     >
       {notification.unread && (
-        <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-orange-500" />
+        <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-brand-primary" />
       )}
 
       <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${config.bg} ${config.color}`}>
@@ -157,7 +157,7 @@ export default function NotificationDrawer({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={markAllRead}
-                  className="text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors"
+                  className="text-xs font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
                 >
                   Tandai semua dibaca
                 </button>

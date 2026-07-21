@@ -13,7 +13,7 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="text-xl font-bold tracking-tight text-brand-text"
+            className="text-2xl font-extrabold tracking-tighter text-brand-primary"
           >
             Vastara
           </button>

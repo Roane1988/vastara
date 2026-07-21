@@ -15,8 +15,8 @@ export default function NotFoundPage({ message, onBack }) {
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center px-6">
       <div className="flex flex-col items-center text-center max-w-sm">
-        <div className="w-20 h-20 rounded-full bg-orange-500/10 flex items-center justify-center mb-6">
-          <SearchX size={40} className="text-orange-500" />
+        <div className="w-20 h-20 rounded-full bg-brand-secondary/10 flex items-center justify-center mb-6">
+          <SearchX size={40} className="text-brand-secondary" />
         </div>
 
         <h1 className="text-2xl font-bold text-white mb-3">
@@ -31,7 +31,7 @@ export default function NotFoundPage({ message, onBack }) {
           <button
             type="button"
             onClick={handleBack}
-            className="flex-1 py-3.5 px-6 rounded-full font-bold text-sm text-white bg-orange-500 hover:bg-orange-400 active:bg-orange-600 transition-all"
+            className="flex-1 py-3.5 px-6 rounded-full font-bold text-sm text-white bg-brand-primary hover:bg-[#152d4a] active:bg-[#0f2640] transition-all"
           >
             Kembali ke Beranda
           </button>

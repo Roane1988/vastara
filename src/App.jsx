@@ -9,6 +9,7 @@ import ExplorePage from './components/ExplorePage'
 import ChatHubPage from './components/ChatHubPage'
 import PropertyDetailPage from './components/PropertyDetailPage'
 import SellPropertyPage from './components/SellPropertyPage'
+import ComingSoonPage from './components/ComingSoonPage'
 
 const pageTransition = {
  initial: { opacity: 0, scale: 0.97, y: 8 },
@@ -89,8 +90,9 @@ function AppContent() {
  </ProtectedRoute>
  } />
  <Route path="/chat" element={<ChatHubPage onNavigate={onNavigate} />} />
- <Route path="/property/:id" element={<PropertyDetailPage />} />
- <Route path="*" element={<Navigate to="/" replace />} />
+  <Route path="/property/:id" element={<PropertyDetailPage />} />
+  <Route path="/coming-soon" element={<ComingSoonPage />} />
+  <Route path="*" element={<Navigate to="/" replace />} />
  </Routes>
  </motion.div>
  </AnimatePresence>

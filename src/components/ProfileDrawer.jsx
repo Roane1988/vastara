@@ -251,7 +251,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Nama lengkap"
-                      className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors placeholder:text-slate-400"
+                      className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-slate-400"
                     />
                   </div>
                   <div>
@@ -261,7 +261,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="email@example.com"
-                      className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors placeholder:text-slate-400"
+                      className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-slate-400"
                     />
                   </div>
                   <div>
@@ -271,7 +271,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                       value={whatsapp}
                       onChange={(e) => setWhatsapp(e.target.value)}
                       placeholder="+628123456789"
-                      className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors placeholder:text-slate-400"
+                      className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -303,7 +303,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors placeholder:text-slate-400"
+                  className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-slate-400"
                 />
               </div>
               <button
