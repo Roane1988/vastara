@@ -5,8 +5,6 @@ import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 
-const CATEGORIES = ['Semua', 'Rumah Baru', 'Apartemen', 'BSD City', 'Jakarta Selatan']
-const SORT_OPTIONS = ['Terbaru', 'Termurah', 'Termahal']
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
 
 function formatPrice(value) {
@@ -44,42 +42,6 @@ function ChevronDownIcon() {
   )
 }
 
-function PromoBanner({ agent }) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl shadow-lg min-h-[220px] sm:min-h-[260px] flex flex-col justify-end">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80')" }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-slate-900/30" />
-      <div className="relative z-10 p-6 sm:p-8">
-        <span className="inline-block bg-brand-primary text-white text-xs font-bold px-3 py-1 rounded-full mb-3 w-fit">
-          Hot Deal
-        </span>
-        <h3 className="text-xl sm:text-2xl font-bold text-white">Cluster Mewah BSD Diskon 10%</h3>
-        <p className="text-sm sm:text-base text-slate-300 mt-1 mb-5">Terbatas hanya minggu ini.</p>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center text-white text-sm font-bold">
-              {agent?.charAt(0) || 'A'}
-            </div>
-            <div>
-              <p className="text-xs text-slate-300">Direkomendasikan oleh</p>
-              <p className="text-sm font-bold text-white">{agent || 'Aqsha (Senior Agent)'}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="bg-white text-slate-900 rounded-xl px-5 py-2.5 text-sm font-bold active:scale-95 transition-transform hover:bg-slate-100"
-          >
-            Lihat Promo
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 const QUICK_MENU = [
   { icon: Search, label: 'Carikan Properti', path: '/coming-soon' },
   { icon: Megaphone, label: 'Iklankan Properti', path: '/sell' },
@@ -89,6 +51,29 @@ const QUICK_MENU = [
   { icon: MessageCircle, label: 'Tanya Forum', path: '/coming-soon' },
   { icon: ArrowLeftRight, label: 'Pindah KPR', path: '/coming-soon' },
   { icon: LayoutGrid, label: 'Lainnya', drawer: true },
+]
+
+const POPULAR_SEARCHES = [
+  {
+    title: 'Rekomendasi Hunian Nyaman Dekat Kampus',
+    tags: ['Kos Eksklusif', 'Apartemen', 'BSD', 'Budget Mahasiswa'],
+    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    title: 'Kost Jakarta Nyaman dan Strategis',
+    tags: ['Kost', 'Jakarta', 'Fasilitas Lengkap'],
+    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    title: 'Cluster Mewah dengan Fasilitas Premium',
+    tags: ['Cluster', 'Mewah', 'BSD City', 'Diskon 10%'],
+    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    title: 'Ruko & Ruang Usaha Strategis BSD',
+    tags: ['Ruko', 'Kantor', 'BSD Central', 'Komersial'],
+    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
+  },
 ]
 
 export default function ExplorePage({ onNavigate }) {
@@ -178,6 +163,8 @@ export default function ExplorePage({ onNavigate }) {
     return true
   })
 
+  const SORT_OPTIONS = ['Terbaru', 'Termurah', 'Termahal']
+
   const sorted = [...filtered].sort((a, b) => {
     if (sortIndex === 1) return (Number(a.price) || 0) - (Number(b.price) || 0)
     if (sortIndex === 2) return (Number(b.price) || 0) - (Number(a.price) || 0)
@@ -188,286 +175,312 @@ export default function ExplorePage({ onNavigate }) {
     .sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0))
     .slice(0, 4)
 
+  const displayRecommendations = sorted.length > 0 ? sorted.slice(0, 4) : DUMMY_PROPERTIES.slice(0, 4)
+  const displayListings = sorted.length > 0 ? sorted : DUMMY_PROPERTIES
+
   return (
     <div className="min-h-screen bg-brand-bg">
-      <header className="sticky top-14 bg-brand-surface/90 backdrop-blur-md z-30 pt-4 pb-4 px-4">
-        {user ? (
-          <h1 className="text-2xl font-bold text-brand-text mb-5">
-            Selamat Datang, {firstName}
-          </h1>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold text-brand-text mb-1">
-              Selamat datang di Vastara!
+      {/* ─── HERO BANNER ─── */}
+      <div className="relative bg-brand-primary overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.08]">
+          <img
+            src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1920&q=80"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 pt-6 pb-10 sm:pt-10 sm:pb-14">
+          {user ? (
+            <h1 className="text-2xl font-bold text-white">
+              Selamat Datang, {firstName}
             </h1>
-            <p className="text-sm text-brand-muted mb-4">
-              Jual/beli properti impian disini!
-            </p>
-          </>
-        )}
-        <div className="bg-brand-primary rounded-2xl shadow-lg p-4 mt-4">
-          <div className="flex space-x-6 mb-4 border-b border-white/20">
-            {[
-              { key: 'dijual', label: 'Dijual' },
-              { key: 'disewa', label: 'Disewa' },
-              { key: 'baru', label: 'Properti Baru' },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setSearchCategory(tab.key)}
-                className={`pb-2 text-sm transition-colors ${
-                  searchCategory === tab.key
-                    ? 'text-white font-semibold border-b-2 border-white'
-                    : 'text-white/70 font-medium border-b-2 border-transparent hover:text-white'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className="bg-white rounded-xl flex items-center px-3 py-2">
-            <SearchIcon />
-            <input
-              type="text"
-              placeholder={
-                searchCategory === 'dijual'
-                  ? 'Cari lokasi atau nama properti...'
-                  : searchCategory === 'disewa'
-                  ? 'Cari properti untuk disewa...'
-                  : 'Cari properti baru...'
-              }
-              aria-label="Cari properti"
-              className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => setShowFilter(true)}
-              className="text-brand-muted hover:text-brand-secondary transition-colors"
-            >
-              <FilterIcon />
-            </button>
-          </div>
-        </div>
-      </header>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-white">
+                Selamat datang di Vastara!
+              </h1>
+              <p className="text-white/80 text-sm mt-1">
+                Jual Beli dan Sewa Properti Jadi Mudah
+              </p>
+            </>
+          )}
 
-      <div className="grid grid-cols-4 gap-4 px-4 py-4">
-        {QUICK_MENU.map((item) => {
-          const Icon = item.icon
-          return (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => {
-                if (item.drawer) return setIsMoreDrawerOpen(true)
-                if (item.path) navigate(item.path)
-              }}
-              className="flex flex-col items-center gap-2 active:scale-90 transition-transform"
-            >
-              <div className="w-12 h-12 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-secondary shadow-sm">
-                <Icon size={20} />
-              </div>
-              <span className="text-[10px] text-brand-text font-semibold text-center leading-tight">
-                {item.label}
+          {/* Search Card */}
+          <div className="bg-white rounded-2xl shadow-xl p-4 mt-6">
+            <div className="flex gap-6 mb-4 border-b border-slate-200">
+              {[
+                { key: 'dijual', label: 'Dijual' },
+                { key: 'disewa', label: 'Disewa' },
+                { key: 'baru', label: 'Properti Baru' },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setSearchCategory(tab.key)}
+                  className={`pb-2 text-sm transition-colors ${
+                    searchCategory === tab.key
+                      ? 'text-brand-primary font-semibold border-b-2 border-brand-primary'
+                      : 'text-brand-muted font-medium border-b-2 border-transparent hover:text-brand-text'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center px-3 py-2 bg-brand-bg rounded-xl gap-3">
+              <span className="text-brand-muted shrink-0">
+                <SearchIcon />
               </span>
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="flex items-center gap-2 px-4 py-3">
-        <div className="overflow-x-auto no-scrollbar flex-1">
-          <div className="flex gap-2">
-            {CATEGORIES.map((cat) => (
+              <input
+                type="text"
+                placeholder={
+                  searchCategory === 'dijual'
+                    ? 'Cari lokasi atau nama properti...'
+                    : searchCategory === 'disewa'
+                    ? 'Cari properti untuk disewa...'
+                    : 'Cari properti baru...'
+                }
+                aria-label="Cari properti"
+                className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+              />
               <button
-                key={cat}
                 type="button"
-                onClick={() => setActiveCategory(cat)}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors outline-none ${
-                  activeCategory === cat
-                    ? 'bg-brand-primary text-white'
-                    : 'border border-brand-border text-brand-muted hover:bg-slate-100'
-                }`}
+                onClick={() => setShowFilter(true)}
+                className="text-brand-muted hover:text-brand-secondary transition-colors shrink-0"
               >
-                {cat}
+                <FilterIcon />
               </button>
-            ))}
+            </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={cycleSort}
-          className="shrink-0 flex items-center gap-1.5 border border-brand-border bg-brand-surface rounded-full px-3.5 py-1.5 text-xs text-brand-text font-medium hover:bg-slate-50 transition-colors"
-        >
-          Urutkan: {SORT_OPTIONS[sortIndex]}
-          <ChevronDownIcon />
-        </button>
       </div>
 
-      <div className="px-4 mb-6">
-        <PromoBanner agent="Aqsha (Senior Agent)" />
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+      {/* ─── QUICK ACCESS GRID ─── */}
+      <div className="max-w-7xl mx-auto px-4 -mt-5 relative z-10">
+        <div className="bg-brand-surface rounded-2xl shadow-sm p-4">
+          <div className="grid grid-cols-4 gap-4">
+            {QUICK_MENU.map((item) => {
+              const Icon = item.icon
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    if (item.drawer) return setIsMoreDrawerOpen(true)
+                    if (item.path) navigate(item.path)
+                  }}
+                  className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
+                >
+                  <div className="w-12 h-12 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-secondary shadow-sm">
+                    <Icon size={20} />
+                  </div>
+                  <span className="text-[10px] text-brand-text font-semibold text-center leading-tight">
+                    {item.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
-      ) : (
-        <>
-          {properties.length > 0 && (
-            <div className="px-4 mb-6">
-              <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-md bg-slate-100 ">
-                {properties.slice(0, 3).map((p, index) => (
-                  <Link
-                    key={p.id}
-                    to={`/property/${p.id}`}
-                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                      index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                    }`}
-                  >
-                    <img
-                      src={p.image_url || FALLBACK_IMAGE}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
-                    <div className="absolute bottom-0 left-0 p-4 w-full">
-                      <span className="inline-block bg-brand-primary text-white text-[10px] px-2 py-1 rounded-full font-bold mb-2">
-                        {p.status === 'verified' ? 'Verified Legal' : 'Listing Baru'}
-                      </span>
-                      <h3 className="text-lg font-extrabold text-white leading-tight">{p.title}</h3>
-                      <p className="text-xs text-slate-300 mt-1">{p.location}</p>
-                    </div>
-                  </Link>
-                ))}
-                <div className="flex gap-1.5 absolute bottom-3 left-1/2 -translate-x-1/2">
-                  {properties.slice(0, 3).map((_, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => setCurrentSlide(index)}
-                      className={`transition-all rounded-full ${
-                        index === currentSlide
-                          ? 'w-4 h-1.5 bg-brand-primary'
-                          : 'w-1.5 h-1.5 bg-white/50'
-                      }`}
-                    />
+      </div>
+
+      {/* ─── REKOMENDASI SESUAI PENCARIANMU ─── */}
+      <section className="max-w-7xl mx-auto px-4 mt-8 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-brand-text">
+            Rekomendasi Sesuai Pencarianmu
+          </h2>
+          <button
+            type="button"
+            onClick={() => navigate('/explore')}
+            className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
+          >
+            Lihat Selengkapnya
+          </button>
+        </div>
+        <div className="flex gap-4 overflow-x-auto no-scrollbar">
+          {displayRecommendations.map((p) => (
+            <Link
+              key={p.id}
+              to={`/property/${p.id}`}
+              className="min-w-[260px] w-[260px] shrink-0 group"
+            >
+              <div className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden">
+                <div className="relative aspect-[4/3]">
+                  <img
+                    src={p.image_url || FALLBACK_IMAGE}
+                    alt={p.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  {p.status === 'verified' && (
+                    <span className="absolute top-2 left-2 bg-brand-accent/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
+                      Verified Legal
+                    </span>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="text-base font-extrabold text-brand-primary">
+                    {formatPrice(p.price)}
+                  </p>
+                  <p className="text-sm font-semibold text-brand-text mt-0.5 truncate">
+                    {p.title}
+                  </p>
+                  <p className="text-xs text-brand-muted mt-0.5 flex items-center gap-1">
+                    <MapPin size={12} />
+                    {p.location || 'Indonesia'}
+                  </p>
+                  <div className="flex gap-3 text-[11px] text-brand-muted mt-2 pt-2 border-t border-brand-border">
+                    <span>{p.bedrooms} Bed</span>
+                    <span>{p.bathrooms} Bath</span>
+                    <span>{p.sqm} m&sup2;</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── PENCARIAN PROPERTI POPULER ─── */}
+      <section className="max-w-7xl mx-auto px-4 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-brand-text">
+            Pencarian Properti Populer
+          </h2>
+          <button
+            type="button"
+            onClick={() => navigate('/coming-soon')}
+            className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
+          >
+            Acak Pencarian
+          </button>
+        </div>
+        <div className="flex flex-col gap-4">
+          {POPULAR_SEARCHES.map((item) => (
+            <Link
+              key={item.title}
+              to="/coming-soon"
+              className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden flex items-stretch group"
+            >
+              <div className="w-24 sm:w-32 shrink-0 overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center">
+                <h3 className="text-sm sm:text-base font-bold text-brand-text group-hover:text-brand-secondary transition-colors">
+                  {item.title}
+                </h3>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {item.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[10px] font-medium text-brand-muted bg-brand-bg px-2 py-0.5 rounded-full border border-brand-border"
+                    >
+                      {tag}
+                    </span>
                   ))}
                 </div>
               </div>
-            </div>
-          )}
+            </Link>
+          ))}
+        </div>
+      </section>
 
-          {recommended.length > 0 && user && (
-            <div className="mb-6">
-              <h2 className="text-lg font-bold text-brand-text px-4 mb-3">
-                Pilihan untuk {firstName}
-              </h2>
-              <div className="flex gap-4 overflow-x-auto no-scrollbar px-4">
-                {recommended.map((p) => (
-                  <Link key={p.id} to={`/property/${p.id}`} className="w-[260px] shrink-0 group">
-                    <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-slate-100 ">
-                      <img src={p.image_url || FALLBACK_IMAGE} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+      {/* ─── FULL PROPERTY LISTING ─── */}
+      <section className="max-w-7xl mx-auto px-4 pb-24">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-brand-text">
+            Semua Properti
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowFilter(true)}
+              className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
+            >
+              Filter
+            </button>
+            <button
+              type="button"
+              onClick={cycleSort}
+              className="flex items-center gap-1 text-xs text-brand-muted bg-brand-surface border border-brand-border rounded-full px-3 py-1.5 font-medium hover:bg-slate-50 transition-colors"
+            >
+              Urutkan: {SORT_OPTIONS[sortIndex]}
+              <ChevronDownIcon />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {displayListings.map((p) => (
+            <div key={p.id}>
+              <Link to={`/property/${p.id}`} className="block group">
+                <div className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden">
+                  <div className="relative aspect-[4/3] sm:aspect-[16/7]">
+                    <img
+                      src={p.image_url || FALLBACK_IMAGE}
+                      alt={p.title}
+                      onError={(e) => { e.target.src = FALLBACK_IMAGE }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3 flex gap-2">
+                      {p.typeLabel && (
+                        <span className="bg-brand-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                          {p.typeLabel}
+                        </span>
+                      )}
                       {p.status === 'verified' && (
-                        <span className="absolute top-2 left-2 bg-brand-accent/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
+                        <span className="bg-brand-accent/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
                           Verified Legal
                         </span>
                       )}
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); toggleSave(p.id) }}
-                        className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm p-1.5 rounded-full text-brand-muted hover:text-brand-secondary transition-colors"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4A90E2' : 'none'} stroke={saved.includes(p.id) ? '#4A90E2' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
-                      </button>
                     </div>
-                    <h3 className="text-base font-bold text-brand-text group-hover:text-brand-secondary transition-colors">{formatPrice(p.price)}</h3>
-                    <p className="text-xs text-brand-muted mt-0.5 group-hover:text-brand-secondary transition-colors">{p.title}</p>
-                    <p className="text-[11px] text-brand-muted mt-0.5">
-                      {p.bedrooms} Bed &bull; {p.bathrooms} Bath &bull; {p.sqm} m&sup2;
+                  </div>
+                  <div className="p-4">
+                    <p className="text-xl font-extrabold text-brand-primary">
+                      {p.priceDisplay || formatPrice(p.price)}
                     </p>
-                  </Link>
-                ))}
+                    <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-secondary transition-colors">
+                      {p.title}
+                    </p>
+                    <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
+                      <MapPin size={14} />
+                      {p.location || 'Indonesia'}
+                    </p>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
+                      <div className="flex gap-3 text-xs text-brand-muted">
+                        <span>{p.bedrooms} Bed</span>
+                        <span>{p.bathrooms} Bath</span>
+                        <span>{p.sqm} m&sup2;</span>
+                      </div>
+                      {p.agent && (
+                        <span className="text-xs font-medium text-brand-secondary">{p.agent}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => toggleSave(p.id)}
+                  className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-secondary transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4A90E2' : 'none'} stroke={saved.includes(p.id) ? '#4A90E2' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  {saved.includes(p.id) ? 'Disimpan' : 'Simpan'}
+                </button>
               </div>
             </div>
-          )}
+          ))}
+        </div>
+      </section>
 
-          <div className="flex flex-col gap-6 px-4 pb-24">
-            {sorted.map((p) => (
-              <div key={p.id}>
-                <Link to={`/property/${p.id}`} className="block group">
-                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-3 bg-slate-100 ">
-                    <img src={p.image_url || FALLBACK_IMAGE} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    {p.status === 'verified' && (
-                      <span className="absolute top-3 left-3 bg-brand-accent/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
-                        Verified Legal
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-xl font-extrabold text-brand-text group-hover:text-brand-secondary transition-colors">{formatPrice(p.price)}</h3>
-                  <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-secondary transition-colors">{p.title}</p>
-                  <p className="text-sm text-brand-muted mt-1">
-                    {p.bedrooms} Bed &bull; {p.bathrooms} Bath &bull; {p.sqm} m&sup2;
-                  </p>
-                </Link>
-                <div className="mt-2 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => toggleSave(p.id)}
-                    className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-secondary transition-colors"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4A90E2' : 'none'} stroke={saved.includes(p.id) ? '#4A90E2' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
-                    {saved.includes(p.id) ? 'Disimpan' : 'Simpan'}
-                  </button>
-                </div>
-              </div>
-            ))}
-            {sorted.length === 0 && !loading && (
-              <div className="flex flex-col gap-6">
-                {DUMMY_PROPERTIES.map((p) => (
-                  <Link key={p.id} to={`/property/${p.id}`} className="block group">
-                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                      <div className="relative aspect-[4/3]">
-                        <img src={p.image_url} alt={p.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <div className="absolute top-3 left-3 flex gap-2">
-                          <span className="bg-brand-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                            {p.typeLabel}
-                          </span>
-                          {p.status === 'verified' && (
-                            <span className="bg-green-600/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                              Verified Legal
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-lg font-extrabold text-brand-primary">{p.priceDisplay}</h3>
-                        <p className="text-base font-semibold text-brand-text mt-1">{p.title}</p>
-                        <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
-                          <MapPin size={14} /> {p.location}
-                        </p>
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                          <div className="flex gap-3 text-xs text-brand-muted">
-                            <span>{p.bedrooms} Bed</span>
-                            <span>{p.bathrooms} Bath</span>
-                            <span>{p.sqm} m&sup2;</span>
-                          </div>
-                          <span className="text-xs font-medium text-brand-secondary">{p.agent}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
+      {/* ─── DRAWERS ─── */}
       <MoreCategoriesDrawer
         isOpen={isMoreDrawerOpen}
         onClose={() => setIsMoreDrawerOpen(false)}
@@ -581,7 +594,6 @@ export default function ExplorePage({ onNavigate }) {
           </div>
         </>
       )}
-
     </div>
   )
 }
