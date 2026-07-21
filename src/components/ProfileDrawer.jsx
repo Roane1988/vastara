@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useDarkMode } from '../context/DarkModeContext'
 
@@ -74,19 +75,58 @@ function SaveIcon() {
   )
 }
 
-export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
+function InfoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  )
+}
+
+export default function ProfileDrawer({ isOpen, onClose, userName }) {
+  const navigate = useNavigate()
   const { dark, toggle } = useDarkMode()
 
   const [name, setName] = useState(userName || '')
   const [email, setEmail] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [saving, setSaving] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
+
+  const [currentEmail, setCurrentEmail] = useState('')
 
   useEffect(() => {
     if (!isOpen) return
-    supabase.auth.getUser().then(({ data }) => {
-      setEmail(data?.user?.email || '')
-    })
+    setCurrentPassword('')
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const authEmail = user.email || ''
+      setEmail(authEmail)
+      setCurrentEmail(authEmail)
+
+      if (user.user_metadata?.full_name) {
+        setName(user.user_metadata.full_name)
+      }
+      setWhatsapp(user.user_metadata?.whatsapp || '')
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email, whatsapp')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        if (profile.full_name) setName(profile.full_name)
+        if (profile.email) setEmail(profile.email)
+        if (profile.whatsapp) setWhatsapp(profile.whatsapp)
+      }
+    })()
   }, [isOpen])
 
   useEffect(() => {
@@ -95,41 +135,67 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
     return () => clearTimeout(timer)
   }, [notification.show])
 
-  const isSaveDisabled = saving || !name.trim() || !email.trim()
+  const isSaveDisabled = saving || !name.trim() || !email.trim() || !currentPassword.trim()
 
   const notify = useCallback((message, type) => {
     setNotification({ show: true, message, type })
   }, [])
 
   async function handleSave() {
-    if (!name.trim() || !email.trim()) return
+    if (!name.trim() || !email.trim() || !currentPassword.trim()) return
 
     setSaving(true)
+    notify('Memverifikasi & Menyimpan...', 'info')
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: currentEmail,
+      password: currentPassword,
+    })
+
+    if (signInError) {
+      notify('Password salah', 'error')
+      setSaving(false)
+      return
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
-
-    if (email !== user?.email) {
-      const { error: emailErr } = await supabase.auth.updateUser({ email })
-      if (emailErr) {
-        notify(emailErr.message, 'error')
-        setSaving(false)
-        return
-      }
+    if (!user) {
+      notify('Sesi tidak ditemukan, silakan login ulang', 'error')
+      setSaving(false)
+      return
     }
 
-    if (user) {
-      const { error: profileErr } = await supabase
-        .from('profiles')
-        .update({ full_name: name, updated_at: new Date().toISOString() })
-        .eq('id', user.id)
-
-      if (profileErr) {
-        notify(profileErr.message, 'error')
-        setSaving(false)
-        return
-      }
+    const authUpdates = { data: { full_name: name, whatsapp } }
+    if (email !== currentEmail) {
+      authUpdates.email = email
     }
 
+    const { error: authError } = await supabase.auth.updateUser(authUpdates)
+
+    if (authError) {
+      notify(authError.message, 'error')
+      setSaving(false)
+      return
+    }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: name,
+        email,
+        whatsapp,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id)
+
+    if (profileError) {
+      notify(profileError.message, 'error')
+      setSaving(false)
+      return
+    }
+
+    setCurrentPassword('')
+    setCurrentEmail(email)
     setSaving(false)
     notify('Perubahan berhasil disimpan', 'success')
   }
@@ -184,12 +250,16 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
                 <div className={`rounded-lg px-4 py-3 shadow-lg text-sm font-medium flex items-center gap-2 ${
                   notification.type === 'success'
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-red-50 text-red-700 border border-red-200'
+                    : notification.type === 'info'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
                 }`}>
                   {notification.type === 'success' ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
+                  ) : notification.type === 'info' ? (
+                    <InfoIcon />
                   ) : (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />
@@ -227,22 +297,48 @@ export default function ProfileDrawer({ isOpen, onClose, onLogout, userName }) {
                       className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors placeholder:text-slate-400"
                     />
                   </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase tracking-wide">Nomor WhatsApp</label>
+                    <input
+                      type="text"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      placeholder="+628123456789"
+                      className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors placeholder:text-slate-400"
+                    />
+                  </div>
                 </div>
               </section>
 
               <section>
                 <button
                   type="button"
-                  onClick={() => { onClose(); onLogout?.() }}
-                  className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-xl transition-colors"
+                  disabled={loggingOut}
+                  onClick={async () => {
+                    setLoggingOut(true)
+                    await supabase.auth.signOut()
+                    onClose()
+                    navigate('/')
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-xl transition-colors disabled:opacity-50"
                 >
-                  <LogOutIcon />
-                  Log Out
+                  {loggingOut ? <SpinnerIcon /> : <LogOutIcon />}
+                  {loggingOut ? 'Logging out...' : 'Log Out'}
                 </button>
               </section>
             </div>
 
-            <div className="mt-auto sticky bottom-0 bg-white dark:bg-slate-900 p-4 border-t border-gray-100 dark:border-slate-800">
+            <div className="mt-auto sticky bottom-0 bg-white dark:bg-slate-900 p-4 border-t border-gray-100 dark:border-slate-800 space-y-3">
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase tracking-wide">Masukkan Password untuk menyimpan perubahan</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full border border-gray-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors placeholder:text-slate-400"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleSave}

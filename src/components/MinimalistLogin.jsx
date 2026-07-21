@@ -66,13 +66,14 @@ function SunIcon() {
   )
 }
 
-export default function MinimalistLogin({ onLogin }) {
+export default function MinimalistLogin({ onLoginSuccess }) {
   const { dark, toggle } = useDarkMode()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [firstName, setFirstName] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -106,7 +107,7 @@ export default function MinimalistLogin({ onLogin }) {
     } else {
       const { data, error: authError } = await supabase.auth.signUp({
         email, password,
-        options: { data: { full_name: firstName } },
+        options: { data: { full_name: firstName, whatsapp } },
       })
       if (authError) {
         setError(authError.message)
@@ -116,7 +117,7 @@ export default function MinimalistLogin({ onLogin }) {
       displayName = firstName || data?.user?.user_metadata?.full_name || ''
     }
 
-    onLogin?.(getFirstName(displayName))
+    onLoginSuccess?.()
   }
 
   return (
@@ -254,6 +255,21 @@ export default function MinimalistLogin({ onLogin }) {
                   placeholder="Masukkan nama depan"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="whatsapp" className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5 block">
+                  No WhatsApp
+                </label>
+                <input
+                  id="whatsapp"
+                  type="tel"
+                  placeholder="Masukkan no WhatsApp"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
                   required
                   className="w-full py-3 px-4 text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                 />

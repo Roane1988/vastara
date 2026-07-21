@@ -1,129 +1,18 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-
-const location = 'BSD City'
-
-const PROMO_BANNERS = [
-  {
-    id: 1,
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
-    badge: 'Diskon KPR',
-    title: 'Cashback 50 Juta untuk Cluster X',
-    subtitle: 'Syarat mudah, bunga flat 4.99%',
-    agentName: 'Aqsha',
-    agentPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
-  },
-  {
-    id: 2,
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
-    badge: 'Hot Deal',
-    title: 'Early Bird BSD Phase 3',
-    subtitle: 'Only 5 units left — grab yours now!',
-    agentName: 'Rina',
-    agentPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
-  },
-  {
-    id: 3,
-    image: 'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=800&q=80',
-    badge: 'Bebas Biaya',
-    title: 'Hunian Siap Huni, Legalitas 100%',
-    subtitle: 'Booking sekarang, move-in minggu depan',
-    agentName: 'Budi',
-    agentPhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80',
-  },
-]
-
-// TODO: Fetch from Supabase 'properties' table
-const PROPERTIES = [
-  {
-    id: 1,
-    title: 'Modern Tropical House BSD',
-    price: 'Rp 1,8 M',
-    beds: 4,
-    baths: 3,
-    sqm: 150,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 2,
-    title: 'Apartemen Premium SCBD 2BR',
-    price: 'Rp 950 Jt',
-    beds: 2,
-    baths: 1,
-    sqm: 68,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 3,
-    title: 'Cluster Mewah Citra Raya',
-    price: 'Rp 2,5 M',
-    beds: 5,
-    baths: 4,
-    sqm: 220,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 4,
-    title: 'Villa Green Lake Puncak',
-    price: 'Rp 1,3 M',
-    beds: 3,
-    baths: 2,
-    sqm: 120,
-    verified: false,
-    image: 'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=800&q=80',
-  },
-]
-
-// TODO: Fetch from Supabase with user preference scoring
-const RECOMMENDED = [
-  {
-    id: 101,
-    title: 'The Lavande BSD',
-    price: 'Rp 2,1 M',
-    beds: 4,
-    baths: 3,
-    sqm: 175,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 102,
-    title: 'Apartemen Southgate 2BR',
-    price: 'Rp 1,2 M',
-    beds: 2,
-    baths: 1,
-    sqm: 72,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 103,
-    title: 'Grand Whiz City BSD',
-    price: 'Rp 3,4 M',
-    beds: 5,
-    baths: 4,
-    sqm: 250,
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 104,
-    title: 'Cluster Emerald Serpong',
-    price: 'Rp 1,7 M',
-    beds: 3,
-    baths: 2,
-    sqm: 135,
-    verified: false,
-    image: 'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=400&q=80',
-  },
-]
+import { Link } from 'react-router-dom'
+import { supabase } from '../supabaseClient'
 
 const CATEGORIES = ['Semua', 'Rumah Baru', 'Apartemen', 'BSD City', 'Jakarta Selatan']
-
 const SORT_OPTIONS = ['Terbaru', 'Termurah', 'Termahal']
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
+
+function formatPrice(value) {
+  if (value == null) return 'Rp 0'
+  const num = Number(value)
+  if (num >= 1_000_000_000) return `Rp ${(num / 1_000_000_000).toFixed(1)} M`
+  if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(0)} Jt`
+  return `Rp ${num.toLocaleString('id-ID')}`
+}
 
 function SearchIcon() {
   return (
@@ -152,7 +41,7 @@ function ChevronDownIcon() {
   )
 }
 
-export default function ExplorePage({ onNavigate, userName }) {
+export default function ExplorePage({ onNavigate }) {
   const [activeCategory, setActiveCategory] = useState('Semua')
   const [saved, setSaved] = useState([])
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -162,11 +51,61 @@ export default function ExplorePage({ onNavigate, userName }) {
   const [filterBeds, setFilterBeds] = useState('')
   const [sortIndex, setSortIndex] = useState(0)
 
+  const [properties, setProperties] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [totalListings, setTotalListings] = useState(0)
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription?.unsubscribe()
+  }, [])
+
+  const firstName = user?.user_metadata?.full_name
+    ? user.user_metadata.full_name.split(' ')[0]
+    : null
+
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % PROMO_BANNERS.length)
+      setCurrentSlide((prev) => (prev + 1) % Math.max(properties.length, 1))
     }, 4000)
     return () => clearInterval(interval)
+  }, [properties.length])
+
+  useEffect(() => {
+    async function fetchProperties() {
+      setLoading(true)
+
+      const { count, error: countError } = await supabase
+        .from('properties')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['verified', 'pending'])
+
+      if (!countError) {
+        setTotalListings(count || 0)
+      }
+
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .in('status', ['verified', 'pending'])
+        .order('created_at', { ascending: false })
+
+      if (!error && data) {
+        setProperties(data)
+      }
+
+      setLoading(false)
+    }
+
+    fetchProperties()
   }, [])
 
   const toggleSave = (id) => {
@@ -179,18 +118,50 @@ export default function ExplorePage({ onNavigate, userName }) {
     setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
   }
 
+  const filtered = properties.filter((p) => {
+    if (activeCategory === 'Rumah Baru' && p.bedrooms < 3) return false
+    if (activeCategory === 'Apartemen' && p.bedrooms > 2) return false
+    if (filterType && p.title !== filterType) return false
+    if (filterBeds) {
+      const num = parseInt(filterBeds)
+      if (filterBeds === '5+' ? (p.bedrooms || 0) < 5 : p.bedrooms !== num) return false
+    }
+    if (filterPrice) {
+      const price = Number(p.price) || 0
+      if (filterPrice === '0-1M' && price > 1_000_000_000) return false
+      if (filterPrice === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false
+      if (filterPrice === '3M+' && price < 3_000_000_000) return false
+    }
+    return true
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortIndex === 1) return (Number(a.price) || 0) - (Number(b.price) || 0)
+    if (sortIndex === 2) return (Number(b.price) || 0) - (Number(a.price) || 0)
+    return 0
+  })
+
+  const recommended = [...properties]
+    .sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0))
+    .slice(0, 4)
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
-      {/* ─── Header ──────────────────────────────────────────────── */}
       <header className="sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-30 pt-12 pb-4 px-4">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-          Selamat datang kembali, {userName}
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-          Ada 12 properti baru di{' '}
-          <span className="text-orange-500 font-semibold">{location}</span>{' '}
-          untuk Anda.
-        </p>
+        {user ? (
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-5">
+            Selamat Datang, {firstName}
+          </h1>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+              Selamat datang di Vastara!
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Jual/beli properti impian disini!
+            </p>
+          </>
+        )}
         <div className="bg-slate-100 dark:bg-slate-800 rounded-full flex items-center px-4 py-3 gap-3 border border-slate-200 dark:border-slate-700 shadow-sm text-slate-400 dark:text-slate-500">
           <SearchIcon />
           <input
@@ -209,11 +180,10 @@ export default function ExplorePage({ onNavigate, userName }) {
         </div>
       </header>
 
-      {/* ─── Listing Stats + Sell Banner ───────────────────────── */}
       <div className="mx-4 mb-3 p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-slate-800 dark:to-slate-800/80 border border-orange-100 dark:border-slate-700 rounded-2xl flex items-center justify-between">
         <div>
           <p className="text-xs text-slate-500 dark:text-slate-400">Total Verified Listings</p>
-          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">12</p>
+          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{totalListings}</p>
         </div>
         <Link
           to="/sell"
@@ -223,7 +193,6 @@ export default function ExplorePage({ onNavigate, userName }) {
         </Link>
       </div>
 
-      {/* ─── Categories + Sort ──────────────────────────────────── */}
       <div className="flex items-center gap-2 px-4 py-3">
         <div className="overflow-x-auto no-scrollbar flex-1">
           <div className="flex gap-2">
@@ -253,135 +222,133 @@ export default function ExplorePage({ onNavigate, userName }) {
         </button>
       </div>
 
-      {/* ─── Promo Carousel ────────────────────────────────────── */}
-      <div className="px-4 mb-6">
-        <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-md">
-          {PROMO_BANNERS.map((banner, index) => (
-            <div
-              key={banner.id}
-              className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
-            >
-              <img src={banner.image} alt="" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
-
-              {/* Agent — top right */}
-              <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-2 py-1">
-                <img
-                  src={banner.agentPhoto}
-                  alt={banner.agentName}
-                  className="w-5 h-5 rounded-full object-cover border border-white/50"
-                />
-                <span className="text-[10px] text-white font-medium">Ref: {banner.agentName}</span>
-              </div>
-
-              {/* Content — bottom left */}
-              <div className="absolute bottom-0 left-0 p-4 w-full">
-                <span className="inline-block bg-orange-500 text-white text-[10px] px-2 py-1 rounded-full font-bold mb-2">
-                  {banner.badge}
-                </span>
-                <h3 className="text-lg font-extrabold text-white leading-tight">{banner.title}</h3>
-                <p className="text-xs text-slate-300 mt-1">{banner.subtitle}</p>
-              </div>
-            </div>
-          ))}
-
-          {/* Pagination Dots */}
-          <div className="flex gap-1.5 absolute bottom-3 left-1/2 -translate-x-1/2">
-            {PROMO_BANNERS.map((_, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => setCurrentSlide(index)}
-                className={`transition-all rounded-full ${
-                  index === currentSlide
-                    ? 'w-4 h-1.5 bg-orange-500'
-                    : 'w-1.5 h-1.5 bg-white/50'
-                }`}
-              />
-            ))}
-          </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      </div>
-
-      {/* ─── Rekomendasi untuk Anda ────────────────────────────── */}
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white px-4 mb-3">
-          Pilihan untuk {userName}
-        </h2>
-        <div className="flex gap-4 overflow-x-auto no-scrollbar px-4">
-          {RECOMMENDED.map((p) => (
-            <Link key={p.id} to={`/property/${p.id}`} className="w-[260px] shrink-0 group">
-              <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-slate-100 dark:bg-slate-800">
-                <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                {p.verified && (
-                  <span className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
-                    Verified Legal
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); toggleSave(p.id) }}
-                  className="absolute top-2 right-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1.5 rounded-full text-slate-400 dark:text-slate-500 hover:text-orange-500 transition-colors"
+      ) : (
+        <>
+          <div className="px-4 mb-6">
+            <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-md bg-slate-100 dark:bg-slate-800">
+              {properties.slice(0, 3).map((p, index) => (
+                <Link
+                  key={p.id}
+                  to={`/property/${p.id}`}
+                  className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                    index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#FF6B00' : 'none'} stroke={saved.includes(p.id) ? '#FF6B00' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                  </svg>
-                </button>
-              </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#FF6B00] transition-colors">{p.price}</h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{p.title}</p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                {p.beds} Bed • {p.baths} Bath • {p.sqm} m&sup2;
-              </p>
-            </Link>
-          ))}
-        </div>
-        {/* TODO: Fetch recommendations from Supabase with user preference scoring */}
-      </div>
-
-      {/* ─── Property Feed ─────────────────────────────────────── */}
-      <div className="flex flex-col gap-6 px-4 pb-24">
-        {PROPERTIES.filter((p) => {
-          if (activeCategory === 'Semua') return true
-          if (activeCategory === 'Rumah Baru') return p.beds >= 3
-          if (activeCategory === 'Apartemen') return p.beds <= 2
-          return true
-        }).map((p) => (
-          <div key={p.id}>
-            <Link to={`/property/${p.id}`} className="block group">
-              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-800">
-                <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                {p.verified && (
-                  <span className="absolute top-3 left-3 bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
-                    Verified Legal
-                  </span>
-                )}
-              </div>
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white group-hover:text-[#FF6B00] transition-colors">{p.price}</h3>
-              <p className="text-base font-semibold text-slate-700 dark:text-slate-300 mt-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{p.title}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {p.beds} Bed • {p.baths} Bath • {p.sqm} m&sup2;
-              </p>
-            </Link>
-            <div className="mt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => toggleSave(p.id)}
-                className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-orange-500 transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#FF6B00' : 'none'} stroke={saved.includes(p.id) ? '#FF6B00' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-                {saved.includes(p.id) ? 'Disimpan' : 'Simpan'}
-              </button>
+                  <img
+                    src={p.image_url || FALLBACK_IMAGE}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
+                  <div className="absolute bottom-0 left-0 p-4 w-full">
+                    <span className="inline-block bg-orange-500 text-white text-[10px] px-2 py-1 rounded-full font-bold mb-2">
+                      {p.status === 'verified' ? 'Verified Legal' : 'Listing Baru'}
+                    </span>
+                    <h3 className="text-lg font-extrabold text-white leading-tight">{p.title}</h3>
+                    <p className="text-xs text-slate-300 mt-1">{p.location}</p>
+                  </div>
+                </Link>
+              ))}
+              {properties.length > 0 && (
+                <div className="flex gap-1.5 absolute bottom-3 left-1/2 -translate-x-1/2">
+                  {properties.slice(0, 3).map((_, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => setCurrentSlide(index)}
+                      className={`transition-all rounded-full ${
+                        index === currentSlide
+                          ? 'w-4 h-1.5 bg-orange-500'
+                          : 'w-1.5 h-1.5 bg-white/50'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* ─── Filter Drawer ────────────────────────────────────── */}
+          {recommended.length > 0 && user && (
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white px-4 mb-3">
+                Pilihan untuk {firstName}
+              </h2>
+              <div className="flex gap-4 overflow-x-auto no-scrollbar px-4">
+                {recommended.map((p) => (
+                  <Link key={p.id} to={`/property/${p.id}`} className="w-[260px] shrink-0 group">
+                    <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-slate-100 dark:bg-slate-800">
+                      <img src={p.image_url || FALLBACK_IMAGE} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      {p.status === 'verified' && (
+                        <span className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
+                          Verified Legal
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); toggleSave(p.id) }}
+                        className="absolute top-2 right-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1.5 rounded-full text-slate-400 dark:text-slate-500 hover:text-orange-500 transition-colors"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#FF6B00' : 'none'} stroke={saved.includes(p.id) ? '#FF6B00' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                      </button>
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#FF6B00] transition-colors">{formatPrice(p.price)}</h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{p.title}</p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                      {p.bedrooms} Bed &bull; {p.bathrooms} Bath &bull; {p.sqm} m&sup2;
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-6 px-4 pb-24">
+            {sorted.map((p) => (
+              <div key={p.id}>
+                <Link to={`/property/${p.id}`} className="block group">
+                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-800">
+                    <img src={p.image_url || FALLBACK_IMAGE} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    {p.status === 'verified' && (
+                      <span className="absolute top-3 left-3 bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
+                        Verified Legal
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white group-hover:text-[#FF6B00] transition-colors">{formatPrice(p.price)}</h3>
+                  <p className="text-base font-semibold text-slate-700 dark:text-slate-300 mt-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{p.title}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {p.bedrooms} Bed &bull; {p.bathrooms} Bath &bull; {p.sqm} m&sup2;
+                  </p>
+                </Link>
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => toggleSave(p.id)}
+                    className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-orange-500 transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#FF6B00' : 'none'} stroke={saved.includes(p.id) ? '#FF6B00' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    {saved.includes(p.id) ? 'Disimpan' : 'Simpan'}
+                  </button>
+                </div>
+              </div>
+            ))}
+            {sorted.length === 0 && !loading && (
+              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-20">
+                Tidak ada properti yang ditemukan.
+              </p>
+            )}
+          </div>
+        </>
+      )}
+
       {showFilter && (
         <>
           <div
@@ -440,7 +407,7 @@ export default function ExplorePage({ onNavigate, userName }) {
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { label: '< Rp 1 M', value: '0-1M' },
-                    { label: 'Rp 1–3 M', value: '1-3M' },
+                    { label: 'Rp 1\u20133 M', value: '1-3M' },
                     { label: '> Rp 3 M', value: '3M+' },
                   ].map((r) => (
                     <button
@@ -491,7 +458,6 @@ export default function ExplorePage({ onNavigate, userName }) {
         </>
       )}
 
-      {/* ─── Bottom Navbar ─────────────────────────────────────── */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 pb-safe">
         <div className="flex items-center justify-around h-16">
           <button

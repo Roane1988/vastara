@@ -1,50 +1,15 @@
-import { useState } from 'react'
-
-// TODO: Fetch user's saved properties from Supabase joining 'users' and 'properties' tables
-const SAVED_PROPERTIES = [
-  {
-    id: 1,
-    name: 'Rumah BSD Minimalis',
-    price: 'Rp 1,2 M',
-    fullPrice: 'Rp 1.200.000.000',
-    status: 'Tersedia',
-    beds: 4,
-    baths: 3,
-    sqm: 150,
-  },
-  {
-    id: 2,
-    name: 'Apartemen SCBD 2BR',
-    price: 'Rp 850 Jt',
-    fullPrice: 'Rp 850.000.000',
-    status: 'Sedang Nego',
-    beds: 2,
-    baths: 1,
-    sqm: 68,
-  },
-  {
-    id: 3,
-    name: 'Villa Puncak Hijau',
-    price: 'Rp 2,1 M',
-    fullPrice: 'Rp 2.100.000.000',
-    status: 'Tersedia',
-    beds: 5,
-    baths: 3,
-    sqm: 200,
-  },
-  {
-    id: 4,
-    name: 'Townhouse Kemang Selatan',
-    price: 'Rp 1,8 M',
-    fullPrice: 'Rp 1.800.000.000',
-    status: 'Tersedia',
-    beds: 3,
-    baths: 2,
-    sqm: 120,
-  },
-]
+import { useState, useEffect } from 'react'
+import { supabase } from '../supabaseClient'
 
 const FILTERS = ['Semua', 'Tersedia', 'Sedang Nego']
+
+function formatPrice(value) {
+  if (value == null) return 'Rp 0'
+  const num = Number(value)
+  if (num >= 1_000_000_000) return `Rp ${(num / 1_000_000_000).toFixed(1)} M`
+  if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(0)} Jt`
+  return `Rp ${num.toLocaleString('id-ID')}`
+}
 
 function HeartIcon({ filled }) {
   return (
@@ -68,32 +33,58 @@ function StatusBadge({ status }) {
     Tersedia: 'bg-emerald-50 text-emerald-600 border-emerald-100',
     'Sedang Nego': 'bg-orange-50 text-orange-600 border-orange-100',
   }
+  const label = status === 'verified' ? 'Tersedia' : 'Sedang Nego'
   return (
-    <span className={`inline-block px-2.5 py-1 text-[11px] font-semibold rounded-full border ${colors[status] || 'bg-gray-50 text-gray-500 border-gray-100'}`}>
-      {status}
+    <span className={`inline-block px-2.5 py-1 text-[11px] font-semibold rounded-full border ${colors[label] || 'bg-gray-50 text-gray-500 border-gray-100'}`}>
+      {label}
     </span>
   )
 }
 
 export default function SavedPropertiesPage({ onBack }) {
   const [activeFilter, setActiveFilter] = useState('Semua')
-  // TODO: Create a DELETE function to remove a property from the wishlist when the Heart icon is clicked
-  const [saved, setSaved] = useState(SAVED_PROPERTIES.map((p) => p.id))
+  const [properties, setProperties] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [savedIds, setSavedIds] = useState([])
 
-  const filtered = SAVED_PROPERTIES.filter((p) => {
-    if (activeFilter === 'Semua') return true
-    return p.status === activeFilter
-  })
+  useEffect(() => {
+    async function fetchProperties() {
+      setLoading(true)
+
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .in('status', ['verified', 'pending'])
+        .order('created_at', { ascending: false })
+
+      if (!error && data) {
+        setProperties(data)
+        setSavedIds(data.map((p) => p.id))
+      }
+
+      setLoading(false)
+    }
+
+    fetchProperties()
+  }, [])
 
   const toggleSaved = (id) => {
-    setSaved((prev) =>
+    setSavedIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     )
   }
 
+  const displayed = properties.filter((p) => savedIds.includes(p.id))
+
+  const filtered = displayed.filter((p) => {
+    if (activeFilter === 'Semua') return true
+    if (activeFilter === 'Tersedia') return p.status === 'verified'
+    if (activeFilter === 'Sedang Nego') return p.status === 'pending'
+    return true
+  })
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
-      {/* ─── Sticky Header ──────────────────────────────────── */}
       <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between px-4 h-14">
           <button
@@ -104,11 +95,12 @@ export default function SavedPropertiesPage({ onBack }) {
             <ArrowLeftIcon />
           </button>
           <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Properti Disimpan</h1>
-          <span className="text-sm text-slate-400 dark:text-slate-500 tabular-nums">{SAVED_PROPERTIES.length} Item</span>
+          <span className="text-sm text-slate-400 dark:text-slate-500 tabular-nums">
+            {loading ? '...' : `${displayed.length} Item`}
+          </span>
         </div>
       </header>
 
-      {/* ─── Filter Chips ───────────────────────────────────── */}
       <div className="overflow-x-auto scrollbar-none px-4 pt-4 pb-2">
         <div className="flex gap-2">
           {FILTERS.map((f) => (
@@ -128,47 +120,50 @@ export default function SavedPropertiesPage({ onBack }) {
         </div>
       </div>
 
-      {/* ─── Property List ──────────────────────────────────── */}
       <div className="px-4 pt-2 pb-8 space-y-5">
-        {filtered.map((p) => (
-          <div key={p.id} className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
-            {/* Image */}
-            <div className="relative aspect-[16/9] bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Gambar Properti</span>
-              <button
-                type="button"
-                onClick={() => toggleSaved(p.id)}
-                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-white dark:hover:bg-slate-700 transition-colors"
-              >
-                <HeartIcon filled={saved.includes(p.id)} />
-              </button>
-            </div>
-
-            {/* Details */}
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-1.5">
-                <StatusBadge status={p.status} />
-                <span className="text-sm font-bold text-slate-900 dark:text-white">{p.price}</span>
-              </div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">{p.name}</h3>
-              <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-                <span>{p.beds} Bed</span>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span>{p.baths} Bath</span>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span>{p.sqm} m&sup2;</span>
-              </div>
-            </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        ))}
-
-        {filtered.length === 0 && (
+        ) : filtered.length === 0 ? (
           <p className="text-center text-sm text-slate-400 dark:text-slate-500 pt-10">
             Tidak ada properti dengan status ini.
           </p>
-        )}
+        ) : (
+          filtered.map((p) => (
+            <div key={p.id} className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
+              <div className="relative aspect-[16/9] bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                {p.image_url ? (
+                  <img src={p.image_url} alt={p.title} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Gambar Properti</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => toggleSaved(p.id)}
+                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                >
+                  <HeartIcon filled={savedIds.includes(p.id)} />
+                </button>
+              </div>
 
-        {/* TODO: Fetch user's saved properties from Supabase joining 'users' and 'properties' tables */}
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <StatusBadge status={p.status} />
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">{formatPrice(p.price)}</span>
+                </div>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">{p.title}</h3>
+                <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+                  <span>{p.bedrooms} Bed</span>
+                  <span className="text-slate-300 dark:text-slate-600">&bull;</span>
+                  <span>{p.bathrooms} Bath</span>
+                  <span className="text-slate-300 dark:text-slate-600">&bull;</span>
+                  <span>{p.sqm} m&sup2;</span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

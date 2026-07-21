@@ -31,23 +31,28 @@ function ProtectedRoute({ isAuth, children, location }) {
 function AppContent() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [userName, setUserName] = useState('')
+  const [session, setSession] = useState(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const name = session?.user?.user_metadata?.full_name
-      if (name) setUserName(name)
+      setSession(session)
     })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription?.unsubscribe()
   }, [])
 
-  const isAuth = !!userName
+  const isAuth = !!session?.user
+  const userName = session?.user?.user_metadata?.full_name || ''
 
   const onNavigate = (page) => {
     navigate('/' + page)
   }
 
-  const onLogin = (name) => {
-    setUserName(name)
+  const onLogin = () => {
     const from = location.state?.from
     navigate(from || '/dashboard')
   }
@@ -65,7 +70,7 @@ function AppContent() {
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
           <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
-          <Route path="/login" element={<MinimalistLogin onLogin={onLogin} />} />
+          <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
           <Route path="/dashboard" element={
             <ProtectedRoute isAuth={isAuth} location={location}>
               <PersonalDashboard userName={userName} onNavigate={onNavigate} />
