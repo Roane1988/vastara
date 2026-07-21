@@ -62,7 +62,7 @@ function AppContent() {
  }, [navigate])
 
  return (
- <div className="min-h-screen bg-white text-slate-900">
+  <div className="min-h-screen bg-brand-bg text-brand-text">
  <TopNavbar
  isAuth={isAuth}
  userName={userName}

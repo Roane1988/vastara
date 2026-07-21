@@ -116,14 +116,14 @@ function SuccessModal({ agentWa, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl border border-slate-200">
+      <div className="relative bg-brand-surface rounded-3xl w-full max-w-sm p-8 text-center shadow-2xl border border-brand-border">
         <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Pengajuan Terkirim!</h2>
-        <p className="text-sm text-slate-500 leading-relaxed">
+        <h2 className="text-xl font-bold text-brand-text mb-2">Pengajuan Terkirim!</h2>
+        <p className="text-sm text-brand-muted leading-relaxed">
           Listing process started. An agent will contact you soon.
         </p>
         <div className="mt-7 space-y-3">
@@ -131,7 +131,7 @@ function SuccessModal({ agentWa, onClose }) {
             href={waLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+            className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-brand-accent hover:bg-[#237044] active:bg-[#1a5a35] transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-accent/20"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
@@ -141,7 +141,7 @@ function SuccessModal({ agentWa, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-3 rounded-xl font-medium text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors border border-slate-200"
+            className="w-full py-3 rounded-xl font-medium text-sm text-brand-muted bg-brand-bg hover:bg-slate-100 transition-colors border border-brand-border"
           >
             Kembali ke Beranda
           </button>
@@ -166,9 +166,9 @@ function VerticalStepper({ steps, current }) {
                 <div
                   className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
                     isCompleted
-                      ? 'bg-orange-500 text-white'
+                      ? 'bg-brand-primary text-white'
                       : isActive
-                      ? 'bg-orange-500 text-white ring-4 ring-orange-500/30'
+                      ? 'bg-brand-primary text-white ring-4 ring-brand-secondary/30'
                       : 'bg-slate-100 border border-slate-300 text-slate-500'
                   }`}
                 >
@@ -181,7 +181,7 @@ function VerticalStepper({ steps, current }) {
                 {!isLast && (
                   <div
                     className={`w-0.5 flex-1 min-h-[2rem] transition-colors duration-300 ${
-                      isCompleted ? 'bg-orange-500' : 'bg-slate-200'
+                      isCompleted ? 'bg-brand-primary' : 'bg-slate-200'
                     }`}
                   />
                 )}
@@ -191,9 +191,9 @@ function VerticalStepper({ steps, current }) {
                 <p
                   className={`text-sm font-semibold transition-colors ${
                     isActive
-                      ? 'text-slate-900'
+                      ? 'text-brand-text'
                       : isCompleted
-                      ? 'text-orange-600'
+                      ? 'text-brand-secondary'
                       : 'text-slate-500'
                   }`}
                 >
@@ -353,11 +353,11 @@ export default function SellPropertyPage() {
         return (
           <div className="space-y-5">
             <div>
-              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                 Nomor WhatsApp <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-medium">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-brand-muted font-medium">
                   +62
                 </span>
                 <input
@@ -365,10 +365,10 @@ export default function SellPropertyPage() {
                   placeholder="81234567890"
                   value={form.whatsapp}
                   onChange={handleChange('whatsapp')}
-                  className="w-full py-4 pl-12 pr-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 pl-12 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
                 />
               </div>
-              <p className="text-xs text-slate-500 mt-1.5">
+              <p className="text-xs text-brand-muted mt-1.5">
                 Tim kami akan menghubungi Anda via nomor ini
               </p>
             </div>
@@ -379,13 +379,13 @@ export default function SellPropertyPage() {
         return (
           <div className="space-y-5">
             <div>
-              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                 Jenis Properti <span className="text-red-500">*</span>
               </label>
               <select
                 value={form.jenis_properti}
                 onChange={handleChange('jenis_properti')}
-                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors appearance-none"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors appearance-none"
               >
                 <option value="">Pilih jenis properti</option>
                 <option value="Rumah">Rumah</option>
@@ -399,13 +399,13 @@ export default function SellPropertyPage() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                 Status Sertifikat <span className="text-red-500">*</span>
               </label>
               <select
                 value={form.status_sertifikat}
                 onChange={handleChange('status_sertifikat')}
-                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors appearance-none"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors appearance-none"
               >
                 <option value="">Pilih status sertifikat</option>
                 <option value="SHM">SHM (Sertifikat Hak Milik)</option>
@@ -417,11 +417,11 @@ export default function SellPropertyPage() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                 Estimasi Harga <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-medium">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-brand-muted font-medium">
                   Rp
                 </span>
                 <input
@@ -433,11 +433,11 @@ export default function SellPropertyPage() {
                     const raw = e.target.value.replace(/[^0-9]/g, '')
                     setForm((p) => ({ ...p, estimasi_harga: raw }))
                   }}
-                  className="w-full py-4 pl-10 pr-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 pl-10 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
                 />
               </div>
               {form.estimasi_harga && (
-                <p className="text-xs text-slate-500 mt-1.5">
+                <p className="text-xs text-brand-muted mt-1.5">
                   Rp {Number(form.estimasi_harga).toLocaleString('id-ID')}
                 </p>
               )}
@@ -449,7 +449,7 @@ export default function SellPropertyPage() {
         return (
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                 Alamat Lengkap <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -457,12 +457,12 @@ export default function SellPropertyPage() {
                 placeholder="Masukkan alamat properti..."
                 value={form.address}
                 onChange={handleChange('address')}
-                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors resize-none"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors resize-none"
               />
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                 Link Lokasi Google Maps
               </label>
               <input
@@ -470,9 +470,9 @@ export default function SellPropertyPage() {
                 placeholder="Tempel link Google Maps properti Anda di sini"
                 value={locationUrl}
                 onChange={(e) => setLocationUrl(e.target.value)}
-                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
               />
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              <p className="text-xs text-brand-muted mt-2 leading-relaxed">
                 Cara: Buka Google Maps, cari lokasi properti, klik &quot;Bagikan&quot; (Share), dan pilih &quot;Salin Link&quot;
               </p>
             </div>
@@ -484,7 +484,7 @@ export default function SellPropertyPage() {
           <div className="space-y-5">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                   Luas (m&sup2;) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -493,11 +493,11 @@ export default function SellPropertyPage() {
                   placeholder="150"
                   value={form.sqm}
                   onChange={handleChange('sqm')}
-                  className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                   Kamar Tidur <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -506,11 +506,11 @@ export default function SellPropertyPage() {
                   placeholder="3"
                   value={form.bedrooms}
                   onChange={handleChange('bedrooms')}
-                  className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                   Kamar Mandi <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -519,12 +519,12 @@ export default function SellPropertyPage() {
                   placeholder="2"
                   value={form.bathrooms}
                   onChange={handleChange('bathrooms')}
-                  className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors"
+                  className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
                 />
               </div>
             </div>
             <div>
-              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                 Deskripsi Properti <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -532,7 +532,7 @@ export default function SellPropertyPage() {
                 placeholder="Jelaskan properti Anda secara detail — lingkungan, fasilitas, akses, dll."
                 value={form.description}
                 onChange={handleChange('description')}
-                className="w-full py-4 px-4 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-colors resize-none"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors resize-none"
               />
             </div>
           </div>
@@ -542,24 +542,24 @@ export default function SellPropertyPage() {
         return (
           <div className="space-y-5">
             <div>
-              <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                 Dokumen Legalitas
               </label>
-              <p className="text-xs text-slate-500 mb-3">
+              <p className="text-xs text-brand-muted mb-3">
                 Upload SHM, PBB, atau dokumen lainnya (PDF/JPG/PNG, maks 5 MB)
               </p>
 
               {!file ? (
-                <label className={`flex flex-col items-center justify-center w-full py-10 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors active:bg-slate-50 ${
+                <label className={`flex flex-col items-center justify-center w-full py-10 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors active:bg-brand-bg ${
                   skipUpload
-                    ? 'border-slate-200 bg-slate-50/50 opacity-50'
-                    : 'border-slate-300 bg-slate-50 hover:border-orange-400'
+                    ? 'border-brand-border bg-brand-bg/50 opacity-50'
+                    : 'border-brand-border bg-brand-bg hover:border-brand-secondary'
                 }`}>
                   <UploadIcon />
-                  <span className="mt-3 text-sm font-medium text-slate-700">
+                  <span className="mt-3 text-sm font-medium text-brand-text">
                     Klik untuk upload dokumen
                   </span>
-                  <span className="mt-1 text-xs text-slate-400">
+                  <span className="mt-1 text-xs text-brand-muted">
                     atau seret file ke sini
                   </span>
                   <input
@@ -571,16 +571,16 @@ export default function SellPropertyPage() {
                   />
                 </label>
               ) : (
-                <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white">
+                <div className="flex items-center justify-between p-4 border border-brand-border rounded-xl bg-brand-surface">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-brand-secondary/10 flex items-center justify-center shrink-0">
                       <FileIcon />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
+                      <p className="text-sm font-medium text-brand-text truncate">
                         {file.name}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-brand-muted">
                         {(file.size / 1024).toFixed(1)} KB
                       </p>
                     </div>
@@ -598,7 +598,7 @@ export default function SellPropertyPage() {
                     <button
                       type="button"
                       onClick={removeFile}
-                      className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                      className="text-brand-muted hover:text-red-500 transition-colors p-1"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -612,12 +612,12 @@ export default function SellPropertyPage() {
                 <p className="text-xs text-red-500 mt-2">{uploadError}</p>
               )}
 
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="text-xs text-brand-muted mt-2">
                 Dokumen tidak wajib, tetapi akan mempercepat proses verifikasi
               </p>
             </div>
 
-            <div className="border-t border-slate-200 pt-5">
+            <div className="border-t border-brand-border pt-5">
               <button
                 type="button"
                 onClick={() => {
@@ -628,14 +628,14 @@ export default function SellPropertyPage() {
                 }}
                 className={`w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl text-sm font-medium transition-all ${
                   skipUpload
-                    ? 'bg-orange-50 text-orange-600 border border-orange-200'
-                    : 'bg-white text-slate-600 border border-slate-300 hover:border-slate-400'
+                    ? 'bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20'
+                    : 'bg-brand-surface text-brand-muted border border-brand-border hover:border-brand-muted'
                 }`}
               >
                 <span className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                   skipUpload
-                    ? 'bg-orange-500 border-orange-500'
-                    : 'border-slate-400'
+                    ? 'bg-brand-primary border-brand-primary'
+                    : 'border-brand-muted'
                 }`}>
                   {skipUpload && (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -655,7 +655,7 @@ export default function SellPropertyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-brand-surface flex flex-col">
       <AppToast
         message={notification.message}
         type={notification.type}
@@ -667,21 +667,21 @@ export default function SellPropertyPage() {
         <SuccessModal agentWa={agentWa} onClose={closeSuccess} />
       )}
 
-      <header className="sticky top-0 bg-white/90 backdrop-blur-md z-30 pt-12 pb-3 px-5 border-b border-slate-200">
+      <header className="sticky top-0 bg-brand-surface/90 backdrop-blur-md z-30 pt-12 pb-3 px-5 border-b border-brand-border">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-colors shrink-0"
+            className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-slate-100 transition-colors shrink-0"
           >
             <ArrowLeftIcon />
           </button>
-          <h1 className="text-lg font-bold text-slate-900">Jual Properti</h1>
+          <h1 className="text-lg font-bold text-brand-text">Jual Properti</h1>
         </div>
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row">
-        <aside className="md:w-64 md:min-h-screen md:border-r md:border-slate-200 md:bg-slate-50/50 md:sticky md:top-0">
+        <aside className="md:w-64 md:min-h-screen md:border-r md:border-brand-border md:bg-brand-bg md:sticky md:top-0">
           <div className="px-5 py-6 md:py-10 md:px-6">
             <VerticalStepper steps={STEPS} current={step} />
           </div>
@@ -692,13 +692,13 @@ export default function SellPropertyPage() {
             {renderStep()}
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-5 py-4 z-40">
+          <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-40">
             <div className="flex gap-3 max-w-lg mx-auto">
               {step > 0 && (
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="flex-1 py-4 rounded-xl font-medium text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors active:scale-[0.98] border border-slate-200"
+                  className="flex-1 py-4 rounded-xl font-medium text-sm text-brand-text bg-brand-bg hover:bg-slate-100 transition-colors active:scale-[0.98] border border-brand-border"
                 >
                   Kembali
                 </button>
@@ -708,7 +708,7 @@ export default function SellPropertyPage() {
                   type="button"
                   onClick={nextStep}
                   disabled={!canProceed()}
-                  className="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                  className="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-brand-primary hover:bg-[#152d4a] active:bg-[#0f2640] transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
                 >
                   Lanjut
                 </button>
@@ -717,7 +717,7 @@ export default function SellPropertyPage() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
+                  className="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-brand-accent hover:bg-[#237044] active:bg-[#1a5a35] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
                 >
                   {submitting && <SpinnerIcon />}
                   {submitting ? 'Mengirim...' : 'Kirim Pengajuan'}

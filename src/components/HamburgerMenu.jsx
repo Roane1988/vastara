@@ -56,8 +56,8 @@ function MenuItem({ icon, label, onClick, active, destructive }) {
         destructive
           ? 'text-red-500 hover:bg-red-50'
           : active
-            ? 'text-orange-600 bg-orange-50'
-            : 'text-slate-700 hover:bg-slate-100'
+            ? 'text-brand-secondary bg-brand-secondary/10'
+            : 'text-brand-text hover:bg-slate-100'
       }`}
     >
       <span className="shrink-0">{icon}</span>
@@ -93,26 +93,26 @@ function SavedDrawer({ onBack }) {
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-      className="absolute inset-0 z-10 bg-white flex flex-col"
+      className="absolute inset-0 z-10 bg-brand-surface flex flex-col"
     >
-      <div className="flex items-center gap-3 px-5 h-14 border-b border-slate-100">
+      <div className="flex items-center gap-3 px-5 h-14 border-b border-brand-border">
         <button
           type="button"
           onClick={onBack}
-          className="p-1 -ml-1 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          className="p-1 -ml-1 rounded-lg text-brand-muted hover:text-brand-text hover:bg-slate-100 transition-colors"
         >
           <ArrowLeftIcon />
         </button>
-        <span className="text-sm font-semibold text-slate-900">Properti Disimpan</span>
+        <span className="text-sm font-semibold text-brand-text">Properti Disimpan</span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : properties.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-12">Belum ada properti disimpan</p>
+          <p className="text-sm text-brand-muted text-center py-12">Belum ada properti disimpan</p>
         ) : (
           <div className="space-y-3">
             {properties.map((p) => (
@@ -129,14 +129,14 @@ function SavedDrawer({ onBack }) {
                   {p.image_url ? (
                     <img src={p.image_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">img</div>
+                    <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{p.title}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{formatPrice(p.price)}</p>
+                  <p className="text-sm font-medium text-brand-text truncate">{p.title}</p>
+                  <p className="text-xs text-brand-muted mt-0.5">{formatPrice(p.price)}</p>
                   {p.location && (
-                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">{p.location}</p>
+                    <p className="text-[11px] text-brand-muted mt-0.5 truncate">{p.location}</p>
                   )}
                 </div>
                 <BookmarkIcon />
@@ -193,14 +193,14 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 w-full max-w-sm z-[70] bg-white flex flex-col shadow-2xl border-l border-slate-200"
+            className="fixed inset-y-0 right-0 w-full max-w-sm z-[70] bg-brand-surface flex flex-col shadow-2xl border-l border-brand-border"
           >
-            <div className="flex items-center justify-between px-5 h-14 border-b border-slate-100">
-              <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Menu</span>
+            <div className="flex items-center justify-between px-5 h-14 border-b border-brand-border">
+              <span className="text-sm font-semibold text-brand-muted uppercase tracking-wider">Menu</span>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-lg text-brand-muted hover:text-brand-text hover:bg-slate-100 transition-colors"
               >
                 <XIcon />
               </button>
@@ -212,27 +212,27 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
               ) : (
                 <div className="absolute inset-0 overflow-y-auto px-4 py-5 space-y-6">
                   {isAuth ? (
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-100">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0">
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-bg border border-brand-border">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0">
                         {initial}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{userName}</p>
-                        <p className="text-xs text-slate-500">Pembeli</p>
+                        <p className="text-sm font-semibold text-brand-text truncate">{userName}</p>
+                        <p className="text-xs text-brand-muted">Pembeli</p>
                       </div>
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => handleNavigate('/login')}
-                      className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-[0.97] text-white text-sm font-bold transition-all shadow-sm shadow-orange-500/20"
+                      className="w-full py-3 rounded-xl bg-brand-primary hover:bg-[#152d4a] active:scale-[0.97] text-white text-sm font-bold transition-all shadow-sm"
                     >
                       Login / Register
                     </button>
                   )}
 
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 mb-2">Umum</p>
+                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">Umum</p>
                     <div className="space-y-0.5">
                       <MenuItem
                         icon={
@@ -246,8 +246,8 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-4">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 mb-2">Menu Utama</p>
+                  <div className="border-t border-brand-border pt-4">
+                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">Menu Utama</p>
                     <div className="space-y-0.5">
                       <MenuItem
                         icon={
@@ -272,8 +272,8 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-4">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-4 mb-2">Pengaturan</p>
+                  <div className="border-t border-brand-border pt-4">
+                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">Pengaturan</p>
                     <div className="space-y-0.5">
                       {isAuth && (
                         <MenuItem
@@ -301,14 +301,14 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
               )}
             </div>
 
-            <div className="px-5 py-4 border-t border-slate-100">
+            <div className="px-5 py-4 border-t border-brand-border">
               <button
                 type="button"
                 onClick={() => {
                   onClose()
                   navigate('/sell')
                 }}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-[0.97] text-white text-sm font-bold transition-all shadow-sm shadow-orange-500/20 sm:hidden"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-primary hover:bg-[#152d4a] active:scale-[0.97] text-white text-sm font-bold transition-all shadow-sm sm:hidden"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" />
