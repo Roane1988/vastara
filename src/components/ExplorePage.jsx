@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 
 const CATEGORIES = ['Semua', 'Rumah Baru', 'Apartemen', 'BSD City', 'Jakarta Selatan']
 const SORT_OPTIONS = ['Terbaru', 'Termurah', 'Termahal']
@@ -157,14 +158,14 @@ function PromoBanner({ agent }) {
 }
 
 const QUICK_MENU = [
-  { icon: Search, label: 'Carikan Properti', action: 'coming-soon' },
-  { icon: Megaphone, label: 'Iklankan Properti', action: 'sell' },
-  { icon: Users, label: 'Cari Agen', action: 'coming-soon' },
-  { icon: Calculator, label: 'Kalkulator KPR', action: 'coming-soon' },
-  { icon: TrendingDown, label: 'Turun Harga', action: 'coming-soon' },
-  { icon: MessageCircle, label: 'Tanya Forum', action: 'coming-soon' },
-  { icon: ArrowLeftRight, label: 'Pindah KPR', action: 'coming-soon' },
-  { icon: LayoutGrid, label: 'Lainnya', action: 'coming-soon' },
+  { icon: Search, label: 'Carikan Properti', path: '/coming-soon' },
+  { icon: Megaphone, label: 'Iklankan Properti', path: '/sell' },
+  { icon: Users, label: 'Cari Agen', path: '/coming-soon' },
+  { icon: Calculator, label: 'Kalkulator KPR', path: '/coming-soon' },
+  { icon: TrendingDown, label: 'Turun Harga', path: '/coming-soon' },
+  { icon: MessageCircle, label: 'Tanya Forum', path: '/coming-soon' },
+  { icon: ArrowLeftRight, label: 'Pindah KPR', path: '/coming-soon' },
+  { icon: LayoutGrid, label: 'Lainnya', drawer: true },
 ]
 
 export default function ExplorePage({ onNavigate }) {
@@ -178,6 +179,7 @@ export default function ExplorePage({ onNavigate }) {
   const [filterBeds, setFilterBeds] = useState('')
   const [sortIndex, setSortIndex] = useState(0)
   const [searchCategory, setSearchCategory] = useState('dijual')
+  const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false)
 
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
@@ -333,7 +335,10 @@ export default function ExplorePage({ onNavigate }) {
             <button
               key={item.label}
               type="button"
-              onClick={() => item.action && navigate(`/${item.action}`)}
+              onClick={() => {
+                if (item.drawer) return setIsMoreDrawerOpen(true)
+                if (item.path) navigate(item.path)
+              }}
               className="flex flex-col items-center gap-2 active:scale-90 transition-transform"
             >
               <div className="w-12 h-12 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-secondary shadow-sm">
@@ -539,6 +544,11 @@ export default function ExplorePage({ onNavigate }) {
           </div>
         </>
       )}
+
+      <MoreCategoriesDrawer
+        isOpen={isMoreDrawerOpen}
+        onClose={() => setIsMoreDrawerOpen(false)}
+      />
 
       {showFilter && (
         <>
