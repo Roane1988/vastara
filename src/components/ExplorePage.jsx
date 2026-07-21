@@ -80,7 +80,6 @@ export default function ExplorePage({ onNavigate }) {
   const navigate = useNavigate()
   const [activeCategory, setActiveCategory] = useState('Semua')
   const [saved, setSaved] = useState([])
-  const [currentSlide, setCurrentSlide] = useState(0)
   const [showFilter, setShowFilter] = useState(false)
   const [filterPrice, setFilterPrice] = useState('')
   const [filterType, setFilterType] = useState('')
@@ -110,13 +109,6 @@ export default function ExplorePage({ onNavigate }) {
     : null
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % Math.max(properties.length, 1))
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [properties.length])
-
-  useEffect(() => {
     async function fetchProperties() {
       setLoading(true)
 
@@ -135,6 +127,8 @@ export default function ExplorePage({ onNavigate }) {
 
     fetchProperties()
   }, [])
+
+  const SORT_OPTIONS = ['Terbaru', 'Termurah', 'Termahal']
 
   const toggleSave = (id) => {
     setSaved((prev) =>
@@ -163,17 +157,11 @@ export default function ExplorePage({ onNavigate }) {
     return true
   })
 
-  const SORT_OPTIONS = ['Terbaru', 'Termurah', 'Termahal']
-
   const sorted = [...filtered].sort((a, b) => {
     if (sortIndex === 1) return (Number(a.price) || 0) - (Number(b.price) || 0)
     if (sortIndex === 2) return (Number(b.price) || 0) - (Number(a.price) || 0)
     return 0
   })
-
-  const recommended = [...properties]
-    .sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0))
-    .slice(0, 4)
 
   const displayRecommendations = sorted.length > 0 ? sorted.slice(0, 4) : DUMMY_PROPERTIES.slice(0, 4)
   const displayListings = sorted.length > 0 ? sorted : DUMMY_PROPERTIES
@@ -192,7 +180,7 @@ export default function ExplorePage({ onNavigate }) {
         <div className="relative max-w-7xl mx-auto px-4 pt-6 pb-10 sm:pt-10 sm:pb-14">
           {user ? (
             <h1 className="text-2xl font-bold text-white">
-              Selamat Datang, {firstName}
+              Selamat Datang{firstName ? `, ${firstName}` : ''}
             </h1>
           ) : (
             <>
