@@ -386,32 +386,32 @@ export default function ExplorePage({ onNavigate }) {
         </div>
       ) : (
         <>
-          <div className="px-4 mb-6">
-            <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-md bg-slate-100 ">
-              {properties.slice(0, 3).map((p, index) => (
-                <Link
-                  key={p.id}
-                  to={`/property/${p.id}`}
-                  className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                    index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                  }`}
-                >
-                  <img
-                    src={p.image_url || FALLBACK_IMAGE}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
-                  <div className="absolute bottom-0 left-0 p-4 w-full">
-                    <span className="inline-block bg-brand-primary text-white text-[10px] px-2 py-1 rounded-full font-bold mb-2">
-                      {p.status === 'verified' ? 'Verified Legal' : 'Listing Baru'}
-                    </span>
-                    <h3 className="text-lg font-extrabold text-white leading-tight">{p.title}</h3>
-                    <p className="text-xs text-slate-300 mt-1">{p.location}</p>
-                  </div>
-                </Link>
-              ))}
-              {properties.length > 0 && (
+          {properties.length > 0 && (
+            <div className="px-4 mb-6">
+              <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-md bg-slate-100 ">
+                {properties.slice(0, 3).map((p, index) => (
+                  <Link
+                    key={p.id}
+                    to={`/property/${p.id}`}
+                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                      index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    }`}
+                  >
+                    <img
+                      src={p.image_url || FALLBACK_IMAGE}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
+                    <div className="absolute bottom-0 left-0 p-4 w-full">
+                      <span className="inline-block bg-brand-primary text-white text-[10px] px-2 py-1 rounded-full font-bold mb-2">
+                        {p.status === 'verified' ? 'Verified Legal' : 'Listing Baru'}
+                      </span>
+                      <h3 className="text-lg font-extrabold text-white leading-tight">{p.title}</h3>
+                      <p className="text-xs text-slate-300 mt-1">{p.location}</p>
+                    </div>
+                  </Link>
+                ))}
                 <div className="flex gap-1.5 absolute bottom-3 left-1/2 -translate-x-1/2">
                   {properties.slice(0, 3).map((_, index) => (
                     <button
@@ -426,9 +426,9 @@ export default function ExplorePage({ onNavigate }) {
                     />
                   ))}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
           {recommended.length > 0 && user && (
             <div className="mb-6">
@@ -504,7 +504,7 @@ export default function ExplorePage({ onNavigate }) {
                   <Link key={p.id} to={`/property/${p.id}`} className="block group">
                     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                       <div className="relative aspect-[4/3]">
-                        <img src={p.image_url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img src={p.image_url} alt={p.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         <div className="absolute top-3 left-3 flex gap-2">
                           <span className="bg-brand-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
                             {p.typeLabel}
