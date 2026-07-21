@@ -29,10 +29,10 @@ function MenuItem({ icon, label, onClick, active, destructive }) {
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
         destructive
-          ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50'
+          ? 'text-red-500 hover:bg-red-50 '
           : active
-            ? 'text-orange-600 bg-orange-50 dark:bg-orange-950/30 dark:text-orange-400'
-            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            ? 'text-orange-600 bg-orange-50  '
+            : 'text-slate-700  hover:bg-slate-100 '
       }`}
     >
       <span className="shrink-0">{icon}</span>
@@ -84,14 +84,14 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 w-full max-w-sm z-[70] bg-white dark:bg-slate-950 flex flex-col shadow-2xl border-l border-slate-200 dark:border-slate-800"
+            className="fixed inset-y-0 right-0 w-full max-w-sm z-[70] bg-white  flex flex-col shadow-2xl border-l border-slate-200 "
           >
-            <div className="flex items-center justify-between px-5 h-14 border-b border-slate-100 dark:border-slate-800">
-              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Menu</span>
+            <div className="flex items-center justify-between px-5 h-14 border-b border-slate-100 ">
+              <span className="text-sm font-semibold text-slate-500  uppercase tracking-wider">Menu</span>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600  hover:bg-slate-100  transition-colors"
               >
                 <XIcon />
               </button>
@@ -99,13 +99,13 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
 
             <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
               {isAuth ? (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-50  border border-slate-100 ">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0">
                     {initial}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{userName}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Pembeli</p>
+                    <p className="text-sm font-semibold text-slate-900  truncate">{userName}</p>
+                    <p className="text-xs text-slate-500 ">Pembeli</p>
                   </div>
                 </div>
               ) : (
@@ -119,7 +119,7 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
               )}
 
               <div>
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-4 mb-2">Umum</p>
+                <p className="text-[10px] font-bold text-slate-400  uppercase tracking-wider px-4 mb-2">Umum</p>
                 <div className="space-y-0.5">
                   <MenuItem
                     icon={
@@ -145,8 +145,8 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-4 mb-2">Menu Utama</p>
+              <div className="border-t border-slate-100  pt-4">
+                <p className="text-[10px] font-bold text-slate-400  uppercase tracking-wider px-4 mb-2">Menu Utama</p>
                 <div className="space-y-0.5">
                   <MenuItem
                     icon={
@@ -171,8 +171,8 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-4 mb-2">Pengaturan</p>
+              <div className="border-t border-slate-100  pt-4">
+                <p className="text-[10px] font-bold text-slate-400  uppercase tracking-wider px-4 mb-2">Pengaturan</p>
                 <div className="space-y-0.5">
                   {isAuth && (
                     <MenuItem
@@ -198,7 +198,7 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
               </div>
             </div>
 
-            <div className="px-5 py-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="px-5 py-4 border-t border-slate-100 ">
               <button
                 type="button"
                 onClick={() => {

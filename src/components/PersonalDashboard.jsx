@@ -50,8 +50,8 @@ function formatPrice(value) {
 
 function PropertyCard({ property }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors">
-      <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center text-xs text-slate-400 dark:text-slate-500 font-medium overflow-hidden">
+    <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/60  transition-colors">
+      <div className="w-12 h-12 rounded-lg bg-slate-100  flex-shrink-0 flex items-center justify-center text-xs text-slate-400  font-medium overflow-hidden">
         {property.image_url ? (
           <img src={property.image_url} alt="" className="w-full h-full object-cover rounded-lg" />
         ) : (
@@ -59,8 +59,8 @@ function PropertyCard({ property }) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{property.title}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{formatPrice(property.price)}</p>
+        <p className="text-sm font-medium text-slate-800  truncate">{property.title}</p>
+        <p className="text-xs text-slate-500 ">{formatPrice(property.price)}</p>
       </div>
       <StatusBadge status={property.status} />
     </div>
@@ -99,7 +99,7 @@ export default function PersonalDashboard({ onNavigate, userName, onProfileOpen 
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-slate-950">
+    <div className="min-h-screen bg-[#FAFAFA] ">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-24">
 
         <header className="flex items-center justify-between mb-8">
@@ -110,25 +110,25 @@ export default function PersonalDashboard({ onNavigate, userName, onProfileOpen 
               </div>
             </button>
             <div>
-              <h1 className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-200">
+              <h1 className="text-lg sm:text-xl font-semibold text-slate-800 ">
                 Selamat datang kembali, {userName}
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Dashboard Pembeli</p>
+              <p className="text-xs text-slate-500 ">Dashboard Pembeli</p>
             </div>
           </div>
-          <button type="button" onClick={() => setIsNotificationsOpen(true)} className="relative p-2 rounded-xl hover:bg-white/70 dark:hover:bg-slate-800/70 text-slate-500 dark:text-slate-400 transition-colors">
+          <button type="button" onClick={() => setIsNotificationsOpen(true)} className="relative p-2 rounded-xl hover:bg-white/70  text-slate-500  transition-colors">
             <BellIcon />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full ring-2 ring-[#FAFAFA] dark:ring-slate-950" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full ring-2 ring-[#FAFAFA] " />
           </button>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
 
-          <div className="md:col-span-2 row-span-2 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-700/30 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="md:col-span-2 row-span-2 bg-white/70  backdrop-blur-xl border border-white/20  rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <BookmarkIcon />
-                <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Properti Disimpan</h2>
+                <h2 className="text-sm font-semibold text-slate-800 ">Properti Disimpan</h2>
               </div>
               <button type="button" onClick={() => onNavigate?.('saved')} className="text-orange-500 text-sm font-semibold hover:text-orange-600 cursor-pointer outline-none border-none ring-0">
                 Lihat Semua
@@ -140,7 +140,7 @@ export default function PersonalDashboard({ onNavigate, userName, onProfileOpen 
                   <div className="w-6 h-6 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : savedProperties.length === 0 ? (
-                <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8">
+                <p className="text-sm text-slate-400  text-center py-8">
                   Belum ada properti disimpan
                 </p>
               ) : (
@@ -151,9 +151,9 @@ export default function PersonalDashboard({ onNavigate, userName, onProfileOpen 
             </div>
           </div>
 
-          <div className="md:col-span-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-700/30 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="md:col-span-3 bg-white/70  backdrop-blur-xl border border-white/20  rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Rekomendasi untukmu</h2>
+              <h2 className="text-sm font-semibold text-slate-800 ">Rekomendasi untukmu</h2>
               <button type="button" onClick={() => onNavigate?.('saved')} className="text-orange-500 text-sm font-semibold hover:text-orange-600 cursor-pointer outline-none border-none ring-0">
                 Lihat Semua
               </button>
@@ -164,24 +164,24 @@ export default function PersonalDashboard({ onNavigate, userName, onProfileOpen 
                   <div className="w-6 h-6 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : recommendations.length === 0 ? (
-                <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8 w-full">
+                <p className="text-sm text-slate-400  text-center py-8 w-full">
                   Belum ada rekomendasi
                 </p>
               ) : (
                 recommendations.map((r) => (
                   <div
                     key={r.id}
-                    className="flex-shrink-0 w-56 sm:w-60 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 p-4 snap-start hover:shadow-sm transition-shadow cursor-pointer"
+                    className="flex-shrink-0 w-56 sm:w-60 bg-white  rounded-xl border border-slate-100  p-4 snap-start hover:shadow-sm transition-shadow cursor-pointer"
                   >
-                    <div className="w-full h-24 rounded-lg bg-gradient-to-br from-slate-100 dark:from-slate-800 to-slate-200 dark:to-slate-700 mb-3 flex items-center justify-center text-xs text-slate-400 dark:text-slate-500 overflow-hidden">
+                    <div className="w-full h-24 rounded-lg bg-gradient-to-br from-slate-100  to-slate-200  mb-3 flex items-center justify-center text-xs text-slate-400  overflow-hidden">
                       {r.image_url ? (
                         <img src={r.image_url} alt="" className="w-full h-full object-cover" />
                       ) : (
                         'Thumbnail'
                       )}
                     </div>
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{r.title}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{formatPrice(r.price)}</p>
+                    <p className="text-sm font-medium text-slate-800  truncate">{r.title}</p>
+                    <p className="text-xs text-slate-500  mt-0.5">{formatPrice(r.price)}</p>
                     <div className="flex items-center gap-1 mt-2">
                       <ShieldIcon />
                       <span className="text-[10px] font-medium text-emerald-600">

@@ -71,21 +71,21 @@ function formatPrice(value) {
 
 function LoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 animate-pulse">
-      <div className="h-72 sm:h-96 bg-slate-200 dark:bg-slate-800" />
+    <div className="min-h-screen bg-white  animate-pulse">
+      <div className="h-72 sm:h-96 bg-slate-200 " />
       <div className="px-5 pt-6 space-y-4">
-        <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-lg w-3/4" />
-        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
-        <div className="h-7 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
+        <div className="h-8 bg-slate-200  rounded-lg w-3/4" />
+        <div className="h-4 bg-slate-200  rounded w-1/2" />
+        <div className="h-7 bg-slate-200  rounded w-1/3" />
         <div className="flex gap-4 pt-2">
-          <div className="h-10 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg" />
-          <div className="h-10 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg" />
-          <div className="h-10 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          <div className="h-10 w-20 bg-slate-200  rounded-lg" />
+          <div className="h-10 w-20 bg-slate-200  rounded-lg" />
+          <div className="h-10 w-20 bg-slate-200  rounded-lg" />
         </div>
         <div className="space-y-2 pt-4">
-          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-full" />
-          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-full" />
-          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4" />
+          <div className="h-4 bg-slate-200  rounded w-full" />
+          <div className="h-4 bg-slate-200  rounded w-full" />
+          <div className="h-4 bg-slate-200  rounded w-3/4" />
         </div>
       </div>
     </div>
@@ -148,7 +148,7 @@ export default function PropertyDetailPage() {
   const waLink = `https://wa.me/${waNumber}?text=${waMessage}`
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col">
+    <div className="min-h-screen bg-white  flex flex-col">
       <div className="relative h-72 sm:h-96 overflow-hidden">
         <img
           src={property.image_url || FALLBACK_IMAGE}
@@ -159,7 +159,7 @@ export default function PropertyDetailPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="absolute top-12 left-4 w-9 h-9 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-md hover:bg-white dark:hover:bg-slate-800 transition-colors"
+          className="absolute top-12 left-4 w-9 h-9 rounded-full bg-white/80  backdrop-blur-sm flex items-center justify-center text-slate-700  shadow-md hover:bg-white  transition-colors"
         >
           <ArrowLeftIcon />
         </button>
@@ -182,31 +182,31 @@ export default function PropertyDetailPage() {
         </div>
 
         <div className="flex gap-6">
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-2 text-slate-600 ">
             <BedIcon />
             <span className="text-sm font-medium">{property.bedrooms} Kamar</span>
           </div>
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-2 text-slate-600 ">
             <BathIcon />
             <span className="text-sm font-medium">{property.bathrooms} Kamar Mandi</span>
           </div>
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-2 text-slate-600 ">
             <SqmIcon />
             <span className="text-sm font-medium">{property.sqm} m&sup2;</span>
           </div>
         </div>
 
         <div>
-          <h2 className="text-base font-semibold text-slate-900 dark:text-white mb-2">
+          <h2 className="text-base font-semibold text-slate-900  mb-2">
             Deskripsi
           </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          <p className="text-sm text-slate-600  leading-relaxed">
             {property.description || `${property.title} — properti premium dengan ${property.bedrooms} kamar tidur dan ${property.bathrooms} kamar mandi, luas bangunan ${property.sqm} m&sup2;.`}
           </p>
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-100 dark:border-slate-800 px-5 py-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95  backdrop-blur-md border-t border-gray-100  px-5 py-4">
         <a
           href={waLink}
           target="_blank"

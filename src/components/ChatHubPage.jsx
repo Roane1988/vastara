@@ -103,7 +103,7 @@ function ContactCard({ contact }) {
     <button
       type="button"
       onClick={handleChat}
-      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-4 active:scale-95 transition-transform text-left"
+      className="w-full bg-white  border border-slate-200  rounded-2xl p-4 flex items-center gap-4 active:scale-95 transition-transform text-left"
     >
       <div className="relative shrink-0">
         <img
@@ -112,16 +112,16 @@ function ContactCard({ contact }) {
           className="w-14 h-14 rounded-full object-cover"
         />
         {contact.online && (
-          <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
+          <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white  rounded-full" />
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-bold text-slate-900 dark:text-white">{contact.name}</span>
-          <span className="text-[10px] text-emerald-500 dark:text-emerald-400 font-medium">Online</span>
+          <span className="text-sm font-bold text-slate-900 ">{contact.name}</span>
+          <span className="text-[10px] text-emerald-500  font-medium">Online</span>
         </div>
         <p className="text-xs text-orange-500 font-medium mt-0.5">{contact.role}</p>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
+        <p className="text-xs text-slate-400  mt-1 flex items-center gap-1">
           Klik untuk chat via WhatsApp
           <WhatsAppIcon />
         </p>
@@ -132,13 +132,13 @@ function ContactCard({ contact }) {
 
 function FaqItem({ faq, open, onToggle }) {
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+    <div className="bg-white  border border-slate-200  rounded-xl shadow-sm overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
         className="w-full flex justify-between items-center p-4 text-left"
       >
-        <span className="text-sm font-semibold text-slate-900 dark:text-white pr-2">
+        <span className="text-sm font-semibold text-slate-900  pr-2">
           {faq.question}
         </span>
         <ChevronDown open={open} />
@@ -149,7 +149,7 @@ function FaqItem({ faq, open, onToggle }) {
         }`}
       >
         <div className="overflow-hidden">
-          <p className="p-4 pt-0 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          <p className="p-4 pt-0 text-sm text-slate-600  leading-relaxed">
             {faq.answer}
           </p>
         </div>
@@ -167,26 +167,26 @@ export default function ChatHubPage({ onNavigate }) {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col">
+    <div className="min-h-screen bg-white  flex flex-col">
       {/* ─── Header ────────────────────────────────────────────── */}
       <div className="pt-12 pb-6 px-5">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
             <ChatIcon />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pesan & Bantuan</h1>
+          <h1 className="text-2xl font-bold text-slate-900 ">Pesan & Bantuan</h1>
         </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400 ml-[52px]">
+        <p className="text-sm text-slate-500  ml-[52px]">
           Hubungi agen atau tim legal kami untuk bantuan instan.
         </p>
         <div className="ml-[52px] mt-3">
-          <div className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">
+          <div className="inline-flex items-center gap-2 bg-slate-100  px-3 py-1.5 rounded-full">
             <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-500' : 'bg-slate-400'}`} />
             <ClockIcon />
-            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+            <span className="text-xs text-slate-600  font-medium">
               Jam Operasional: 09:00 – 18:00 WIB
             </span>
-            <span className={`text-[10px] font-medium ${online ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+            <span className={`text-[10px] font-medium ${online ? 'text-emerald-600 ' : 'text-slate-400'}`}>
               · {online ? 'Sedang buka' : 'Tutup'}
             </span>
           </div>
@@ -203,7 +203,7 @@ export default function ChatHubPage({ onNavigate }) {
 
       {/* ─── FAQ Accordion ─────────────────────────────────────── */}
       <div className="px-5 pb-6">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+        <h2 className="text-lg font-bold text-slate-900  mb-4">
           Pertanyaan Umum
         </h2>
         <div className="flex flex-col gap-2">

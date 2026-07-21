@@ -58,18 +58,18 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 inset-x-0 bg-white dark:bg-slate-900 z-50 rounded-t-3xl shadow-2xl max-h-[90vh] flex flex-col"
+            className="fixed bottom-0 inset-x-0 bg-white  z-50 rounded-t-3xl shadow-2xl max-h-[90vh] flex flex-col"
           >
             {/* Drag Handle */}
-            <div className="w-12 h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full mx-auto mt-3 mb-2" />
+            <div className="w-12 h-1.5 bg-gray-200  rounded-full mx-auto mt-3 mb-2" />
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 pb-4 border-b border-gray-100 dark:border-slate-800">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Reschedule Survei</h2>
+            <div className="flex items-center justify-between px-6 pb-4 border-b border-gray-100 ">
+              <h2 className="text-xl font-bold text-slate-900 ">Reschedule Survei</h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                className="p-1 text-slate-400  hover:text-slate-600  transition-colors"
               >
                 <XIcon />
               </button>
@@ -78,18 +78,18 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
             {/* Scrollable Content */}
             <div className="overflow-y-auto px-6 pt-5 pb-6">
               {/* Agent Info */}
-              <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-300 dark:from-slate-600 to-slate-400 dark:to-slate-500 flex items-center justify-center text-xs text-white font-semibold flex-shrink-0">
+              <div className="bg-slate-50  p-3 rounded-xl flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-300  to-slate-400  flex items-center justify-center text-xs text-white font-semibold flex-shrink-0">
                   {agent?.initials || 'AF'}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Agen: {agent?.name || 'Ahmad Fauzi'}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">Jadwal akan dikonfirmasi ulang</p>
+                  <p className="text-sm font-semibold text-slate-800 ">Agen: {agent?.name || 'Ahmad Fauzi'}</p>
+                  <p className="text-xs text-slate-400 ">Jadwal akan dikonfirmasi ulang</p>
                 </div>
               </div>
 
               {/* Date Selection */}
-              <label className="text-sm font-bold text-slate-900 dark:text-white mb-3 block">Pilih Tanggal Baru</label>
+              <label className="text-sm font-bold text-slate-900  mb-3 block">Pilih Tanggal Baru</label>
               <div className="flex gap-3 overflow-x-auto snap-x no-scrollbar pb-2">
                 {DATES.map((d) => {
                   const isSelected = selectedDate === d.date
@@ -100,14 +100,14 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
                       onClick={() => setSelectedDate(d.date)}
                       className={`snap-center shrink-0 rounded-xl p-3 flex flex-col items-center min-w-[70px] transition-all outline-none ${
                         isSelected
-                          ? 'border-2 border-orange-500 bg-orange-50 dark:bg-orange-500/10'
-                          : 'border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+                          ? 'border-2 border-orange-500 bg-orange-50 '
+                          : 'border border-gray-200  bg-white '
                       }`}
                     >
-                      <span className={`text-xs font-medium ${isSelected ? 'text-orange-600' : 'text-gray-400 dark:text-slate-500'}`}>
+                      <span className={`text-xs font-medium ${isSelected ? 'text-orange-600' : 'text-gray-400 '}`}>
                         {d.day}
                       </span>
-                      <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-orange-600' : 'text-slate-900 dark:text-white'}`}>
+                      <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-orange-600' : 'text-slate-900 '}`}>
                         {d.date}
                       </span>
                     </button>
@@ -116,7 +116,7 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
               </div>
 
               {/* Time Selection */}
-              <label className="text-sm font-bold text-slate-900 dark:text-white mb-3 mt-6 block">Waktu Tersedia</label>
+              <label className="text-sm font-bold text-slate-900  mb-3 mt-6 block">Waktu Tersedia</label>
               <div className="grid grid-cols-3 gap-3">
                 {TIMES.map((t) => {
                   const isSelected = selectedTime === t
@@ -127,8 +127,8 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
                       onClick={() => setSelectedTime(t)}
                       className={`py-2 rounded-lg text-center text-sm font-medium transition-all outline-none ${
                         isSelected
-                          ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white'
-                          : 'border border-gray-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-gray-300 dark:hover:border-slate-600'
+                          ? 'bg-slate-900  text-white  border-slate-900 '
+                          : 'border border-gray-200  text-slate-600  hover:border-gray-300 '
                       }`}
                     >
                       {t}
