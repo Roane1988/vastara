@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 
 const CATEGORIES = ['Semua', 'Rumah Baru', 'Apartemen', 'BSD City', 'Jakarta Selatan']
@@ -41,7 +42,55 @@ function ChevronDownIcon() {
   )
 }
 
+function PromoBanner({ agent }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl shadow-lg shadow-orange-500/15 min-h-[220px] sm:min-h-[260px] flex flex-col justify-end">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80')" }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-slate-900/30" />
+      <div className="relative z-10 p-6 sm:p-8">
+        <span className="inline-block bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full mb-3 w-fit">
+          Hot Deal
+        </span>
+        <h3 className="text-xl sm:text-2xl font-bold text-white">Cluster Mewah BSD Diskon 10%</h3>
+        <p className="text-sm sm:text-base text-slate-300 mt-1 mb-5">Terbatas hanya minggu ini.</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center text-white text-sm font-bold">
+              {agent?.charAt(0) || 'A'}
+            </div>
+            <div>
+              <p className="text-xs text-slate-300">Direkomendasikan oleh</p>
+              <p className="text-sm font-bold text-white">{agent || 'Aqsha (Senior Agent)'}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="bg-white text-slate-900 rounded-xl px-5 py-2.5 text-sm font-bold active:scale-95 transition-transform hover:bg-slate-100"
+          >
+            Lihat Promo
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const QUICK_MENU = [
+  { icon: Search, label: 'Carikan Properti', action: null },
+  { icon: Megaphone, label: 'Iklankan Properti', action: 'sell' },
+  { icon: Users, label: 'Cari Agen', action: null },
+  { icon: Calculator, label: 'Kalkulator KPR', action: null },
+  { icon: TrendingDown, label: 'Turun Harga', action: null },
+  { icon: MessageCircle, label: 'Tanya Forum', action: null },
+  { icon: ArrowLeftRight, label: 'Pindah KPR', action: null },
+  { icon: LayoutGrid, label: 'Lainnya', action: null },
+]
+
 export default function ExplorePage({ onNavigate }) {
+  const navigate = useNavigate()
   const [activeCategory, setActiveCategory] = useState('Semua')
   const [saved, setSaved] = useState([])
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -53,7 +102,6 @@ export default function ExplorePage({ onNavigate }) {
 
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
-  const [totalListings, setTotalListings] = useState(0)
   const [user, setUser] = useState(null)
 
   useEffect(() => {
@@ -82,15 +130,6 @@ export default function ExplorePage({ onNavigate }) {
   useEffect(() => {
     async function fetchProperties() {
       setLoading(true)
-
-      const { count, error: countError } = await supabase
-        .from('properties')
-        .select('id', { count: 'exact', head: true })
-        .in('status', ['verified', 'pending'])
-
-      if (!countError) {
-        setTotalListings(count || 0)
-      }
 
       const { data, error } = await supabase
         .from('properties')
@@ -146,51 +185,59 @@ export default function ExplorePage({ onNavigate }) {
     .slice(0, 4)
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
-      <header className="sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-30 pt-12 pb-4 px-4">
+    <div className="min-h-screen bg-white">
+      <header className="sticky top-14 bg-white/90 backdrop-blur-md z-30 pt-4 pb-4 px-4">
         {user ? (
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-5">
+          <h1 className="text-2xl font-bold text-slate-900 mb-5">
             Selamat Datang, {firstName}
           </h1>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+            <h1 className="text-2xl font-bold text-slate-900 mb-1">
               Selamat datang di Vastara!
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <p className="text-sm text-slate-500 mb-4">
               Jual/beli properti impian disini!
             </p>
           </>
         )}
-        <div className="bg-slate-100 dark:bg-slate-800 rounded-full flex items-center px-4 py-3 gap-3 border border-slate-200 dark:border-slate-700 shadow-sm text-slate-400 dark:text-slate-500">
+        <div className="bg-slate-100 rounded-full flex items-center px-4 py-3 gap-3 border border-slate-200 shadow-sm text-slate-400">
           <SearchIcon />
           <input
             type="text"
             placeholder="Cari lokasi atau nama properti..."
             aria-label="Cari properti"
-            className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
           />
           <button
             type="button"
             onClick={() => setShowFilter(true)}
-            className="text-slate-400 dark:text-slate-500 hover:text-orange-500 transition-colors"
+            className="text-slate-400 hover:text-orange-500 transition-colors"
           >
             <FilterIcon />
           </button>
         </div>
       </header>
 
-      <div className="mx-4 mb-3 p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-slate-800 dark:to-slate-800/80 border border-orange-100 dark:border-slate-700 rounded-2xl flex items-center justify-between">
-        <div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Total Verified Listings</p>
-          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{totalListings}</p>
-        </div>
-        <Link
-          to="/sell"
-          className="px-5 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 active:scale-[0.97] transition-all shadow-md shadow-orange-500/20"
-        >
-          Jual Properti
-        </Link>
+      <div className="grid grid-cols-4 gap-4 px-4 py-4">
+        {QUICK_MENU.map((item) => {
+          const Icon = item.icon
+          return (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => item.action && navigate(`/${item.action}`)}
+              className="flex flex-col items-center gap-2 active:scale-90 transition-transform"
+            >
+              <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-orange-500 shadow-sm">
+                <Icon size={20} />
+              </div>
+              <span className="text-[10px] text-slate-700 font-semibold text-center leading-tight">
+                {item.label}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       <div className="flex items-center gap-2 px-4 py-3">
@@ -203,8 +250,8 @@ export default function ExplorePage({ onNavigate }) {
                 onClick={() => setActiveCategory(cat)}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors outline-none ${
                   activeCategory === cat
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
-                    : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-slate-900 text-white'
+                    : 'border border-slate-200 text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 {cat}
@@ -215,11 +262,15 @@ export default function ExplorePage({ onNavigate }) {
         <button
           type="button"
           onClick={cycleSort}
-          className="shrink-0 flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full px-3.5 py-1.5 text-xs text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          className="shrink-0 flex items-center gap-1.5 border border-slate-200 bg-white rounded-full px-3.5 py-1.5 text-xs text-slate-700 font-medium hover:bg-slate-50 transition-colors"
         >
           Urutkan: {SORT_OPTIONS[sortIndex]}
           <ChevronDownIcon />
         </button>
+      </div>
+
+      <div className="px-4 mb-6">
+        <PromoBanner agent="Aqsha (Senior Agent)" />
       </div>
 
       {loading ? (
@@ -229,7 +280,7 @@ export default function ExplorePage({ onNavigate }) {
       ) : (
         <>
           <div className="px-4 mb-6">
-            <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-md bg-slate-100 dark:bg-slate-800">
+            <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-md bg-slate-100 ">
               {properties.slice(0, 3).map((p, index) => (
                 <Link
                   key={p.id}
@@ -274,13 +325,13 @@ export default function ExplorePage({ onNavigate }) {
 
           {recommended.length > 0 && user && (
             <div className="mb-6">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white px-4 mb-3">
+              <h2 className="text-lg font-bold text-slate-900  px-4 mb-3">
                 Pilihan untuk {firstName}
               </h2>
               <div className="flex gap-4 overflow-x-auto no-scrollbar px-4">
                 {recommended.map((p) => (
                   <Link key={p.id} to={`/property/${p.id}`} className="w-[260px] shrink-0 group">
-                    <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-slate-100 dark:bg-slate-800">
+                    <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-slate-100 ">
                       <img src={p.image_url || FALLBACK_IMAGE} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       {p.status === 'verified' && (
                         <span className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
@@ -290,16 +341,16 @@ export default function ExplorePage({ onNavigate }) {
                       <button
                         type="button"
                         onClick={(e) => { e.preventDefault(); toggleSave(p.id) }}
-                        className="absolute top-2 right-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1.5 rounded-full text-slate-400 dark:text-slate-500 hover:text-orange-500 transition-colors"
+                        className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm p-1.5 rounded-full text-slate-400  hover:text-orange-500 transition-colors"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#FF6B00' : 'none'} stroke={saved.includes(p.id) ? '#FF6B00' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                         </svg>
                       </button>
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#FF6B00] transition-colors">{formatPrice(p.price)}</h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{p.title}</p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    <h3 className="text-base font-bold text-slate-900  group-hover:text-[#FF6B00] transition-colors">{formatPrice(p.price)}</h3>
+                    <p className="text-xs text-slate-600  mt-0.5 group-hover:text-orange-600  transition-colors">{p.title}</p>
+                    <p className="text-[11px] text-slate-400  mt-0.5">
                       {p.bedrooms} Bed &bull; {p.bathrooms} Bath &bull; {p.sqm} m&sup2;
                     </p>
                   </Link>
@@ -312,7 +363,7 @@ export default function ExplorePage({ onNavigate }) {
             {sorted.map((p) => (
               <div key={p.id}>
                 <Link to={`/property/${p.id}`} className="block group">
-                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-800">
+                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-3 bg-slate-100 ">
                     <img src={p.image_url || FALLBACK_IMAGE} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     {p.status === 'verified' && (
                       <span className="absolute top-3 left-3 bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
@@ -320,9 +371,9 @@ export default function ExplorePage({ onNavigate }) {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white group-hover:text-[#FF6B00] transition-colors">{formatPrice(p.price)}</h3>
-                  <p className="text-base font-semibold text-slate-700 dark:text-slate-300 mt-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{p.title}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  <h3 className="text-xl font-extrabold text-slate-900  group-hover:text-[#FF6B00] transition-colors">{formatPrice(p.price)}</h3>
+                  <p className="text-base font-semibold text-slate-700  mt-1 group-hover:text-orange-600  transition-colors">{p.title}</p>
+                  <p className="text-sm text-slate-500  mt-1">
                     {p.bedrooms} Bed &bull; {p.bathrooms} Bath &bull; {p.sqm} m&sup2;
                   </p>
                 </Link>
@@ -330,7 +381,7 @@ export default function ExplorePage({ onNavigate }) {
                   <button
                     type="button"
                     onClick={() => toggleSave(p.id)}
-                    className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-orange-500 transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-slate-500  hover:text-orange-500 transition-colors"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#FF6B00' : 'none'} stroke={saved.includes(p.id) ? '#FF6B00' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -341,7 +392,7 @@ export default function ExplorePage({ onNavigate }) {
               </div>
             ))}
             {sorted.length === 0 && !loading && (
-              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-20">
+              <p className="text-center text-sm text-slate-400  py-20">
                 Tidak ada properti yang ditemukan.
               </p>
             )}
@@ -358,21 +409,21 @@ export default function ExplorePage({ onNavigate }) {
             className="fixed inset-0 bg-black/60 z-[100]"
             onClick={() => setShowFilter(false)}
           />
-          <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-3xl p-6 pb-10 animate-slide-up">
+          <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white  border border-slate-200  rounded-t-3xl p-6 pb-10 animate-slide-up">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Filter</h2>
+              <h2 className="text-lg font-bold text-slate-900 ">Filter</h2>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => { setFilterPrice(''); setFilterType(''); setFilterBeds('') }}
-                  className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  className="text-sm text-slate-500  hover:text-slate-900  transition-colors"
                 >
                   Reset
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowFilter(false)}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                  className="text-slate-400 hover:text-slate-600  transition-colors"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -383,7 +434,7 @@ export default function ExplorePage({ onNavigate }) {
 
             <div className="flex flex-col gap-6">
               <div>
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Tipe Properti</label>
+                <label className="text-sm font-semibold text-slate-700  mb-2 block">Tipe Properti</label>
                 <div className="flex gap-2 flex-wrap">
                   {['Rumah', 'Apartemen', 'Villa', 'Tanah', 'Kantor'].map((t) => (
                     <button
@@ -393,7 +444,7 @@ export default function ExplorePage({ onNavigate }) {
                       className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                         filterType === t
                           ? 'bg-orange-500 text-white'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                          : 'bg-slate-100  text-slate-600  border border-slate-200 '
                       }`}
                     >
                       {t}
@@ -403,7 +454,7 @@ export default function ExplorePage({ onNavigate }) {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Rentang Harga</label>
+                <label className="text-sm font-semibold text-slate-700  mb-2 block">Rentang Harga</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { label: '< Rp 1 M', value: '0-1M' },
@@ -417,7 +468,7 @@ export default function ExplorePage({ onNavigate }) {
                       className={`rounded-lg py-2.5 text-sm font-medium transition-colors ${
                         filterPrice === r.value
                           ? 'bg-orange-500 text-white'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                          : 'bg-slate-100  text-slate-600  border border-slate-200 '
                       }`}
                     >
                       {r.label}
@@ -427,7 +478,7 @@ export default function ExplorePage({ onNavigate }) {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Kamar Tidur</label>
+                <label className="text-sm font-semibold text-slate-700  mb-2 block">Kamar Tidur</label>
                 <div className="flex gap-2">
                   {['1', '2', '3', '4', '5+'].map((b) => (
                     <button
@@ -437,7 +488,7 @@ export default function ExplorePage({ onNavigate }) {
                       className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors ${
                         filterBeds === b
                           ? 'bg-orange-500 text-white'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                          : 'bg-slate-100  text-slate-600  border border-slate-200 '
                       }`}
                     >
                       {b}
@@ -458,43 +509,6 @@ export default function ExplorePage({ onNavigate }) {
         </>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 pb-safe">
-        <div className="flex items-center justify-around h-16">
-          <button
-            type="button"
-            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-orange-500 font-semibold hover:brightness-110"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <span className="text-[10px] font-medium">Eksplor</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('dashboard')}
-            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
-            <span className="text-[10px] font-medium">Dashboard</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('chat')}
-            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 relative"
-          >
-            <div className="relative">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
-            </div>
-            <span className="text-[10px] font-medium">Chat</span>
-          </button>
-        </div>
-      </nav>
     </div>
   )
 }

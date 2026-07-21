@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from './supabaseClient'
+import TopNavbar from './components/TopNavbar'
+import ProfileDrawer from './components/ProfileDrawer'
 import MinimalistLogin from './components/MinimalistLogin'
 import PersonalDashboard from './components/PersonalDashboard'
 import SavedPropertiesPage from './components/SavedPropertiesPage'
@@ -32,6 +34,7 @@ function AppContent() {
   const navigate = useNavigate()
   const location = useLocation()
   const [session, setSession] = useState(null)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -57,41 +60,55 @@ function AppContent() {
     navigate(from || '/dashboard')
   }
 
+  const handleLogout = useCallback(() => {
+    navigate('/')
+  }, [navigate])
+
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location.pathname}
-        variants={pageTransition}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        transition={transitionConfig}
-      >
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
-          <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
-          <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute isAuth={isAuth} location={location}>
-              <PersonalDashboard userName={userName} onNavigate={onNavigate} />
-            </ProtectedRoute>
-          } />
-          <Route path="/saved" element={
-            <ProtectedRoute isAuth={isAuth} location={location}>
-              <SavedPropertiesPage onBack={() => navigate('/dashboard')} />
-            </ProtectedRoute>
-          } />
-          <Route path="/sell" element={
-            <ProtectedRoute isAuth={isAuth} location={location}>
-              <SellPropertyPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/chat" element={<ChatHubPage onNavigate={onNavigate} />} />
-          <Route path="/property/:id" element={<PropertyDetailPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </motion.div>
-    </AnimatePresence>
+    <div className="min-h-screen bg-white text-slate-900">
+      <TopNavbar
+        isAuth={isAuth}
+        userName={userName}
+        onProfileOpen={() => setIsProfileOpen(true)}
+        onLogout={handleLogout}
+      />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          className="pt-14"
+          variants={pageTransition}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={transitionConfig}
+        >
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
+            <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
+            <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute isAuth={isAuth} location={location}>
+                <PersonalDashboard userName={userName} onNavigate={onNavigate} onProfileOpen={() => setIsProfileOpen(true)} />
+              </ProtectedRoute>
+            } />
+            <Route path="/saved" element={
+              <ProtectedRoute isAuth={isAuth} location={location}>
+                <SavedPropertiesPage onBack={() => navigate('/dashboard')} />
+              </ProtectedRoute>
+            } />
+            <Route path="/sell" element={
+              <ProtectedRoute isAuth={isAuth} location={location}>
+                <SellPropertyPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/chat" element={<ChatHubPage onNavigate={onNavigate} />} />
+            <Route path="/property/:id" element={<PropertyDetailPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
+      <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userName={userName} />
+    </div>
   )
 }
 

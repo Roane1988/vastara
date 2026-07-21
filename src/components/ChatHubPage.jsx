@@ -59,15 +59,6 @@ function ChatIcon() {
   )
 }
 
-function SearchIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  )
-}
-
 function WhatsAppIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#25D366" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -211,7 +202,7 @@ export default function ChatHubPage({ onNavigate }) {
       </div>
 
       {/* ─── FAQ Accordion ─────────────────────────────────────── */}
-      <div className="px-5 pb-32">
+      <div className="px-5 pb-6">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
           Pertanyaan Umum
         </h2>
@@ -227,39 +218,6 @@ export default function ChatHubPage({ onNavigate }) {
         </div>
         {/* TODO: Fetch FAQs from Supabase 'faqs' table */}
       </div>
-
-      {/* ─── Bottom Navbar ─────────────────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 pb-safe">
-        <div className="flex items-center justify-around h-16">
-          <button
-            type="button"
-            onClick={() => onNavigate?.('explore')}
-            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-          >
-            <SearchIcon />
-            <span className="text-[10px] font-medium">Eksplor</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('dashboard')}
-            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
-            <span className="text-[10px] font-medium">Dashboard</span>
-          </button>
-          <button
-            type="button"
-            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-orange-500 font-semibold hover:brightness-110"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            <span className="text-[10px] font-medium">Chat</span>
-          </button>
-        </div>
-      </nav>
     </div>
   )
 }

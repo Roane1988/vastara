@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+html, body {
+  background-color: #fff;
+}
+html.dark {
+  background-color: #020617;
+}
+
 @theme {
   --font-hero: "Hero", sans-serif;
   --font-roxborough: "RoxboroughCF", serif;

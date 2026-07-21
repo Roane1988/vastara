@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import ProfileDrawer from './ProfileDrawer'
 import NotificationDrawer from './NotificationDrawer'
 
 function BellIcon() {
@@ -68,104 +67,11 @@ function PropertyCard({ property }) {
   )
 }
 
-function PromoBanner({ agent }) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl shadow-lg shadow-orange-500/15 min-h-[220px] sm:min-h-[260px] flex flex-col justify-end">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80')" }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-slate-900/30" />
-      <div className="relative z-10 p-6 sm:p-8">
-        <span className="inline-block bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full mb-3 w-fit">
-          Hot Deal
-        </span>
-        <h3 className="text-xl sm:text-2xl font-bold text-white">Cluster Mewah BSD Diskon 10%</h3>
-        <p className="text-sm sm:text-base text-slate-300 mt-1 mb-5">Terbatas hanya minggu ini.</p>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center text-white text-sm font-bold">
-              {agent?.charAt(0) || 'A'}
-            </div>
-            <div>
-              <p className="text-xs text-slate-300">Direkomendasikan oleh</p>
-              <p className="text-sm font-bold text-white">{agent || 'Aqsha (Senior Agent)'}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="bg-white text-slate-900 rounded-xl px-5 py-2.5 text-sm font-bold active:scale-95 transition-transform hover:bg-slate-100"
-          >
-            Lihat Promo
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SearchIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  )
-}
-
-function ChatIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  )
-}
-
-function MobileBottomNav({ onNavigate }) {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-gray-100 dark:border-slate-800 pb-safe">
-      <div className="flex items-center justify-around h-16">
-        <button
-          type="button"
-          onClick={() => onNavigate?.('explore')}
-          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-        >
-          <SearchIcon />
-          <span className="text-[10px] font-medium">Eksplor</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate?.('saved')}
-          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-orange-500 font-semibold hover:brightness-110"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-          </svg>
-          <span className="text-[10px] font-medium">Dashboard</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate?.('chat')}
-          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 relative"
-        >
-          <div className="relative">
-            <ChatIcon />
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
-          </div>
-          <span className="text-[10px] font-medium">Chat</span>
-        </button>
-      </div>
-    </nav>
-  )
-}
-
-export default function PersonalDashboard({ onNavigate, userName }) {
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
+export default function PersonalDashboard({ onNavigate, userName, onProfileOpen }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [savedProperties, setSavedProperties] = useState([])
   const [recommendations, setRecommendations] = useState([])
   const [loading, setLoading] = useState(true)
-  const [agentName, setAgentName] = useState('Aqsha (Senior Agent)')
 
   useEffect(() => {
     async function fetchData() {
@@ -186,16 +92,6 @@ export default function PersonalDashboard({ onNavigate, userName }) {
         )
       }
 
-      const { data: agent } = await supabase
-        .from('agents')
-        .select('name')
-        .limit(1)
-        .maybeSingle()
-
-      if (agent?.name) {
-        setAgentName(`${agent.name} (Senior Agent)`)
-      }
-
       setLoading(false)
     }
 
@@ -208,7 +104,7 @@ export default function PersonalDashboard({ onNavigate, userName }) {
 
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setIsProfileOpen(true)} className="focus-visible:ring-2 focus-visible:ring-orange-500 rounded-full">
+            <button type="button" onClick={() => onProfileOpen?.()} className="focus-visible:ring-2 focus-visible:ring-orange-500 rounded-full">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm cursor-pointer hover:shadow-md transition-shadow">
                 {userName?.charAt(0)}
               </div>
@@ -225,10 +121,6 @@ export default function PersonalDashboard({ onNavigate, userName }) {
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full ring-2 ring-[#FAFAFA] dark:ring-slate-950" />
           </button>
         </header>
-
-        <div className="mb-5">
-          <PromoBanner agent={agentName} />
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
 
@@ -306,8 +198,6 @@ export default function PersonalDashboard({ onNavigate, userName }) {
       </div>
 
       <NotificationDrawer isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
-      <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userName={userName} />
-      <MobileBottomNav onNavigate={onNavigate} />
     </div>
   )
 }
