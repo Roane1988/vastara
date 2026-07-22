@@ -215,6 +215,7 @@ export default function SellPropertyPage() {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({
     whatsapp: '',
+    title: '',
     jenis_properti: '',
     status_sertifikat: '',
     estimasi_harga: '',
@@ -253,7 +254,7 @@ export default function SellPropertyPage() {
   const canProceed = useCallback(() => {
     switch (step) {
       case 0: return form.whatsapp.replace(/\D/g, '').length >= 10
-      case 1: return form.jenis_properti && form.status_sertifikat && form.estimasi_harga
+      case 1: return form.title.trim() && form.jenis_properti && form.status_sertifikat && form.estimasi_harga
       case 2: return form.address.trim().length > 0
       case 3: return form.description.trim() && form.sqm && form.bedrooms && form.bathrooms
       case 4: return skipUpload || !!fileUrl
@@ -320,7 +321,8 @@ export default function SellPropertyPage() {
       .from('properties')
       .insert({
         user_id: user?.id || null,
-        title: form.jenis_properti || null,
+        title: form.title,
+        property_type: form.jenis_properti,
         description: form.description,
         location: form.address,
         price: form.estimasi_harga ? Number(form.estimasi_harga) : null,
@@ -378,6 +380,19 @@ export default function SellPropertyPage() {
       case 1:
         return (
           <div className="space-y-5">
+            <div>
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
+                Judul Properti <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Jual Rumah Mewah di BSD..."
+                value={form.title}
+                onChange={handleChange('title')}
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
+              />
+            </div>
+
             <div>
               <label className="text-sm font-semibold text-brand-text mb-1.5 block">
                 Jenis Properti <span className="text-red-500">*</span>
