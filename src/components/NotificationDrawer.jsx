@@ -70,7 +70,7 @@ function MegaphoneIcon() {
 
 const ICON_MAP = {
   legal: { icon: ShieldIcon, bg: 'bg-emerald-100 ', color: 'text-emerald-600 ' },
-  survey: { icon: CalendarIcon, bg: 'bg-blue-100 ', color: 'text-blue-600 ' },
+  survey: { icon: CalendarIcon, bg: 'bg-brand-secondary/10 ', color: 'text-brand-secondary ' },
   promo: { icon: MegaphoneIcon, bg: 'bg-brand-secondary/10 ', color: 'text-brand-secondary ' },
 }
 
@@ -80,10 +80,10 @@ function NotificationCard({ notification }) {
 
   return (
     <div
-      className={`relative flex gap-3 p-4 border-b border-gray-50  transition-colors ${
+      className={`relative flex gap-3 p-4 border-b border-brand-border transition-colors ${
         notification.unread
-          ? 'bg-brand-secondary/5 '
-          : 'hover:bg-slate-50 '
+          ? 'bg-brand-secondary/5'
+          : 'hover:bg-brand-bg'
       }`}
     >
       {notification.unread && (
@@ -95,11 +95,11 @@ function NotificationCard({ notification }) {
       </div>
 
       <div className="flex-1 min-w-0 pr-4">
-        <p className="text-sm font-bold text-slate-800 ">{notification.title}</p>
-        <p className="text-xs text-slate-500  mt-0.5 leading-relaxed line-clamp-2">
+        <p className="text-sm font-bold text-brand-text">{notification.title}</p>
+        <p className="text-xs text-brand-muted mt-0.5 leading-relaxed line-clamp-2">
           {notification.message}
         </p>
-        <p className="text-[10px] text-slate-400  mt-1">{notification.timestamp}</p>
+        <p className="text-[10px] text-brand-muted mt-1">{notification.timestamp}</p>
       </div>
     </div>
   )
@@ -129,7 +129,7 @@ export default function NotificationDrawer({ isOpen, onClose }) {
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose() }}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
 
           <motion.div
@@ -138,21 +138,21 @@ export default function NotificationDrawer({ isOpen, onClose }) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed top-0 right-0 h-full w-full max-w-sm bg-white  z-[60] shadow-2xl overflow-y-auto"
+            className="fixed top-0 right-0 h-full w-full max-w-sm bg-brand-surface z-[60] shadow-xl border-l border-brand-border overflow-y-auto"
           >
             {/* ─── Header ──────────────────────────────────────── */}
-            <div className="sticky top-0 bg-white  z-10">
+            <div className="sticky top-0 bg-brand-surface z-10">
               <div className="flex items-center justify-between px-4 pt-6">
-                <h2 className="text-xl font-bold text-slate-900 ">Notifikasi</h2>
+                <h2 className="text-xl font-bold text-brand-text">Notifikasi</h2>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1 text-slate-400 hover:text-slate-600  transition-colors"
+                  className="p-1 text-brand-muted hover:text-brand-text transition-colors"
                 >
                   <XIcon />
                 </button>
               </div>
-              <div className="flex items-center justify-between px-4 pb-4 mt-2 border-b border-gray-100 ">
+              <div className="flex items-center justify-between px-4 pb-4 mt-2 border-b border-brand-border">
                 <span />
                 <button
                   type="button"
@@ -168,8 +168,8 @@ export default function NotificationDrawer({ isOpen, onClose }) {
             <div className="flex flex-col">
               {sections.map((section) => (
                 <div key={section}>
-                  <div className="sticky top-[88px] bg-gray-50/90  backdrop-blur-sm py-1 px-4">
-                    <span className="text-xs font-bold text-slate-400  uppercase tracking-wide">
+                  <div className="sticky top-[88px] bg-brand-bg/90 backdrop-blur-sm py-1 px-4">
+                    <span className="text-xs font-bold text-brand-muted uppercase tracking-wide">
                       {section}
                     </span>
                   </div>

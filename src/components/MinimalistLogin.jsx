@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 
 function EyeIcon({ visible }) {
@@ -41,6 +42,7 @@ function SpinnerIcon() {
 }
 
 export default function MinimalistLogin({ onLoginSuccess }) {
+  const { t } = useTranslation()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [email, setEmail] = useState('')
@@ -61,7 +63,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
     setError(null)
 
     if (!isLogin && password !== confirmPassword) {
-      setError('Konfirmasi password tidak cocok')
+      setError(t('login.error_password_mismatch'))
       return
     }
 
@@ -101,14 +103,14 @@ export default function MinimalistLogin({ onLoginSuccess }) {
             V<span>ASTARA</span>
           </h1>
           <p className="text-xs tracking-[0.3em] text-brand-muted uppercase mt-2">
-            properti tepercaya
+            {t('login.subtitle')}
           </p>
         </div>
 
         {isLogin ? (
           <>
             <h2 className="text-xl font-semibold text-brand-text text-center mb-8">
-              Masuk ke akun Anda
+              {t('login.title')}
             </h2>
 
             <form onSubmit={handleAuth} className="space-y-5">
@@ -119,11 +121,11 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               )}
 
               <div>
-                <label htmlFor="email" className="sr-only">Email</label>
+                <label htmlFor="email" className="sr-only">{t('login.email_label')}</label>
                 <input
                   id="email"
                   type="email"
-                  placeholder="Email"
+                  placeholder={t('login.email_placeholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -136,7 +138,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Password"
+                    placeholder={t('login.password_placeholder')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -156,16 +158,16 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:bg-[#152d4a] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading && <SpinnerIcon />}
-                {loading ? 'Memproses...' : 'Masuk'}
+                {loading ? t('login.processing') : t('login.submit')}
               </button>
             </form>
 
             <div className="flex items-center gap-3 my-6">
               <div className="flex-1 h-px bg-brand-border" />
-              <span className="text-xs text-brand-muted">atau</span>
+              <span className="text-xs text-brand-muted">{t('login.or_divider')}</span>
               <div className="flex-1 h-px bg-brand-border" />
             </div>
 
@@ -174,17 +176,17 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               className="w-full py-3 flex items-center justify-center gap-2.5 text-sm font-medium text-brand-text bg-brand-surface border border-brand-border rounded-lg hover:bg-brand-bg transition-colors"
             >
               <GoogleIcon />
-              Lanjutkan dengan Google
+              {t('login.google')}
             </button>
 
             <p className="mt-8 text-center text-xs text-brand-muted">
-              Belum punya akun?{' '}
+              {t('login.no_account')}{' '}
               <button
                 type="button"
                 onClick={() => { setIsLogin(false); setError(null) }}
                 className="font-semibold text-brand-primary hover:text-brand-secondary transition-colors"
               >
-                Daftar
+                {t('login.register_link')}
               </button>
             </p>
           </>
@@ -196,10 +198,10 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-brand-text">
-                  Buat akun baru
+                  {t('login.register_title')}
                 </h2>
                 <p className="text-xs text-brand-muted">
-                  Isi data diri Anda untuk mendaftar
+                  {t('login.register_subtitle')}
                 </p>
               </div>
             </div>
@@ -213,12 +215,12 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
               <div>
                 <label htmlFor="firstName" className="text-xs font-medium text-brand-muted mb-1.5 block">
-                  Nama Depan
+                  {t('login.first_name_label')}
                 </label>
                 <input
                   id="firstName"
                   type="text"
-                  placeholder="Masukkan nama depan"
+                  placeholder={t('login.first_name_placeholder')}
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
@@ -228,12 +230,12 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
               <div>
                 <label htmlFor="whatsapp" className="text-xs font-medium text-brand-muted mb-1.5 block">
-                  No WhatsApp
+                  {t('login.whatsapp_label')}
                 </label>
                 <input
                   id="whatsapp"
                   type="tel"
-                  placeholder="Masukkan no WhatsApp"
+                  placeholder={t('login.whatsapp_placeholder')}
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   required
@@ -243,12 +245,12 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
               <div>
                 <label htmlFor="reg-email" className="text-xs font-medium text-brand-muted mb-1.5 block">
-                  Email
+                  {t('login.email_label')}
                 </label>
                 <input
                   id="reg-email"
                   type="email"
-                  placeholder="Masukkan email"
+                  placeholder={t('login.email_reg_placeholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -258,13 +260,13 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
               <div>
                 <label htmlFor="reg-password" className="text-xs font-medium text-brand-muted mb-1.5 block">
-                  Password
+                  {t('login.password_label')}
                 </label>
                 <div className="relative">
                   <input
                     id="reg-password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Minimal 6 karakter"
+                    placeholder={t('login.password_placeholder_reg')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -284,13 +286,13 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
               <div>
                 <label htmlFor="confirmPassword" className="text-xs font-medium text-brand-muted mb-1.5 block">
-                  Konfirmasi Password
+                  {t('login.confirm_password_label')}
                 </label>
                 <div className="relative">
                   <input
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Ulangi password"
+                    placeholder={t('login.confirm_password_placeholder')}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -311,21 +313,21 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:bg-[#152d4a] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+                className="w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
               >
                 {loading && <SpinnerIcon />}
-                {loading ? 'Memproses...' : 'Daftar'}
+                {loading ? t('login.register_processing') : t('login.register_submit')}
               </button>
             </form>
 
             <p className="mt-6 text-center text-xs text-brand-muted">
-              Sudah punya akun?{' '}
+              {t('login.has_account')}{' '}
               <button
                 type="button"
                 onClick={() => { setIsLogin(true); setError(null) }}
                 className="font-semibold text-brand-primary hover:text-brand-secondary transition-colors"
               >
-                Masuk
+                {t('login.login_link')}
               </button>
             </p>
           </div>

@@ -1,0 +1,218 @@
+{
+  "navbar": {
+    "sell_property": "Sell Property",
+    "language": "Language",
+    "login": "Login"
+  },
+  "explore": {
+    "hero": {
+      "welcome": "Welcome to Vastara!",
+      "welcome_with_name": "Welcome",
+      "tagline": "Buy, Sell & Rent Properties Made Easy"
+    },
+    "search": {
+      "tab_sale": "For Sale",
+      "tab_rent": "For Rent",
+      "tab_new": "New Properties",
+      "placeholder_sale": "Search location or property name...",
+      "placeholder_rent": "Search properties for rent...",
+      "placeholder_new": "Search new properties...",
+      "aria_label": "Search properties"
+    },
+    "quick_menu": {
+      "find_property": "Find a Property",
+      "advertise": "Advertise Property",
+      "find_agent": "Find an Agent",
+      "mortgage": "Mortgage Calculator",
+      "price_drop": "Price Drop",
+      "forum": "Ask Forum",
+      "refinance": "Refinance",
+      "more": "More"
+    },
+    "recommendations": {
+      "title": "Recommendations For You",
+      "view_all": "View All"
+    },
+    "popular_searches": {
+      "title": "Popular Property Searches",
+      "shuffle": "Shuffle Searches"
+    },
+    "all_properties": {
+      "title": "All Properties",
+      "filter": "Filter",
+      "sort": "Sort",
+      "sort_newest": "Newest",
+      "sort_cheapest": "Cheapest",
+      "sort_expensive": "Most Expensive"
+    },
+    "filter": {
+      "title": "Filter",
+      "reset": "Reset",
+      "property_type": "Property Type",
+      "property_types": {
+        "house": "House",
+        "apartment": "Apartment",
+        "villa": "Villa",
+        "land": "Land",
+        "office": "Office"
+      },
+      "price_range": "Price Range",
+      "price_options": {
+        "under_1b": "< Rp 1 B",
+        "one_to_3b": "Rp 1–3 B",
+        "above_3b": "> Rp 3 B"
+      },
+      "bedrooms": "Bedrooms",
+      "apply": "Apply Filter"
+    },
+    "property_card": {
+      "verified_legal": "Verified Legal",
+      "save": "Save",
+      "saved": "Saved",
+      "bed": "Bed",
+      "bath": "Bath"
+    },
+    "location_fallback": "Indonesia",
+    "filter_badge": "Filter"
+  },
+  "login": {
+    "title": "Sign in to your account",
+    "subtitle": "trusted property",
+    "email_label": "Email",
+    "email_placeholder": "Email",
+    "password_placeholder": "Password",
+    "processing": "Processing...",
+    "submit": "Sign In",
+    "or_divider": "or",
+    "google": "Continue with Google",
+    "no_account": "Don't have an account?",
+    "register_link": "Register",
+    "register_title": "Create a new account",
+    "register_subtitle": "Fill in your details to register",
+    "first_name_label": "First Name",
+    "first_name_placeholder": "Enter your first name",
+    "whatsapp_label": "WhatsApp No",
+    "whatsapp_placeholder": "Enter your WhatsApp number",
+    "email_reg_placeholder": "Enter your email",
+    "password_label": "Password",
+    "password_placeholder_reg": "Minimum 6 characters",
+    "confirm_password_label": "Confirm Password",
+    "confirm_password_placeholder": "Repeat password",
+    "register_submit": "Register",
+    "register_processing": "Processing...",
+    "has_account": "Already have an account?",
+    "login_link": "Sign In",
+    "error_password_mismatch": "Password confirmation does not match"
+  },
+  "comingSoon": {
+    "title": "Feature Coming Soon!",
+    "description": "We are working hard to prepare this feature for a better property experience.",
+    "back": "Back to Explore"
+  },
+  "profileDrawer": {
+    "title": "Personal Information",
+    "section_title": "Personal Information",
+    "verifying": "Verifying & Saving...",
+    "wrong_password": "Incorrect password",
+    "session_expired": "Session not found, please login again",
+    "save_success": "Changes saved successfully",
+    "name_label": "Name",
+    "name_placeholder": "Full name",
+    "email_label": "Email",
+    "email_placeholder": "email@example.com",
+    "whatsapp_label": "WhatsApp Number",
+    "whatsapp_placeholder": "+628123456789",
+    "password_hint": "Enter your password to save changes",
+    "password_placeholder": "Password",
+    "saving": "Saving...",
+    "save_changes": "Save Changes",
+    "logging_out": "Logging out...",
+    "log_out": "Log Out"
+  },
+  "sellProperty": {
+    "title": "Sell Property",
+    "steps": {
+      "contact": "Contact",
+      "contact_desc": "WhatsApp Number",
+      "property": "Property",
+      "property_desc": "Type & Estimate",
+      "location": "Location",
+      "location_desc": "Address & Map",
+      "detail": "Details",
+      "detail_desc": "Building Specifications",
+      "document": "Documents",
+      "document_desc": "Upload Legal Docs"
+    },
+    "success": {
+      "title": "Submission Sent!",
+      "description": "Listing process started. An agent will contact you soon.",
+      "view_agent": "View Agent WhatsApp",
+      "back_home": "Back to Home"
+    },
+    "contact_step": {
+      "whatsapp_label": "WhatsApp Number",
+      "phone_placeholder": "81234567890",
+      "helper": "Our team will contact you via this number"
+    },
+    "property_step": {
+      "title_label": "Property Title",
+      "title_placeholder": "Sell a Luxury House in BSD...",
+      "type_label": "Property Type",
+      "type_placeholder": "Select property type",
+      "certificate_label": "Certificate Status",
+      "certificate_placeholder": "Select certificate status",
+      "price_label": "Estimated Price",
+      "price_placeholder": "1.500.000.000"
+    },
+    "location_step": {
+      "address_label": "Full Address",
+      "address_placeholder": "Enter property address...",
+      "maps_label": "Google Maps Location Link",
+      "maps_placeholder": "Paste your Google Maps link here",
+      "maps_helper": "How to: Open Google Maps, search for the property location, click \"Share\", and select \"Copy Link\""
+    },
+    "detail_step": {
+      "area_label": "Area (m²)",
+      "area_placeholder": "150",
+      "bedroom_label": "Bedrooms",
+      "bedroom_placeholder": "3",
+      "bathroom_label": "Bathrooms",
+      "bathroom_placeholder": "2",
+      "description_label": "Property Description",
+      "description_placeholder": "Describe your property in detail — surroundings, facilities, access, etc."
+    },
+    "document_step": {
+      "title": "Legal Documents",
+      "helper": "Upload SHM, PBB, or other documents (PDF/JPG/PNG, max 5 MB)",
+      "click_upload": "Click to upload documents",
+      "drag_drop": "or drag and drop files here",
+      "optional": "Documents are optional but will speed up the verification process",
+      "skip": "I will upload documents later"
+    },
+    "back": "Back",
+    "next": "Next",
+    "sending": "Sending...",
+    "submit": "Submit Application",
+    "errors": {
+      "file_size": "Maximum file size is 5 MB",
+      "upload_failed": "Upload failed: "
+    },
+    "success_message": "Property submitted successfully!",
+    "property_types": {
+      "rumah": "House",
+      "apartemen": "Apartment",
+      "villa": "Villa",
+      "tanah": "Land",
+      "ruko": "Shop House",
+      "kantor": "Office",
+      "lainnya": "Other"
+    },
+    "certificate_statuses": {
+      "shm": "SHM (Freehold Title)",
+      "shgb": "SHGB (Building Rights Title)",
+      "ppjb": "PPJB (Sale & Purchase Agreement)",
+      "belum": "Not Yet Certified",
+      "lainnya": "Other"
+    }
+  }
+}

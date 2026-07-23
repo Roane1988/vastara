@@ -57,7 +57,7 @@ function MenuItem({ icon, label, onClick, active, destructive }) {
           ? 'text-red-500 hover:bg-red-50'
           : active
             ? 'text-brand-secondary bg-brand-secondary/10'
-            : 'text-brand-text hover:bg-slate-100'
+            : 'text-brand-text hover:bg-brand-bg'
       }`}
     >
       <span className="shrink-0">{icon}</span>
@@ -99,7 +99,7 @@ function SavedDrawer({ onBack }) {
         <button
           type="button"
           onClick={onBack}
-          className="p-1 -ml-1 rounded-lg text-brand-muted hover:text-brand-text hover:bg-slate-100 transition-colors"
+          className="p-1 -ml-1 rounded-lg text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
         >
           <ArrowLeftIcon />
         </button>
@@ -123,9 +123,9 @@ function SavedDrawer({ onBack }) {
                   onBack()
                   navigate(`/property/${p.id}`)
                 }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-brand-bg transition-colors text-left"
               >
-                <div className="w-14 h-14 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden">
+                <div className="w-14 h-14 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
                   {p.image_url ? (
                     <img src={p.image_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -193,14 +193,14 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 w-full max-w-sm z-[70] bg-brand-surface flex flex-col shadow-2xl border-l border-brand-border"
+            className="fixed inset-y-0 right-0 w-full max-w-sm z-[70] bg-brand-surface flex flex-col shadow-xl border-l border-brand-border"
           >
             <div className="flex items-center justify-between px-5 h-14 border-b border-brand-border">
               <span className="text-sm font-semibold text-brand-muted uppercase tracking-wider">Menu</span>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-brand-muted hover:text-brand-text hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-lg text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
               >
                 <XIcon />
               </button>
@@ -225,7 +225,7 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                     <button
                       type="button"
                       onClick={() => handleNavigate('/login')}
-                      className="w-full py-3 rounded-xl bg-brand-primary hover:bg-[#152d4a] active:scale-[0.97] text-white text-sm font-bold transition-all shadow-sm"
+                      className="w-full py-3 rounded-xl bg-brand-primary hover:brightness-90 active:scale-[0.97] text-white text-sm font-bold transition-all duration-200 shadow-sm"
                     >
                       Login / Register
                     </button>
@@ -308,7 +308,7 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                   onClose()
                   navigate('/sell')
                 }}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-primary hover:bg-[#152d4a] active:scale-[0.97] text-white text-sm font-bold transition-all shadow-sm sm:hidden"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-primary hover:brightness-90 active:scale-[0.97] text-white text-sm font-bold transition-all duration-200 shadow-sm sm:hidden"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" />

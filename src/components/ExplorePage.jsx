@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
@@ -43,14 +44,22 @@ function ChevronDownIcon() {
 }
 
 const QUICK_MENU = [
-  { icon: Search, label: 'Carikan Properti', path: '/coming-soon' },
-  { icon: Megaphone, label: 'Iklankan Properti', path: '/sell' },
-  { icon: Users, label: 'Cari Agen', path: '/coming-soon' },
-  { icon: Calculator, label: 'Kalkulator KPR', path: '/coming-soon' },
-  { icon: TrendingDown, label: 'Turun Harga', path: '/coming-soon' },
-  { icon: MessageCircle, label: 'Tanya Forum', path: '/coming-soon' },
-  { icon: ArrowLeftRight, label: 'Pindah KPR', path: '/coming-soon' },
-  { icon: LayoutGrid, label: 'Lainnya', drawer: true },
+  { icon: Search, tKey: 'explore.quick_menu.find_property', path: '/coming-soon' },
+  { icon: Megaphone, tKey: 'explore.quick_menu.advertise', path: '/sell' },
+  { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/coming-soon' },
+  { icon: Calculator, tKey: 'explore.quick_menu.mortgage', path: '/coming-soon' },
+  { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/coming-soon' },
+  { icon: MessageCircle, tKey: 'explore.quick_menu.forum', path: '/coming-soon' },
+  { icon: ArrowLeftRight, tKey: 'explore.quick_menu.refinance', path: '/coming-soon' },
+  { icon: LayoutGrid, tKey: 'explore.quick_menu.more', drawer: true },
+]
+
+const PROPERTY_TYPE_OPTIONS = [
+  { value: 'Rumah', tKey: 'explore.filter.property_types.house' },
+  { value: 'Apartemen', tKey: 'explore.filter.property_types.apartment' },
+  { value: 'Villa', tKey: 'explore.filter.property_types.villa' },
+  { value: 'Tanah', tKey: 'explore.filter.property_types.land' },
+  { value: 'Kantor', tKey: 'explore.filter.property_types.office' },
 ]
 
 const POPULAR_SEARCHES = [
@@ -77,6 +86,7 @@ const POPULAR_SEARCHES = [
 ]
 
 export default function ExplorePage({ onNavigate }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [activeCategory, setActiveCategory] = useState('Semua')
   const [saved, setSaved] = useState([])
@@ -128,7 +138,11 @@ export default function ExplorePage({ onNavigate }) {
     fetchProperties()
   }, [])
 
-  const SORT_OPTIONS = ['Terbaru', 'Termurah', 'Termahal']
+  const SORT_OPTIONS = [
+    t('explore.all_properties.sort_newest'),
+    t('explore.all_properties.sort_cheapest'),
+    t('explore.all_properties.sort_expensive'),
+  ]
 
   const toggleSave = (id) => {
     setSaved((prev) =>
@@ -180,26 +194,26 @@ export default function ExplorePage({ onNavigate }) {
         <div className="relative max-w-7xl mx-auto px-4 pt-6 pb-10 sm:pt-10 sm:pb-14">
           {user ? (
             <h1 className="text-2xl font-bold text-white">
-              Selamat Datang{firstName ? `, ${firstName}` : ''}
+              {t('explore.hero.welcome_with_name')}{firstName ? `, ${firstName}` : ''}
             </h1>
           ) : (
             <>
               <h1 className="text-2xl font-bold text-white">
-                Selamat datang di Vastara!
+                {t('explore.hero.welcome')}
               </h1>
               <p className="text-white/80 text-sm mt-1">
-                Jual Beli dan Sewa Properti Jadi Mudah
+                {t('explore.hero.tagline')}
               </p>
             </>
           )}
 
           {/* Search Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-4 mt-6">
-            <div className="flex gap-6 mb-4 border-b border-slate-200">
+          <div className="bg-brand-surface rounded-2xl shadow-sm p-4 mt-6">
+            <div className="flex gap-6 mb-4 border-b border-brand-border">
               {[
-                { key: 'dijual', label: 'Dijual' },
-                { key: 'disewa', label: 'Disewa' },
-                { key: 'baru', label: 'Properti Baru' },
+                { key: 'dijual', tKey: 'explore.search.tab_sale' },
+                { key: 'disewa', tKey: 'explore.search.tab_rent' },
+                { key: 'baru', tKey: 'explore.search.tab_new' },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -211,7 +225,7 @@ export default function ExplorePage({ onNavigate }) {
                       : 'text-brand-muted font-medium border-b-2 border-transparent hover:text-brand-text'
                   }`}
                 >
-                  {tab.label}
+                  {t(tab.tKey)}
                 </button>
               ))}
             </div>
@@ -223,12 +237,12 @@ export default function ExplorePage({ onNavigate }) {
                 type="text"
                 placeholder={
                   searchCategory === 'dijual'
-                    ? 'Cari lokasi atau nama properti...'
+                    ? t('explore.search.placeholder_sale')
                     : searchCategory === 'disewa'
-                    ? 'Cari properti untuk disewa...'
-                    : 'Cari properti baru...'
+                    ? t('explore.search.placeholder_rent')
+                    : t('explore.search.placeholder_new')
                 }
-                aria-label="Cari properti"
+                aria-label={t('explore.search.aria_label')}
                 className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
               />
               <button
@@ -251,7 +265,7 @@ export default function ExplorePage({ onNavigate }) {
               const Icon = item.icon
               return (
                 <button
-                  key={item.label}
+                  key={item.tKey}
                   type="button"
                   onClick={() => {
                     if (item.drawer) return setIsMoreDrawerOpen(true)
@@ -263,7 +277,7 @@ export default function ExplorePage({ onNavigate }) {
                     <Icon size={20} />
                   </div>
                   <span className="text-[10px] text-brand-text font-semibold text-center leading-tight">
-                    {item.label}
+                    {t(item.tKey)}
                   </span>
                 </button>
               )
@@ -276,14 +290,14 @@ export default function ExplorePage({ onNavigate }) {
       <section className="max-w-7xl mx-auto px-4 mt-8 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-brand-text">
-            Rekomendasi Sesuai Pencarianmu
+            {t('explore.recommendations.title')}
           </h2>
           <button
             type="button"
             onClick={() => navigate('/explore')}
             className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
           >
-            Lihat Selengkapnya
+            {t('explore.recommendations.view_all')}
           </button>
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar">
@@ -301,8 +315,8 @@ export default function ExplorePage({ onNavigate }) {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   {p.status === 'verified' && (
-                    <span className="absolute top-2 left-2 bg-brand-accent/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
-                      Verified Legal
+                    <span className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
+                      {t('explore.property_card.verified_legal')}
                     </span>
                   )}
                 </div>
@@ -315,11 +329,11 @@ export default function ExplorePage({ onNavigate }) {
                   </p>
                   <p className="text-xs text-brand-muted mt-0.5 flex items-center gap-1">
                     <MapPin size={12} />
-                    {p.location || 'Indonesia'}
+                    {p.location || t('explore.location_fallback')}
                   </p>
                   <div className="flex gap-3 text-[11px] text-brand-muted mt-2 pt-2 border-t border-brand-border">
-                    <span>{p.bedrooms} Bed</span>
-                    <span>{p.bathrooms} Bath</span>
+                    <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
+                    <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
                     <span>{p.sqm} m&sup2;</span>
                   </div>
                 </div>
@@ -333,14 +347,14 @@ export default function ExplorePage({ onNavigate }) {
       <section className="max-w-7xl mx-auto px-4 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-brand-text">
-            Pencarian Properti Populer
+            {t('explore.popular_searches.title')}
           </h2>
           <button
             type="button"
             onClick={() => navigate('/coming-soon')}
             className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
           >
-            Acak Pencarian
+            {t('explore.popular_searches.shuffle')}
           </button>
         </div>
         <div className="flex flex-col gap-4">
@@ -381,7 +395,7 @@ export default function ExplorePage({ onNavigate }) {
       <section className="max-w-7xl mx-auto px-4 pb-24">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-brand-text">
-            Semua Properti
+            {t('explore.all_properties.title')}
           </h2>
           <div className="flex items-center gap-2">
             <button
@@ -389,14 +403,14 @@ export default function ExplorePage({ onNavigate }) {
               onClick={() => setShowFilter(true)}
               className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
             >
-              Filter
+              {t('explore.all_properties.filter')}
             </button>
             <button
               type="button"
               onClick={cycleSort}
-              className="flex items-center gap-1 text-xs text-brand-muted bg-brand-surface border border-brand-border rounded-full px-3 py-1.5 font-medium hover:bg-slate-50 transition-colors"
+                    className="flex items-center gap-1 text-xs text-brand-muted bg-brand-surface border border-brand-border rounded-full px-3 py-1.5 font-medium hover:bg-brand-bg transition-colors"
             >
-              Urutkan: {SORT_OPTIONS[sortIndex]}
+              {t('explore.all_properties.sort')}: {SORT_OPTIONS[sortIndex]}
               <ChevronDownIcon />
             </button>
           </div>
@@ -421,8 +435,8 @@ export default function ExplorePage({ onNavigate }) {
                         </span>
                       )}
                       {p.status === 'verified' && (
-                        <span className="bg-brand-accent/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
-                          Verified Legal
+                        <span className="bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
+                          {t('explore.property_card.verified_legal')}
                         </span>
                       )}
                     </div>
@@ -436,12 +450,12 @@ export default function ExplorePage({ onNavigate }) {
                     </p>
                     <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
                       <MapPin size={14} />
-                      {p.location || 'Indonesia'}
+                      {p.location || t('explore.location_fallback')}
                     </p>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
                       <div className="flex gap-3 text-xs text-brand-muted">
-                        <span>{p.bedrooms} Bed</span>
-                        <span>{p.bathrooms} Bath</span>
+                        <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
+                        <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
                         <span>{p.sqm} m&sup2;</span>
                       </div>
                       {p.agent && (
@@ -457,10 +471,10 @@ export default function ExplorePage({ onNavigate }) {
                   onClick={() => toggleSave(p.id)}
                   className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-secondary transition-colors"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4A90E2' : 'none'} stroke={saved.includes(p.id) ? '#4A90E2' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                   <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4F8FD8' : 'none'} stroke={saved.includes(p.id) ? '#4F8FD8' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
-                  {saved.includes(p.id) ? 'Disimpan' : 'Simpan'}
+                  {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
                 </button>
               </div>
             </div>
@@ -485,14 +499,14 @@ export default function ExplorePage({ onNavigate }) {
           />
           <div className="fixed bottom-0 left-0 right-0 z-[110] bg-brand-surface border border-brand-border rounded-t-3xl p-6 pb-10 animate-slide-up">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-brand-text">Filter</h2>
+              <h2 className="text-lg font-bold text-brand-text">{t('explore.filter.title')}</h2>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => { setFilterPrice(''); setFilterType(''); setFilterBeds('') }}
                   className="text-sm text-brand-muted hover:text-brand-text transition-colors"
                 >
-                  Reset
+                  {t('explore.filter.reset')}
                 </button>
                 <button
                   type="button"
@@ -508,32 +522,32 @@ export default function ExplorePage({ onNavigate }) {
 
             <div className="flex flex-col gap-6">
               <div>
-                <label className="text-sm font-semibold text-brand-text mb-2 block">Tipe Properti</label>
+                <label className="text-sm font-semibold text-brand-text mb-2 block">{t('explore.filter.property_type')}</label>
                 <div className="flex gap-2 flex-wrap">
-                  {['Rumah', 'Apartemen', 'Villa', 'Tanah', 'Kantor'].map((t) => (
+                  {PROPERTY_TYPE_OPTIONS.map((opt) => (
                     <button
-                      key={t}
+                      key={opt.value}
                       type="button"
-                      onClick={() => setFilterType(filterType === t ? '' : t)}
+                      onClick={() => setFilterType(filterType === opt.value ? '' : opt.value)}
                       className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                        filterType === t
+                        filterType === opt.value
                           ? 'bg-brand-primary text-white'
                           : 'bg-brand-bg text-brand-muted border border-brand-border'
                       }`}
                     >
-                      {t}
+                      {t(opt.tKey)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-brand-text mb-2 block">Rentang Harga</label>
+                <label className="text-sm font-semibold text-brand-text mb-2 block">{t('explore.filter.price_range')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { label: '< Rp 1 M', value: '0-1M' },
-                    { label: 'Rp 1–3 M', value: '1-3M' },
-                    { label: '> Rp 3 M', value: '3M+' },
+                    { labelKey: 'explore.filter.price_options.under_1b', value: '0-1M' },
+                    { labelKey: 'explore.filter.price_options.one_to_3b', value: '1-3M' },
+                    { labelKey: 'explore.filter.price_options.above_3b', value: '3M+' },
                   ].map((r) => (
                     <button
                       key={r.value}
@@ -545,14 +559,14 @@ export default function ExplorePage({ onNavigate }) {
                           : 'bg-brand-bg text-brand-muted border border-brand-border'
                       }`}
                     >
-                      {r.label}
+                      {t(r.labelKey)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-brand-text mb-2 block">Kamar Tidur</label>
+                <label className="text-sm font-semibold text-brand-text mb-2 block">{t('explore.filter.bedrooms')}</label>
                 <div className="flex gap-2">
                   {['1', '2', '3', '4', '5+'].map((b) => (
                     <button
@@ -576,7 +590,7 @@ export default function ExplorePage({ onNavigate }) {
                 onClick={() => setShowFilter(false)}
                 className="w-full bg-brand-primary text-white rounded-xl py-3 font-bold text-sm mt-2 active:scale-[0.98] transition-transform"
               >
-                Terapkan Filter
+                {t('explore.filter.apply')}
               </button>
             </div>
           </div>

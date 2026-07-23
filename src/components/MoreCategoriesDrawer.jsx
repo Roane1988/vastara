@@ -50,7 +50,7 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
           >
             <div className="w-full max-w-lg mx-auto bg-brand-surface rounded-t-3xl max-h-[85vh] overflow-y-auto pb-8">
               <div className="sticky top-0 bg-brand-surface rounded-t-3xl pt-2 pb-1 flex justify-center">
-                <div className="w-10 h-1 rounded-full bg-slate-300" />
+                <div className="w-10 h-1 rounded-full bg-brand-border" />
               </div>
 
               <div className="px-5 pt-1 pb-2 flex items-center justify-between">
@@ -58,7 +58,7 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1.5 rounded-full text-brand-muted hover:bg-slate-100 transition-colors"
+                  className="p-1.5 rounded-full text-brand-muted hover:bg-brand-bg transition-colors"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" />

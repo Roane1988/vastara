@@ -13,7 +13,7 @@ function formatPrice(value) {
 
 function HeartIcon({ filled }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? '#FF6B00' : 'none'} stroke={filled ? '#FF6B00' : 'white'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? '#183B63' : 'none'} stroke={filled ? '#183B63' : 'white'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>
   )
@@ -31,11 +31,11 @@ function ArrowLeftIcon() {
 function StatusBadge({ status }) {
   const colors = {
     Tersedia: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    'Sedang Nego': 'bg-blue-50 text-brand-secondary border-blue-100',
+    'Sedang Nego': 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20',
   }
   const label = status === 'verified' ? 'Tersedia' : 'Sedang Nego'
   return (
-    <span className={`inline-block px-2.5 py-1 text-[11px] font-semibold rounded-full border ${colors[label] || 'bg-gray-50 text-gray-500 border-gray-100'}`}>
+    <span className={`inline-block px-2.5 py-1 text-[11px] font-semibold rounded-full border ${colors[label] || 'bg-brand-bg text-brand-muted border-brand-border'}`}>
       {label}
     </span>
   )
@@ -84,18 +84,18 @@ export default function SavedPropertiesPage({ onBack }) {
   })
 
   return (
-    <div className="min-h-screen bg-white ">
-      <header className="sticky top-0 bg-white/80  backdrop-blur-md z-10 border-b border-slate-100 ">
+    <div className="min-h-screen bg-brand-surface">
+      <header className="sticky top-0 bg-brand-surface/80 backdrop-blur-md z-10 border-b border-brand-border">
         <div className="flex items-center justify-between px-4 h-14">
           <button
             type="button"
             onClick={() => onBack?.()}
-            className="text-slate-700  hover:text-slate-900  transition-colors -ml-1 p-1"
+            className="text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1"
           >
             <ArrowLeftIcon />
           </button>
-          <h1 className="text-lg font-semibold text-slate-900 ">Properti Disimpan</h1>
-          <span className="text-sm text-slate-400  tabular-nums">
+          <h1 className="text-lg font-semibold text-brand-text">Properti Disimpan</h1>
+          <span className="text-sm text-brand-muted tabular-nums">
             {loading ? '...' : `${displayed.length} Item`}
           </span>
         </div>
@@ -108,11 +108,11 @@ export default function SavedPropertiesPage({ onBack }) {
               key={f}
               type="button"
               onClick={() => setActiveFilter(f)}
-              className={`shrink-0 px-4 py-1.5 text-sm font-medium rounded-full transition-colors outline-none border-none ring-0 ${
-                activeFilter === f
-                  ? 'bg-slate-900  text-white '
-                  : 'bg-slate-100  text-slate-600  hover:bg-slate-200 '
-              }`}
+               className={`shrink-0 px-4 py-1.5 text-sm font-medium rounded-full transition-colors outline-none border-none ring-0 ${
+                 activeFilter === f
+                   ? 'bg-brand-primary text-white'
+                   : 'bg-brand-bg text-brand-muted hover:bg-brand-border'
+               }`}
             >
               {f}
             </button>
@@ -126,22 +126,22 @@ export default function SavedPropertiesPage({ onBack }) {
             <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <p className="text-center text-sm text-slate-400  pt-10">
+          <p className="text-center text-sm text-brand-muted pt-10">
             Tidak ada properti dengan status ini.
           </p>
         ) : (
           filtered.map((p) => (
-            <div key={p.id} className="bg-white  rounded-2xl overflow-hidden border border-slate-100 ">
-              <div className="relative aspect-[16/9] bg-slate-100  flex items-center justify-center">
+            <div key={p.id} className="bg-brand-surface rounded-2xl overflow-hidden border border-brand-border shadow-sm">
+              <div className="relative aspect-[16/9] bg-brand-bg flex items-center justify-center">
                 {p.image_url ? (
                   <img src={p.image_url} alt={p.title} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-xs text-slate-400  font-medium">Gambar Properti</span>
+                  <span className="text-xs text-brand-muted font-medium">Gambar Properti</span>
                 )}
                 <button
                   type="button"
                   onClick={() => toggleSaved(p.id)}
-                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 /80 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-white  transition-colors"
+                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-brand-surface/80 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-brand-surface transition-colors"
                 >
                   <HeartIcon filled={savedIds.includes(p.id)} />
                 </button>
@@ -150,14 +150,14 @@ export default function SavedPropertiesPage({ onBack }) {
               <div className="p-4">
                 <div className="flex items-center justify-between mb-1.5">
                   <StatusBadge status={p.status} />
-                  <span className="text-sm font-bold text-slate-900 ">{formatPrice(p.price)}</span>
+                  <span className="text-sm font-bold text-brand-text">{formatPrice(p.price)}</span>
                 </div>
-                <h3 className="text-base font-semibold text-slate-900  mb-2">{p.title}</h3>
-                <div className="flex items-center gap-1.5 text-sm text-slate-500 ">
+                <h3 className="text-base font-semibold text-brand-text mb-2">{p.title}</h3>
+                <div className="flex items-center gap-1.5 text-sm text-brand-muted">
                   <span>{p.bedrooms} Bed</span>
-                  <span className="text-slate-300 ">&bull;</span>
+                  <span className="text-brand-border">&bull;</span>
                   <span>{p.bathrooms} Bath</span>
-                  <span className="text-slate-300 ">&bull;</span>
+                  <span className="text-brand-border">&bull;</span>
                   <span>{p.sqm} m&sup2;</span>
                 </div>
               </div>

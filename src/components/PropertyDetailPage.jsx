@@ -73,20 +73,20 @@ function formatPrice(value) {
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-brand-bg animate-pulse">
-      <div className="h-72 sm:h-96 bg-slate-200 " />
+      <div className="h-72 sm:h-96 bg-brand-border" />
       <div className="px-5 pt-6 space-y-4">
-        <div className="h-8 bg-slate-200  rounded-lg w-3/4" />
-        <div className="h-4 bg-slate-200  rounded w-1/2" />
-        <div className="h-7 bg-slate-200  rounded w-1/3" />
+        <div className="h-8 bg-brand-border rounded-lg w-3/4" />
+        <div className="h-4 bg-brand-border rounded w-1/2" />
+        <div className="h-7 bg-brand-border rounded w-1/3" />
         <div className="flex gap-4 pt-2">
-          <div className="h-10 w-20 bg-slate-200  rounded-lg" />
-          <div className="h-10 w-20 bg-slate-200  rounded-lg" />
-          <div className="h-10 w-20 bg-slate-200  rounded-lg" />
+          <div className="h-10 w-20 bg-brand-border rounded-lg" />
+          <div className="h-10 w-20 bg-brand-border rounded-lg" />
+          <div className="h-10 w-20 bg-brand-border rounded-lg" />
         </div>
         <div className="space-y-2 pt-4">
-          <div className="h-4 bg-slate-200  rounded w-full" />
-          <div className="h-4 bg-slate-200  rounded w-full" />
-          <div className="h-4 bg-slate-200  rounded w-3/4" />
+          <div className="h-4 bg-brand-border rounded w-full" />
+          <div className="h-4 bg-brand-border rounded w-full" />
+          <div className="h-4 bg-brand-border rounded w-3/4" />
         </div>
       </div>
     </div>
@@ -173,7 +173,7 @@ export default function PropertyDetailPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="absolute top-12 left-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-md hover:bg-white transition-colors"
+          className="absolute top-12 left-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-sm hover:bg-white transition-colors"
         >
           <ArrowLeftIcon />
         </button>
@@ -225,7 +225,7 @@ export default function PropertyDetailPage() {
           href={waLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:bg-[#152d4a] active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-lg"
+          className="w-full py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:brightness-90 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-sm"
         >
           <WhatsAppIcon />
           Hubungi Agent via WhatsApp

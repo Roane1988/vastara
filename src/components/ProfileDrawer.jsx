@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 
 function XIcon() {
@@ -14,7 +15,7 @@ function XIcon() {
 
 function UserIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6B00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
@@ -61,6 +62,7 @@ function InfoIcon() {
 }
 
 export default function ProfileDrawer({ isOpen, onClose, userName }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const [name, setName] = useState(userName || '')
@@ -119,7 +121,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     if (!name.trim() || !email.trim() || !currentPassword.trim()) return
 
     setSaving(true)
-    notify('Memverifikasi & Menyimpan...', 'info')
+    notify(t('profileDrawer.verifying'), 'info')
 
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: currentEmail,
@@ -127,14 +129,14 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     })
 
     if (signInError) {
-      notify('Password salah', 'error')
+      notify(t('profileDrawer.wrong_password'), 'error')
       setSaving(false)
       return
     }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      notify('Sesi tidak ditemukan, silakan login ulang', 'error')
+      notify(t('profileDrawer.session_expired'), 'error')
       setSaving(false)
       return
     }
@@ -171,7 +173,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     setCurrentPassword('')
     setCurrentEmail(email)
     setSaving(false)
-    notify('Perubahan berhasil disimpan', 'success')
+    notify(t('profileDrawer.save_success'), 'success')
   }
 
   return (
@@ -188,7 +190,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose() }}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
           />
 
           <motion.div
@@ -197,15 +199,15 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 w-full max-w-md bg-white  z-[100] flex flex-col shadow-2xl"
+            className="fixed inset-y-0 right-0 w-full max-w-md bg-brand-surface z-[100] flex flex-col shadow-xl border-l border-brand-border"
           >
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 ">
-              <h2 className="text-2xl font-bold text-slate-900">Informasi Pribadi</h2>
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-brand-border">
+              <h2 className="text-2xl font-bold text-brand-text">{t('profileDrawer.title')}</h2>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1 text-slate-400 hover:text-slate-600  transition-colors"
+                  className="p-1 text-brand-muted hover:text-brand-text transition-colors"
                 >
                   <XIcon />
                 </button>
@@ -214,11 +216,11 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
               {notification.show && (
-                <div className={`rounded-lg px-4 py-3 shadow-lg text-sm font-medium flex items-center gap-2 ${
+                <div className={`rounded-lg px-4 py-3 shadow-sm text-sm font-medium flex items-center gap-2 ${
                   notification.type === 'success'
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : notification.type === 'info'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      ? 'bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20'
                       : 'bg-red-50 text-red-700 border border-red-200'
                 }`}>
                   {notification.type === 'success' ? (
@@ -240,38 +242,38 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <UserIcon />
-                  <h3 className="font-semibold text-slate-800 ">Informasi Pribadi</h3>
+                  <h3 className="font-semibold text-brand-text">{t('profileDrawer.section_title')}</h3>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500  mb-1 block uppercase tracking-wide">Nama</label>
+                        <label className="text-[10px] font-bold text-brand-muted mb-1 block uppercase tracking-wide">{t('profileDrawer.name_label')}</label>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Nama lengkap"
-                      className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-slate-400"
+                      placeholder={t('profileDrawer.name_placeholder')}
+                      className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500  mb-1 block uppercase tracking-wide">Email</label>
+                    <label className="text-[10px] font-bold text-brand-muted mb-1 block uppercase tracking-wide">{t('profileDrawer.email_label')}</label>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="email@example.com"
-                      className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-slate-400"
+                      placeholder={t('profileDrawer.email_placeholder')}
+                      className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500  mb-1 block uppercase tracking-wide">Nomor WhatsApp</label>
+                    <label className="text-[10px] font-bold text-brand-muted mb-1 block uppercase tracking-wide">{t('profileDrawer.whatsapp_label')}</label>
                     <input
                       type="text"
                       value={whatsapp}
                       onChange={(e) => setWhatsapp(e.target.value)}
-                      placeholder="+628123456789"
-                      className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-slate-400"
+                      placeholder={t('profileDrawer.whatsapp_placeholder')}
+                      className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
                     />
                   </div>
                 </div>
@@ -290,30 +292,30 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                   className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50  rounded-xl transition-colors disabled:opacity-50"
                 >
                   {loggingOut ? <SpinnerIcon /> : <LogOutIcon />}
-                  {loggingOut ? 'Logging out...' : 'Log Out'}
+                  {loggingOut ? t('profileDrawer.logging_out') : t('profileDrawer.log_out')}
                 </button>
               </section>
             </div>
 
-            <div className="mt-auto sticky bottom-0 bg-white  p-4 border-t border-gray-100  space-y-3">
+            <div className="mt-auto sticky bottom-0 bg-brand-surface p-4 border-t border-brand-border space-y-3">
               <div>
-                <label className="text-[10px] font-bold text-slate-500  mb-1 block uppercase tracking-wide">Masukkan Password untuk menyimpan perubahan</label>
+                <label className="text-[10px] font-bold text-brand-muted mb-1 block uppercase tracking-wide">{t('profileDrawer.password_hint')}</label>
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Password"
-                  className="w-full border border-gray-200  rounded-lg py-2.5 px-3 text-sm text-slate-900  bg-white  focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-slate-400"
+                  placeholder={t('profileDrawer.password_placeholder')}
+                  className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
                 />
               </div>
               <button
                 type="button"
                 onClick={handleSave}
                 disabled={isSaveDisabled}
-                className="w-full py-3.5 rounded-lg font-bold text-white bg-[#FF6B00] hover:bg-[#e86000] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-lg font-bold text-white bg-brand-primary hover:brightness-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {saving ? <SpinnerIcon /> : <SaveIcon />}
-                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                {saving ? t('profileDrawer.saving') : t('profileDrawer.save_changes')}
               </button>
             </div>
           </motion.div>

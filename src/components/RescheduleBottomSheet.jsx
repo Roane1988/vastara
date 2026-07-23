@@ -50,7 +50,7 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose() }}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
           />
           <motion.div
             key="sheet"
@@ -58,18 +58,18 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 inset-x-0 bg-white  z-50 rounded-t-3xl shadow-2xl max-h-[90vh] flex flex-col"
+            className="fixed bottom-0 inset-x-0 bg-brand-surface z-50 rounded-t-3xl shadow-xl border border-brand-border max-h-[90vh] flex flex-col"
           >
             {/* Drag Handle */}
-            <div className="w-12 h-1.5 bg-gray-200  rounded-full mx-auto mt-3 mb-2" />
+            <div className="w-12 h-1.5 bg-brand-border rounded-full mx-auto mt-3 mb-2" />
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 pb-4 border-b border-gray-100 ">
-              <h2 className="text-xl font-bold text-slate-900 ">Reschedule Survei</h2>
+            <div className="flex items-center justify-between px-6 pb-4 border-b border-brand-border">
+              <h2 className="text-xl font-bold text-brand-text">Reschedule Survei</h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1 text-slate-400  hover:text-slate-600  transition-colors"
+                className="p-1 text-brand-muted hover:text-brand-text transition-colors"
               >
                 <XIcon />
               </button>
@@ -78,18 +78,18 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
             {/* Scrollable Content */}
             <div className="overflow-y-auto px-6 pt-5 pb-6">
               {/* Agent Info */}
-              <div className="bg-slate-50  p-3 rounded-xl flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-300  to-slate-400  flex items-center justify-center text-xs text-white font-semibold flex-shrink-0">
+              <div className="bg-brand-bg p-3 rounded-xl flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center text-xs text-white font-semibold flex-shrink-0">
                   {agent?.initials || 'AF'}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800 ">Agen: {agent?.name || 'Ahmad Fauzi'}</p>
-                  <p className="text-xs text-slate-400 ">Jadwal akan dikonfirmasi ulang</p>
+                  <p className="text-sm font-semibold text-brand-text">Agen: {agent?.name || 'Ahmad Fauzi'}</p>
+                  <p className="text-xs text-brand-muted">Jadwal akan dikonfirmasi ulang</p>
                 </div>
               </div>
 
               {/* Date Selection */}
-              <label className="text-sm font-bold text-slate-900  mb-3 block">Pilih Tanggal Baru</label>
+              <label className="text-sm font-bold text-brand-text mb-3 block">Pilih Tanggal Baru</label>
               <div className="flex gap-3 overflow-x-auto snap-x no-scrollbar pb-2">
                 {DATES.map((d) => {
                   const isSelected = selectedDate === d.date
@@ -100,14 +100,14 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
                       onClick={() => setSelectedDate(d.date)}
                       className={`snap-center shrink-0 rounded-xl p-3 flex flex-col items-center min-w-[70px] transition-all outline-none ${
                         isSelected
-                          ? 'border-2 border-brand-secondary bg-brand-secondary/10 '
-                          : 'border border-gray-200  bg-white '
+                          ? 'border-2 border-brand-secondary bg-brand-secondary/10'
+                          : 'border border-brand-border bg-brand-surface'
                       }`}
                     >
-                      <span className={`text-xs font-medium ${isSelected ? 'text-brand-secondary' : 'text-gray-400 '}`}>
+                      <span className={`text-xs font-medium ${isSelected ? 'text-brand-secondary' : 'text-brand-muted'}`}>
                         {d.day}
                       </span>
-                      <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-brand-secondary' : 'text-slate-900 '}`}>
+                      <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-brand-secondary' : 'text-brand-text'}`}>
                         {d.date}
                       </span>
                     </button>
@@ -116,7 +116,7 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
               </div>
 
               {/* Time Selection */}
-              <label className="text-sm font-bold text-slate-900  mb-3 mt-6 block">Waktu Tersedia</label>
+              <label className="text-sm font-bold text-brand-text mb-3 mt-6 block">Waktu Tersedia</label>
               <div className="grid grid-cols-3 gap-3">
                 {TIMES.map((t) => {
                   const isSelected = selectedTime === t
@@ -125,11 +125,11 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
                       key={t}
                       type="button"
                       onClick={() => setSelectedTime(t)}
-                      className={`py-2 rounded-lg text-center text-sm font-medium transition-all outline-none ${
-                        isSelected
-                          ? 'bg-slate-900  text-white  border-slate-900 '
-                          : 'border border-gray-200  text-slate-600  hover:border-gray-300 '
-                      }`}
+                       className={`py-2 rounded-lg text-center text-sm font-medium transition-all outline-none ${
+                         isSelected
+                           ? 'bg-brand-primary text-white'
+                           : 'border border-brand-border text-brand-muted hover:border-brand-muted'
+                       }`}
                     >
                       {t}
                     </button>
@@ -141,7 +141,7 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="w-full py-4 rounded-xl font-bold text-base mt-8 mb-2 bg-brand-primary text-white hover:bg-[#152d4a] transition-colors"
+                className="w-full py-4 rounded-xl font-bold text-base mt-8 mb-2 bg-brand-primary text-white hover:brightness-90 transition-colors"
               >
                 Konfirmasi Jadwal
               </button>
