@@ -70,7 +70,9 @@ export default function ForumDetailPage() {
             ...payload.new,
             profiles: { first_name: profile?.first_name || null },
           }
-          setReplies((prev) => [...prev, newReply])
+          setReplies((prev) =>
+            prev.some((r) => r.id === newReply.id) ? prev : [...prev, newReply]
+          )
         }
       )
       .subscribe()
