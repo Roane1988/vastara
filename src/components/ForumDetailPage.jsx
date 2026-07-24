@@ -4,6 +4,34 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { ArrowLeft, Send, MessageCircle, Trash2, X } from 'lucide-react'
 
+function parseReplyContent(content) {
+  const prefix = '<!--replyto:'
+  const suffix = '-->'
+  if (content && content.startsWith(prefix)) {
+    const end = content.indexOf(suffix)
+    if (end !== -1) {
+      const meta = content.slice(prefix.length, end)
+      const sep = meta.indexOf('|')
+      const authorName = sep !== -1 ? meta.slice(0, sep) : 'Anonymous'
+      const snippet = sep !== -1 ? meta.slice(sep + 1) : meta
+      const message = content.slice(end + suffix.length).replace(/^\n+/, '')
+      return { quoted: { authorName, content: snippet }, message }
+    }
+  }
+  return { quoted: null, message: content }
+}
+
+function QuoteBox({ quoted }) {
+  return (
+    <div className="flex items-start gap-2 mb-2 pl-3 border-l-4 border-brand-primary/60 bg-brand-bg/60 rounded-r-lg py-1.5 px-2.5">
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-semibold text-brand-primary leading-tight">{quoted.authorName}</p>
+        <p className="text-[11px] text-brand-muted leading-snug truncate">{quoted.content}</p>
+      </div>
+    </div>
+  )
+}
+
 export default function ForumDetailPage() {
   const { id } = useParams()
   const { t } = useTranslation()
@@ -52,7 +80,8 @@ export default function ForumDetailPage() {
 
     let content = replyContent.trim()
     if (replyingTo) {
-      content = `> *Membalas ${replyingTo.authorName}:* "${replyingTo.content.length > 80 ? replyingTo.content.slice(0, 80) + '...' : replyingTo.content}"\n\n${content}`
+      const snippet = replyingTo.content.replace(/<!--replyto:.*?-->\n?/s, '').trim()
+      content = `<!--replyto:${replyingTo.authorName}|${snippet.slice(0, 80)}-->\n${content}`
     }
 
     const { error } = await supabase.from('forum_replies').insert({
@@ -154,7 +183,8 @@ export default function ForumDetailPage() {
                     <span className="text-brand-border">&bull;</span>
                     <span>{new Date(reply.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <div className="text-sm text-brand-text leading-relaxed whitespace-pre-wrap">{reply.content}</div>
+                  {(() => { const parsed = parseReplyContent(reply.content); return parsed.quoted ? <QuoteBox quoted={parsed.quoted} /> : null })()}
+                  {(() => { const parsed = parseReplyContent(reply.content); return <div className="text-sm text-brand-text leading-relaxed whitespace-pre-wrap">{parsed.message}</div> })()}
                   <button
                     type="button"
                     onClick={() => {
@@ -172,12 +202,12 @@ export default function ForumDetailPage() {
         </div>
 
         {session?.user && (
-          <form onSubmit={handleReply} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-4">
+          <form onSubmit={handleReply} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-4 transition-all duration-300">
             {replyingTo && (
-              <div className="flex items-start gap-3 mb-3 pl-3 border-l-4 border-brand-primary bg-brand-bg/50 rounded-r-lg py-2 px-3">
+              <div className="flex items-start gap-3 mb-3 pl-3 border-l-4 border-brand-primary bg-brand-bg/70 rounded-r-lg py-2.5 px-3 transition-all duration-300 ease-out">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-brand-primary">{replyingTo.authorName}</p>
-                  <p className="text-xs text-brand-muted truncate">{replyingTo.content}</p>
+                  <p className="text-xs text-brand-muted leading-snug line-clamp-2">{replyingTo.content.replace(/<!--replyto:.*?-->\n?/s, '').trim()}</p>
                 </div>
                 <button
                   type="button"
@@ -199,7 +229,7 @@ export default function ForumDetailPage() {
             <button
               type="submit"
               disabled={submitting || !replyContent.trim()}
-              className="mt-2 w-full py-3 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center justify-center gap-2 hover:brightness-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-2 w-full py-3 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center justify-center gap-2 hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
