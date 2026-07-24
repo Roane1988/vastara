@@ -109,6 +109,17 @@
     "description": "We are working hard to prepare this feature for a better property experience.",
     "back": "Back to Explore"
   },
+  "forum": {
+    "title": "Community Forum",
+    "subtitle": "Discuss mortgages, legalities, and property tips with the community.",
+    "createPost": "Start a Discussion",
+    "postTitlePlaceholder": "Discussion title...",
+    "postContentPlaceholder": "Write your question or opinion...",
+    "submit": "Submit",
+    "reply": "Reply",
+    "noPosts": "No discussions yet. Be the first!",
+    "backToForum": "Back to Forum"
+  },
   "roleSelection": {
     "title": "Market Your Property",
     "subtitle": "Choose your role to start advertising your property.",

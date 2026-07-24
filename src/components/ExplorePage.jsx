@@ -50,7 +50,7 @@ const QUICK_MENU = [
   { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/coming-soon' },
   { icon: Calculator, tKey: 'explore.quick_menu.mortgage', path: '/coming-soon' },
   { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/coming-soon' },
-  { icon: MessageCircle, tKey: 'explore.quick_menu.forum', path: '/coming-soon' },
+  { icon: MessageCircle, tKey: 'explore.quick_menu.forum', path: '/forum' },
   { icon: ArrowLeftRight, tKey: 'explore.quick_menu.refinance', path: '/coming-soon' },
   { icon: LayoutGrid, tKey: 'explore.quick_menu.more', drawer: true },
 ]

@@ -10,6 +10,8 @@ import ChatHubPage from './components/ChatHubPage'
 import PropertyDetailPage from './components/PropertyDetailPage'
 import SellPropertyPage from './components/SellPropertyPage'
 import RoleSelectionPage from './components/RoleSelectionPage'
+import ForumPage from './components/ForumPage'
+import ForumDetailPage from './components/ForumDetailPage'
 import ComingSoonPage from './components/ComingSoonPage'
 
 const pageTransition = {
@@ -95,8 +97,10 @@ function AppContent() {
   <SellPropertyPage />
   </ProtectedRoute>
   } />
- <Route path="/chat" element={<ChatHubPage onNavigate={onNavigate} />} />
-  <Route path="/property/:id" element={<PropertyDetailPage />} />
+  <Route path="/chat" element={<ChatHubPage onNavigate={onNavigate} />} />
+   <Route path="/forum" element={<ForumPage />} />
+   <Route path="/forum/:id" element={<ForumDetailPage />} />
+   <Route path="/property/:id" element={<PropertyDetailPage />} />
   <Route path="/coming-soon" element={<ComingSoonPage />} />
   <Route path="*" element={<Navigate to="/" replace />} />
  </Routes>

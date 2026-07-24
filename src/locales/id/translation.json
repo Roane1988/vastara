@@ -109,6 +109,17 @@
     "description": "Kami sedang bekerja keras menyiapkan fitur ini untuk pengalaman properti yang lebih baik.",
     "back": "Kembali ke Eksplor"
   },
+  "forum": {
+    "title": "Forum Tanya",
+    "subtitle": "Diskusikan KPR, legalitas, dan tips properti bersama komunitas.",
+    "createPost": "Buat Diskusi Baru",
+    "postTitlePlaceholder": "Judul diskusi...",
+    "postContentPlaceholder": "Tulis pertanyaan atau pendapat Anda...",
+    "submit": "Kirim",
+    "reply": "Balas",
+    "noPosts": "Belum ada diskusi. Jadilah yang pertama!",
+    "backToForum": "Kembali ke Forum"
+  },
   "roleSelection": {
     "title": "Pasarkan Properti Anda",
     "subtitle": "Pilih peran Anda untuk mulai mengiklankan properti.",
