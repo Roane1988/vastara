@@ -5,6 +5,7 @@ import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, Message
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
+import { useAuth } from '../context/AuthContext'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
