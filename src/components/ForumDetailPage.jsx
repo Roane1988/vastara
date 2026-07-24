@@ -37,7 +37,7 @@ export default function ForumDetailPage() {
   const { id } = useParams()
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { user, session } = useAuth()
+  const { user, session, showToast } = useAuth()
   const [post, setPost] = useState(null)
   const [replies, setReplies] = useState([])
   const [loading, setLoading] = useState(true)
@@ -127,12 +127,12 @@ export default function ForumDetailPage() {
   }
 
   async function handleDeletePost() {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus diskusi ini?')) return
     const { error } = await supabase.from('forum_posts').delete().eq('id', id)
     if (error) {
-      alert(error.message)
+      showToast(error.message, 'error')
     } else {
-      navigate('/forum')
+      showToast('Diskusi berhasil dihapus', 'success')
+      setTimeout(() => navigate('/forum'), 300)
     }
   }
 
