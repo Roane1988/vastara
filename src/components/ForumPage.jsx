@@ -8,15 +8,12 @@ import { useAuth } from '../context/AuthContext'
 export default function ForumPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    // session from context
 
   useEffect(() => {
     fetchPosts()
