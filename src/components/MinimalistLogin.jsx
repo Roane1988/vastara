@@ -69,40 +69,33 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
     setLoading(true)
 
-    let userData = null
-
-    if (isLogin) {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
-      if (authError) {
-        setError(authError.message)
-        setLoading(false)
-        return
+    try {
+      if (isLogin) {
+        const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+        if (authError) {
+          setError(authError.message)
+          return
+        }
+      } else {
+        const { error: authError } = await supabase.auth.signUp({
+          email, password,
+          options: { data: { first_name: firstName, whatsapp } },
+        })
+        if (authError) {
+          setError(authError.message)
+          return
+        }
       }
-      userData = data?.user
-    } else {
-      const { data, error: authError } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { first_name: firstName, whatsapp } },
-      })
-      if (authError) {
-        setError(authError.message)
-        setLoading(false)
-        return
-      }
-      userData = data?.user
-    }
 
-    if (userData) {
-      const profileName = userData.user_metadata?.first_name || firstName || userData.email?.split('@')[0] || ''
-      await supabase.from('profiles').upsert({
-        id: userData.id,
-        email: userData.email,
-        first_name: profileName,
-      }, { onConflict: 'id' }).catch(() => {})
+      onLoginSuccess?.()
+    } finally {
+      setLoading(false)
     }
-
-    onLoginSuccess?.()
   }
+
+  const loadingBtnClass = loading
+    ? 'relative overflow-hidden border-2 border-brand-primary shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse'
+    : ''
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg px-4">
@@ -167,7 +160,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${loadingBtnClass}`}
               >
                 {loading && <SpinnerIcon />}
                 {loading ? t('login.processing') : t('login.submit')}
@@ -322,7 +315,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+                className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 ${loadingBtnClass}`}
               >
                 {loading && <SpinnerIcon />}
                 {loading ? t('login.register_processing') : t('login.register_submit')}
