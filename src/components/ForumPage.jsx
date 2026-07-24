@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
-import { MessageCircle, ArrowLeft, Send } from 'lucide-react'
+import { MessageCircle, ArrowLeft, Send, Trash2 } from 'lucide-react'
 
 export default function ForumPage() {
   const { t } = useTranslation()
@@ -59,6 +59,16 @@ export default function ForumPage() {
     setSubmitting(false)
   }
 
+  async function handleDeletePost(postId) {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus diskusi ini?')) return
+    const { error } = await supabase.from('forum_posts').delete().eq('id', postId)
+    if (error) {
+      alert(error.message)
+    } else {
+      setPosts(prev => prev.filter(p => p.id !== postId))
+    }
+  }
+
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <div className="sticky top-0 bg-brand-surface/90 backdrop-blur-md z-30 pt-12 pb-3 px-5 border-b border-brand-border">
@@ -79,7 +89,7 @@ export default function ForumPage() {
 
       <div className="flex-1 px-5 pt-5 pb-24 space-y-6 max-w-2xl mx-auto w-full">
         {session?.user && (
-          <form onSubmit={handleSubmit} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-5 space-y-4">
+          <form onSubmit={handleSubmit} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-5 space-y-4">
             <h2 className="text-sm font-bold text-brand-text">{t('forum.createPost')}</h2>
             <input
               type="text"
@@ -111,27 +121,45 @@ export default function ForumPage() {
             <div className="w-6 h-6 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageCircle size={40} className="mx-auto text-brand-muted/40" />
+          <div className="text-center py-16">
+            <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center mx-auto">
+              <MessageCircle size={32} className="text-brand-muted/40" />
+            </div>
             <p className="text-sm text-brand-muted mt-4">{t('forum.noPosts')}</p>
           </div>
         ) : (
           <div className="space-y-3">
             {posts.map((post) => (
-              <button
+              <div
                 key={post.id}
-                type="button"
                 onClick={() => navigate(`/forum/${post.id}`)}
-                className="w-full text-left bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-5 hover:shadow-md hover:border-brand-secondary/20 active:scale-[0.99] transition-all"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && navigate(`/forum/${post.id}`)}
+                className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-5 hover:shadow-md hover:border-brand-secondary/20 active:scale-[0.99] transition-all duration-200 cursor-pointer"
               >
-                <h3 className="text-base font-bold text-brand-text">{post.title}</h3>
-                <p className="text-sm text-brand-muted mt-1 line-clamp-2">{post.content}</p>
-                <div className="flex items-center gap-2 mt-3 text-xs text-brand-muted">
-                  <span className="font-medium text-brand-secondary">{post.profiles?.first_name || 'Anonymous'}</span>
-                  <span className="text-brand-border">&bull;</span>
-                  <span>{new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-bold text-brand-text leading-snug">{post.title}</h3>
+                    <p className="text-sm text-brand-muted mt-1.5 leading-relaxed line-clamp-2">{post.content}</p>
+                    <div className="flex items-center gap-2 mt-3 text-xs text-brand-muted">
+                      <span className="font-medium text-brand-secondary">{post.profiles?.first_name || 'Anonymous'}</span>
+                      <span className="text-brand-border">&bull;</span>
+                      <span>{new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    </div>
+                  </div>
+                  {session?.user?.id === post.author_id && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id) }}
+                      className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-brand-muted hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="Hapus diskusi"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}

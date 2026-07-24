@@ -69,7 +69,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
     setLoading(true)
 
-    let displayName = ''
+    let userData = null
 
     if (isLogin) {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
@@ -78,7 +78,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
         setLoading(false)
         return
       }
-      displayName = data?.user?.user_metadata?.first_name || ''
+      userData = data?.user
     } else {
       const { data, error: authError } = await supabase.auth.signUp({
         email, password,
@@ -89,7 +89,16 @@ export default function MinimalistLogin({ onLoginSuccess }) {
         setLoading(false)
         return
       }
-      displayName = firstName || data?.user?.user_metadata?.first_name || ''
+      userData = data?.user
+    }
+
+    if (userData) {
+      const profileName = userData.user_metadata?.first_name || firstName || userData.email?.split('@')[0] || ''
+      await supabase.from('profiles').upsert({
+        id: userData.id,
+        email: userData.email,
+        first_name: profileName,
+      }, { onConflict: 'id' }).catch(() => {})
     }
 
     onLoginSuccess?.()

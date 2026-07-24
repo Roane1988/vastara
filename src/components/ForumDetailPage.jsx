@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
-import { ArrowLeft, Send, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Send, MessageCircle, Trash2 } from 'lucide-react'
 
 export default function ForumDetailPage() {
   const { id } = useParams()
@@ -59,6 +59,16 @@ export default function ForumDetailPage() {
     setSubmitting(false)
   }
 
+  async function handleDeletePost() {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus diskusi ini?')) return
+    const { error } = await supabase.from('forum_posts').delete().eq('id', id)
+    if (error) {
+      alert(error.message)
+    } else {
+      navigate('/forum')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
@@ -86,18 +96,31 @@ export default function ForumDetailPage() {
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <div className="sticky top-0 bg-brand-surface/90 backdrop-blur-md z-30 pt-12 pb-3 px-5 border-b border-brand-border">
-        <button
-          type="button"
-          onClick={() => navigate('/forum')}
-          className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
-        >
-          <ArrowLeft size={18} />
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate('/forum')}
+            className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          {session?.user?.id === post.author_id && (
+            <button
+              type="button"
+              onClick={handleDeletePost}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
+              title="Hapus diskusi"
+            >
+              <Trash2 size={14} />
+              Hapus
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 px-5 pt-5 pb-28 max-w-2xl mx-auto w-full space-y-6">
-        <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-5">
-          <h1 className="text-xl font-bold text-brand-text">{post.title}</h1>
+        <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-5">
+          <h1 className="text-xl font-bold text-brand-text leading-snug">{post.title}</h1>
           <div className="flex items-center gap-2 mt-2 text-xs text-brand-muted">
             <span className="font-medium text-brand-secondary">{post.profiles?.first_name || 'Anonymous'}</span>
             <span className="text-brand-border">&bull;</span>
@@ -109,23 +132,28 @@ export default function ForumDetailPage() {
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-brand-text">{replies.length} {t('forum.reply')}</h2>
           {replies.length === 0 ? (
-            <p className="text-sm text-brand-muted text-center py-6">Belum ada balasan.</p>
+            <div className="text-center py-10">
+              <MessageCircle size={24} className="mx-auto text-brand-muted/30" />
+              <p className="text-sm text-brand-muted mt-3">Belum ada balasan.</p>
+            </div>
           ) : (
-            replies.map((reply) => (
-              <div key={reply.id} className="bg-brand-surface rounded-xl border border-brand-border p-4">
-                <div className="flex items-center gap-2 text-xs text-brand-muted mb-2">
-                  <span className="font-medium text-brand-secondary">{reply.profiles?.first_name || 'Anonymous'}</span>
-                  <span className="text-brand-border">&bull;</span>
-                  <span>{new Date(reply.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            <div className="space-y-2.5">
+              {replies.map((reply) => (
+                <div key={reply.id} className="bg-brand-surface rounded-xl shadow-sm border border-brand-border p-4 transition-all duration-200 hover:shadow-md">
+                  <div className="flex items-center gap-2 text-xs text-brand-muted mb-2">
+                    <span className="font-medium text-brand-secondary">{reply.profiles?.first_name || 'Anonymous'}</span>
+                    <span className="text-brand-border">&bull;</span>
+                    <span>{new Date(reply.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  <p className="text-sm text-brand-text leading-relaxed whitespace-pre-wrap">{reply.content}</p>
                 </div>
-                <p className="text-sm text-brand-text whitespace-pre-wrap">{reply.content}</p>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
 
         {session?.user && (
-          <form onSubmit={handleReply} className="flex gap-3">
+          <form onSubmit={handleReply} className="flex gap-3 bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-4">
             <input
               type="text"
               value={replyContent}
