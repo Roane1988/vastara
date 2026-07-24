@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 
@@ -206,6 +206,8 @@ function VerticalStepper({ steps, current }) {
 export default function SellPropertyPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
+  const userRole = location.state?.role || 'owner'
 
   const STEPS = [
     { id: 'kontak', label: t('sellProperty.steps.contact'), desc: t('sellProperty.steps.contact_desc') },
@@ -318,6 +320,8 @@ export default function SellPropertyPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
 
+    await supabase.from('profiles').update({ role: userRole }).eq('id', user?.id)
+
     const listingStatus = fileUrl ? 'verified' : 'pending'
 
     const { error: insertError } = await supabase
@@ -326,7 +330,8 @@ export default function SellPropertyPage() {
         user_id: user?.id || null,
         title: form.title,
         property_type: form.jenis_properti,
-        description: form.description,
+        seller_whatsapp: form.whatsapp,
+        description_id: form.description,
         location: form.address,
         price: form.estimasi_harga ? Number(form.estimasi_harga) : null,
         bedrooms: Number(form.bedrooms) || 0,

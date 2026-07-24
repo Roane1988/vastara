@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
+import { getFavorites } from '../utils/favorites'
+import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
 function XIcon() {
   return (
@@ -74,6 +76,27 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   const [currentEmail, setCurrentEmail] = useState('')
+  const [savedProperties, setSavedProperties] = useState([])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const favIds = getFavorites()
+    if (favIds.length === 0) {
+      setSavedProperties([])
+      return
+    }
+    ;(async () => {
+      const { data } = await supabase
+        .from('properties')
+        .select('*')
+        .in('id', favIds)
+      if (data) {
+        setSavedProperties(data)
+      } else {
+        setSavedProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
+      }
+    })()
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -86,19 +109,19 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
       setEmail(authEmail)
       setCurrentEmail(authEmail)
 
-      if (user.user_metadata?.full_name) {
-        setName(user.user_metadata.full_name)
+      if (user.user_metadata?.first_name) {
+        setName(user.user_metadata.first_name)
       }
       setWhatsapp(user.user_metadata?.whatsapp || '')
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, email, whatsapp')
+        .select('first_name, email, whatsapp')
         .eq('id', user.id)
         .single()
 
       if (profile) {
-        if (profile.full_name) setName(profile.full_name)
+        if (profile.first_name) setName(profile.first_name)
         if (profile.email) setEmail(profile.email)
         if (profile.whatsapp) setWhatsapp(profile.whatsapp)
       }
@@ -141,7 +164,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
       return
     }
 
-    const authUpdates = { data: { full_name: name, whatsapp } }
+    const authUpdates = { data: { first_name: name, whatsapp } }
     if (email !== currentEmail) {
       authUpdates.email = email
     }
@@ -157,7 +180,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     const { error: profileError } = await supabase
       .from('profiles')
       .update({
-        full_name: name,
+        first_name: name,
         email,
         whatsapp,
         updated_at: new Date().toISOString(),
@@ -277,6 +300,47 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                     />
                   </div>
                 </div>
+              </section>
+
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#4F8FD8" stroke="#4F8FD8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  <h3 className="font-semibold text-brand-text">{t('profileDrawer.saved_title')}</h3>
+                </div>
+                {savedProperties.length === 0 ? (
+                  <p className="text-sm text-brand-muted text-center py-6">{t('profileDrawer.no_saved')}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {savedProperties.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => { onClose(); navigate(`/property/${p.id}`) }}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-brand-bg transition-colors text-left"
+                      >
+                        <div className="w-12 h-12 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
+                          {p.image_url ? (
+                            <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-brand-text truncate">{p.title}</p>
+                          <p className="text-xs text-brand-muted mt-0.5">
+                            {p.priceDisplay
+                              ? p.priceDisplay
+                              : p.price != null
+                                ? `Rp ${Number(p.price).toLocaleString('id-ID')}`
+                                : ''}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </section>
 
               <section>

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
+import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
@@ -45,7 +46,7 @@ function ChevronDownIcon() {
 
 const QUICK_MENU = [
   { icon: Search, tKey: 'explore.quick_menu.find_property', path: '/coming-soon' },
-  { icon: Megaphone, tKey: 'explore.quick_menu.advertise', path: '/sell' },
+  { icon: Megaphone, tKey: 'explore.quick_menu.advertise', path: '/sell-role' },
   { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/coming-soon' },
   { icon: Calculator, tKey: 'explore.quick_menu.mortgage', path: '/coming-soon' },
   { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/coming-soon' },
@@ -89,7 +90,7 @@ export default function ExplorePage({ onNavigate }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [activeCategory, setActiveCategory] = useState('Semua')
-  const [saved, setSaved] = useState([])
+  const [saved, setSaved] = useState(getFavorites())
   const [showFilter, setShowFilter] = useState(false)
   const [filterPrice, setFilterPrice] = useState('')
   const [filterType, setFilterType] = useState('')
@@ -114,9 +115,7 @@ export default function ExplorePage({ onNavigate }) {
     return () => subscription?.unsubscribe()
   }, [])
 
-  const firstName = user?.user_metadata?.full_name
-    ? user.user_metadata.full_name.split(' ')[0]
-    : null
+  const firstName = user?.user_metadata?.first_name || null
 
   useEffect(() => {
     async function fetchProperties() {
@@ -145,9 +144,8 @@ export default function ExplorePage({ onNavigate }) {
   ]
 
   const toggleSave = (id) => {
-    setSaved((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    )
+    const updated = toggleFav(id)
+    setSaved(updated)
   }
 
   const cycleSort = () => {
@@ -157,7 +155,7 @@ export default function ExplorePage({ onNavigate }) {
   const filtered = properties.filter((p) => {
     if (activeCategory === 'Rumah Baru' && p.bedrooms < 3) return false
     if (activeCategory === 'Apartemen' && p.bedrooms > 2) return false
-    if (filterType && p.title !== filterType) return false
+    if (filterType && (p.property_type || p.category) !== filterType) return false
     if (filterBeds) {
       const num = parseInt(filterBeds)
       if (filterBeds === '5+' ? (p.bedrooms || 0) < 5 : p.bedrooms !== num) return false

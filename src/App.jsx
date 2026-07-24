@@ -9,6 +9,7 @@ import ExplorePage from './components/ExplorePage'
 import ChatHubPage from './components/ChatHubPage'
 import PropertyDetailPage from './components/PropertyDetailPage'
 import SellPropertyPage from './components/SellPropertyPage'
+import RoleSelectionPage from './components/RoleSelectionPage'
 import ComingSoonPage from './components/ComingSoonPage'
 
 const pageTransition = {
@@ -48,7 +49,7 @@ function AppContent() {
  }, [])
 
  const isAuth = !!session?.user
- const userName = session?.user?.user_metadata?.full_name || ''
+  const userName = session?.user?.user_metadata?.first_name || ''
 
  const onNavigate = (page) => {
  navigate('/' + page)
@@ -84,11 +85,16 @@ function AppContent() {
  <Route path="/" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
  <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
           <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
+          <Route path="/sell-role" element={
+  <ProtectedRoute isAuth={isAuth} location={location}>
+  <RoleSelectionPage />
+  </ProtectedRoute>
+  } />
           <Route path="/sell" element={
- <ProtectedRoute isAuth={isAuth} location={location}>
- <SellPropertyPage />
- </ProtectedRoute>
- } />
+  <ProtectedRoute isAuth={isAuth} location={location}>
+  <SellPropertyPage />
+  </ProtectedRoute>
+  } />
  <Route path="/chat" element={<ChatHubPage onNavigate={onNavigate} />} />
   <Route path="/property/:id" element={<PropertyDetailPage />} />
   <Route path="/coming-soon" element={<ComingSoonPage />} />

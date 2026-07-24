@@ -215,7 +215,7 @@ export default function PropertyDetailPage() {
             Deskripsi
           </h2>
           <p className="text-sm text-brand-muted  leading-relaxed">
-            {property.description || `${property.title} — properti premium dengan ${property.bedrooms} kamar tidur dan ${property.bathrooms} kamar mandi, luas bangunan ${property.sqm} m&sup2;.`}
+            {property.description_id || property.description_en || `${property.title} — properti premium dengan ${property.bedrooms} kamar tidur dan ${property.bathrooms} kamar mandi, luas bangunan ${property.sqm} m&sup2;.`}
           </p>
         </div>
       </div>

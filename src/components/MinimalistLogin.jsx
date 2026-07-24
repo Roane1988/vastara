@@ -78,18 +78,18 @@ export default function MinimalistLogin({ onLoginSuccess }) {
         setLoading(false)
         return
       }
-      displayName = data?.user?.user_metadata?.full_name || ''
+      displayName = data?.user?.user_metadata?.first_name || ''
     } else {
       const { data, error: authError } = await supabase.auth.signUp({
         email, password,
-        options: { data: { full_name: firstName, whatsapp } },
+        options: { data: { first_name: firstName, whatsapp } },
       })
       if (authError) {
         setError(authError.message)
         setLoading(false)
         return
       }
-      displayName = firstName || data?.user?.user_metadata?.full_name || ''
+      displayName = firstName || data?.user?.user_metadata?.first_name || ''
     }
 
     onLoginSuccess?.()

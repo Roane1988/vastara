@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../supabaseClient'
+import { getFavorites } from '../utils/favorites'
 
 function XIcon() {
   return (
@@ -72,13 +73,17 @@ function SavedDrawer({ onBack }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const favIds = getFavorites()
+    if (favIds.length === 0) {
+      setLoading(false)
+      return
+    }
     async function fetchProperties() {
       setLoading(true)
       const { data, error } = await supabase
         .from('properties')
         .select('*')
-        .in('status', ['verified', 'pending'])
-        .order('created_at', { ascending: false })
+        .in('id', favIds)
       if (!error && data) {
         setProperties(data)
       }

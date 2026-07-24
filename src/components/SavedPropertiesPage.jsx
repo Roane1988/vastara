@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { getFavorites, toggleFavorite } from '../utils/favorites'
 
 const FILTERS = ['Semua', 'Tersedia', 'Sedang Nego']
 
@@ -45,21 +46,26 @@ export default function SavedPropertiesPage({ onBack }) {
   const [activeFilter, setActiveFilter] = useState('Semua')
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
-  const [savedIds, setSavedIds] = useState([])
+  const [favIds, setFavIds] = useState([])
 
   useEffect(() => {
+    const ids = getFavorites()
+    setFavIds(ids)
+    if (ids.length === 0) {
+      setLoading(false)
+      return
+    }
+
     async function fetchProperties() {
       setLoading(true)
 
       const { data, error } = await supabase
         .from('properties')
         .select('*')
-        .in('status', ['verified', 'pending'])
-        .order('created_at', { ascending: false })
+        .in('id', ids)
 
       if (!error && data) {
         setProperties(data)
-        setSavedIds(data.map((p) => p.id))
       }
 
       setLoading(false)
@@ -69,12 +75,12 @@ export default function SavedPropertiesPage({ onBack }) {
   }, [])
 
   const toggleSaved = (id) => {
-    setSavedIds((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    )
+    const updated = toggleFavorite(id)
+    setFavIds(updated)
+    setProperties((prev) => prev.filter((p) => updated.includes(p.id)))
   }
 
-  const displayed = properties.filter((p) => savedIds.includes(p.id))
+  const displayed = properties.filter((p) => favIds.includes(p.id))
 
   const filtered = displayed.filter((p) => {
     if (activeFilter === 'Semua') return true

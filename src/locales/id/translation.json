@@ -109,6 +109,13 @@
     "description": "Kami sedang bekerja keras menyiapkan fitur ini untuk pengalaman properti yang lebih baik.",
     "back": "Kembali ke Eksplor"
   },
+  "roleSelection": {
+    "title": "Pasarkan Properti Anda",
+    "subtitle": "Pilih peran Anda untuk mulai mengiklankan properti.",
+    "agent": "Agen Properti",
+    "developer": "Developer",
+    "owner": "Pemilik Properti"
+  },
   "profileDrawer": {
     "title": "Informasi Pribadi",
     "section_title": "Informasi Pribadi",
@@ -127,7 +134,9 @@
     "saving": "Menyimpan...",
     "save_changes": "Simpan Perubahan",
     "logging_out": "Logging out...",
-    "log_out": "Log Out"
+    "log_out": "Log Out",
+    "saved_title": "Properti Disimpan",
+    "no_saved": "Belum ada properti disimpan"
   },
   "sellProperty": {
     "title": "Jual Properti",

@@ -109,6 +109,13 @@
     "description": "We are working hard to prepare this feature for a better property experience.",
     "back": "Back to Explore"
   },
+  "roleSelection": {
+    "title": "Market Your Property",
+    "subtitle": "Choose your role to start advertising your property.",
+    "agent": "Property Agent",
+    "developer": "Developer",
+    "owner": "Property Owner"
+  },
   "profileDrawer": {
     "title": "Personal Information",
     "section_title": "Personal Information",
@@ -127,7 +134,9 @@
     "saving": "Saving...",
     "save_changes": "Save Changes",
     "logging_out": "Logging out...",
-    "log_out": "Log Out"
+    "log_out": "Log Out",
+    "saved_title": "Saved Properties",
+    "no_saved": "No saved properties yet"
   },
   "sellProperty": {
     "title": "Sell Property",
