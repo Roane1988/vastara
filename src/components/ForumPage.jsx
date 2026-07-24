@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { MessageCircle, ArrowLeft, Send, Trash2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 export default function ForumPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [session, setSession] = useState(null)
+  const { user } = useAuth()
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
@@ -15,8 +16,7 @@ export default function ForumPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
-  }, [])
+    // session from context
 
   useEffect(() => {
     fetchPosts()
@@ -35,14 +35,14 @@ export default function ForumPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!title.trim() || !content.trim()) return
-    if (!session?.user) {
+    if (!user) {
       alert('Anda harus login terlebih dahulu untuk membuat diskusi.')
       return
     }
     setSubmitting(true)
     try {
       const { error } = await supabase.from('forum_posts').insert({
-        author_id: session.user.id,
+        author_id: user.id,
         title: title.trim(),
         content: content.trim(),
       })

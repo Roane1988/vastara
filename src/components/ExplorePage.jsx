@@ -101,19 +101,7 @@ export default function ExplorePage({ onNavigate }) {
 
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription?.unsubscribe()
-  }, [])
+  const { user } = useAuth()
 
   const firstName = user?.user_metadata?.first_name || null
 

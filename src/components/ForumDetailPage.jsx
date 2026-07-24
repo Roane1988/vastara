@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { ArrowLeft, Send, MessageCircle, Trash2, X } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 function parseReplyContent(content) {
   const prefix = '<!--replyto:'
@@ -46,7 +47,7 @@ export default function ForumDetailPage() {
   const replyInputRef = useRef(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
+    // session from useAuth()
   }, [])
 
   useEffect(() => {
@@ -75,7 +76,7 @@ export default function ForumDetailPage() {
 
   async function handleReply(e) {
     e.preventDefault()
-    if (!replyContent.trim() || !session?.user) return
+    if (!replyContent.trim() || !user) return
     setSubmitting(true)
 
     let content = replyContent.trim()
@@ -142,7 +143,7 @@ export default function ForumDetailPage() {
           >
             <ArrowLeft size={18} />
           </button>
-          {session?.user?.id === post.author_id && (
+          {user?.id === post.author_id && (
             <button
               type="button"
               onClick={handleDeletePost}
@@ -201,7 +202,7 @@ export default function ForumDetailPage() {
           )}
         </div>
 
-        {session?.user && (
+        {user && (
           <form onSubmit={handleReply} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-4 transition-all duration-300">
             {replyingTo && (
               <div className="flex items-start gap-3 mb-3 pl-3 border-l-4 border-brand-primary bg-brand-bg/70 rounded-r-lg py-2.5 px-3 transition-all duration-300 ease-out">
