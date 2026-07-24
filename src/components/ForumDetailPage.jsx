@@ -37,7 +37,7 @@ export default function ForumDetailPage() {
   const { id } = useParams()
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [session, setSession] = useState(null)
+  const { user, session } = useAuth()
   const [post, setPost] = useState(null)
   const [replies, setReplies] = useState([])
   const [loading, setLoading] = useState(true)
@@ -47,12 +47,38 @@ export default function ForumDetailPage() {
   const replyInputRef = useRef(null)
 
   useEffect(() => {
-    // session from useAuth()
-  }, [])
-
-  useEffect(() => {
     fetchPost()
     fetchReplies()
+
+    const channel = supabase
+      .channel(`forum-replies-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'forum_replies',
+          filter: `post_id=eq.${id}`,
+        },
+        async (payload) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name')
+            .eq('id', payload.new.author_id)
+            .single()
+          const newReply = {
+            ...payload.new,
+            profiles: { first_name: profile?.first_name || null },
+          }
+          setReplies((prev) => [...prev, newReply])
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   async function fetchPost() {
