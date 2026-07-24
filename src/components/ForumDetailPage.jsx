@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
-import { ArrowLeft, Send, MessageCircle, Trash2 } from 'lucide-react'
+import { ArrowLeft, Send, MessageCircle, Trash2, X } from 'lucide-react'
 
 export default function ForumDetailPage() {
   const { id } = useParams()
@@ -14,6 +14,8 @@ export default function ForumDetailPage() {
   const [loading, setLoading] = useState(true)
   const [replyContent, setReplyContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [replyingTo, setReplyingTo] = useState(null)
+  const replyInputRef = useRef(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
@@ -47,13 +49,20 @@ export default function ForumDetailPage() {
     e.preventDefault()
     if (!replyContent.trim() || !session?.user) return
     setSubmitting(true)
+
+    let content = replyContent.trim()
+    if (replyingTo) {
+      content = `> *Membalas ${replyingTo.authorName}:* "${replyingTo.content.length > 80 ? replyingTo.content.slice(0, 80) + '...' : replyingTo.content}"\n\n${content}`
+    }
+
     const { error } = await supabase.from('forum_replies').insert({
       post_id: id,
       author_id: session.user.id,
-      content: replyContent.trim(),
+      content,
     })
     if (!error) {
       setReplyContent('')
+      setReplyingTo(null)
       fetchReplies()
     }
     setSubmitting(false)
@@ -145,7 +154,17 @@ export default function ForumDetailPage() {
                     <span className="text-brand-border">&bull;</span>
                     <span>{new Date(reply.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <p className="text-sm text-brand-text leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+                  <div className="text-sm text-brand-text leading-relaxed whitespace-pre-wrap">{reply.content}</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReplyingTo({ id: reply.id, authorName: reply.profiles?.first_name || 'Anonymous', content: reply.content })
+                      replyInputRef.current?.focus()
+                    }}
+                    className="mt-2 text-xs font-medium text-brand-secondary hover:text-brand-primary transition-colors"
+                  >
+                    Balas
+                  </button>
                 </div>
               ))}
             </div>
@@ -153,20 +172,41 @@ export default function ForumDetailPage() {
         </div>
 
         {session?.user && (
-          <form onSubmit={handleReply} className="flex gap-3 bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-4">
-            <input
-              type="text"
+          <form onSubmit={handleReply} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-4">
+            {replyingTo && (
+              <div className="flex items-start gap-3 mb-3 pl-3 border-l-4 border-brand-primary bg-brand-bg/50 rounded-r-lg py-2 px-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-brand-primary">{replyingTo.authorName}</p>
+                  <p className="text-xs text-brand-muted truncate">{replyingTo.content}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            <textarea
+              ref={replyInputRef}
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
-              placeholder={t('forum.postContentPlaceholder')}
-              className="flex-1 border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
+              placeholder={replyingTo ? `Balas ${replyingTo.authorName}...` : t('forum.postContentPlaceholder')}
+              rows={2}
+              className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted resize-none"
             />
             <button
               type="submit"
               disabled={submitting || !replyContent.trim()}
-              className="shrink-0 w-12 h-12 rounded-xl bg-brand-primary text-white flex items-center justify-center hover:brightness-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-2 w-full py-3 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center justify-center gap-2 hover:brightness-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Send size={18} />
+              {submitting ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send size={16} />
+              )}
+              {replyingTo ? 'Kirim Balasan' : t('forum.reply')}
             </button>
           </form>
         )}
