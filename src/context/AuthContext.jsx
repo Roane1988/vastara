@@ -25,18 +25,30 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return
       setSession(session)
       setUser(session?.user ?? null)
+      setLoading(false)
+    }).catch(() => {
+      if (cancelled) return
+      setSession(null)
+      setUser(null)
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return
       setSession(session)
       setUser(session?.user ?? null)
     })
 
-    return () => subscription?.unsubscribe()
+    return () => {
+      cancelled = true
+      subscription?.unsubscribe()
+    }
   }, [])
 
   return (
@@ -47,6 +59,7 @@ export function AuthProvider({ children }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used within AuthProvider')

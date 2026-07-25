@@ -87,10 +87,10 @@ const POPULAR_SEARCHES = [
   },
 ]
 
-export default function ExplorePage({ onNavigate }) {
+export default function ExplorePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [activeCategory, setActiveCategory] = useState('Semua')
+  const [activeCategory] = useState('Semua')
   const [saved, setSaved] = useState(getFavorites())
   const [showFilter, setShowFilter] = useState(false)
   const [filterPrice, setFilterPrice] = useState('')
@@ -101,7 +101,7 @@ export default function ExplorePage({ onNavigate }) {
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false)
 
   const [properties, setProperties] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
   const { user } = useAuth()
 
   const firstName = user?.user_metadata?.first_name || null
@@ -109,46 +109,55 @@ export default function ExplorePage({ onNavigate }) {
   async function fetchProperties(filters = {}) {
     setLoading(true)
 
-    let query = supabase
-      .from('properties')
-      .select('*')
-      .in('status', ['verified', 'pending'])
+    try {
+      let query = supabase
+        .from('properties')
+        .select('*')
+        .in('status', ['verified', 'pending'])
 
-    if (filters.type) {
-      query = query.eq('property_type', filters.type)
-    }
-
-    if (filters.beds) {
-      if (filters.beds === '5+') {
-        query = query.gte('bedrooms', 5)
-      } else {
-        query = query.eq('bedrooms', parseInt(filters.beds))
+      if (filters.type) {
+        query = query.eq('property_type', filters.type)
       }
-    }
 
-    if (filters.price) {
-      if (filters.price === '0-1M') {
-        query = query.lt('price', 1_000_000_000)
-      } else if (filters.price === '1-3M') {
-        query = query.gte('price', 1_000_000_000).lte('price', 3_000_000_000)
-      } else if (filters.price === '3M+') {
-        query = query.gt('price', 3_000_000_000)
+      if (filters.beds) {
+        if (filters.beds === '5+') {
+          query = query.gte('bedrooms', 5)
+        } else {
+          query = query.eq('bedrooms', parseInt(filters.beds))
+        }
       }
-    }
 
-    query = query.order('created_at', { ascending: false })
+      if (filters.price) {
+        if (filters.price === '0-1M') {
+          query = query.lt('price', 1_000_000_000)
+        } else if (filters.price === '1-3M') {
+          query = query.gte('price', 1_000_000_000).lte('price', 3_000_000_000)
+        } else if (filters.price === '3M+') {
+          query = query.gt('price', 3_000_000_000)
+        }
+      }
 
-    const { data, error } = await query
+      query = query.order('created_at', { ascending: false })
 
-    if (!error && data) {
-      setProperties(data)
+      const { data, error } = await query
+
+      if (!error && data) {
+        setProperties(data)
+      } else if (error) {
+        console.warn('Gagal memuat properti:', error.message)
+      }
+    } catch (err) {
+      console.warn('Gagal memuat properti:', err.message)
     }
 
     setLoading(false)
   }
 
   useEffect(() => {
-    fetchProperties()
+    let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchProperties().finally(() => { if (cancelled) return })
+    return () => { cancelled = true }
   }, [])
 
   const SORT_OPTIONS = [
@@ -330,12 +339,12 @@ export default function ExplorePage({ onNavigate }) {
                   </p>
                   <p className="text-xs text-brand-muted mt-0.5 flex items-center gap-1">
                     <MapPin size={12} />
-                    {p.location || t('explore.location_fallback')}
+                    {p.address || p.location || t('explore.location_fallback')}
                   </p>
                   <div className="flex gap-3 text-[11px] text-brand-muted mt-2 pt-2 border-t border-brand-border">
                     <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
                     <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
-                    <span>{p.sqm} m&sup2;</span>
+                    <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
                   </div>
                 </div>
               </div>
@@ -451,13 +460,13 @@ export default function ExplorePage({ onNavigate }) {
                     </p>
                     <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
                       <MapPin size={14} />
-                      {p.location || t('explore.location_fallback')}
+                      {p.address || p.location || t('explore.location_fallback')}
                     </p>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
                       <div className="flex gap-3 text-xs text-brand-muted">
                         <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
                         <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
-                        <span>{p.sqm} m&sup2;</span>
+                        <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
                       </div>
                       {p.agent && (
                         <span className="text-xs font-medium text-brand-secondary">{p.agent}</span>

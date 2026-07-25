@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
-const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
-
 // TODO: Fetch available dates/times for the specific Agent from Supabase
 const DATES = [
   { day: 'Kam', date: 24, month: 'Jul' },

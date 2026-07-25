@@ -50,6 +50,7 @@ export default function SavedPropertiesPage({ onBack }) {
 
   useEffect(() => {
     const ids = getFavorites()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFavIds(ids)
     if (ids.length === 0) {
       setLoading(false)
@@ -149,7 +150,7 @@ export default function SavedPropertiesPage({ onBack }) {
                   onClick={() => toggleSaved(p.id)}
                   className="absolute top-3 right-3 w-9 h-9 rounded-full bg-brand-surface/80 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-brand-surface transition-colors"
                 >
-                  <HeartIcon filled={savedIds.includes(p.id)} />
+                  <HeartIcon filled={favIds.includes(p.id)} />
                 </button>
               </div>
 

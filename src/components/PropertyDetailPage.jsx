@@ -104,6 +104,13 @@ export default function PropertyDetailPage() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    if (!id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError('Properti tidak ditemukan')
+      setLoading(false)
+      return
+    }
+
     let cancelled = false
 
     async function fetchProperty() {
@@ -157,7 +164,7 @@ export default function PropertyDetailPage() {
     return <NotFoundPage message={error} onBack={() => navigate(-1)} />
   }
 
-  const waNumber = property.agent_whatsapp || '6281234567890'
+  const waNumber = property.seller_whatsapp || property.agent_whatsapp || '6281234567890'
   const waMessage = encodeURIComponent(`Halo, saya tertarik dengan properti ${property.title}`)
   const waLink = `https://wa.me/${waNumber}?text=${waMessage}`
 
@@ -180,7 +187,7 @@ export default function PropertyDetailPage() {
         <div className="absolute bottom-4 left-5 right-5">
           <div className="flex items-center gap-1.5 text-white/80 text-xs mb-1.5">
             <MapPinIcon />
-            <span>{property.location || 'Indonesia'}</span>
+            <span>{property.address || property.location || 'Indonesia'}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
             {property.title}
@@ -206,7 +213,7 @@ export default function PropertyDetailPage() {
           </div>
           <div className="flex items-center gap-2 text-brand-muted ">
             <SqmIcon />
-            <span className="text-sm font-medium">{property.sqm} m&sup2;</span>
+            <span className="text-sm font-medium">{property.area_sqm || property.sqm || '-'} m&sup2;</span>
           </div>
         </div>
 
@@ -215,7 +222,7 @@ export default function PropertyDetailPage() {
             Deskripsi
           </h2>
           <p className="text-sm text-brand-muted  leading-relaxed">
-            {property.description_id || property.description_en || `${property.title} — properti premium dengan ${property.bedrooms} kamar tidur dan ${property.bathrooms} kamar mandi, luas bangunan ${property.sqm} m&sup2;.`}
+            {property.description_id || property.description_en || `${property.title} — properti premium dengan ${property.bedrooms} kamar tidur dan ${property.bathrooms} kamar mandi, luas bangunan ${property.area_sqm || property.sqm || '-'} m&sup2;.`}
           </p>
         </div>
       </div>

@@ -284,7 +284,7 @@ export default function SellPropertyPage() {
       case 4: return skipUpload || !!imageUrl
       default: return true
     }
-  }, [step, form, skipUpload, fileUrl])
+  }, [step, form, skipUpload, imageUrl])
 
   const nextStep = () => {
     if (step < STEPS.length - 1) setStep((s) => s + 1)
@@ -307,25 +307,36 @@ export default function SellPropertyPage() {
     setImageUploadError('')
     setImageUploading(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    const safeName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const fileName = `${user.id}-${Date.now()}-${safeName}`
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setImageUploadError('Sesi habis, silakan login ulang.')
+        setImageUploading(false)
+        return
+      }
 
-    const { error: uploadErr } = await supabase.storage
-      .from('PROPERTIES_IMAGE')
-      .upload(fileName, selectedFile)
+      const safeName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const fileName = `${user.id}-${Date.now()}-${safeName}`
 
-    if (uploadErr) {
-      setImageUploadError(t('sellProperty.errors.upload_failed') + uploadErr.message)
-      setImageUploading(false)
-      return
+      const { error: uploadErr } = await supabase.storage
+        .from('PROPERTIES_IMAGE')
+        .upload(fileName, selectedFile)
+
+      if (uploadErr) {
+        setImageUploadError(t('sellProperty.errors.upload_failed') + uploadErr.message)
+        setImageUploading(false)
+        return
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('PROPERTIES_IMAGE')
+        .getPublicUrl(fileName)
+
+      setImageUrl(publicUrl)
+    } catch (err) {
+      setImageUploadError('Gagal mengunggah gambar: ' + (err.message || 'Terjadi kesalahan'))
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('PROPERTIES_IMAGE')
-      .getPublicUrl(fileName)
-
-    setImageUrl(publicUrl)
     setImageUploading(false)
   }
 
@@ -338,66 +349,74 @@ export default function SellPropertyPage() {
   const handleSubmit = async () => {
     setSubmitting(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setNotification({ show: true, message: 'Sesi habis, silakan login ulang.', type: 'error' })
-      setSubmitting(false)
-      return
-    }
-
-    await supabase.from('profiles').update({ role: userRole }).eq('id', user.id)
-
-    let uploadedImageUrl = null
-    if (imageFile && !imageUrl) {
-      const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-      const fileName = `${user.id}-${Date.now()}-${safeName}`
-
-      const { error: uploadErr } = await supabase.storage
-        .from('PROPERTIES_IMAGE')
-        .upload(fileName, imageFile)
-
-      if (uploadErr) {
-        setNotification({ show: true, message: 'Gagal mengunggah gambar: ' + uploadErr.message, type: 'error' })
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setNotification({ show: true, message: 'Sesi habis, silakan login ulang.', type: 'error' })
         setSubmitting(false)
         return
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('PROPERTIES_IMAGE')
-        .getPublicUrl(fileName)
+      const { error: roleError } = await supabase.from('profiles').update({ role: userRole }).eq('id', user.id)
+      if (roleError) {
+        console.warn('Gagal memperbarui role:', roleError.message)
+      }
 
-      uploadedImageUrl = publicUrl
-    } else if (imageUrl) {
-      uploadedImageUrl = imageUrl
-    }
+      let uploadedImageUrl = null
+      if (imageFile && !imageUrl) {
+        const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const fileName = `${user.id}-${Date.now()}-${safeName}`
 
-    const { error: insertError } = await supabase
-      .from('properties')
-      .insert({
-        seller_id: user.id,
-        category: 'Dijual',
-        title: form.title,
-        property_type: form.jenis_properti,
-        seller_whatsapp: form.whatsapp,
-        description_id: form.description,
-        address: form.address,
-        price: form.estimasi_harga ? Number(form.estimasi_harga) : null,
-        bedrooms: Number(form.bedrooms) || 0,
-        bathrooms: Number(form.bathrooms) || 0,
-        area_sqm: Number(form.sqm) || 0,
-        image_url: uploadedImageUrl,
-        status: 'pending',
-      })
+        const { error: uploadErr } = await supabase.storage
+          .from('PROPERTIES_IMAGE')
+          .upload(fileName, imageFile)
 
-    if (insertError) {
-      setNotification({ show: true, message: insertError.message, type: 'error' })
+        if (uploadErr) {
+          setNotification({ show: true, message: 'Gagal mengunggah gambar: ' + uploadErr.message, type: 'error' })
+          setSubmitting(false)
+          return
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('PROPERTIES_IMAGE')
+          .getPublicUrl(fileName)
+
+        uploadedImageUrl = publicUrl
+      } else if (imageUrl) {
+        uploadedImageUrl = imageUrl
+      }
+
+      const { error: insertError } = await supabase
+        .from('properties')
+        .insert({
+          seller_id: user.id,
+          category: 'Dijual',
+          title: form.title,
+          property_type: form.jenis_properti,
+          seller_whatsapp: form.whatsapp,
+          description_id: form.description,
+          address: form.address,
+          price: form.estimasi_harga ? Number(form.estimasi_harga) : null,
+          bedrooms: Number(form.bedrooms) || 0,
+          bathrooms: Number(form.bathrooms) || 0,
+          area_sqm: Number(form.sqm) || 0,
+          image_url: uploadedImageUrl,
+          status: 'pending',
+        })
+
+      if (insertError) {
+        setNotification({ show: true, message: insertError.message, type: 'error' })
+        setSubmitting(false)
+        return
+      }
+
       setSubmitting(false)
-      return
+      showToast('Properti berhasil dikirim', 'success')
+      setIsSubmitted(true)
+    } catch (err) {
+      setNotification({ show: true, message: 'Terjadi kesalahan: ' + (err.message || 'Silakan coba lagi.'), type: 'error' })
+      setSubmitting(false)
     }
-
-    setSubmitting(false)
-    showToast('Properti berhasil dikirim', 'success')
-    setIsSubmitted(true)
   }
 
   const closeSuccess = () => {

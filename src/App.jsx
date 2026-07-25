@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { supabase } from './supabaseClient'
 import TopNavbar from './components/TopNavbar'
 import ProfileDrawer from './components/ProfileDrawer'
 import MinimalistLogin from './components/MinimalistLogin'
@@ -50,7 +51,8 @@ function AppContent() {
     navigate('/')
   }
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut()
     navigate('/')
   }, [navigate])
 

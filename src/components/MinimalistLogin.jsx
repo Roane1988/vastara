@@ -54,10 +54,6 @@ export default function MinimalistLogin({ onLoginSuccess }) {
   const [error, setError] = useState(null)
   const [isLogin, setIsLogin] = useState(true)
 
-  function getFirstName(name) {
-    return name?.trim() || 'Pengguna'
-  }
-
   async function handleAuth(e) {
     e.preventDefault()
     setError(null)
@@ -175,6 +171,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
             <button
               type="button"
+              onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
               className="w-full py-3 flex items-center justify-center gap-2.5 text-sm font-medium text-brand-text bg-brand-surface border border-brand-border rounded-lg hover:bg-brand-bg transition-colors"
             >
               <GoogleIcon />

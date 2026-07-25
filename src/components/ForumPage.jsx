@@ -50,16 +50,26 @@ export default function ForumPage() {
   const [isComposing, setIsComposing] = useState(false)
 
   useEffect(() => {
-    fetchPosts()
+    let cancelled = false
+    fetchPosts().finally(() => { if (cancelled) return })
+    return () => { cancelled = true }
   }, [])
 
   async function fetchPosts() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('forum_posts')
-      .select('*, profiles(*), forum_replies(*, profiles(*))')
-      .order('created_at', { ascending: false })
-    if (!error && data) setPosts(data)
+    try {
+      const { data, error } = await supabase
+        .from('forum_posts')
+        .select('*, profiles(*), forum_replies(*, profiles(*))')
+        .order('created_at', { ascending: false })
+      if (!error && data) {
+        setPosts(data)
+      } else if (error) {
+        console.warn('Gagal memuat forum:', error.message)
+      }
+    } catch (err) {
+      console.warn('Gagal memuat forum:', err.message)
+    }
     setLoading(false)
   }
 

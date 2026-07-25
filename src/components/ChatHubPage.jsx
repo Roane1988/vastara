@@ -158,7 +158,7 @@ function FaqItem({ faq, open, onToggle }) {
   )
 }
 
-export default function ChatHubPage({ onNavigate }) {
+export default function ChatHubPage() {
   const [openFaq, setOpenFaq] = useState(null)
   const online = isWithinHours()
 

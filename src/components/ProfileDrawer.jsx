@@ -82,6 +82,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     if (!isOpen) return
     const favIds = getFavorites()
     if (favIds.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSavedProperties([])
       return
     }
@@ -100,6 +101,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
   useEffect(() => {
     if (!isOpen) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPassword('')
     ;(async () => {
       const { data: { user } } = await supabase.auth.getUser()

@@ -47,6 +47,8 @@ export default function ForumDetailPage() {
   const replyInputRef = useRef(null)
 
   useEffect(() => {
+    let cancelled = false
+
     fetchPost()
     fetchReplies()
 
@@ -61,45 +63,68 @@ export default function ForumDetailPage() {
           filter: `post_id=eq.${id}`,
         },
         async (payload) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name')
-            .eq('id', payload.new.author_id)
-            .single()
-          const newReply = {
-            ...payload.new,
-            profiles: { first_name: profile?.first_name || null },
+          if (cancelled) return
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('first_name')
+              .eq('id', payload.new.author_id)
+              .single()
+            if (cancelled) return
+            const newReply = {
+              ...payload.new,
+              profiles: { first_name: profile?.first_name || null },
+            }
+            setReplies((prev) =>
+              prev.some((r) => r.id === newReply.id) ? prev : [...prev, newReply]
+            )
+          } catch {
+            if (!cancelled) {
+              const newReply = {
+                ...payload.new,
+                profiles: { first_name: null },
+              }
+              setReplies((prev) =>
+                prev.some((r) => r.id === newReply.id) ? prev : [...prev, newReply]
+              )
+            }
           }
-          setReplies((prev) =>
-            prev.some((r) => r.id === newReply.id) ? prev : [...prev, newReply]
-          )
         }
       )
       .subscribe()
 
     return () => {
+      cancelled = true
       supabase.removeChannel(channel)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   async function fetchPost() {
-    const { data } = await supabase
-      .from('forum_posts')
-      .select('*, profiles(first_name)')
-      .eq('id', id)
-      .single()
-    if (data) setPost(data)
+    try {
+      const { data, error } = await supabase
+        .from('forum_posts')
+        .select('*, profiles(first_name)')
+        .eq('id', id)
+        .single()
+      if (!error && data) setPost(data)
+    } catch (err) {
+      console.warn('Gagal memuat post:', err.message)
+    }
     setLoading(false)
   }
 
   async function fetchReplies() {
-    const { data } = await supabase
-      .from('forum_replies')
-      .select('*, profiles(first_name)')
-      .eq('post_id', id)
-      .order('created_at', { ascending: true })
-    if (data) setReplies(data)
+    try {
+      const { data, error } = await supabase
+        .from('forum_replies')
+        .select('*, profiles(first_name)')
+        .eq('post_id', id)
+        .order('created_at', { ascending: true })
+      if (!error && data) setReplies(data)
+    } catch (err) {
+      console.warn('Gagal memuat balasan:', err.message)
+    }
   }
 
   async function handleReply(e) {
@@ -113,7 +138,8 @@ export default function ForumDetailPage() {
       content = `<!--replyto:${replyingTo.authorName}|${snippet.slice(0, 80)}-->\n${content}`
     }
 
-    const { error } = await supabase.from('forum_replies').insert({
+    try {
+      const { error } = await supabase.from('forum_replies').insert({
       post_id: id,
       author_id: session.user.id,
       content,
@@ -122,6 +148,9 @@ export default function ForumDetailPage() {
       setReplyContent('')
       setReplyingTo(null)
       fetchReplies()
+    }
+    } catch (err) {
+      showToast(err.message || 'Gagal mengirim balasan', 'error')
     }
     setSubmitting(false)
   }
