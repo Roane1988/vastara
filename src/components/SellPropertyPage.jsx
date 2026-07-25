@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { CheckCircle } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
 
 function ArrowLeftIcon() {
   return (
@@ -207,6 +209,7 @@ export default function SellPropertyPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
+  const { showToast } = useAuth()
   const userRole = location.state?.role || 'owner'
 
   const STEPS = [
@@ -237,6 +240,7 @@ export default function SellPropertyPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [agentWa, setAgentWa] = useState('6281234567890')
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
@@ -348,8 +352,8 @@ export default function SellPropertyPage() {
     }
 
     setSubmitting(false)
-    setNotification({ show: true, message: t('sellProperty.success_message'), type: 'success' })
-    setShowSuccess(true)
+    showToast('Properti berhasil dikirim', 'success')
+    setIsSubmitted(true)
   }
 
   const closeSuccess = () => {
@@ -686,6 +690,25 @@ export default function SellPropertyPage() {
         onClose={() => setNotification((prev) => ({ ...prev, show: false }))}
       />
 
+      {isSubmitted ? (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+          <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-6">
+            <CheckCircle size={48} className="text-emerald-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-brand-text">Berhasil Terkirim!</h2>
+          <p className="text-brand-muted mt-2 mb-8 max-w-md leading-relaxed">
+            Tim Vastara sedang memverifikasi kelengkapan dokumen legalitas Anda. Iklan akan otomatis tayang dalam 1x24 jam setelah disetujui.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="px-8 py-3.5 rounded-xl font-bold text-sm text-white bg-brand-primary hover:brightness-90 active:scale-[0.98] transition-all duration-200 shadow-sm"
+          >
+            Kembali ke Beranda
+          </button>
+        </div>
+      ) : (
+        <>
       {showSuccess && (
         <SuccessModal agentWa={agentWa} onClose={closeSuccess} />
       )}
@@ -752,6 +775,8 @@ export default function SellPropertyPage() {
           <div className="h-24" />
         </div>
       </div>
+      </>
+      )}
     </div>
   )
 }
