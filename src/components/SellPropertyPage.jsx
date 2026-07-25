@@ -209,7 +209,7 @@ export default function SellPropertyPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const { showToast } = useAuth()
+  const { showToast, loading: authLoading } = useAuth()
   const userRole = location.state?.role || 'owner'
 
   const STEPS = [
@@ -246,14 +246,29 @@ export default function SellPropertyPage() {
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   useEffect(() => {
-    supabase
-      .from('agents')
-      .select('whatsapp')
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.whatsapp) setAgentWa(data.whatsapp)
-      })
+    let cancelled = false
+
+    async function fetchAgent() {
+      try {
+        const { data } = await supabase
+          .from('agents')
+          .select('whatsapp')
+          .limit(1)
+          .maybeSingle()
+
+        if (!cancelled && data?.whatsapp) {
+          setAgentWa(data.whatsapp)
+        }
+      } catch {
+        if (!cancelled) {
+          setAgentWa('6281234567890')
+        }
+      }
+    }
+
+    fetchAgent()
+
+    return () => { cancelled = true }
   }, [])
 
   const handleChange = (field) => (e) => {
@@ -714,6 +729,14 @@ export default function SellPropertyPage() {
       default:
         return null
     }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-brand-surface flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
