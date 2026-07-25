@@ -346,6 +346,20 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
               <section>
                 <button
                   type="button"
+                  onClick={() => { onClose(); navigate('/my-listings') }}
+                  className="w-full flex items-center gap-3 py-3 px-3 text-sm font-semibold text-brand-text hover:bg-brand-bg rounded-xl transition-colors"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                  Iklan Saya
+                </button>
+              </section>
+
+              <section>
+                <button
+                  type="button"
                   disabled={loggingOut}
                   onClick={async () => {
                     setLoggingOut(true)

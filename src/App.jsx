@@ -12,6 +12,7 @@ import SellPropertyPage from './components/SellPropertyPage'
 import RoleSelectionPage from './components/RoleSelectionPage'
 import ForumPage from './components/ForumPage'
 import ForumDetailPage from './components/ForumDetailPage'
+import MyListingsPage from './components/MyListingsPage'
 import ComingSoonPage from './components/ComingSoonPage'
 
 const pageTransition = {
@@ -91,6 +92,11 @@ function AppContent() {
             <Route path="/sell" element={
               <ProtectedRoute isAuth={isAuth} location={location}>
                 <SellPropertyPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-listings" element={
+              <ProtectedRoute isAuth={isAuth} location={location}>
+                <MyListingsPage />
               </ProtectedRoute>
             } />
             <Route path="/chat" element={<ChatHubPage onNavigate={onNavigate} />} />
