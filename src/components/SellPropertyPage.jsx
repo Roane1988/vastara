@@ -332,6 +332,7 @@ export default function SellPropertyPage() {
       .from('properties')
       .insert({
         seller_id: user?.id || null,
+        category: 'Dijual',
         title: form.title,
         property_type: form.jenis_properti,
         seller_whatsapp: form.whatsapp,
