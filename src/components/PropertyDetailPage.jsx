@@ -201,7 +201,7 @@ export default function PropertyDetailPage() {
         </div>
       </div>
 
-      <div className="flex-1 px-5 pt-5 pb-28 space-y-6">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-5 pt-5 pb-28 space-y-6">
         <div>
           <p className="text-2xl font-extrabold text-brand-primary">
             {formatPrice(property.price)}

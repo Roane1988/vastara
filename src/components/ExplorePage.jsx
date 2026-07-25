@@ -424,12 +424,12 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {displayListings.map((p) => (
             <div key={p.id}>
               <Link to={`/property/${p.id}`} className="block group">
-                <div className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden">
-                  <div className="relative aspect-[4/3] sm:aspect-[16/7]">
+                <div className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden h-full">
+                  <div className="relative aspect-[4/3]">
                     <img
                       src={p.image_url || FALLBACK_IMAGE}
                       alt={p.title}

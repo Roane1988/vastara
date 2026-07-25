@@ -114,7 +114,7 @@ export default function SavedPropertiesPage({ onBack }) {
         </div>
       </header>
 
-      <div className="overflow-x-auto scrollbar-none px-4 pt-4 pb-2">
+      <div className="w-full max-w-7xl mx-auto px-4 pt-4 pb-2">
         <div className="flex gap-2">
           {FILTERS.map((f) => (
             <button
@@ -133,7 +133,7 @@ export default function SavedPropertiesPage({ onBack }) {
         </div>
       </div>
 
-      <div className="px-4 pt-2 pb-8 space-y-5">
+      <div className="w-full max-w-7xl mx-auto px-4 pt-2 pb-8 space-y-5">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />

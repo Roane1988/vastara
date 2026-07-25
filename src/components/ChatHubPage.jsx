@@ -168,55 +168,57 @@ export default function ChatHubPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
-      {/* ─── Header ────────────────────────────────────────────── */}
-      <div className="pt-12 pb-6 px-5">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-brand-secondary/10 flex items-center justify-center text-brand-secondary">
-            <ChatIcon />
+      <div className="w-full max-w-7xl mx-auto px-5">
+        {/* ─── Header ────────────────────────────────────────── */}
+        <div className="pt-12 pb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-brand-secondary/10 flex items-center justify-center text-brand-secondary">
+              <ChatIcon />
+            </div>
+            <h1 className="text-2xl font-bold text-brand-text">Pesan & Bantuan</h1>
           </div>
-          <h1 className="text-2xl font-bold text-brand-text">Pesan & Bantuan</h1>
-        </div>
-        <p className="text-sm text-brand-muted ml-[52px]">
-          Hubungi agen atau tim legal kami untuk bantuan instan.
-        </p>
-        <div className="ml-[52px] mt-3">
-          <div className="inline-flex items-center gap-2 bg-brand-bg px-3 py-1.5 rounded-full">
-            <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-500' : 'bg-brand-border'}`} />
-            <ClockIcon />
-            <span className="text-xs text-brand-muted font-medium">
-              Jam Operasional: 09:00 – 18:00 WIB
-            </span>
-            <span className={`text-[10px] font-medium ${online ? 'text-emerald-600' : 'text-brand-muted'}`}>
-              · {online ? 'Sedang buka' : 'Tutup'}
-            </span>
+          <p className="text-sm text-brand-muted ml-[52px]">
+            Hubungi agen atau tim legal kami untuk bantuan instan.
+          </p>
+          <div className="ml-[52px] mt-3">
+            <div className="inline-flex items-center gap-2 bg-brand-bg px-3 py-1.5 rounded-full">
+              <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-500' : 'bg-brand-border'}`} />
+              <ClockIcon />
+              <span className="text-xs text-brand-muted font-medium">
+                Jam Operasional: 09:00 – 18:00 WIB
+              </span>
+              <span className={`text-[10px] font-medium ${online ? 'text-emerald-600' : 'text-brand-muted'}`}>
+                · {online ? 'Sedang buka' : 'Tutup'}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ─── Active Contacts ──────────────────────────────────── */}
-      <div className="flex flex-col gap-4 px-5 pb-6">
-        {CONTACTS.map((contact) => (
-          <ContactCard key={contact.id} contact={contact} />
-        ))}
-        {/* TODO: Fetch contacts from Supabase 'agents' table */}
-      </div>
-
-      {/* ─── FAQ Accordion ─────────────────────────────────────── */}
-      <div className="px-5 pb-6">
-        <h2 className="text-lg font-bold text-brand-text mb-4">
-          Pertanyaan Umum
-        </h2>
-        <div className="flex flex-col gap-2">
-          {FAQS.map((faq) => (
-            <FaqItem
-              key={faq.id}
-              faq={faq}
-              open={openFaq === faq.id}
-              onToggle={() => toggleFaq(faq.id)}
-            />
+        {/* ─── Active Contacts ──────────────────────────────── */}
+        <div className="flex flex-col gap-4 pb-6">
+          {CONTACTS.map((contact) => (
+            <ContactCard key={contact.id} contact={contact} />
           ))}
+          {/* TODO: Fetch contacts from Supabase 'agents' table */}
         </div>
-        {/* TODO: Fetch FAQs from Supabase 'faqs' table */}
+
+        {/* ─── FAQ Accordion ─────────────────────────────────── */}
+        <div className="pb-6">
+          <h2 className="text-lg font-bold text-brand-text mb-4">
+            Pertanyaan Umum
+          </h2>
+          <div className="flex flex-col gap-2">
+            {FAQS.map((faq) => (
+              <FaqItem
+                key={faq.id}
+                faq={faq}
+                open={openFaq === faq.id}
+                onToggle={() => toggleFaq(faq.id)}
+              />
+            ))}
+          </div>
+          {/* TODO: Fetch FAQs from Supabase 'faqs' table */}
+        </div>
       </div>
     </div>
   )
