@@ -154,10 +154,8 @@ export default function ExplorePage() {
   }
 
   useEffect(() => {
-    let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchProperties().finally(() => { if (cancelled) return })
-    return () => { cancelled = true }
+    fetchProperties().catch(() => {})
   }, [])
 
   const SORT_OPTIONS = [

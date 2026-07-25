@@ -114,8 +114,7 @@ export default function PropertyDetailPage() {
     let cancelled = false
 
     async function fetchProperty() {
-      setLoading(true)
-      setError(null)
+      if (!cancelled) { setLoading(true); setError(null) }
 
       if (id.startsWith('dummy-')) {
         const match = DUMMY_PROPERTIES.find((p) => p.id === id)
@@ -130,28 +129,35 @@ export default function PropertyDetailPage() {
         return
       }
 
-      const { data, error: fetchError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle()
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle()
 
-      if (cancelled) return
+        if (cancelled) return
 
-      if (fetchError) {
-        setError(fetchError.message)
+        if (fetchError) {
+          setError(fetchError.message)
+          setLoading(false)
+          return
+        }
+
+        if (!data) {
+          setError('Properti tidak ditemukan')
+          setLoading(false)
+          return
+        }
+
+        setProperty(data)
         setLoading(false)
-        return
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Gagal memuat properti')
+          setLoading(false)
+        }
       }
-
-      if (!data) {
-        setError('Properti tidak ditemukan')
-        setLoading(false)
-        return
-      }
-
-      setProperty(data)
-      setLoading(false)
     }
 
     fetchProperty()

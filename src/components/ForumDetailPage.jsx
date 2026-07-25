@@ -82,8 +82,8 @@ export default function ForumDetailPage() {
   useEffect(() => {
     let cancelled = false
 
-    fetchPost()
-    fetchReplies()
+    fetchPost().catch(() => {})
+    fetchReplies().catch(() => {})
 
     const channel = supabase
       .channel(`forum-replies-${id}`)

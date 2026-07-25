@@ -1,8 +1,20 @@
-const STORAGE_KEY = 'vastara_favorites'
+const STORAGE_KEY = 'hunione_favorites'
 
 export function getFavorites() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+
+    const oldKey = 'vastara_favorites'
+    const oldRaw = localStorage.getItem(oldKey)
+    if (oldRaw) {
+      const oldData = JSON.parse(oldRaw)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(oldData))
+      localStorage.removeItem(oldKey)
+      return oldData
+    }
+
+    return []
   } catch {
     return []
   }

@@ -80,54 +80,68 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
   useEffect(() => {
     if (!isOpen) return
+    let cancelled = false
     const favIds = getFavorites()
     if (favIds.length === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSavedProperties([])
+      if (!cancelled) setSavedProperties([])
       return
     }
     ;(async () => {
-      const { data } = await supabase
-        .from('properties')
-        .select('*')
-        .in('id', favIds)
-      if (data) {
-        setSavedProperties(data)
-      } else {
-        setSavedProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
+      try {
+        const { data } = await supabase
+          .from('properties')
+          .select('*')
+          .in('id', favIds)
+        if (!cancelled) {
+          if (data) {
+            setSavedProperties(data)
+          } else {
+            setSavedProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
+          }
+        }
+      } catch {
+        if (!cancelled) setSavedProperties([])
       }
     })()
+    return () => { cancelled = true }
   }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
+    let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPassword('')
     ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!cancelled && user) {
+          const authEmail = user.email || ''
+          setEmail(authEmail)
+          setCurrentEmail(authEmail)
 
-      const authEmail = user.email || ''
-      setEmail(authEmail)
-      setCurrentEmail(authEmail)
+          if (user.user_metadata?.first_name) {
+            setName(user.user_metadata.first_name)
+          }
+          setWhatsapp(user.user_metadata?.whatsapp || '')
 
-      if (user.user_metadata?.first_name) {
-        setName(user.user_metadata.first_name)
-      }
-      setWhatsapp(user.user_metadata?.whatsapp || '')
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, email, whatsapp')
+            .eq('id', user.id)
+            .single()
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_name, email, whatsapp')
-        .eq('id', user.id)
-        .single()
-
-      if (profile) {
-        if (profile.first_name) setName(profile.first_name)
-        if (profile.email) setEmail(profile.email)
-        if (profile.whatsapp) setWhatsapp(profile.whatsapp)
+          if (!cancelled && profile) {
+            if (profile.first_name) setName(profile.first_name)
+            if (profile.email) setEmail(profile.email)
+            if (profile.whatsapp) setWhatsapp(profile.whatsapp)
+          }
+        }
+      } catch {
+        if (!cancelled) console.warn('Gagal memuat profil')
       }
     })()
+    return () => { cancelled = true }
   }, [isOpen])
 
   useEffect(() => {

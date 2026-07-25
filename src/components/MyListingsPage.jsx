@@ -44,21 +44,25 @@ export default function MyListingsPage() {
     let cancelled = false
 
     async function fetchListings() {
-      setLoading(true)
+      if (!cancelled) setLoading(true)
       if (!user) {
         if (!cancelled) setLoading(false)
         return
       }
 
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('seller_id', user.id)
-        .order('created_at', { ascending: false })
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('seller_id', user.id)
+          .order('created_at', { ascending: false })
 
-      if (!cancelled) {
-        if (!error && data) setListings(data)
-        setLoading(false)
+        if (!cancelled) {
+          if (!error && data) setListings(data)
+          setLoading(false)
+        }
+      } catch {
+        if (!cancelled) setLoading(false)
       }
     }
 

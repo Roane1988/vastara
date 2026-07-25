@@ -73,24 +73,32 @@ function SavedDrawer({ onBack }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     const favIds = getFavorites()
     if (favIds.length === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLoading(false)
+      if (!cancelled) setLoading(false)
       return
     }
     async function fetchProperties() {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .in('id', favIds)
-      if (!error && data) {
-        setProperties(data)
+      if (!cancelled) setLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+          .in('id', favIds)
+        if (!cancelled) {
+          if (!error && data) {
+            setProperties(data)
+          }
+          setLoading(false)
+        }
+      } catch {
+        if (!cancelled) setLoading(false)
       }
-      setLoading(false)
     }
     fetchProperties()
+    return () => { cancelled = true }
   }, [])
 
   return (
@@ -141,8 +149,8 @@ function SavedDrawer({ onBack }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-brand-text truncate">{p.title}</p>
                   <p className="text-xs text-brand-muted mt-0.5">{formatPrice(p.price)}</p>
-                  {p.location && (
-                    <p className="text-[11px] text-brand-muted mt-0.5 truncate">{p.location}</p>
+                  {(p.address || p.location) && (
+                    <p className="text-[11px] text-brand-muted mt-0.5 truncate">{p.address || p.location}</p>
                   )}
                 </div>
                 <BookmarkIcon />

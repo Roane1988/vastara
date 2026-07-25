@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
@@ -42,7 +42,7 @@ function timeAgo(dateString) {
 export default function ForumPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { user, session } = useAuth()
+  const { user, session, showToast } = useAuth()
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
@@ -51,35 +51,42 @@ export default function ForumPage() {
   const [isComposing, setIsComposing] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
+  const cancelledRef = useRef(false)
+
   useEffect(() => {
-    let cancelled = false
-    fetchPosts().finally(() => { if (cancelled) return })
-    return () => { cancelled = true }
+    cancelledRef.current = false
+    fetchPosts()
+    return () => { cancelledRef.current = true }
   }, [])
 
   async function fetchPosts() {
-    setLoading(true)
+    if (!cancelledRef.current) setLoading(true)
     try {
       const { data, error } = await supabase
         .from('forum_posts')
         .select('*, profiles(*), forum_replies(*, profiles(*))')
         .order('created_at', { ascending: false })
-      if (!error && data) {
-        setPosts(data)
-      } else if (error) {
-        console.warn('Gagal memuat forum:', error.message)
+      if (!cancelledRef.current) {
+        if (!error && data) {
+          setPosts(data)
+        } else if (error) {
+          console.warn('Gagal memuat forum:', error.message)
+        }
+        setLoading(false)
       }
     } catch (err) {
-      console.warn('Gagal memuat forum:', err.message)
+      if (!cancelledRef.current) {
+        console.warn('Gagal memuat forum:', err.message)
+        setLoading(false)
+      }
     }
-    setLoading(false)
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!title.trim() || !content.trim()) return
     if (!user) {
-      alert('Anda harus login terlebih dahulu untuk membuat diskusi.')
+      showToast('Anda harus login terlebih dahulu untuk membuat diskusi.', 'error')
       return
     }
     setSubmitting(true)
@@ -90,7 +97,7 @@ export default function ForumPage() {
         content: content.trim(),
       })
       if (error) {
-        alert(error.message)
+        showToast(error.message, 'error')
       } else {
         setTitle('')
         setContent('')
@@ -98,7 +105,7 @@ export default function ForumPage() {
         fetchPosts()
       }
     } catch (err) {
-      alert(err.message)
+      showToast(err.message, 'error')
     }
     setSubmitting(false)
   }
@@ -109,11 +116,15 @@ export default function ForumPage() {
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return
-    const { error } = await supabase.from('forum_posts').delete().eq('id', deleteTarget)
-    if (error) {
-      alert(error.message)
-    } else {
-      setPosts(prev => prev.filter(p => p.id !== deleteTarget))
+    try {
+      const { error } = await supabase.from('forum_posts').delete().eq('id', deleteTarget)
+      if (error) {
+        showToast(error.message, 'error')
+      } else {
+        setPosts(prev => prev.filter(p => p.id !== deleteTarget))
+      }
+    } catch (err) {
+      showToast(err.message, 'error')
     }
     setDeleteTarget(null)
   }

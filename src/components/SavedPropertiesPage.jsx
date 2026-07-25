@@ -49,30 +49,36 @@ export default function SavedPropertiesPage({ onBack }) {
   const [favIds, setFavIds] = useState([])
 
   useEffect(() => {
+    let cancelled = false
     const ids = getFavorites()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFavIds(ids)
+    if (!cancelled) setFavIds(ids)
     if (ids.length === 0) {
-      setLoading(false)
+      if (!cancelled) setLoading(false)
       return
     }
 
     async function fetchProperties() {
-      setLoading(true)
+      if (!cancelled) setLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+          .in('id', ids)
 
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .in('id', ids)
-
-      if (!error && data) {
-        setProperties(data)
+        if (!cancelled) {
+          if (!error && data) {
+            setProperties(data)
+          }
+          setLoading(false)
+        }
+      } catch {
+        if (!cancelled) setLoading(false)
       }
-
-      setLoading(false)
     }
 
     fetchProperties()
+    return () => { cancelled = true }
   }, [])
 
   const toggleSaved = (id) => {
@@ -165,7 +171,7 @@ export default function SavedPropertiesPage({ onBack }) {
                   <span className="text-brand-border">&bull;</span>
                   <span>{p.bathrooms} Bath</span>
                   <span className="text-brand-border">&bull;</span>
-                  <span>{p.sqm} m&sup2;</span>
+                  <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
                 </div>
               </div>
             </div>
