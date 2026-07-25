@@ -2,8 +2,38 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
-import { ArrowLeft, Send, MessageCircle, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Send, MessageCircle, Trash2, X, ThumbsUp } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+
+const avatarColors = ['#4F46E5', '#0891B2', '#059669', '#D97706', '#DC2626', '#7C3AED', '#DB2777', '#2563EB']
+
+function getAvatarColor(id) {
+  if (!id) return avatarColors[0]
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return avatarColors[Math.abs(hash) % avatarColors.length]
+}
+
+function getInitials(name) {
+  return (name || 'A').charAt(0).toUpperCase()
+}
+
+function timeAgo(dateString) {
+  if (!dateString) return ''
+  const now = new Date()
+  const date = new Date(dateString)
+  const diffSec = Math.floor((now - date) / 1000)
+  if (diffSec < 60) return 'baru saja'
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin} menit yang lalu`
+  const diffHour = Math.floor(diffMin / 60)
+  if (diffHour < 24) return `${diffHour} jam yang lalu`
+  const diffDay = Math.floor(diffHour / 24)
+  if (diffDay < 7) return `${diffDay} hari yang lalu`
+  return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 function parseReplyContent(content) {
   const prefix = '<!--replyto:'
@@ -24,9 +54,9 @@ function parseReplyContent(content) {
 
 function QuoteBox({ quoted }) {
   return (
-    <div className="flex items-start gap-2 mb-2 pl-3 border-l-4 border-brand-primary/60 bg-brand-bg/60 rounded-r-lg py-1.5 px-2.5">
+    <div className="flex items-start gap-2 mb-3 pl-3 border-l-[3px] border-brand-secondary/50 bg-brand-bg/70 rounded-r-xl py-2 px-3">
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-semibold text-brand-primary leading-tight">{quoted.authorName}</p>
+        <p className="text-[11px] font-semibold text-brand-secondary leading-tight">{quoted.authorName}</p>
         <p className="text-[11px] text-brand-muted leading-snug truncate">{quoted.content}</p>
       </div>
     </div>
@@ -214,57 +244,113 @@ export default function ForumDetailPage() {
         </div>
       </div>
 
-      <div className="flex-1 px-5 pt-5 pb-28 max-w-2xl mx-auto w-full space-y-6">
-        <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-5">
-          <h1 className="text-xl font-bold text-brand-text leading-snug">{post.title}</h1>
-          <div className="flex items-center gap-2 mt-2 text-xs text-brand-muted">
-            <span className="font-medium text-brand-secondary">{post.profiles?.first_name || 'Anonymous'}</span>
-            <span className="text-brand-border">&bull;</span>
-            <span>{new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+      <div className="flex-1 px-5 pt-5 pb-32 max-w-2xl mx-auto w-full space-y-5">
+        <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-5">
+          <div className="flex items-start gap-3">
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 mt-0.5"
+              style={{ backgroundColor: getAvatarColor(post.author_id) }}
+            >
+              {getInitials(post.profiles?.first_name)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-sm text-brand-secondary">
+                  {post.profiles?.first_name || 'Anonymous'}
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20">
+                  OP
+                </span>
+              </div>
+              <p className="text-xs text-brand-muted mt-0.5">{timeAgo(post.created_at)}</p>
+            </div>
+            <div className="flex items-center gap-1 text-brand-muted shrink-0">
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-brand-bg text-brand-muted hover:text-brand-secondary transition-colors"
+              >
+                <ThumbsUp size={14} />
+                <span className="text-xs font-medium">0</span>
+              </button>
+            </div>
           </div>
-          <p className="text-sm text-brand-text mt-4 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+          <h1 className="text-lg font-bold text-brand-text leading-snug mt-4">{post.title}</h1>
+          <p className="text-sm text-brand-text mt-3 leading-relaxed whitespace-pre-wrap">{post.content}</p>
         </div>
 
-        <div className="space-y-3">
-          <h2 className="text-sm font-bold text-brand-text">{replies.length} {t('forum.reply')}</h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-brand-text">{replies.length} {t('forum.reply')}</h2>
+          </div>
           {replies.length === 0 ? (
-            <div className="text-center py-10">
-              <MessageCircle size={24} className="mx-auto text-brand-muted/30" />
-              <p className="text-sm text-brand-muted mt-3">Belum ada balasan.</p>
+            <div className="text-center py-12 bg-brand-surface/50 rounded-2xl border border-dashed border-brand-border">
+              <MessageCircle size={28} className="mx-auto text-brand-muted/30" />
+              <p className="text-sm text-brand-muted mt-3 leading-relaxed">
+                Belum ada balasan. Jadilah yang pertama membalas!
+              </p>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {replies.map((reply) => (
-                <div key={reply.id} className="bg-brand-surface rounded-xl shadow-sm border border-brand-border p-4 transition-all duration-200 hover:shadow-md">
-                  <div className="flex items-center gap-2 text-xs text-brand-muted mb-2">
-                    <span className="font-medium text-brand-secondary">{reply.profiles?.first_name || 'Anonymous'}</span>
-                    <span className="text-brand-border">&bull;</span>
-                    <span>{new Date(reply.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            <div className="space-y-3">
+              {replies.map((reply) => {
+                const parsed = parseReplyContent(reply.content)
+                return (
+                  <div key={reply.id} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-4 transition-all duration-200 hover:shadow-md">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                        style={{ backgroundColor: getAvatarColor(reply.author_id) }}
+                      >
+                        {getInitials(reply.profiles?.first_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-xs text-brand-secondary">
+                            {reply.profiles?.first_name || 'Anonymous'}
+                          </span>
+                          {reply.author_id === post.author_id && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20 leading-none">
+                              OP
+                            </span>
+                          )}
+                          <span className="text-xs text-brand-muted">&bull;</span>
+                          <span className="text-xs text-brand-muted">{timeAgo(reply.created_at)}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-brand-muted shrink-0">
+                        <button
+                          type="button"
+                          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-brand-bg text-brand-muted hover:text-brand-secondary transition-colors"
+                        >
+                          <ThumbsUp size={13} />
+                          <span className="text-[11px] font-medium">0</span>
+                        </button>
+                      </div>
+                    </div>
+                    {parsed.quoted && <QuoteBox quoted={parsed.quoted} />}
+                    <div className="text-sm text-brand-text leading-relaxed whitespace-pre-wrap mt-2">{parsed.message}</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplyingTo({ id: reply.id, authorName: reply.profiles?.first_name || 'Anonymous', content: reply.content })
+                        replyInputRef.current?.focus()
+                      }}
+                      className="mt-2 text-xs font-medium text-brand-muted hover:text-brand-secondary transition-colors"
+                    >
+                      Balas
+                    </button>
                   </div>
-                  {(() => { const parsed = parseReplyContent(reply.content); return parsed.quoted ? <QuoteBox quoted={parsed.quoted} /> : null })()}
-                  {(() => { const parsed = parseReplyContent(reply.content); return <div className="text-sm text-brand-text leading-relaxed whitespace-pre-wrap">{parsed.message}</div> })()}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setReplyingTo({ id: reply.id, authorName: reply.profiles?.first_name || 'Anonymous', content: reply.content })
-                      replyInputRef.current?.focus()
-                    }}
-                    className="mt-2 text-xs font-medium text-brand-secondary hover:text-brand-primary transition-colors"
-                  >
-                    Balas
-                  </button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
 
         {session?.user ? (
-          <form onSubmit={handleReply} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-4 transition-all duration-300">
+          <form onSubmit={handleReply} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-4 transition-all duration-300 sticky bottom-4">
             {replyingTo && (
-              <div className="flex items-start gap-3 mb-3 pl-3 border-l-4 border-brand-primary bg-brand-bg/70 rounded-r-lg py-2.5 px-3 transition-all duration-300 ease-out">
+              <div className="flex items-start gap-3 mb-3 pl-3 border-l-[3px] border-brand-secondary bg-brand-bg/70 rounded-r-xl py-2.5 px-3 transition-all duration-300 ease-out">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-brand-primary">{replyingTo.authorName}</p>
+                  <p className="text-xs font-bold text-brand-secondary">{replyingTo.authorName}</p>
                   <p className="text-xs text-brand-muted leading-snug line-clamp-2">{replyingTo.content.replace(/<!--replyto:.*?-->\n?/s, '').trim()}</p>
                 </div>
                 <button
@@ -276,30 +362,33 @@ export default function ForumDetailPage() {
                 </button>
               </div>
             )}
-            <textarea
-              ref={replyInputRef}
-              value={replyContent}
-              onChange={(e) => setReplyContent(e.target.value)}
-              placeholder={replyingTo ? `Balas ${replyingTo.authorName}...` : t('forum.postContentPlaceholder')}
-              rows={2}
-              className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted resize-none"
-            />
-            <button
-              type="submit"
-              disabled={submitting || !replyContent.trim()}
-              className="mt-2 w-full py-3 rounded-xl bg-brand-primary text-white text-sm font-bold flex items-center justify-center gap-2 hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Send size={16} />
-              )}
-              {replyingTo ? 'Kirim Balasan' : t('forum.reply')}
-            </button>
+            <div className="flex items-end gap-3">
+              <div className="flex-1 relative">
+                <textarea
+                  ref={replyInputRef}
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder={replyingTo ? `Balas ${replyingTo.authorName}...` : t('forum.postContentPlaceholder')}
+                  rows={2}
+                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted resize-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={submitting || !replyContent.trim()}
+                className="shrink-0 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send size={16} />
+                )}
+              </button>
+            </div>
           </form>
         ) : (
-          <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-6 text-center">
-            <MessageCircle size={32} className="mx-auto text-brand-muted/40" />
+          <div className="bg-brand-surface/80 backdrop-blur-sm rounded-2xl shadow-sm border border-brand-border p-6 text-center">
+            <MessageCircle size={28} className="mx-auto text-brand-muted/30" />
             <p className="text-sm text-brand-muted mt-3 leading-relaxed">
               Silakan masuk (login) atau daftar untuk ikut berdiskusi.
             </p>
