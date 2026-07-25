@@ -235,10 +235,10 @@ export default function SellPropertyPage() {
   })
   const [locationUrl, setLocationUrl] = useState('')
   const [skipUpload, setSkipUpload] = useState(false)
-  const [file, setFile] = useState(null)
-  const [fileUrl, setFileUrl] = useState('')
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
+  const [imageFile, setImageFile] = useState(null)
+  const [imageUrl, setImageUrl] = useState('')
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -266,7 +266,7 @@ export default function SellPropertyPage() {
       case 1: return form.title.trim() && form.jenis_properti && form.status_sertifikat && form.estimasi_harga
       case 2: return form.address.trim().length > 0
       case 3: return form.description.trim() && form.sqm && form.bedrooms && form.bathrooms
-      case 4: return skipUpload || !!fileUrl
+      case 4: return skipUpload || !!imageUrl
       default: return true
     }
   }, [step, form, skipUpload, fileUrl])
@@ -279,59 +279,87 @@ export default function SellPropertyPage() {
     if (step > 0) setStep((s) => s - 1)
   }
 
-  const handleFileSelect = async (e) => {
+  const handleImageSelect = async (e) => {
     const selectedFile = e.target.files[0]
     if (!selectedFile) return
 
     if (selectedFile.size > 5 * 1024 * 1024) {
-      setUploadError(t('sellProperty.errors.file_size'))
+      setImageUploadError(t('sellProperty.errors.file_size'))
       return
     }
 
-    setFile(selectedFile)
-    setUploadError('')
-    setUploading(true)
+    setImageFile(selectedFile)
+    setImageUploadError('')
+    setImageUploading(true)
 
+    const { data: { user } } = await supabase.auth.getUser()
     const safeName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const filePath = `listings/${Date.now()}_${safeName}`
+    const fileName = `${user.id}-${Date.now()}-${safeName}`
 
     const { error: uploadErr } = await supabase.storage
-      .from('legal_documents')
-      .upload(filePath, selectedFile, { cacheControl: '3600', upsert: false })
+      .from('PROPERTIES_IMAGE')
+      .upload(fileName, selectedFile)
 
     if (uploadErr) {
-      setUploadError(t('sellProperty.errors.upload_failed') + uploadErr.message)
-      setUploading(false)
+      setImageUploadError(t('sellProperty.errors.upload_failed') + uploadErr.message)
+      setImageUploading(false)
       return
     }
 
     const { data: { publicUrl } } = supabase.storage
-      .from('legal_documents')
-      .getPublicUrl(filePath)
+      .from('PROPERTIES_IMAGE')
+      .getPublicUrl(fileName)
 
-    setFileUrl(publicUrl)
-    setUploading(false)
+    setImageUrl(publicUrl)
+    setImageUploading(false)
   }
 
-  const removeFile = () => {
-    setFile(null)
-    setFileUrl('')
-    setUploadError('')
+  const removeImage = () => {
+    setImageFile(null)
+    setImageUrl('')
+    setImageUploadError('')
   }
 
   const handleSubmit = async () => {
     setSubmitting(true)
 
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setNotification({ show: true, message: 'Sesi habis, silakan login ulang.', type: 'error' })
+      setSubmitting(false)
+      return
+    }
 
-    await supabase.from('profiles').update({ role: userRole }).eq('id', user?.id)
+    await supabase.from('profiles').update({ role: userRole }).eq('id', user.id)
 
-    const listingStatus = fileUrl ? 'verified' : 'pending'
+    let uploadedImageUrl = null
+    if (imageFile && !imageUrl) {
+      const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const fileName = `${user.id}-${Date.now()}-${safeName}`
+
+      const { error: uploadErr } = await supabase.storage
+        .from('PROPERTIES_IMAGE')
+        .upload(fileName, imageFile)
+
+      if (uploadErr) {
+        setNotification({ show: true, message: 'Gagal mengunggah gambar: ' + uploadErr.message, type: 'error' })
+        setSubmitting(false)
+        return
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('PROPERTIES_IMAGE')
+        .getPublicUrl(fileName)
+
+      uploadedImageUrl = publicUrl
+    } else if (imageUrl) {
+      uploadedImageUrl = imageUrl
+    }
 
     const { error: insertError } = await supabase
       .from('properties')
       .insert({
-        seller_id: user?.id || null,
+        seller_id: user.id,
         category: 'Dijual',
         title: form.title,
         property_type: form.jenis_properti,
@@ -342,7 +370,8 @@ export default function SellPropertyPage() {
         bedrooms: Number(form.bedrooms) || 0,
         bathrooms: Number(form.bathrooms) || 0,
         area_sqm: Number(form.sqm) || 0,
-        status: listingStatus,
+        image_url: uploadedImageUrl,
+        status: 'pending',
       })
 
     if (insertError) {
@@ -570,13 +599,13 @@ export default function SellPropertyPage() {
           <div className="space-y-5">
             <div>
               <label className="text-sm font-semibold text-brand-text mb-1.5 block">
-                {t('sellProperty.document_step.title')}
+                Foto Properti
               </label>
               <p className="text-xs text-brand-muted mb-3">
-                {t('sellProperty.document_step.helper')}
+                Unggah foto properti Anda untuk memperkuat tampilan iklan.
               </p>
 
-              {!file ? (
+              {!imageFile ? (
                 <label className={`flex flex-col items-center justify-center w-full py-10 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors active:bg-brand-bg ${
                   skipUpload
                     ? 'border-brand-border bg-brand-bg/50 opacity-50'
@@ -584,15 +613,15 @@ export default function SellPropertyPage() {
                 }`}>
                   <UploadIcon />
                   <span className="mt-3 text-sm font-medium text-brand-text">
-                    {t('sellProperty.document_step.click_upload')}
+                    Klik untuk unggah foto
                   </span>
                   <span className="mt-1 text-xs text-brand-muted">
-                    {t('sellProperty.document_step.drag_drop')}
+                    Maksimal 5MB, format JPG/PNG
                   </span>
                   <input
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleFileSelect}
+                    accept="image/*"
+                    onChange={handleImageSelect}
                     disabled={skipUpload}
                     className="hidden"
                   />
@@ -600,22 +629,28 @@ export default function SellPropertyPage() {
               ) : (
                 <div className="flex items-center justify-between p-4 border border-brand-border rounded-xl bg-brand-surface">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-brand-secondary/10 flex items-center justify-center shrink-0">
-                      <FileIcon />
+                    <div className="w-14 h-14 rounded-lg bg-brand-bg overflow-hidden shrink-0">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <FileIcon />
+                        </div>
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-brand-text truncate">
-                        {file.name}
+                        {imageFile.name}
                       </p>
                       <p className="text-xs text-brand-muted">
-                        {(file.size / 1024).toFixed(1)} KB
+                        {(imageFile.size / 1024).toFixed(1)} KB
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {uploading ? (
+                    {imageUploading ? (
                       <SpinnerIcon />
-                    ) : fileUrl ? (
+                    ) : imageUrl ? (
                       <span className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
@@ -624,7 +659,7 @@ export default function SellPropertyPage() {
                     ) : null}
                     <button
                       type="button"
-                      onClick={removeFile}
+                      onClick={removeImage}
                       className="text-brand-muted hover:text-red-500 transition-colors p-1"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -635,12 +670,12 @@ export default function SellPropertyPage() {
                 </div>
               )}
 
-              {uploadError && (
-                <p className="text-xs text-red-500 mt-2">{uploadError}</p>
+              {imageUploadError && (
+                <p className="text-xs text-red-500 mt-2">{imageUploadError}</p>
               )}
 
               <p className="text-xs text-brand-muted mt-2">
-                {t('sellProperty.document_step.optional')}
+                Opsional — Anda bisa menambahkan foto nanti.
               </p>
             </div>
 
@@ -649,8 +684,8 @@ export default function SellPropertyPage() {
                 type="button"
                 onClick={() => {
                   setSkipUpload((prev) => !prev)
-                  if (!skipUpload && file) {
-                    removeFile()
+                  if (!skipUpload && imageFile) {
+                    removeImage()
                   }
                 }}
                 className={`w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl text-sm font-medium transition-all ${
