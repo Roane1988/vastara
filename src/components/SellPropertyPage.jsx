@@ -331,17 +331,16 @@ export default function SellPropertyPage() {
     const { error: insertError } = await supabase
       .from('properties')
       .insert({
-        user_id: user?.id || null,
+        seller_id: user?.id || null,
         title: form.title,
         property_type: form.jenis_properti,
         seller_whatsapp: form.whatsapp,
         description_id: form.description,
-        location: form.address,
+        address: form.address,
         price: form.estimasi_harga ? Number(form.estimasi_harga) : null,
         bedrooms: Number(form.bedrooms) || 0,
         bathrooms: Number(form.bathrooms) || 0,
-        sqm: Number(form.sqm) || 0,
-        location_url: locationUrl || null,
+        area_sqm: Number(form.sqm) || 0,
         status: listingStatus,
       })
 
