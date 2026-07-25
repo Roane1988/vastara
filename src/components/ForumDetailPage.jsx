@@ -104,7 +104,7 @@ export default function ForumDetailPage() {
 
   async function handleReply(e) {
     e.preventDefault()
-    if (!replyContent.trim() || !user) return
+    if (!replyContent.trim() || !session?.user) return
     setSubmitting(true)
 
     let content = replyContent.trim()
@@ -230,7 +230,7 @@ export default function ForumDetailPage() {
           )}
         </div>
 
-        {user && (
+        {session?.user ? (
           <form onSubmit={handleReply} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-4 transition-all duration-300">
             {replyingTo && (
               <div className="flex items-start gap-3 mb-3 pl-3 border-l-4 border-brand-primary bg-brand-bg/70 rounded-r-lg py-2.5 px-3 transition-all duration-300 ease-out">
@@ -268,6 +268,20 @@ export default function ForumDetailPage() {
               {replyingTo ? 'Kirim Balasan' : t('forum.reply')}
             </button>
           </form>
+        ) : (
+          <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-6 text-center">
+            <MessageCircle size={32} className="mx-auto text-brand-muted/40" />
+            <p className="text-sm text-brand-muted mt-3 leading-relaxed">
+              Silakan masuk (login) atau daftar untuk ikut berdiskusi.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="mt-4 px-6 py-3 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all duration-200"
+            >
+              Login / Daftar
+            </button>
+          </div>
         )}
       </div>
     </div>
