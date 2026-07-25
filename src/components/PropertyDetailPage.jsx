@@ -73,8 +73,10 @@ function formatPrice(value) {
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-brand-bg animate-pulse">
-      <div className="h-72 sm:h-96 bg-brand-border" />
-      <div className="px-5 pt-6 space-y-4">
+      <div className="w-full max-w-7xl mx-auto lg:px-5">
+        <div className="h-72 sm:h-96 bg-brand-border lg:rounded-2xl lg:mt-5" />
+      </div>
+      <div className="px-5 pt-6 space-y-4 max-w-7xl mx-auto">
         <div className="h-8 bg-brand-border rounded-lg w-3/4" />
         <div className="h-4 bg-brand-border rounded w-1/2" />
         <div className="h-7 bg-brand-border rounded w-1/3" />
@@ -176,28 +178,30 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
-      <div className="relative h-72 sm:h-96 overflow-hidden">
-        <img
-          src={property.image_url || FALLBACK_IMAGE}
-          alt={property.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="absolute top-12 left-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-sm hover:bg-white transition-colors"
-        >
-          <ArrowLeftIcon />
-        </button>
-        <div className="absolute bottom-4 left-5 right-5">
-          <div className="flex items-center gap-1.5 text-white/80 text-xs mb-1.5">
-            <MapPinIcon />
-            <span>{property.address || property.location || 'Indonesia'}</span>
+      <div className="w-full max-w-7xl mx-auto lg:px-5">
+        <div className="relative h-72 sm:h-96 lg:rounded-2xl lg:mt-5 overflow-hidden">
+          <img
+            src={property.image_url || FALLBACK_IMAGE}
+            alt={property.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="absolute top-12 lg:top-4 left-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-sm hover:bg-white transition-colors"
+          >
+            <ArrowLeftIcon />
+          </button>
+          <div className="absolute bottom-4 left-5 right-5">
+            <div className="flex items-center gap-1.5 text-white/80 text-xs mb-1.5">
+              <MapPinIcon />
+              <span>{property.address || property.location || 'Indonesia'}</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+              {property.title}
+            </h1>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-            {property.title}
-          </h1>
         </div>
       </div>
 
