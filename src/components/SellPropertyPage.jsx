@@ -774,7 +774,7 @@ export default function SellPropertyPage() {
           </div>
           <h2 className="text-2xl font-bold text-brand-text">Berhasil Terkirim!</h2>
           <p className="text-brand-muted mt-2 mb-8 max-w-md leading-relaxed">
-            Tim Vastara sedang memverifikasi kelengkapan dokumen legalitas Anda. Iklan akan otomatis tayang dalam 1x24 jam setelah disetujui.
+            Tim HuniOne sedang memverifikasi kelengkapan dokumen legalitas Anda. Iklan akan otomatis tayang dalam 1x24 jam setelah disetujui.
           </p>
           <button
             type="button"

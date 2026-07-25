@@ -67,7 +67,7 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
             onClick={() => navigate('/')}
             className="text-2xl font-extrabold tracking-tighter text-brand-primary"
           >
-            Vastara
+            HuniOne
           </button>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
