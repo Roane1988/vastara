@@ -47,6 +47,7 @@ export default function ForumPage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [isComposing, setIsComposing] = useState(false)
 
   useEffect(() => {
     fetchPosts()
@@ -81,6 +82,7 @@ export default function ForumPage() {
       } else {
         setTitle('')
         setContent('')
+        setIsComposing(false)
         fetchPosts()
       }
     } catch (err) {
@@ -119,31 +121,57 @@ export default function ForumPage() {
 
       <div className="flex-1 px-5 pt-5 pb-24 space-y-6 max-w-2xl mx-auto w-full">
         {session?.user && (
-          <form onSubmit={handleSubmit} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-5 space-y-4">
-            <h2 className="text-sm font-bold text-brand-text">{t('forum.createPost')}</h2>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('forum.postTitlePlaceholder')}
-              className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
-            />
-            <textarea
-              rows={3}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={t('forum.postContentPlaceholder')}
-              className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted resize-none"
-            />
-            <button
-              type="submit"
-              disabled={submitting || !title.trim() || !content.trim()}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white bg-brand-primary hover:brightness-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send size={16} />
-              {submitting ? '...' : t('forum.submit')}
-            </button>
-          </form>
+          <div className="transition-all duration-300">
+            {!isComposing ? (
+              <button
+                type="button"
+                onClick={() => setIsComposing(true)}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm text-white bg-brand-primary hover:brightness-90 active:scale-[0.98] transition-all duration-200 shadow-sm"
+              >
+                <Send size={16} />
+                + Mulai Diskusi Baru
+              </button>
+            ) : (
+              <form onSubmit={handleSubmit} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-5 space-y-4 animate-fadeIn">
+                <h2 className="text-sm font-bold text-brand-text">{t('forum.createPost')}</h2>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t('forum.postTitlePlaceholder')}
+                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
+                />
+                <textarea
+                  rows={3}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={t('forum.postContentPlaceholder')}
+                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted resize-none"
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={submitting || !title.trim() || !content.trim()}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white bg-brand-primary hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Send size={16} />
+                    )}
+                    {submitting ? '...' : t('forum.submit')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsComposing(false); setTitle(''); setContent('') }}
+                    className="px-4 py-3 rounded-xl text-sm font-medium text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-all duration-200"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         )}
 
         {loading ? (
@@ -189,7 +217,10 @@ export default function ForumPage() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-bold text-brand-text leading-snug">{post.title}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-bold text-brand-text leading-snug">{post.title}</h3>
+                      <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Umum</span>
+                    </div>
                     <p className="text-xs text-brand-muted mt-1">
                       {latestReply ? (
                         <>↳ Balasan terakhir dari <span className="font-medium text-brand-secondary">{latestReply.profiles?.first_name || 'Anonymous'}</span> {timeAgo(latestReply.created_at)}</>
