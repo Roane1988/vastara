@@ -106,23 +106,48 @@ export default function ExplorePage({ onNavigate }) {
 
   const firstName = user?.user_metadata?.first_name || null
 
-  useEffect(() => {
-    async function fetchProperties() {
-      setLoading(true)
+  async function fetchProperties(filters = {}) {
+    setLoading(true)
 
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .in('status', ['verified', 'pending'])
-        .order('created_at', { ascending: false })
+    let query = supabase
+      .from('properties')
+      .select('*')
+      .in('status', ['verified', 'pending'])
 
-      if (!error && data) {
-        setProperties(data)
-      }
-
-      setLoading(false)
+    if (filters.type) {
+      query = query.eq('property_type', filters.type)
     }
 
+    if (filters.beds) {
+      if (filters.beds === '5+') {
+        query = query.gte('bedrooms', 5)
+      } else {
+        query = query.eq('bedrooms', parseInt(filters.beds))
+      }
+    }
+
+    if (filters.price) {
+      if (filters.price === '0-1M') {
+        query = query.lt('price', 1_000_000_000)
+      } else if (filters.price === '1-3M') {
+        query = query.gte('price', 1_000_000_000).lte('price', 3_000_000_000)
+      } else if (filters.price === '3M+') {
+        query = query.gt('price', 3_000_000_000)
+      }
+    }
+
+    query = query.order('created_at', { ascending: false })
+
+    const { data, error } = await query
+
+    if (!error && data) {
+      setProperties(data)
+    }
+
+    setLoading(false)
+  }
+
+  useEffect(() => {
     fetchProperties()
   }, [])
 
@@ -144,17 +169,6 @@ export default function ExplorePage({ onNavigate }) {
   const filtered = properties.filter((p) => {
     if (activeCategory === 'Rumah Baru' && p.bedrooms < 3) return false
     if (activeCategory === 'Apartemen' && p.bedrooms > 2) return false
-    if (filterType && (p.property_type || p.category) !== filterType) return false
-    if (filterBeds) {
-      const num = parseInt(filterBeds)
-      if (filterBeds === '5+' ? (p.bedrooms || 0) < 5 : p.bedrooms !== num) return false
-    }
-    if (filterPrice) {
-      const price = Number(p.price) || 0
-      if (filterPrice === '0-1M' && price > 1_000_000_000) return false
-      if (filterPrice === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false
-      if (filterPrice === '3M+' && price < 3_000_000_000) return false
-    }
     return true
   })
 
@@ -490,7 +504,12 @@ export default function ExplorePage({ onNavigate }) {
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => { setFilterPrice(''); setFilterType(''); setFilterBeds('') }}
+                  onClick={() => {
+                    setFilterPrice('')
+                    setFilterType('')
+                    setFilterBeds('')
+                    fetchProperties()
+                  }}
                   className="text-sm text-brand-muted hover:text-brand-text transition-colors"
                 >
                   {t('explore.filter.reset')}
@@ -574,7 +593,10 @@ export default function ExplorePage({ onNavigate }) {
 
               <button
                 type="button"
-                onClick={() => setShowFilter(false)}
+                onClick={() => {
+                  fetchProperties({ type: filterType, beds: filterBeds, price: filterPrice })
+                  setShowFilter(false)
+                }}
                 className="w-full bg-brand-primary text-white rounded-xl py-3 font-bold text-sm mt-2 active:scale-[0.98] transition-transform"
               >
                 {t('explore.filter.apply')}
