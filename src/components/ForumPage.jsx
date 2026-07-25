@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { MessageCircle, ArrowLeft, Send, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import ConfirmModal from './ConfirmModal'
 
 const avatarColors = ['#4F46E5', '#0891B2', '#059669', '#D97706', '#DC2626', '#7C3AED', '#DB2777', '#2563EB']
 
@@ -48,6 +49,7 @@ export default function ForumPage() {
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [isComposing, setIsComposing] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -101,14 +103,19 @@ export default function ForumPage() {
     setSubmitting(false)
   }
 
-  async function handleDeletePost(postId) {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus diskusi ini?')) return
-    const { error } = await supabase.from('forum_posts').delete().eq('id', postId)
+  function openDeleteModal(postId) {
+    setDeleteTarget(postId)
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return
+    const { error } = await supabase.from('forum_posts').delete().eq('id', deleteTarget)
     if (error) {
       alert(error.message)
     } else {
-      setPosts(prev => prev.filter(p => p.id !== postId))
+      setPosts(prev => prev.filter(p => p.id !== deleteTarget))
     }
+    setDeleteTarget(null)
   }
 
   return (
@@ -245,7 +252,7 @@ export default function ForumPage() {
                     {session?.user?.id === post.author_id && (
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id) }}
+                        onClick={(e) => { e.stopPropagation(); openDeleteModal(post.id) }}
                         className="w-8 h-8 rounded-full flex items-center justify-center text-brand-muted hover:text-red-500 hover:bg-red-50 transition-colors"
                         title="Hapus diskusi"
                       >
@@ -285,6 +292,16 @@ export default function ForumPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Diskusi"
+        description="Apakah Anda yakin ingin menghapus diskusi ini?"
+        confirmText="Hapus"
+        cancelText="Batal"
+      />
     </div>
   )
 }

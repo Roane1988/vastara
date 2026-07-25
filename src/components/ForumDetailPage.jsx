@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { ArrowLeft, Send, MessageCircle, Trash2, X, ThumbsUp } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import ConfirmModal from './ConfirmModal'
 
 const avatarColors = ['#4F46E5', '#0891B2', '#059669', '#D97706', '#DC2626', '#7C3AED', '#DB2777', '#2563EB']
 
@@ -74,6 +75,8 @@ export default function ForumDetailPage() {
   const [replyContent, setReplyContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [replyingTo, setReplyingTo] = useState(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const replyInputRef = useRef(null)
 
   useEffect(() => {
@@ -185,8 +188,11 @@ export default function ForumDetailPage() {
     setSubmitting(false)
   }
 
-  async function handleDeletePost() {
+  async function handleConfirmDelete() {
+    setDeleting(true)
     const { error } = await supabase.from('forum_posts').delete().eq('id', id)
+    setDeleting(false)
+    setShowDeleteModal(false)
     if (error) {
       showToast(error.message, 'error')
     } else {
@@ -233,7 +239,7 @@ export default function ForumDetailPage() {
           {user?.id === post.author_id && (
             <button
               type="button"
-              onClick={handleDeletePost}
+              onClick={() => setShowDeleteModal(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
               title="Hapus diskusi"
             >
@@ -402,6 +408,17 @@ export default function ForumDetailPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Diskusi"
+        description="Apakah Anda yakin ingin menghapus diskusi ini?"
+        confirmText="Hapus"
+        cancelText="Batal"
+        loading={deleting}
+      />
     </div>
   )
 }
