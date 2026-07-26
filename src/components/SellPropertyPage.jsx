@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, X, Plus } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
@@ -37,17 +37,6 @@ function SpinnerIcon() {
     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
-  )
-}
-
-function FileIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
     </svg>
   )
 }
@@ -192,10 +181,7 @@ export default function SellPropertyPage() {
     bathrooms: '',
   })
   const [locationUrl, setLocationUrl] = useState('')
-  const [skipUpload, setSkipUpload] = useState(false)
-  const [imageFile, setImageFile] = useState(null)
-  const [imageUrl, setImageUrl] = useState('')
-  const [imageUploading, setImageUploading] = useState(false)
+  const [imageFiles, setImageFiles] = useState([])
   const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -238,10 +224,10 @@ export default function SellPropertyPage() {
       case 1: return form.title.trim() && form.jenis_properti && form.status_sertifikat && form.estimasi_harga
       case 2: return form.address.trim().length > 0
       case 3: return form.description.trim() && form.sqm && form.bedrooms && form.bathrooms
-      case 4: return skipUpload || !!imageUrl
+      case 4: return imageFiles.length > 0
       default: return true
     }
-  }, [step, form, skipUpload, imageUrl])
+  }, [step, form, imageFiles.length])
 
   const nextStep = () => {
     if (step < STEPS.length - 1) setStep((s) => s + 1)
@@ -251,56 +237,32 @@ export default function SellPropertyPage() {
     if (step > 0) setStep((s) => s - 1)
   }
 
-  const handleImageSelect = async (e) => {
-    const selectedFile = e.target.files[0]
-    if (!selectedFile) return
+  const MAX_IMAGES = 10
 
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      setImageUploadError(t('sellProperty.errors.file_size'))
+  const handleImagesSelect = (e) => {
+    const selectedFiles = Array.from(e.target.files)
+    if (!selectedFiles.length) return
+
+    const remaining = MAX_IMAGES - imageFiles.length
+    if (remaining <= 0) {
+      setImageUploadError(`Maksimal ${MAX_IMAGES} foto. Hapus salah satu untuk menambah.`)
       return
     }
 
-    setImageFile(selectedFile)
-    setImageUploadError('')
-    setImageUploading(true)
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setImageUploadError('Sesi habis, silakan login ulang.')
-        setImageUploading(false)
-        return
-      }
-
-      const safeName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-      const fileName = `${user.id}-${Date.now()}-${safeName}`
-
-      const { error: uploadErr } = await supabase.storage
-        .from('PROPERTIES_IMAGE')
-        .upload(fileName, selectedFile)
-
-      if (uploadErr) {
-        setImageUploadError(t('sellProperty.errors.upload_failed') + uploadErr.message)
-        setImageUploading(false)
-        return
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('PROPERTIES_IMAGE')
-        .getPublicUrl(fileName)
-
-      setImageUrl(publicUrl)
-    } catch (err) {
-      setImageUploadError('Gagal mengunggah gambar: ' + (err.message || 'Terjadi kesalahan'))
+    const validFiles = selectedFiles.slice(0, remaining)
+    const oversized = validFiles.find((f) => f.size > 5 * 1024 * 1024)
+    if (oversized) {
+      setImageUploadError('Ukuran file maksimal 5MB per gambar.')
+      return
     }
 
-    setImageUploading(false)
+    setImageFiles((prev) => [...prev, ...validFiles])
+    setImageUploadError('')
+    e.target.value = ''
   }
 
-  const removeImage = () => {
-    setImageFile(null)
-    setImageUrl('')
-    setImageUploadError('')
+  const removeImage = (index) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async () => {
@@ -319,28 +281,27 @@ export default function SellPropertyPage() {
         console.warn('Gagal memperbarui role:', roleError.message)
       }
 
-      let uploadedImageUrl = null
-      if (imageFile && !imageUrl) {
-        const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-        const fileName = `${user.id}-${Date.now()}-${safeName}`
-
-        const { error: uploadErr } = await supabase.storage
-          .from('PROPERTIES_IMAGE')
-          .upload(fileName, imageFile)
-
-        if (uploadErr) {
-          setNotification({ show: true, message: 'Gagal mengunggah gambar: ' + uploadErr.message, type: 'error' })
+      let uploadedImageUrls = []
+      if (imageFiles.length > 0) {
+        try {
+          const uploads = imageFiles.map(async (file) => {
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+            const fileName = `${user.id}-${Date.now()}-${safeName}`
+            const { error: uploadErr } = await supabase.storage
+              .from('PROPERTIES_IMAGE')
+              .upload(fileName, file)
+            if (uploadErr) throw new Error(uploadErr.message)
+            const { data: { publicUrl } } = supabase.storage
+              .from('PROPERTIES_IMAGE')
+              .getPublicUrl(fileName)
+            return publicUrl
+          })
+          uploadedImageUrls = await Promise.all(uploads)
+        } catch (err) {
+          setNotification({ show: true, message: 'Gagal mengunggah gambar: ' + err.message, type: 'error' })
           setSubmitting(false)
           return
         }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('PROPERTIES_IMAGE')
-          .getPublicUrl(fileName)
-
-        uploadedImageUrl = publicUrl
-      } else if (imageUrl) {
-        uploadedImageUrl = imageUrl
       }
 
       const { error: insertError } = await supabase
@@ -357,7 +318,7 @@ export default function SellPropertyPage() {
           bedrooms: Number(form.bedrooms) || 0,
           bathrooms: Number(form.bathrooms) || 0,
           area_sqm: Number(form.sqm) || 0,
-          image_url: uploadedImageUrl,
+          image_url: JSON.stringify(uploadedImageUrls),
           status: 'pending',
         })
 
@@ -580,122 +541,82 @@ export default function SellPropertyPage() {
           </div>
         )
 
-      case 4:
+      case 4: {
+        const allImages = [...imageFiles]
+
         return (
           <div className="space-y-5">
             <div>
               <label className="text-sm font-semibold text-brand-text mb-1.5 block">
-                Foto Properti
+                Foto Properti <span className="text-red-500">*</span>
               </label>
               <p className="text-xs text-brand-muted mb-3">
-                Unggah foto properti Anda untuk memperkuat tampilan iklan.
+                Unggah minimal 1 foto properti Anda (maksimal {MAX_IMAGES} foto, maks 5MB per file).
               </p>
 
-              {!imageFile ? (
-                <label className={`flex flex-col items-center justify-center w-full py-10 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors active:bg-brand-bg ${
-                  skipUpload
-                    ? 'border-brand-border bg-brand-bg/50 opacity-50'
-                    : 'border-brand-border bg-brand-bg hover:border-brand-secondary'
-                }`}>
+              {allImages.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+                  {allImages.map((file, i) => (
+                    <div key={`${file.name}-${i}`} className="relative group aspect-square rounded-xl overflow-hidden border border-brand-border bg-brand-bg">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                      >
+                        <X size={14} />
+                      </button>
+                      <div className="absolute bottom-1 left-1 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+                        {(file.size / 1024).toFixed(0)} KB
+                      </div>
+                    </div>
+                  ))}
+                  {allImages.length < MAX_IMAGES && (
+                    <label className="aspect-square rounded-xl border-2 border-dashed border-brand-border bg-brand-bg/50 flex flex-col items-center justify-center cursor-pointer hover:border-brand-secondary hover:bg-brand-bg transition-colors">
+                      <Plus size={24} className="text-brand-muted" />
+                      <span className="text-[10px] text-brand-muted mt-1 font-medium">Tambah</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImagesSelect}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {allImages.length === 0 && (
+                <label className="flex flex-col items-center justify-center w-full py-10 px-4 border-2 border-dashed rounded-xl cursor-pointer border-brand-border bg-brand-bg hover:border-brand-secondary transition-colors">
                   <UploadIcon />
                   <span className="mt-3 text-sm font-medium text-brand-text">
                     Klik untuk unggah foto
                   </span>
                   <span className="mt-1 text-xs text-brand-muted">
-                    Maksimal 5MB, format JPG/PNG
+                    Maksimal {MAX_IMAGES} foto, format JPG/PNG, maks 5MB per file
                   </span>
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={handleImageSelect}
-                    disabled={skipUpload}
+                    multiple
+                    onChange={handleImagesSelect}
                     className="hidden"
                   />
                 </label>
-              ) : (
-                <div className="flex items-center justify-between p-4 border border-brand-border rounded-xl bg-brand-surface">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-14 h-14 rounded-lg bg-brand-bg overflow-hidden shrink-0">
-                      {imageUrl ? (
-                        <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <FileIcon />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-brand-text truncate">
-                        {imageFile.name}
-                      </p>
-                      <p className="text-xs text-brand-muted">
-                        {(imageFile.size / 1024).toFixed(1)} KB
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {imageUploading ? (
-                      <SpinnerIcon />
-                    ) : imageUrl ? (
-                      <span className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </span>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="text-brand-muted hover:text-red-500 transition-colors p-1"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
               )}
 
               {imageUploadError && (
                 <p className="text-xs text-red-500 mt-2">{imageUploadError}</p>
               )}
-
-              <p className="text-xs text-brand-muted mt-2">
-                Opsional — Anda bisa menambahkan foto nanti.
-              </p>
-            </div>
-
-            <div className="border-t border-brand-border pt-5">
-              <button
-                type="button"
-                onClick={() => {
-                  setSkipUpload((prev) => !prev)
-                  if (!skipUpload && imageFile) {
-                    removeImage()
-                  }
-                }}
-                className={`w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl text-sm font-medium transition-all ${
-                  skipUpload
-                    ? 'bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20'
-                    : 'bg-brand-surface text-brand-muted border border-brand-border hover:border-brand-muted'
-                }`}
-              >
-                <span className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                  skipUpload
-                    ? 'bg-brand-primary border-brand-primary'
-                    : 'border-brand-muted'
-                }`}>
-                  {skipUpload && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </span>
-                {t('sellProperty.document_step.skip')}
-              </button>
             </div>
           </div>
         )
+      }
 
       default:
         return null

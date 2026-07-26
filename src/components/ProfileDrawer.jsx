@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
+import { getImageSrc } from '../utils/images'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
 function XIcon() {
@@ -338,7 +339,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                       >
                         <div className="w-12 h-12 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
                           {p.image_url ? (
-                            <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                            <img src={getImageSrc(p.image_url)} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
                           )}

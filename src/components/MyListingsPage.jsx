@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { getImageSrc } from '../utils/images'
 
 function ArrowLeftIcon() {
   return (
@@ -122,7 +123,7 @@ export default function MyListingsPage() {
               <div className="flex items-stretch gap-0">
                 <div className="w-28 sm:w-36 shrink-0 bg-brand-bg flex items-center justify-center overflow-hidden">
                   {p.image_url ? (
-                    <img src={p.image_url} alt={p.title} className="w-full h-full object-cover" />
+                    <img src={getImageSrc(p.image_url)} alt={p.title} className="w-full h-full object-cover" />
                   ) : (
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand-muted/30">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />

@@ -5,6 +5,7 @@ import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, Message
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
+import { getImageSrc } from '../utils/images'
 import { useAuth } from '../context/AuthContext'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 
@@ -318,7 +319,7 @@ export default function ExplorePage() {
               <div className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden">
                 <div className="relative aspect-[4/3]">
                   <img
-                    src={p.image_url || FALLBACK_IMAGE}
+                    src={getImageSrc(p.image_url)}
                     alt={p.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
@@ -431,7 +432,7 @@ export default function ExplorePage() {
                 <div className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden h-full">
                   <div className="relative aspect-[4/3]">
                     <img
-                      src={p.image_url || FALLBACK_IMAGE}
+                      src={getImageSrc(p.image_url)}
                       alt={p.title}
                       onError={(e) => { e.target.src = FALLBACK_IMAGE }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

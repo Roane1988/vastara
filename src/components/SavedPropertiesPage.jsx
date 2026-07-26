@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { getFavorites, toggleFavorite } from '../utils/favorites'
+import { getImageSrc } from '../utils/images'
 
 const FILTERS = ['Semua', 'Tersedia', 'Sedang Nego']
 
@@ -147,7 +148,7 @@ export default function SavedPropertiesPage({ onBack }) {
             <div key={p.id} className="bg-brand-surface rounded-2xl overflow-hidden border border-brand-border shadow-sm">
               <div className="relative aspect-[16/9] bg-brand-bg flex items-center justify-center">
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.title} className="w-full h-full object-cover" />
+                  <img src={getImageSrc(p.image_url)} alt={p.title} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-xs text-brand-muted font-medium">Gambar Properti</span>
                 )}

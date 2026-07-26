@@ -97,6 +97,17 @@ function LoadingSkeleton() {
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
 
+function parseImages(imageUrl) {
+  if (!imageUrl) return []
+  if (Array.isArray(imageUrl)) return imageUrl.filter(Boolean)
+  try {
+    const parsed = JSON.parse(imageUrl)
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [imageUrl]
+  } catch {
+    return [imageUrl]
+  }
+}
+
 export default function PropertyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -176,32 +187,101 @@ export default function PropertyDetailPage() {
   const waMessage = encodeURIComponent(`Halo, saya tertarik dengan properti ${property.title}`)
   const waLink = `https://wa.me/${waNumber}?text=${waMessage}`
 
+  const images = parseImages(property.image_url)
+  const heroImage = images[0] || FALLBACK_IMAGE
+
+  function GalleryContent() {
+    if (images.length >= 4) {
+      const remaining = images.slice(0, 5)
+      return (
+        <>
+          <div className="hidden lg:grid lg:grid-cols-4 lg:grid-rows-2 lg:gap-2 lg:h-[420px] lg:rounded-2xl lg:overflow-hidden">
+            <div className="col-span-2 row-span-2 relative overflow-hidden">
+              <img src={remaining[0]} alt={property.title} className="w-full h-full object-cover" />
+            </div>
+            {remaining.slice(1, 5).map((url, i) => (
+              <div key={i} className="relative overflow-hidden">
+                <img src={url} alt={`${property.title} ${i + 2}`} className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+          <div className="lg:hidden relative h-72 sm:h-96 overflow-hidden">
+            <div className="flex h-full snap-x snap-mandatory overflow-x-auto no-scrollbar">
+              {images.map((url, i) => (
+                <div key={i} className="min-w-full h-full snap-center shrink-0">
+                  <img src={url} alt={`${property.title} ${i + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {images.slice(0, 5).map((_, i) => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/80" />
+              ))}
+            </div>
+          </div>
+        </>
+      )
+    }
+
+    if (images.length === 2 || images.length === 3) {
+      const cols = images.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3'
+      return (
+        <>
+          <div className={`hidden lg:grid ${cols} lg:gap-2 lg:h-[360px] lg:rounded-2xl lg:overflow-hidden`}>
+            {images.map((url, i) => (
+              <div key={i} className="relative overflow-hidden">
+                <img src={url} alt={`${property.title} ${i + 1}`} className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+          <div className="lg:hidden relative h-72 sm:h-96 overflow-hidden">
+            <div className="flex h-full snap-x snap-mandatory overflow-x-auto no-scrollbar">
+              {images.map((url, i) => (
+                <div key={i} className="min-w-full h-full snap-center shrink-0">
+                  <img src={url} alt={`${property.title} ${i + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {images.map((_, i) => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/80" />
+              ))}
+            </div>
+          </div>
+        </>
+      )
+    }
+
+    return (
+      <div className="relative h-72 sm:h-96 lg:rounded-2xl overflow-hidden">
+        <img
+          src={heroImage}
+          alt={property.title}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
-      <div className="w-full max-w-7xl mx-auto lg:px-5">
-        <div className="relative h-72 sm:h-96 lg:rounded-2xl lg:mt-5 overflow-hidden">
-          <img
-            src={property.image_url || FALLBACK_IMAGE}
-            alt={property.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="absolute top-12 lg:top-4 left-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-sm hover:bg-white transition-colors"
-          >
-            <ArrowLeftIcon />
-          </button>
-          <div className="absolute bottom-4 left-5 right-5">
-            <div className="flex items-center gap-1.5 text-white/80 text-xs mb-1.5">
-              <MapPinIcon />
-              <span>{property.address || property.location || 'Indonesia'}</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-              {property.title}
-            </h1>
+      <div className="w-full max-w-7xl mx-auto lg:px-5 lg:mt-5 relative">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="absolute top-4 left-4 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-sm hover:bg-white transition-colors"
+        >
+          <ArrowLeftIcon />
+        </button>
+        {GalleryContent()}
+        <div className="px-5 pt-3 pb-2 lg:pt-4 lg:pb-0">
+          <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1">
+            <MapPinIcon />
+            <span>{property.address || property.location || 'Indonesia'}</span>
           </div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-brand-text leading-tight">
+            {property.title}
+          </h1>
         </div>
       </div>
 

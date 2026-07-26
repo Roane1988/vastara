@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
+import { getImageSrc } from '../utils/images'
 
 function XIcon() {
   return (
@@ -141,7 +142,7 @@ function SavedDrawer({ onBack }) {
               >
                 <div className="w-14 h-14 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
                   {p.image_url ? (
-                    <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                    <img src={getImageSrc(p.image_url)} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
                   )}
