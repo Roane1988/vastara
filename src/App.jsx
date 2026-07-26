@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabase } from './supabaseClient'
 import TopNavbar from './components/TopNavbar'
+import Footer from './components/Footer'
 import ProfileDrawer from './components/ProfileDrawer'
 import MinimalistLogin from './components/MinimalistLogin'
 import ExplorePage from './components/ExplorePage'
@@ -110,6 +111,7 @@ function AppContent() {
           </Routes>
         </motion.div>
       </AnimatePresence>
+      <Footer />
       <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userName={userName} />
     </div>
   )

@@ -37,10 +37,11 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 
 ## Struktur Folder `src/`
 
-### `components/` — 19 komponen halaman/UI
+### `components/` — 21 komponen halaman/UI
 
 | File | Fungsi |
 |---|---|
+| **Footer.jsx** | Mega footer premium: dark background (`bg-brand-primary`), grid 5 kolom (brand + Layanan + Perusahaan + Dukungan + sosial media), container `max-w-7xl`, bottom bar copyright + ikon Instagram/Twitter/LinkedIn (inline SVG). Terpasang di `App.jsx` setelah routing. |
 | **ExplorePage.jsx** | Halaman utama: hero banner, search, grid properti, filter drawer (server-side via Supabase), rekomendasi, listing lengkap. `fetchProperties()` menerima `filters` object. |
 | **PropertyDetailPage.jsx** | Detail properti: galeri gambar, spesifikasi, info seller, tombol jadwal survei. Guard `if (!id)` + fallback column names (`address ?? location`, `area_sqm ?? sqm`, `seller_whatsapp ?? agent_whatsapp`). |
 | **SellPropertyPage.jsx** | Form multi-step (5 step) jual properti: pilih peran, upload gambar ke storage `PROPERTIES_IMAGE`, input fields, submit ke Supabase. Inline notification (`AppToast`) + success state. |
@@ -49,6 +50,7 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 | **ForumPage.jsx** | Daftar diskusi forum: kartu post dengan avatar (inisial + warna hash), badge "Umum", info aktivitas (replies count + avatar stack), compose form collapse toggle. |
 | **ForumDetailPage.jsx** | Detail post + reply system: avatar inisial, OP badge, upvote button (`ThumbsUp`), quote reply (`<!--replyto:...-->`), realtime subscription ke `forum_replies`, relative time (`timeAgo`), sticky reply form, guest CTA. |
 | **ChatHubPage.jsx** | Daftar kontak agen/legal untuk dihubungi via WhatsApp. |
+| **ConfirmModal.jsx** | Modal konfirmasi reusable untuk aksi destruktif (hapus post forum, dll). Animasi framer-motion `AnimatePresence`, backdrop blur, tombol Batal + Konfirmasi (merah). Dipakai di `ForumPage` dan `ForumDetailPage`. |
 | **MinimalistLogin.jsx** | Login/Signup: email/password, Google OAuth (`supabase.auth.signInWithOAuth`), toggle password visibility. |
 | **TopNavbar.jsx** | Navbar sticky: logo "HuniOne", language switcher, notifikasi, profil, hamburger menu. |
 | **HamburgerMenu.jsx** | Menu slide-out navigasi samping dengan daftar favorit. |
@@ -143,14 +145,15 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 
 ### Styling
 11. **Tailwind v4**: Tidak ada `tailwind.config.js`. Konfigurasi theme via CSS `@theme` di `index.css`. Custom colors: `brand-primary` (#183B63), `brand-secondary` (#4F8FD8), `brand-bg` (#EEF3F7), `brand-surface` (#FFFFFF), `brand-text` (#1C2733), `brand-muted` (#66788A), `brand-border` (#D6DEE7).
-12. Animasi: framer-motion untuk page transition + custom CSS keyframes `slide-up` dan `fadeIn`.
+12. **Desktop layout**: Halaman memakai `max-w-7xl mx-auto` untuk membatasi lebar konten di desktop, meniru tata letak portal properti profesional seperti Rumah123. Berlaku di `ExplorePage`, `PropertyDetailPage`, `ForumPage`, `ForumDetailPage`.
+13. Animasi: framer-motion untuk page transition + custom CSS keyframes `slide-up` dan `fadeIn`.
 
 ### Pola Kode
-13. **Error handling**: Semua async operation (Supabase query) harus dibungkus `try/catch` + cancelled flag di `useEffect` untuk menghindari state update setelah unmount.
-14. **Lint**: Project pake ESLint dengan aturan `react-hooks/set-state-in-effect` (React 19). Kalau terpaksa setState di dalam effect, tambah `// eslint-disable-next-line react-hooks/set-state-in-effect`.
-15. **Import react-router-dom**: Project pake react-router-dom v7 — `useNavigate`, `useParams`, `Navigate`, `useLocation` masih sama seperti v6.
-16. **Protected Route**: `ProtectedRoute` di `App.jsx` — render `<Navigate to="/login" state={{ from }} />` kalau `!isAuth`.
+14. **Error handling**: Semua async operation (Supabase query) harus dibungkus `try/catch` + cancelled flag di `useEffect` untuk menghindari state update setelah unmount.
+15. **Lint**: Project pake ESLint dengan aturan `react-hooks/set-state-in-effect` (React 19). Kalau terpaksa setState di dalam effect, tambah `// eslint-disable-next-line react-hooks/set-state-in-effect`.
+16. **Import react-router-dom**: Project pake react-router-dom v7 — `useNavigate`, `useParams`, `Navigate`, `useLocation` masih sama seperti v6.
+17. **Protected Route**: `ProtectedRoute` di `App.jsx` — render `<Navigate to="/login" state={{ from }} />` kalau `!isAuth`.
 
 ### Perubahan Brand
-17. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
-18. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
+18. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
+19. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
