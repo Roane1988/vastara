@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageCircle, Send } from 'lucide-react'
+import { MessageCircle, X, Send } from 'lucide-react'
 
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const API_KEY = import.meta.env.VITE_GROQ_API_KEY
@@ -125,6 +125,9 @@ export default function HuniBot() {
             <div className="bg-brand-primary text-white px-4 py-3 flex items-center gap-2 shrink-0">
               <MessageCircle className="w-5 h-5" />
               <span className="font-semibold">HuniBot - Asisten Properti</span>
+              <button type="button" onClick={toggleOpen} className="ml-auto p-1 -mr-1 rounded-lg hover:bg-white/20 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 pb-16 space-y-3">
