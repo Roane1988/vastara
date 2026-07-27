@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageCircle, X, Send } from 'lucide-react'
+import { Bot, X, Send } from 'lucide-react'
 
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const API_KEY = import.meta.env.VITE_GROQ_API_KEY
@@ -13,8 +13,8 @@ const SYSTEM_MESSAGE = {
 function TypingIndicator() {
   return (
     <div className="flex items-start gap-2">
-      <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-        HB
+      <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white shrink-0 ring-2 ring-brand-secondary/50 animate-pulse">
+        <Bot className="w-4 h-4" />
       </div>
       <div className="bg-brand-bg text-brand-text rounded-2xl rounded-bl-md px-3 py-2 text-sm">
         <span className="inline-flex gap-1">
@@ -123,7 +123,7 @@ export default function HuniBot() {
             className="fixed inset-x-0 bottom-0 sm:left-auto sm:bottom-20 sm:right-6 z-50 w-full sm:w-80 lg:w-96 max-h-[80dvh] sm:max-h-none sm:h-[500px] flex flex-col bg-brand-surface shadow-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden border-t sm:border border-brand-border"
           >
             <div className="bg-brand-primary text-white px-4 py-3 flex items-center gap-2 shrink-0">
-              <MessageCircle className="w-5 h-5" />
+              <Bot className="w-5 h-5" />
               <span className="font-semibold">HuniBot - Asisten Properti</span>
               <button type="button" onClick={toggleOpen} className="ml-auto p-1 -mr-1 rounded-lg hover:bg-white/20 transition-colors">
                 <X className="w-5 h-5" />
@@ -140,8 +140,8 @@ export default function HuniBot() {
                   </div>
                 ) : (
                   <div key={msg.id} className="flex items-start gap-2">
-                    <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      HB
+                    <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white shrink-0">
+                      <Bot className="w-4 h-4" />
                     </div>
                     <div className="bg-brand-bg text-brand-text rounded-2xl rounded-bl-md px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">
                       {msg.text}
@@ -183,7 +183,7 @@ export default function HuniBot() {
           onClick={toggleOpen}
           className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-primary/90 transition-colors flex items-center justify-center"
         >
-          <MessageCircle className="w-6 h-6" />
+          <Bot className="w-6 h-6" />
         </button>
       )}
     </>
