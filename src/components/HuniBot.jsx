@@ -52,7 +52,7 @@ export default function HuniBot() {
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const messagesEndRef = useRef(null)
   const scrollRef = useRef(null)
-  const inputRef = useRef(null)
+  const textareaRef = useRef(null)
 
   const scrollToBottom = useCallback((behavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior })
@@ -64,10 +64,18 @@ export default function HuniBot() {
 
   useEffect(() => {
     if (isOpen) {
-      const timer = setTimeout(() => inputRef.current?.focus(), 300)
+      const timer = setTimeout(() => textareaRef.current?.focus(), 300)
       return () => { clearTimeout(timer) }
     }
   }, [isOpen])
+
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    if (!input) {
+      el.style.height = 'auto'
+    }
+  }, [input])
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current
@@ -156,8 +164,8 @@ export default function HuniBot() {
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="fixed inset-x-0 bottom-0 sm:left-auto sm:bottom-20 sm:right-6 z-50 w-full sm:w-80 lg:w-96 max-h-[80dvh] sm:max-h-none sm:h-[500px] flex flex-col bg-brand-surface shadow-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden border-t sm:border border-brand-border"
           >
-            <div className="bg-brand-primary text-white px-4 py-3 flex items-center gap-2 shrink-0">
-              <Bot className="w-5 h-5" />
+            <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white px-4 py-3 flex items-center gap-2 shrink-0">
+              <Bot className={`w-5 h-5 ${isLoading ? 'animate-bounce' : ''}`} />
               <span className="font-semibold">HuniBot - Asisten Properti</span>
               <button type="button" onClick={toggleOpen} className="ml-auto p-1 -mr-1 rounded-lg hover:bg-white/20 transition-colors">
                 <X className="w-5 h-5" />
@@ -227,15 +235,20 @@ export default function HuniBot() {
             )}
 
             <div className="border-t border-brand-border bg-brand-surface p-3 flex gap-2 shrink-0">
-              <input
-                ref={inputRef}
-                type="text"
+              <textarea
+                ref={textareaRef}
                 value={input}
-                onChange={e => setInput(e.target.value)}
+                onChange={e => {
+                  setInput(e.target.value)
+                  const el = e.target
+                  el.style.height = 'auto'
+                  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="Tanya tentang properti..."
                 disabled={isLoading}
-                className="flex-1 px-3 py-2 text-sm bg-brand-bg border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary/30 placeholder:text-brand-muted disabled:opacity-50"
+                rows={1}
+                className="flex-1 px-3 py-2 text-sm bg-brand-bg border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary/30 placeholder:text-brand-muted disabled:opacity-50 resize-none overflow-y-auto"
               />
               <button
                 type="button"
