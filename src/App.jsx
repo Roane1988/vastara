@@ -17,6 +17,7 @@ import ForumDetailPage from './components/ForumDetailPage'
 import MyListingsPage from './components/MyListingsPage'
 import ComingSoonPage from './components/ComingSoonPage'
 import AdminDashboardPage from './components/AdminDashboardPage'
+import HuniBot from './components/HuniBot'
 
 const pageTransition = {
   initial: { opacity: 0, scale: 0.97, y: 8 },
@@ -119,6 +120,7 @@ function AppContent() {
       </AnimatePresence>
       <Footer />
       <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userName={userName} />
+      <HuniBot />
     </div>
   )
 }

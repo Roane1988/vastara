@@ -199,9 +199,10 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 27. **RBAC Role**: `profiles.role` menentukan akses admin. `role === 'admin'` memicu: (a) item "Dashboard Admin" di `HamburgerMenu` menu utama, (b) item "Dashboard Admin" di `ProfileDrawer`, (c) badge "Admin Internal" di avatar header kedua drawer, (d) navigasi `/admin`. Role di-fetch via `supabase.from('profiles').select('role')` tiap kali drawer dibuka. Fallback role lain: "Pembeli".
 28. **Audit logging**: Setiap tindakan admin yang mengubah data (verify/reject property, change role) harus mencatat ke `audit_logs`. Pola: `insertAuditLog()` dipanggil fire-and-forget (tanpa `await` atau `await` dengan `try/catch` kosong) agar tidak memblokir main operation. `target_detail` JSONB berisi payload kontekstual (`{ property_title, property_price }` untuk property, `{ user_name, old_role, new_role }` untuk user).
 
-### Perubahan Brand
-29. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
-30. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
+### Perubahan Brand & Aset
+29. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` (text `text-2xl font-extrabold tracking-tighter text-brand-primary`), `MinimalistLogin` (`<h1>` heading `text-5xl font-bold tracking-[0.15em]`), `Footer` (`<span>` `text-2xl font-bold text-white tracking-tight`), `index.html` title, locale strings, `SellPropertyPage` success message.
+30. **Logo asset**: `src/assets/huniOne.svg` — official vector logo tersedia tapi **tidak dipasang**. Branding saat ini menggunakan text-based "HuniOne" (bukan `<img>`). Jika ingin pasang SVG, ubah 3 komponen: import logo, ganti text dengan `<img src={logo} ...>` di tiap komponen.
+31. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
 
 ---
 
