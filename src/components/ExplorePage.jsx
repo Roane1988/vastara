@@ -6,18 +6,12 @@ import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { getImageSrc } from '../utils/images'
+import { formatPrice } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
 
-function formatPrice(value) {
-  if (value == null) return 'Rp 0'
-  const num = Number(value)
-  if (num >= 1_000_000_000) return `Rp ${(num / 1_000_000_000).toFixed(1)} M`
-  if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(0)} Jt`
-  return `Rp ${num.toLocaleString('id-ID')}`
-}
 
 function SearchIcon() {
   return (
@@ -91,7 +85,7 @@ const POPULAR_SEARCHES = [
 export default function ExplorePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [activeCategory] = useState('Semua')
+  const activeCategory = 'Semua'
   const [saved, setSaved] = useState(getFavorites())
   const [showFilter, setShowFilter] = useState(false)
   const [filterPrice, setFilterPrice] = useState('')
@@ -102,14 +96,11 @@ export default function ExplorePage() {
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false)
 
   const [properties, setProperties] = useState([])
-  const [, setLoading] = useState(true)
   const { user } = useAuth()
 
   const firstName = user?.user_metadata?.first_name || null
 
   async function fetchProperties(filters = {}) {
-    setLoading(true)
-
     try {
       let query = supabase
         .from('properties')
@@ -150,8 +141,6 @@ export default function ExplorePage() {
     } catch (err) {
       console.warn('Gagal memuat properti:', err.message)
     }
-
-    setLoading(false)
   }
 
   useEffect(() => {
@@ -322,6 +311,7 @@ export default function ExplorePage() {
                     src={getImageSrc(p.image_url)}
                     alt={p.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => { e.target.src = FALLBACK_IMAGE }}
                   />
                   {p.status === 'verified' && (
                     <span className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">

@@ -339,7 +339,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                       >
                         <div className="w-12 h-12 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
                           {p.image_url ? (
-                            <img src={getImageSrc(p.image_url)} alt="" className="w-full h-full object-cover" />
+                            <img src={getImageSrc(p.image_url)} alt="" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80' }} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
                           )}

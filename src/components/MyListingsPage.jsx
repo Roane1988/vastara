@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getImageSrc } from '../utils/images'
+import { formatPrice } from '../utils/format'
 
 function ArrowLeftIcon() {
   return (
@@ -25,14 +26,6 @@ function StatusBadge({ status }) {
       {isPending ? 'Menunggu Verifikasi' : 'Terverifikasi'}
     </span>
   )
-}
-
-function formatPrice(value) {
-  if (value == null) return 'Rp 0'
-  const num = Number(value)
-  if (num >= 1_000_000_000) return `Rp ${(num / 1_000_000_000).toFixed(1)} M`
-  if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(0)} Jt`
-  return `Rp ${num.toLocaleString('id-ID')}`
 }
 
 export default function MyListingsPage() {

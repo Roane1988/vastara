@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc } from '../utils/images'
+import { formatPrice } from '../utils/format'
 
 function XIcon() {
   return (
@@ -39,14 +40,6 @@ function BookmarkIcon() {
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
     </svg>
   )
-}
-
-function formatPrice(value) {
-  if (value == null) return 'Rp 0'
-  const num = Number(value)
-  if (num >= 1_000_000_000) return `Rp ${(num / 1_000_000_000).toFixed(1)} M`
-  if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(0)} Jt`
-  return `Rp ${num.toLocaleString('id-ID')}`
 }
 
 function MenuItem({ icon, label, onClick, active, destructive }) {
@@ -142,7 +135,7 @@ function SavedDrawer({ onBack }) {
               >
                 <div className="w-14 h-14 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
                   {p.image_url ? (
-                    <img src={getImageSrc(p.image_url)} alt="" className="w-full h-full object-cover" />
+                    <img src={getImageSrc(p.image_url)} alt="" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80' }} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
                   )}
@@ -181,7 +174,6 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
 
   const handleLogout = async () => {
     setLoggingOut(true)
-    await supabase.auth.signOut()
     onLogout?.()
     onClose()
   }

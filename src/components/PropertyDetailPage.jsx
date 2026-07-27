@@ -2,23 +2,13 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { formatPrice } from '../utils/format'
+import { getAvatarColor, getInitials } from '../utils/avatar'
+import { parseImages, getImageSrc } from '../utils/images'
 import NotFoundPage from './NotFoundPage'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
-const avatarColors = ['#4F46E5', '#0891B2', '#059669', '#D97706', '#DC2626', '#7C3AED', '#DB2777', '#2563EB']
-
-function getAvatarColor(id) {
-  if (!id) return avatarColors[0]
-  let hash = 0
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return avatarColors[Math.abs(hash) % avatarColors.length]
-}
-
-function getInitials(name) {
-  return (name || 'A').charAt(0).toUpperCase()
-}
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
 
 function ArrowLeftIcon() {
   return (
@@ -79,13 +69,6 @@ function WhatsAppIcon() {
   )
 }
 
-function formatPrice(value) {
-  if (value == null) return 'Rp 0'
-  const num = typeof value === 'string' ? parseFloat(value.replace(/[^0-9]/g, '')) : Number(value)
-  if (isNaN(num)) return `Rp ${value}`
-  return `Rp ${num.toLocaleString('id-ID')}`
-}
-
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-brand-bg animate-pulse">
@@ -109,19 +92,6 @@ function LoadingSkeleton() {
       </div>
     </div>
   )
-}
-
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
-
-function parseImages(imageUrl) {
-  if (!imageUrl) return []
-  if (Array.isArray(imageUrl)) return imageUrl.filter(Boolean)
-  try {
-    const parsed = JSON.parse(imageUrl)
-    return Array.isArray(parsed) ? parsed.filter(Boolean) : [imageUrl]
-  } catch {
-    return [imageUrl]
-  }
 }
 
 export default function PropertyDetailPage() {
@@ -247,11 +217,11 @@ export default function PropertyDetailPage() {
       return (
         <div className="hidden lg:grid lg:grid-cols-4 lg:grid-rows-2 lg:gap-2 lg:h-[420px] lg:rounded-2xl lg:overflow-hidden">
           <div className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer" onClick={() => openLightbox(0)}>
-            <img src={remaining[0]} alt={property.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+            <img src={remaining[0]} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
           </div>
           {remaining.slice(1, 5).map((url, i) => (
             <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => openLightbox(i + 1)}>
-              <img src={url} alt={`${property.title} ${i + 2}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+              <img src={url} alt={`${property.title} ${i + 2}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
             </div>
           ))}
         </div>
@@ -264,7 +234,7 @@ export default function PropertyDetailPage() {
         <div className={`hidden lg:grid ${cols} lg:gap-2 lg:h-[360px] lg:rounded-2xl lg:overflow-hidden`}>
           {images.map((url, i) => (
             <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => openLightbox(i)}>
-              <img src={url} alt={`${property.title} ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+              <img src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
             </div>
           ))}
         </div>
@@ -273,7 +243,7 @@ export default function PropertyDetailPage() {
 
     return (
       <div className="hidden lg:block lg:rounded-2xl overflow-hidden cursor-pointer" onClick={() => openLightbox(0)}>
-        <img src={heroImage} alt={property.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+          <img src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
       </div>
     )
   }
@@ -284,7 +254,7 @@ export default function PropertyDetailPage() {
     return (
       <div className="lg:hidden">
         <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => openLightbox(0)}>
-          <img src={images[0] || FALLBACK_IMAGE} alt={property.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+          <img src={images[0] || FALLBACK_IMAGE} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
         </div>
         <div className="grid grid-cols-4 gap-0.5">
           {thumbImages.map((url, i) => {
@@ -292,7 +262,7 @@ export default function PropertyDetailPage() {
             const isLast = i === 3 && images.length > 5
             return (
               <div key={i} className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => openLightbox(isLast ? 0 : imgIndex)}>
-                <img src={url} alt={`${property.title} ${imgIndex + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                <img src={url} alt={`${property.title} ${imgIndex + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
                 {isLast && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
                     <span className="text-white text-xs font-bold">Lihat Semua</span>
@@ -384,6 +354,7 @@ export default function PropertyDetailPage() {
           <img
             src={images[lightboxIndex]}
             alt={`${property.title} ${lightboxIndex + 1}`}
+            onError={(e) => { e.target.src = FALLBACK_IMAGE }}
             className="max-w-full max-h-full object-contain"
           />
           <button

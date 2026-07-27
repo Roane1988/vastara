@@ -2,16 +2,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { getFavorites, toggleFavorite } from '../utils/favorites'
 import { getImageSrc } from '../utils/images'
+import { formatPrice } from '../utils/format'
 
 const FILTERS = ['Semua', 'Tersedia', 'Sedang Nego']
-
-function formatPrice(value) {
-  if (value == null) return 'Rp 0'
-  const num = Number(value)
-  if (num >= 1_000_000_000) return `Rp ${(num / 1_000_000_000).toFixed(1)} M`
-  if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(0)} Jt`
-  return `Rp ${num.toLocaleString('id-ID')}`
-}
 
 function HeartIcon({ filled }) {
   return (

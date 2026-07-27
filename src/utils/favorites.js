@@ -20,7 +20,7 @@ export function getFavorites() {
   }
 }
 
-export function toggleFavorite(id) {
+function toggleFavourite(id) {
   const favorites = getFavorites()
   const idx = favorites.indexOf(id)
   if (idx === -1) {
@@ -30,6 +30,10 @@ export function toggleFavorite(id) {
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites))
   return favorites
+}
+
+export function toggleFavorite(id) {
+  return toggleFavourite(id)
 }
 
 export function isFavorite(id) {

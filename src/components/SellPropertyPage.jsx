@@ -41,59 +41,6 @@ function SpinnerIcon() {
   )
 }
 
-function AppToast({ message, type, visible, onClose }) {
-  useEffect(() => {
-    if (!visible) return
-    const t = setTimeout(onClose, 3000)
-    return () => clearTimeout(t)
-  }, [visible, onClose])
-
-  if (!visible) return null
-
-  return (
-    <>
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translate(-50%, -8px); }
-          to   { opacity: 1; transform: translate(-50%, 0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.25s ease-out;
-        }
-      `}</style>
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4 animate-fade-in">
-        <div className={`rounded-2xl px-5 py-4 flex items-center gap-3 shadow-sm border ${
-          type === 'error'
-            ? 'bg-red-50 border-red-200 text-red-700'
-            : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-        }`}>
-          {type === 'error' ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="15" y1="9" x2="9" y2="15" />
-              <line x1="9" y1="9" x2="15" y2="15" />
-            </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )}
-          <p className="text-sm font-semibold flex-1">{message}</p>
-          <button
-            type="button"
-            onClick={onClose}
-            className="opacity-70 hover:opacity-100 transition-opacity shrink-0"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </>
-  )
-}
-
 function VerticalStepper({ steps, current }) {
   return (
     <div className="flex flex-col w-full">
@@ -185,34 +132,12 @@ export default function SellPropertyPage() {
   const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const [, setAgentWa] = useState('6281234567890')
-  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
+
 
   useEffect(() => {
-    let cancelled = false
-
-    async function fetchAgent() {
-      try {
-        const { data } = await supabase
-          .from('agents')
-          .select('whatsapp')
-          .limit(1)
-          .maybeSingle()
-
-        if (!cancelled && data?.whatsapp) {
-          setAgentWa(data.whatsapp)
-        }
-      } catch {
-        if (!cancelled) {
-          setAgentWa('6281234567890')
-        }
-      }
-    }
-
-    fetchAgent()
-
-    return () => { cancelled = true }
-  }, [])
+    const urls = imageFiles.map((f) => URL.createObjectURL(f))
+    return () => urls.forEach((u) => URL.revokeObjectURL(u))
+  }, [imageFiles])
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
@@ -271,7 +196,7 @@ export default function SellPropertyPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        setNotification({ show: true, message: 'Sesi habis, silakan login ulang.', type: 'error' })
+        showToast('Sesi habis, silakan login ulang.', 'error')
         setSubmitting(false)
         return
       }
@@ -298,7 +223,7 @@ export default function SellPropertyPage() {
           })
           uploadedImageUrls = await Promise.all(uploads)
         } catch (err) {
-          setNotification({ show: true, message: 'Gagal mengunggah gambar: ' + err.message, type: 'error' })
+          showToast('Gagal mengunggah gambar: ' + err.message, 'error')
           setSubmitting(false)
           return
         }
@@ -323,7 +248,7 @@ export default function SellPropertyPage() {
         })
 
       if (insertError) {
-        setNotification({ show: true, message: insertError.message, type: 'error' })
+        showToast(insertError.message, 'error')
         setSubmitting(false)
         return
       }
@@ -332,7 +257,7 @@ export default function SellPropertyPage() {
       showToast('Properti berhasil dikirim', 'success')
       setIsSubmitted(true)
     } catch (err) {
-      setNotification({ show: true, message: 'Terjadi kesalahan: ' + (err.message || 'Silakan coba lagi.'), type: 'error' })
+      showToast('Terjadi kesalahan: ' + (err.message || 'Silakan coba lagi.'), 'error')
       setSubmitting(false)
     }
   }
@@ -633,13 +558,6 @@ export default function SellPropertyPage() {
 
   return (
     <div className="min-h-screen bg-brand-surface flex flex-col">
-      <AppToast
-        message={notification.message}
-        type={notification.type}
-        visible={notification.show}
-        onClose={() => setNotification((prev) => ({ ...prev, show: false }))}
-      />
-
       {isSubmitted ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
           <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-6">

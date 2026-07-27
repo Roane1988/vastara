@@ -4,37 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { ArrowLeft, Send, MessageCircle, Trash2, X, ThumbsUp } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { getAvatarColor, getInitials } from '../utils/avatar'
+import { timeAgo } from '../utils/time'
 import ConfirmModal from './ConfirmModal'
-
-const avatarColors = ['#4F46E5', '#0891B2', '#059669', '#D97706', '#DC2626', '#7C3AED', '#DB2777', '#2563EB']
-
-function getAvatarColor(id) {
-  if (!id) return avatarColors[0]
-  let hash = 0
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return avatarColors[Math.abs(hash) % avatarColors.length]
-}
-
-function getInitials(name) {
-  return (name || 'A').charAt(0).toUpperCase()
-}
-
-function timeAgo(dateString) {
-  if (!dateString) return ''
-  const now = new Date()
-  const date = new Date(dateString)
-  const diffSec = Math.floor((now - date) / 1000)
-  if (diffSec < 60) return 'baru saja'
-  const diffMin = Math.floor(diffSec / 60)
-  if (diffMin < 60) return `${diffMin} menit yang lalu`
-  const diffHour = Math.floor(diffMin / 60)
-  if (diffHour < 24) return `${diffHour} jam yang lalu`
-  const diffDay = Math.floor(diffHour / 24)
-  if (diffDay < 7) return `${diffDay} hari yang lalu`
-  return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 function parseReplyContent(content) {
   const prefix = '<!--replyto:'
@@ -197,7 +169,7 @@ export default function ForumDetailPage() {
       showToast(error.message, 'error')
     } else {
       showToast('Diskusi berhasil dihapus', 'success')
-      setTimeout(() => navigate('/forum'), 300)
+      navigate('/forum')
     }
   }
 
