@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -79,6 +79,11 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const [currentEmail, setCurrentEmail] = useState('')
   const [savedProperties, setSavedProperties] = useState([])
   const [role, setRole] = useState('')
+  const isMountedRef = useRef(true)
+
+  useEffect(() => {
+    return () => { isMountedRef.current = false }
+  }, [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -170,6 +175,8 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
       password: currentPassword,
     })
 
+    if (!isMountedRef.current) return
+
     if (signInError) {
       notify(t('profileDrawer.wrong_password'), 'error')
       setSaving(false)
@@ -177,6 +184,8 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     }
 
     const { data: { user } } = await supabase.auth.getUser()
+    if (!isMountedRef.current) return
+
     if (!user) {
       notify(t('profileDrawer.session_expired'), 'error')
       setSaving(false)
@@ -189,6 +198,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     }
 
     const { error: authError } = await supabase.auth.updateUser(authUpdates)
+    if (!isMountedRef.current) return
 
     if (authError) {
       notify(authError.message, 'error')
@@ -205,6 +215,8 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
+
+    if (!isMountedRef.current) return
 
     if (profileError) {
       notify(profileError.message, 'error')

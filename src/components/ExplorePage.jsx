@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin } from 'lucide-react'
@@ -85,7 +85,6 @@ const POPULAR_SEARCHES = [
 export default function ExplorePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const activeCategory = 'Semua'
   const [saved, setSaved] = useState(getFavorites())
   const [showFilter, setShowFilter] = useState(false)
   const [filterPrice, setFilterPrice] = useState('')
@@ -97,6 +96,7 @@ export default function ExplorePage() {
 
   const [properties, setProperties] = useState([])
   const { user } = useAuth()
+  const cancelledRef = useRef(false)
 
   const firstName = user?.user_metadata?.first_name || null
 
@@ -133,19 +133,24 @@ export default function ExplorePage() {
 
       const { data, error } = await query
 
+      if (cancelledRef.current) return
+
       if (!error && data) {
         setProperties(data)
       } else if (error) {
         console.warn('Gagal memuat properti:', error.message)
       }
     } catch (err) {
+      if (cancelledRef.current) return
       console.warn('Gagal memuat properti:', err.message)
     }
   }
 
   useEffect(() => {
+    cancelledRef.current = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProperties().catch(() => {})
+    return () => { cancelledRef.current = true }
   }, [])
 
   const SORT_OPTIONS = [
@@ -163,13 +168,7 @@ export default function ExplorePage() {
     setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
   }
 
-  const filtered = properties.filter((p) => {
-    if (activeCategory === 'Rumah Baru' && p.bedrooms < 3) return false
-    if (activeCategory === 'Apartemen' && p.bedrooms > 2) return false
-    return true
-  })
-
-  const sorted = [...filtered].sort((a, b) => {
+  const sorted = [...properties].sort((a, b) => {
     if (sortIndex === 1) return (Number(a.price) || 0) - (Number(b.price) || 0)
     if (sortIndex === 2) return (Number(b.price) || 0) - (Number(a.price) || 0)
     return 0

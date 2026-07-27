@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -26,6 +26,7 @@ function ShieldCheckIcon() {
 export default function AdminDashboardPage() {
   const navigate = useNavigate()
   const { showToast } = useAuth()
+  const cancelledRef = useRef(false)
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [rejectTarget, setRejectTarget] = useState(null)
@@ -64,6 +65,10 @@ export default function AdminDashboardPage() {
     return () => { cancelled = true }
   }, [])
 
+  useEffect(() => {
+    return () => { cancelledRef.current = true }
+  }, [])
+
   async function handleVerify(id) {
     setVerifyLoading(id)
     try {
@@ -72,6 +77,8 @@ export default function AdminDashboardPage() {
         .update({ status: 'verified' })
         .eq('id', id)
 
+      if (cancelledRef.current) return
+
       if (error) {
         showToast(error.message, 'error')
       } else {
@@ -79,9 +86,9 @@ export default function AdminDashboardPage() {
         showToast('Properti berhasil diverifikasi & diterbitkan', 'success')
       }
     } catch (err) {
-      showToast(err.message || 'Gagal memverifikasi properti', 'error')
+      if (!cancelledRef.current) showToast(err.message || 'Gagal memverifikasi properti', 'error')
     }
-    setVerifyLoading(null)
+    if (!cancelledRef.current) setVerifyLoading(null)
   }
 
   async function handleConfirmReject() {
@@ -93,6 +100,8 @@ export default function AdminDashboardPage() {
         .delete()
         .eq('id', rejectTarget)
 
+      if (cancelledRef.current) return
+
       if (error) {
         showToast(error.message, 'error')
       } else {
@@ -100,10 +109,12 @@ export default function AdminDashboardPage() {
         showToast('Properti berhasil ditolak & dihapus', 'success')
       }
     } catch (err) {
-      showToast(err.message || 'Gagal menolak properti', 'error')
+      if (!cancelledRef.current) showToast(err.message || 'Gagal menolak properti', 'error')
     }
-    setRejecting(false)
-    setRejectTarget(null)
+    if (!cancelledRef.current) {
+      setRejecting(false)
+      setRejectTarget(null)
+    }
   }
 
   return (

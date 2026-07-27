@@ -4,7 +4,7 @@ import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight } from 
 import { supabase } from '../supabaseClient'
 import { formatPrice } from '../utils/format'
 import { getAvatarColor, getInitials } from '../utils/avatar'
-import { parseImages, getImageSrc } from '../utils/images'
+import { parseImages } from '../utils/images'
 import NotFoundPage from './NotFoundPage'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
@@ -94,6 +94,181 @@ function LoadingSkeleton() {
   )
 }
 
+function GalleryDesktop({ images, property, onOpenLightbox }) {
+  const heroImage = images[0] || FALLBACK_IMAGE
+
+  if (images.length >= 4) {
+    const remaining = images.slice(0, 5)
+    return (
+      <div className="hidden lg:grid lg:grid-cols-4 lg:grid-rows-2 lg:gap-2 lg:h-[420px] lg:rounded-2xl lg:overflow-hidden">
+        <div className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
+          <img src={remaining[0]} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+        </div>
+        {remaining.slice(1, 5).map((url, i) => (
+          <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(i + 1)}>
+            <img src={url} alt={`${property.title} ${i + 2}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (images.length === 2 || images.length === 3) {
+    const cols = images.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3'
+    return (
+      <div className={`hidden lg:grid ${cols} lg:gap-2 lg:h-[360px] lg:rounded-2xl lg:overflow-hidden`}>
+        {images.map((url, i) => (
+          <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(i)}>
+            <img src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="hidden lg:block lg:rounded-2xl overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
+      <img src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+    </div>
+  )
+}
+
+function GalleryMobile({ images, property, onOpenLightbox }) {
+  const thumbStartIndex = 1
+  const thumbImages = images.slice(thumbStartIndex, thumbStartIndex + 4)
+  return (
+    <div className="lg:hidden">
+      <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
+        <img src={images[0] || FALLBACK_IMAGE} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+      </div>
+      <div className="grid grid-cols-4 gap-0.5">
+        {thumbImages.map((url, i) => {
+          const imgIndex = thumbStartIndex + i
+          const isLast = i === 3 && images.length > 5
+          return (
+            <div key={i} className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(isLast ? 0 : imgIndex)}>
+              <img src={url} alt={`${property.title} ${imgIndex + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+              {isLast && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
+                  <span className="text-white text-xs font-bold">Lihat Semua</span>
+                </div>
+              )}
+            </div>
+          )
+        })}
+        {Array.from({ length: Math.max(0, 4 - thumbImages.length) }).map((_, n) => (
+          <div key={n} className="aspect-[4/3] bg-brand-border" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Lightbox({ isOpen, images, currentIndex, onClose, onPrev, onNext, propertyTitle }) {
+  if (!isOpen) return null
+  return (
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3 shrink-0">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+        >
+          <X size={20} />
+        </button>
+        <span className="text-sm text-white/80 font-medium">
+          {currentIndex + 1} / {images.length}
+        </span>
+        <div className="w-10" />
+      </div>
+      <div className="flex-1 flex items-center justify-center relative min-h-0 px-4">
+        <button
+          type="button"
+          onClick={onPrev}
+          className="absolute left-2 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <img
+          src={images[currentIndex]}
+          alt={`${propertyTitle} ${currentIndex + 1}`}
+          onError={(e) => { e.target.src = FALLBACK_IMAGE }}
+          className="max-w-full max-h-full object-contain"
+        />
+        <button
+          type="button"
+          onClick={onNext}
+          className="absolute right-2 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+        >
+          <ChevronRight size={24} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AgentCard({ sellerName, sellerRole, waLink, phoneShort, sellerId }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-brand-border p-4">
+      <div className="flex items-center gap-3 mb-4">
+        <div
+          className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+          style={{ backgroundColor: getAvatarColor(sellerId) }}
+        >
+          {getInitials(sellerName)}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-brand-text">{sellerName}</p>
+          <p className="text-xs text-brand-muted">{sellerRole}</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
+        >
+          <Phone size={16} className="text-brand-muted" />
+          {phoneShort}
+        </a>
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.98]"
+        >
+          <MessageCircle size={16} />
+          WhatsApp
+        </a>
+      </div>
+    </div>
+  )
+}
+
+function AccordionBlock({ id, title, children, isOpen, onToggle }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-hidden">
+      <button
+        type="button"
+        onClick={() => onToggle(id)}
+        className="w-full flex items-center justify-between p-4 text-left"
+      >
+        <span className="text-sm font-semibold text-brand-text">{title}</span>
+        <ChevronDown
+          size={18}
+          className={`text-brand-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {isOpen && (
+        <div className="px-4 pb-4 text-xs text-brand-muted leading-relaxed border-t border-brand-border pt-3">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function PropertyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -106,7 +281,6 @@ export default function PropertyDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
   const images = property ? parseImages(property.image_url) : []
-  const heroImage = images[0] || FALLBACK_IMAGE
 
   const openLightbox = (index) => {
     setLightboxIndex(index)
@@ -211,74 +385,6 @@ export default function PropertyDetailPage() {
   const waMessage = encodeURIComponent(`Halo, saya tertarik dengan properti ${property.title}`)
   const waLink = `https://wa.me/${waNumber}?text=${waMessage}`
 
-  function GalleryDesktop() {
-    if (images.length >= 4) {
-      const remaining = images.slice(0, 5)
-      return (
-        <div className="hidden lg:grid lg:grid-cols-4 lg:grid-rows-2 lg:gap-2 lg:h-[420px] lg:rounded-2xl lg:overflow-hidden">
-          <div className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer" onClick={() => openLightbox(0)}>
-            <img src={remaining[0]} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-          </div>
-          {remaining.slice(1, 5).map((url, i) => (
-            <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => openLightbox(i + 1)}>
-              <img src={url} alt={`${property.title} ${i + 2}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-            </div>
-          ))}
-        </div>
-      )
-    }
-
-    if (images.length === 2 || images.length === 3) {
-      const cols = images.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3'
-      return (
-        <div className={`hidden lg:grid ${cols} lg:gap-2 lg:h-[360px] lg:rounded-2xl lg:overflow-hidden`}>
-          {images.map((url, i) => (
-            <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => openLightbox(i)}>
-              <img src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-            </div>
-          ))}
-        </div>
-      )
-    }
-
-    return (
-      <div className="hidden lg:block lg:rounded-2xl overflow-hidden cursor-pointer" onClick={() => openLightbox(0)}>
-          <img src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-      </div>
-    )
-  }
-
-  function GalleryMobile() {
-    const thumbStartIndex = 1
-    const thumbImages = images.slice(thumbStartIndex, thumbStartIndex + 4)
-    return (
-      <div className="lg:hidden">
-        <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => openLightbox(0)}>
-          <img src={images[0] || FALLBACK_IMAGE} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-        </div>
-        <div className="grid grid-cols-4 gap-0.5">
-          {thumbImages.map((url, i) => {
-            const imgIndex = thumbStartIndex + i
-            const isLast = i === 3 && images.length > 5
-            return (
-              <div key={i} className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => openLightbox(isLast ? 0 : imgIndex)}>
-                <img src={url} alt={`${property.title} ${imgIndex + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-                {isLast && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
-                    <span className="text-white text-xs font-bold">Lihat Semua</span>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-          {Array.from({ length: Math.max(0, 4 - thumbImages.length) }).map((_, n) => (
-            <div key={n} className="aspect-[4/3] bg-brand-border" />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
   const sellerName = property.profiles?.first_name || 'Agen Properti'
   const sellerRole = property.profiles?.role === 'agent' ? 'Agen Properti'
     : property.profiles?.role === 'developer' ? 'Pengembang'
@@ -287,117 +393,11 @@ export default function PropertyDetailPage() {
 
   const phoneShort = `+${waNumber.slice(0, 4)}...${waNumber.slice(-3)}`
 
-  function agentCard() {
-    return (
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border p-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div
-            className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-            style={{ backgroundColor: getAvatarColor(property.seller_id) }}
-          >
-            {getInitials(sellerName)}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-brand-text">{sellerName}</p>
-            <p className="text-xs text-brand-muted">{sellerRole}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
-          >
-            <Phone size={16} className="text-brand-muted" />
-            {phoneShort}
-          </a>
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.98]"
-          >
-            <MessageCircle size={16} />
-            WhatsApp
-          </a>
-        </div>
-      </div>
-    )
-  }
-
-  function Lightbox() {
-    if (!isLightboxOpen) return null
-    return (
-      <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 shrink-0">
-          <button
-            type="button"
-            onClick={closeLightbox}
-            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-          >
-            <X size={20} />
-          </button>
-          <span className="text-sm text-white/80 font-medium">
-            {lightboxIndex + 1} / {images.length}
-          </span>
-          <div className="w-10" />
-        </div>
-        <div className="flex-1 flex items-center justify-center relative min-h-0 px-4">
-          <button
-            type="button"
-            onClick={prevImage}
-            className="absolute left-2 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <img
-            src={images[lightboxIndex]}
-            alt={`${property.title} ${lightboxIndex + 1}`}
-            onError={(e) => { e.target.src = FALLBACK_IMAGE }}
-            className="max-w-full max-h-full object-contain"
-          />
-          <button
-            type="button"
-            onClick={nextImage}
-            className="absolute right-2 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-          >
-            <ChevronRight size={24} />
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  function accordionBlock(id, title, children) {
-    const open = accordionState[id]
-    return (
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}
-          className="w-full flex items-center justify-between p-4 text-left"
-        >
-          <span className="text-sm font-semibold text-brand-text">{title}</span>
-          <ChevronDown
-            size={18}
-            className={`text-brand-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          />
-        </button>
-        {open && (
-          <div className="px-4 pb-4 text-xs text-brand-muted leading-relaxed border-t border-brand-border pt-3">
-            {children}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <div className="w-full max-w-7xl mx-auto lg:px-5 lg:mt-5 relative">
-        {GalleryDesktop()}
-        {GalleryMobile()}
+        <GalleryDesktop images={images} property={property} onOpenLightbox={openLightbox} />
+        <GalleryMobile images={images} property={property} onOpenLightbox={openLightbox} />
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -406,7 +406,6 @@ export default function PropertyDetailPage() {
           <ArrowLeftIcon />
         </button>
 
-        {/* Mobile CTA */}
         <div className="lg:hidden px-4 pt-3">
           <a
             href={waLink}
@@ -461,9 +460,9 @@ export default function PropertyDetailPage() {
           </p>
         </div>
 
-        {agentCard()}
+        <AgentCard sellerName={sellerName} sellerRole={sellerRole} waLink={waLink} phoneShort={phoneShort} sellerId={property.seller_id} />
 
-        {accordionBlock('panduan', 'Panduan Membeli Properti', (
+        <AccordionBlock id="panduan" title="Panduan Membeli Properti" isOpen={accordionState.panduan} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
           <ol className="list-decimal pl-4 space-y-1.5">
             <li>Tentukan anggaran dan kebutuhan properti Anda.</li>
             <li>Cari properti yang sesuai dengan kriteria Anda.</li>
@@ -472,14 +471,14 @@ export default function PropertyDetailPage() {
             <li>Lakukan negosiasi harga dengan penjual.</li>
             <li>Proses akad jual beli di hadapan Pejabat Pembuat Akta Tanah (PPAT).</li>
           </ol>
-        ))}
+        </AccordionBlock>
 
-        {accordionBlock('disclaimer', 'Disclaimer', (
-          'Informasi yang ditampilkan pada halaman ini disediakan oleh pengiklan dan/atau pihak ketiga. HuniOne tidak bertanggung jawab atas keakuratan, kelengkapan, atau keabsahan informasi tersebut. Segala transaksi dan kesepakatan sepenuhnya merupakan tanggung jawab antara pembeli dan penjual.'
-        ))}
+        <AccordionBlock id="disclaimer" title="Disclaimer" isOpen={accordionState.disclaimer} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
+          Informasi yang ditampilkan pada halaman ini disediakan oleh pengiklan dan/atau pihak ketiga. HuniOne tidak bertanggung jawab atas keakuratan, kelengkapan, atau keabsahan informasi tersebut. Segala transaksi dan kesepakatan sepenuhnya merupakan tanggung jawab antara pembeli dan penjual.
+        </AccordionBlock>
       </div>
 
-      {Lightbox()}
+      <Lightbox isOpen={isLightboxOpen} images={images} currentIndex={lightboxIndex} onClose={closeLightbox} onPrev={prevImage} onNext={nextImage} propertyTitle={property.title} />
 
       <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-30">
         <a

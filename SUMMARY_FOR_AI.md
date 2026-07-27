@@ -55,8 +55,8 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 | **ConfirmModal.jsx** | Modal konfirmasi reusable untuk aksi destruktif (hapus post forum, dll). Animasi framer-motion `AnimatePresence`, backdrop blur, tombol Batal + Konfirmasi (merah). Dipakai di `ForumPage` dan `ForumDetailPage`. |
 | **MinimalistLogin.jsx** | Login/Signup: email/password, Google OAuth (`supabase.auth.signInWithOAuth`), toggle password visibility. |
 | **TopNavbar.jsx** | Navbar sticky: logo "HuniOne", language switcher, notifikasi, profil, hamburger menu. |
-| **HamburgerMenu.jsx** | Menu slide-out navigasi samping dengan daftar favorit. |
-| **ProfileDrawer.jsx** | Drawer profil: info user, edit profil (first_name, email, whatsapp), saved properties, logout. Ada 2 efek: fetch saved + fetch profile. |
+| **HamburgerMenu.jsx** | Menu slide-out navigasi samping dengan daftar favorit. Fetch `role` dari `profiles` tiap buka. Jika `role === 'admin'`: tampilkan item "Dashboard Admin" di menu utama + label "Admin Internal" (biru) alih-alih "Pembeli". |
+| **ProfileDrawer.jsx** | Drawer profil: info user, edit profil (first_name, email, whatsapp), saved properties, logout. Ada 2 efek: fetch saved + fetch profile (termasuk `role`). Jika `role === 'admin'`: tampilkan badge "Admin Internal" di header + item "Dashboard Admin" di menu navigasi. |
 | **NotificationDrawer.jsx** | Drawer notifikasi (grup Today/Yesterday). |
 | **MoreCategoriesDrawer.jsx** | Drawer bawah filter kategori properti tambahan. |
 | **RescheduleBottomSheet.jsx** | Bottom sheet reschedule janji survei (pilih tanggal & jam). |
@@ -169,7 +169,7 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 24. **Protected Route**: `ProtectedRoute` di `App.jsx` — render `<Navigate to="/login" state={{ from }} />` kalau `!isAuth`.
 25. **Image error fallback**: Semua `<img>` tag yang menampilkan data dari DB/API harus punya `onError` handler yang set `e.target.src` ke fallback (biasanya `FALLBACK_IMAGE` dari `utils/images.js` atau hardcoded fallback). Berlaku di: `PropertyDetailPage` (semua gallery images), `ExplorePage` (recommendations + listing grid), `ProfileDrawer` (saved thumbnails), `HamburgerMenu` (saved thumbnails).
 26. **URL.revokeObjectURL**: Di `SellPropertyPage`, object URL dari `URL.createObjectURL` untuk preview gambar dibersihkan via `useEffect` return cleanup setiap kali `imageFiles` berubah, untuk mencegah memory leak.
-27. **Admin Dashboard** (`/admin`): Data table pending properties dengan join `profiles(first_name, whatsapp)`. Verify → `update({ status: 'verified' })` + hapus baris dari state. Reject → `ConfirmModal` → `delete().eq('id', id)`. Navigasi: tombol "Dashboard" di `TopNavbar` (sebelah tombol "Jual Properti").
+27. **RBAC Role**: `profiles.role` menentukan akses admin. `role === 'admin'` memicu: (a) item "Dashboard Admin" di `HamburgerMenu` menu utama, (b) item "Dashboard Admin" di `ProfileDrawer`, (c) badge "Admin Internal" di avatar header kedua drawer, (d) navigasi `/admin`. Role di-fetch via `supabase.from('profiles').select('role')` tiap kali drawer dibuka. Fallback role lain: "Pembeli".
 
 ### Perubahan Brand
 28. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
@@ -184,6 +184,15 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - **HIGH**: `ForumDetailPage.handleConfirmDelete` — `setDeleting(false)` + `setShowDeleteModal(false)` pindah sebelum error check. Navigate tanpa `setTimeout`.
 - **HIGH**: `HamburgerMenu.handleLogout` — hapus duplikasi `supabase.auth.signOut()` (onLogout dari App sudah handle).
 - **MEDIUM**: `ExplorePage` — hapus dead `loading` state `const [, setLoading] = useState(true)` yang tidak pernah dibaca.
+
+### Code Health (Session #2 — July 2026)
+- **`ExplorePage.jsx`**: Added `cancelledRef` to `fetchProperties` to prevent setState after unmount. Removed dead `activeCategory` constant (always `'Semua'`) and its associated dead filter block.
+- **`PropertyDetailPage.jsx`**: Extracted `GalleryDesktop`, `GalleryMobile`, `Lightbox`, `AgentCard`, `AccordionBlock` from inside component render to standalone components (React 19 compliance — no components inside render). Switched from function calls `{GalleryDesktop()}` to JSX `<GalleryDesktop />`. Removed unused `getImageSrc` import and orphaned `heroImage` variable.
+- **`AdminDashboardPage.jsx`**: Added `cancelledRef` with cleanup effect. Added cancelled checks to `handleVerify` and `handleConfirmReject`.
+- **`ProfileDrawer.jsx`**: Added `useRef` + `isMountedRef` cleanup effect. Added mounted checks to `handleSave` after each `await` to prevent setState on unmounted component.
+- **`ForumDetailPage.jsx`**: Replaced closure `cancelled` variable with `cancelledRef` ref (also in realtime handler). Added cancelled checks to `fetchPost` and `fetchReplies`.
+- **`SellPropertyPage.jsx`**: Wrapped `STEPS` array in `useMemo` to avoid re-construction on every render.
+- **`HamburgerMenu.jsx`**: Added comment inside empty `catch {}` to satisfy no-empty rule.
 
 ### Code Deduplication
 - **`utils/format.js`** — `formatPrice()` dulu inline di 5 file (`ExplorePage`, `PropertyDetailPage`, `SavedPropertiesPage`, `HamburgerMenu`, `MyListingsPage`), sekarang shared.
@@ -207,3 +216,5 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - **`SellPropertyPage.jsx`** — (Tidak ada perubahan, sudah `status: 'pending'` di insert payload).
 - **`ExplorePage.jsx`** — `fetchProperties()` ganti dari `.in('status', ['verified', 'pending'])` → `.eq('status', 'verified')` agar properti pending tidak bocor ke publik.
 - **`TopNavbar.jsx`** — Tombol "Dashboard" (grid icon) navigasi ke `/admin`, ditempatkan sebelum tombol "Jual Properti".
+- **`HamburgerMenu.jsx`** — Fetch `role` via `useEffect` tiap drawer terbuka. Jika `role === 'admin'`: item "Dashboard Admin" di menu utama + label header "Admin Internal" (`text-brand-secondary`). Fallback: "Pembeli".
+- **`ProfileDrawer.jsx`** — Fetch `role` dari `profiles` (ditambah ke `.select()`). Jika `role === 'admin'`: badge "Admin Internal" (`bg-brand-secondary/10` pill) di samping judul seksi + item "Dashboard Admin" di atas "Iklan Saya".

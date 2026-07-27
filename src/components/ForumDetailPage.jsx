@@ -50,9 +50,10 @@ export default function ForumDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const replyInputRef = useRef(null)
+  const cancelledRef = useRef(false)
 
   useEffect(() => {
-    let cancelled = false
+    cancelledRef.current = false
 
     fetchPost().catch(() => {})
     fetchReplies().catch(() => {})
@@ -68,14 +69,14 @@ export default function ForumDetailPage() {
           filter: `post_id=eq.${id}`,
         },
         async (payload) => {
-          if (cancelled) return
+          if (cancelledRef.current) return
           try {
             const { data: profile } = await supabase
               .from('profiles')
               .select('first_name')
               .eq('id', payload.new.author_id)
               .single()
-            if (cancelled) return
+            if (cancelledRef.current) return
             const newReply = {
               ...payload.new,
               profiles: { first_name: profile?.first_name || null },
@@ -84,7 +85,7 @@ export default function ForumDetailPage() {
               prev.some((r) => r.id === newReply.id) ? prev : [...prev, newReply]
             )
           } catch {
-            if (!cancelled) {
+            if (!cancelledRef.current) {
               const newReply = {
                 ...payload.new,
                 profiles: { first_name: null },
@@ -99,7 +100,7 @@ export default function ForumDetailPage() {
       .subscribe()
 
     return () => {
-      cancelled = true
+      cancelledRef.current = true
       supabase.removeChannel(channel)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,11 +113,13 @@ export default function ForumDetailPage() {
         .select('*, profiles(first_name)')
         .eq('id', id)
         .single()
+      if (cancelledRef.current) return
       if (!error && data) setPost(data)
     } catch (err) {
+      if (cancelledRef.current) return
       console.warn('Gagal memuat post:', err.message)
     }
-    setLoading(false)
+    if (!cancelledRef.current) setLoading(false)
   }
 
   async function fetchReplies() {
@@ -126,8 +129,10 @@ export default function ForumDetailPage() {
         .select('*, profiles(first_name)')
         .eq('post_id', id)
         .order('created_at', { ascending: true })
+      if (cancelledRef.current) return
       if (!error && data) setReplies(data)
     } catch (err) {
+      if (cancelledRef.current) return
       console.warn('Gagal memuat balasan:', err.message)
     }
   }

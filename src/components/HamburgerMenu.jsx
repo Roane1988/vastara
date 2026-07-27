@@ -177,7 +177,7 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
             .single()
           if (!cancelled && profile?.role) setRole(profile.role)
         }
-      } catch {}
+      } catch { /* ignore */ }
     })()
     return () => { cancelled = true }
   }, [isOpen, isAuth])

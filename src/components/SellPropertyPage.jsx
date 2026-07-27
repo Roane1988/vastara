@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle, X, Plus } from 'lucide-react'
@@ -106,13 +106,13 @@ export default function SellPropertyPage() {
   const { showToast, loading: authLoading } = useAuth()
   const userRole = location.state?.role || 'owner'
 
-  const STEPS = [
+  const STEPS = useMemo(() => [
     { id: 'kontak', label: t('sellProperty.steps.contact'), desc: t('sellProperty.steps.contact_desc') },
     { id: 'properti', label: t('sellProperty.steps.property'), desc: t('sellProperty.steps.property_desc') },
     { id: 'lokasi', label: t('sellProperty.steps.location'), desc: t('sellProperty.steps.location_desc') },
     { id: 'detail', label: t('sellProperty.steps.detail'), desc: t('sellProperty.steps.detail_desc') },
     { id: 'dokumen', label: t('sellProperty.steps.document'), desc: t('sellProperty.steps.document_desc') },
-  ]
+  ], [t])
 
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({
