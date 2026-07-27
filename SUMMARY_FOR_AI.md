@@ -29,6 +29,7 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 | `/forum` | ForumPage | Tidak |
 | `/forum/:id` | ForumDetailPage | Tidak |
 | `/property/:id` | PropertyDetailPage | Tidak |
+| `/admin` | AdminDashboardPage | **Ya** |
 | `/coming-soon` | ComingSoonPage | Tidak |
 
 `ProtectedRoute` redirect ke `/login` jika belum login, menyimpan `state.from` untuk redirect balik.
@@ -37,10 +38,11 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 
 ## Struktur Folder `src/`
 
-### `components/` — 21 komponen halaman/UI
+### `components/` — 22 komponen halaman/UI
 
 | File | Fungsi |
 |---|---|
+| **AdminDashboardPage.jsx** | Backoffice admin: tampilkan properti `status=pending` dalam data table profesional. Kolom: Tanggal, Judul (link ke detail), Harga (`formatPrice`), Penjual (inisial + nama), Kontak (WhatsApp link), Aksi. Tombol hijau "Verifikasi & Terbitkan" → update `status=verified` + hapus dari list. Tombol merah "Tolak" → `ConfirmModal` → `delete` dari DB. `showToast` untuk feedback. Route `/admin` via `ProtectedRoute`. |
 | **Footer.jsx** | Mega footer premium: dark background (`bg-brand-primary`), grid 5 kolom (brand + Layanan + Perusahaan + Dukungan + sosial media), container `max-w-7xl`, bottom bar copyright + ikon Instagram/Twitter/LinkedIn (inline SVG). Terpasang di `App.jsx` setelah routing. |
 | **ExplorePage.jsx** | Halaman utama: hero banner, search, grid properti, filter drawer (server-side via Supabase), rekomendasi, listing lengkap. `fetchProperties()` menerima `filters` object. Thumbnail pakai `getImageSrc(p.image_url)` dari `utils/images.js` untuk backward compatibility (single string or JSON array). |
 | **PropertyDetailPage.jsx** | Detail properti: **GalleryDesktop** (Airbnb-style: 1 main large + 2x2 grid) sembunyi di `lg:block`, **GalleryMobile** (`<lg`: hero aspect-[4/3] + 4-thumb grid `grid-cols-4 gap-0.5`, thumb ke-4 overlay "Lihat Semua" jika >5 gambar, filler `bg-brand-border` untuk <4 gambar). Mobile CTA `bg-red-50` "Hubungi Pengiklan Segera". Agent Card (avatar inisial + warna hash dari `seller_id`, nama dari `profiles.first_name` via join query, role dari `profiles.role`, 2-col grid Phone outline + WhatsApp green-solid). Accordion "Panduan Membeli Properti" + "Disclaimer". Guard `if (!id)` + fallback column names. |
@@ -141,8 +143,8 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 4. **Nama kolom**: properties pakai `address` (bukan `location`), `area_sqm` (bukan `sqm`), `seller_whatsapp` (bukan `agent_whatsapp`), `description_id` (bukan `description`). Semua component sudah punya fallback `??` untuk backward compatibility.
 5. **Multi-image**: `image_url` sekarang menyimpan array JSON `JSON.stringify([url1, url2, ...])`. `parseImages(imageUrl)` dari `utils/images.js` handle backward compatibility (single string, JSON array, atau array literal). `getImageSrc(imageUrl)` ambil URL pertama untuk thumbnail. Dipakai di: ExplorePage (thumbnails), PropertyDetailPage (gallery), SavedPropertiesPage, HamburgerMenu, ProfileDrawer, MyListingsPage.
 6. **SellProperty upload**: Maks 10 foto, preview grid dengan tombol Hapus (X) per file + tombol "Tambah" untuk menambah. Upload paralel via `Promise.all()`. Kolom `image_url` diisi `JSON.stringify(urls)`. Ada `useEffect` cleanup untuk `URL.revokeObjectURL` pada setiap perubahan `imageFiles`.
-7. Filter properties di `ExplorePage` via server-side Supabase query (`.eq()`, `.gte()`, `.lte()`, `.limit()`, `.range()`). Kategori `activeCategory` adalah konstanta (`const activeCategory = 'Semua'`), bukan state — karena tidak pernah berubah.
-8. **BELUM ada pagination** di `ExplorePage` dan `ForumPage` — query fetch **semua** data tanpa `.limit()`.
+7. **Filter status di ExplorePage**: `fetchProperties()` hanya query `status === 'verified'` (`.eq('status', 'verified')`). Properti `pending` tidak bocor ke publik. Admin lihat properti pending di `/admin`.
+8. **SOP Verifikasi**: Seller upload → `status: 'pending'` (eksplisit di `SellPropertyPage` insert). Admin verifikasi via `/admin` → `status: 'verified'`. Publik hanya lihat properti `verified` di `ExplorePage`. Properti ditolak → `delete` dari DB.
 9. **PropertyDetail gallery**: `GalleryDesktop()` (Airbnb-style grid, sembunyi di `<lg`) + `GalleryMobile()` (hero aspect-[4/3] + 4-thumb grid, thumb ke-4 overlay "Lihat Semua" jika >5 gambar). Semua image + overlay "Lihat Semua" bisa diklik → `openLightbox(index)`. Menggunakan `parseImages(property.image_url)`.
 10. **Lightbox**: Fullscreen modal `z-[100] bg-black` — header dengan tombol Close (`X`) + counter "N / total", image `object-contain` di tengah, navigasi prev/next (`ChevronLeft`/`ChevronRight`). Keyboard: Escape=tutup, ArrowLeft/Right=navigasi. Body scroll di-lock via `document.body.style.overflow='hidden'`.
 11. **Agent Card**: Query properties dengan join `profiles(first_name, role)`. Seller avatar: inisial dari `profiles.first_name` + warna hash dari `seller_id`. Role: agent/developer/owner → "Agen Properti"/"Pengembang"/"Pemilik Langsung".
@@ -167,10 +169,11 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 24. **Protected Route**: `ProtectedRoute` di `App.jsx` — render `<Navigate to="/login" state={{ from }} />` kalau `!isAuth`.
 25. **Image error fallback**: Semua `<img>` tag yang menampilkan data dari DB/API harus punya `onError` handler yang set `e.target.src` ke fallback (biasanya `FALLBACK_IMAGE` dari `utils/images.js` atau hardcoded fallback). Berlaku di: `PropertyDetailPage` (semua gallery images), `ExplorePage` (recommendations + listing grid), `ProfileDrawer` (saved thumbnails), `HamburgerMenu` (saved thumbnails).
 26. **URL.revokeObjectURL**: Di `SellPropertyPage`, object URL dari `URL.createObjectURL` untuk preview gambar dibersihkan via `useEffect` return cleanup setiap kali `imageFiles` berubah, untuk mencegah memory leak.
+27. **Admin Dashboard** (`/admin`): Data table pending properties dengan join `profiles(first_name, whatsapp)`. Verify → `update({ status: 'verified' })` + hapus baris dari state. Reject → `ConfirmModal` → `delete().eq('id', id)`. Navigasi: tombol "Dashboard" di `TopNavbar` (sebelah tombol "Jual Properti").
 
 ### Perubahan Brand
-27. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
-28. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
+28. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
+29. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
 
 ---
 
@@ -198,3 +201,9 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - **ExplorePage**: Recommendation images + listing grid images ditambah `onError` fallback.
 - **ProfileDrawer**: Saved thumbnail images ditambah `onError` fallback.
 - **HamburgerMenu**: Saved thumbnail images ditambah `onError` fallback.
+
+### Admin Verification Workflow
+- **`AdminDashboardPage.jsx`** — Halaman baru `/admin` (ProtectedRoute). Data table properti `pending` dengan join `profiles`. Tombol: Verify (`update status=verified` + hapus dari list) dan Reject (`ConfirmModal` + `delete`). `showToast` untuk semua feedback.
+- **`SellPropertyPage.jsx`** — (Tidak ada perubahan, sudah `status: 'pending'` di insert payload).
+- **`ExplorePage.jsx`** — `fetchProperties()` ganti dari `.in('status', ['verified', 'pending'])` → `.eq('status', 'verified')` agar properti pending tidak bocor ke publik.
+- **`TopNavbar.jsx`** — Tombol "Dashboard" (grid icon) navigasi ke `/admin`, ditempatkan sebelum tombol "Jual Properti".

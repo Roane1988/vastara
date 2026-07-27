@@ -78,6 +78,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
   const [currentEmail, setCurrentEmail] = useState('')
   const [savedProperties, setSavedProperties] = useState([])
+  const [role, setRole] = useState('')
 
   useEffect(() => {
     if (!isOpen) return
@@ -128,7 +129,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
           const { data: profile } = await supabase
             .from('profiles')
-            .select('first_name, email, whatsapp')
+            .select('first_name, email, whatsapp, role')
             .eq('id', user.id)
             .single()
 
@@ -136,6 +137,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
             if (profile.first_name) setName(profile.first_name)
             if (profile.email) setEmail(profile.email)
             if (profile.whatsapp) setWhatsapp(profile.whatsapp)
+            if (profile.role) setRole(profile.role)
           }
         }
       } catch {
@@ -360,6 +362,23 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                 )}
               </section>
 
+              {role === 'admin' && (
+                <section>
+                  <button
+                    type="button"
+                    onClick={() => { onClose(); navigate('/admin') }}
+                    className="w-full flex items-center gap-3 py-3 px-3 text-sm font-semibold text-brand-text hover:bg-brand-bg rounded-xl transition-colors"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary">
+                      <rect x="3" y="3" width="7" height="7" />
+                      <rect x="14" y="3" width="7" height="7" />
+                      <rect x="14" y="14" width="7" height="7" />
+                      <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    Dashboard Admin
+                  </button>
+                </section>
+              )}
               <section>
                 <button
                   type="button"
