@@ -1,0 +1,188 @@
+╔══════════════════════════════════════════════════════════════╗
+║          SPESIFIKASI MINIMAL HOSTING & DOMAIN               ║
+║              Project: HuniOne (HuniOne)                      ║
+╚══════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. JENIS APLIKASI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Frontend  : React 19 + Vite 8 → Static SPA (Single Page App)
+  Backend   : Supabase (BaaS — di luar hosting)
+  Build out : Folder `dist/` — pure HTML, CSS, JS, assets
+
+  → KESIMPULAN: HANYA PERLU STATIC FILE HOSTING.
+    Tidak perlu server-side runtime (Node.js/PHP/Python).
+    Semua backend (auth, database, storage, realtime) 
+    sudah ditangani oleh Supabase.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. REKOMENDASI PENYEDIA HOSTING (GRATIS / MURAH)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ★ Vercel (sangat direkomendasikan)
+    - Gratis (Hobby plan) — cukup untuk production skala kecil
+    - Auto-deploy dari GitHub
+    - CDN global + SSL otomatis
+    - SPA fallback routing built-in (rewrite all ke index.html)
+    - Custom domain support
+    - Limit: 100GB bandwidth/bln, 6000 build menit/bln
+
+  ★ Netlify
+    - Gratis (Free plan)
+    - Auto-deploy dari GitHub
+    - CDN + SSL otomatis
+    - Redirect rules via _redirects file untuk SPA
+    - Limit: 100GB bandwidth/bln, 300 build menit/bln
+
+  ★ Cloudflare Pages
+    - Gratis — unlimited bandwidth
+    - CDN global + SSL otomatis
+    - Integrasi dengan Cloudflare DNS
+    - SPA fallback via _redirects
+    - Cocok untuk skala besar
+
+  ★ Hosting konvensional murah (jika pilih VPS/shared)
+    - DigitalOcean App Platform (static site, $5/bln)
+    - Any shared hosting dengan Node.js support (sebenarnya
+      tidak perlu — cukup upload folder dist/)
+    - Wajib: bisa set custom 404 → index.html (SPA fallback)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. SPESIFIKASI TEKNIS MINIMAL (BERDASARKAN KEBUTUHAN)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Storage]
+    ├─ Source code (git): ~10-20 MB
+    ├─ Build output (dist/): ~2-5 MB (JS bundle + CSS + assets)
+    └─ User-uploaded images: disimpan di Supabase Storage,
+        BUKAN di hosting. Jadi storage hosting tidak perlu besar.
+
+  [Bandwidth]
+    ├─ Per halaman: ~200-400 KB (JS bundle + CSS + font)
+    ├─ Gambar properti: dari Supabase Storage CDN
+    ├─ Rekomendasi: minimal 10 GB/bln (Vercel/Netlify gratis
+        sudah mencukupi)
+    └─ Catatan: gambar tidak dibebankan ke hosting karena
+        di-serve langsung dari Supabase CDN.
+
+  [RAM/CPU]
+    └─ Static hosting → tidak perlu RAM/CPU.
+        Vercel/Netlify/Cloudflare Pages gratis sudah lebih
+        dari cukup.
+
+  [SSL/HTTPS]
+    ├─ WAJIB: Let's Encrypt atau Auto SSL
+    └─ Semua penyedia di atas sudah include gratis.
+
+  [CDN]
+    ├─ Sangat disarankan untuk kecepatan akses Indonesia
+    ├─ Vercel/Netlify/Cloudflare semuanya punya edge network
+    └─ Pastikan ada node di Asia Tenggara.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. DOMAIN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Rekomendasi registrar murah & reliable:
+    ├─ Niagahoster (Indonesia, support lokal)
+    ├─ Domainesia (Indonesia)
+    ├─ Cloudflare Registrar (harga modal, tanpa markup)
+    ├─ Namecheap (internasional, murah)
+    └─ Google Domains (sekarang dijual ke Squarespace)
+
+  TLD saran:
+    ├─ .com (~Rp 150-300rb/thn) — profesional
+    ├─ .id (~Rp 200-350rb/thn, butuh NIK/KTP)
+    ├─ .co.id (~Rp 250-400rb/thn, butuh akta perusahaan)
+    ├─ .web.id / .my.id (~Rp 100-200rb/thn, untuk personal)
+    └─ .com ~$10-12/thn di registrar internasional
+
+  Saran nama domain:
+    ├─ hunione.com
+    ├─ hunione.id
+    ├─ hunione.co.id (jika PT Vastara punya akta)
+    └─ hunihome.com (alternatif)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. SETUP DOMAIN + HOSTING (CONTOH: VERCEL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Beli domain (contoh: hunione.com)
+  2. Daftar Vercel (vercel.com) — login via GitHub
+  3. Import project dari GitHub:
+       https://github.com/your-username/projectVastara
+  4. Vercel auto-detect: Framework = Vite → build otomatis
+  5. Setelan build (default sudah benar):
+       Build Command  : npm run build
+       Output Directory : dist
+       Install Command  : npm install
+  6. Di Vercel Dashboard → Domain → tambah domain:
+       Masukkan: hunione.com
+  7. Vercel kasih NS record → arahkan domain ke NS Vercel
+     (atau set CNAME ke cname.vercel-dns.com)
+  8. SSL otomatis terbit dalam <5 menit.
+  9. SPA routing otomatis — semua path fallback ke index.html.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. CATATAN PENTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ● Jangan beli hosting mahal.
+    React SPA + Supabase = cukup pakai static host GRATIS.
+
+  ● Tidak perlu VPS / cloud server (AWS EC2, DO Droplet, dll).
+    Itu overkill dan ribet maintenance-nya.
+
+  ● Setelah deploy, update file:
+      src/supabaseClient.js
+    Pastikan variable SUPABASE_URL dan SUPABASE_ANON_KEY
+    di set via environment variable di dashboard hosting
+    (Vercel → Settings → Environment Variables).
+
+  ● Jika pakai Vercel: buat file `vercel.json` di root project:
+      {
+        "rewrites": [
+          { "source": "/(.*)", "destination": "/index.html" }
+        ]
+      }
+    (Sebenarnya Vercel sudah auto-handle untuk Vite SPA,
+     tapi ini fallback jaga-jaga.)
+
+  ● Jika pakai Netlify: buat file `netlify.toml`:
+      [[redirects]]
+        from = "/*"
+        to = "/index.html"
+        status = 200
+
+  ● Langkah setelah deploy:
+      npm run build
+      lalu upload folder dist/ ke hosting (manual)
+      ATAU biarkan auto-deploy dari GitHub via Vercel/Netlify.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. ESTIMASI BIAYA PER TAHUN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Domain .com (Cloudflare Registrar)  : ~$10  (~Rp 160rb)
+  Hosting Vercel (Hobby/Gratis)        : $0   (~Rp 0)
+  Supabase (Free tier, 500MB DB, 1GB disk) : $0 (~Rp 0)
+  -------------------------------------------- +
+  TOTAL                                : ~Rp 160rb/tahun
+
+  Jika ingin pakai hosting Indonesia (Niagahoster shared):
+  Domain .com + hosting 1 tahun        : ~Rp 250-500rb/tahun
+  (TAPI tetap harus bisa set redirect fallback untuk SPA!)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. TL;DR — REKOMENDASI TERBAIK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅ Vercel (gratis) + Cloudflare Registrar (domain modal)
+  ✅ Atau: Netlify (gratis) + Niagahoster (domain lokal)
+  ✅ Tidak perlu VPS / dedicated server
+  ✅ Tidak perlu Node.js runtime di server
+  ✅ Gambar dan database pakai Supabase
+  ✅ Cukup static hosting + domain keren
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

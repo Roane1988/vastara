@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MessageCircle, Phone, ChevronDown } from 'lucide-react'
+import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import NotFoundPage from './NotFoundPage'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
@@ -132,6 +132,43 @@ export default function PropertyDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [accordionState, setAccordionState] = useState({ panduan: false, disclaimer: false })
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+
+  const images = property ? parseImages(property.image_url) : []
+  const heroImage = images[0] || FALLBACK_IMAGE
+
+  const openLightbox = (index) => {
+    setLightboxIndex(index)
+    setIsLightboxOpen(true)
+  }
+
+  const closeLightbox = () => {
+    setIsLightboxOpen(false)
+  }
+
+  const prevImage = () => {
+    setLightboxIndex((i) => (i - 1 + images.length) % images.length)
+  }
+
+  const nextImage = () => {
+    setLightboxIndex((i) => (i + 1) % images.length)
+  }
+
+  useEffect(() => {
+    if (!isLightboxOpen) return
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setIsLightboxOpen(false)
+      if (e.key === 'ArrowLeft') setLightboxIndex((i) => (i - 1 + images.length) % images.length)
+      if (e.key === 'ArrowRight') setLightboxIndex((i) => (i + 1) % images.length)
+    }
+    document.addEventListener('keydown', handleKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = ''
+    }
+  }, [isLightboxOpen, images.length])
 
   useEffect(() => {
     if (!id) {
@@ -204,20 +241,17 @@ export default function PropertyDetailPage() {
   const waMessage = encodeURIComponent(`Halo, saya tertarik dengan properti ${property.title}`)
   const waLink = `https://wa.me/${waNumber}?text=${waMessage}`
 
-  const images = parseImages(property.image_url)
-  const heroImage = images[0] || FALLBACK_IMAGE
-
   function GalleryDesktop() {
     if (images.length >= 4) {
       const remaining = images.slice(0, 5)
       return (
         <div className="hidden lg:grid lg:grid-cols-4 lg:grid-rows-2 lg:gap-2 lg:h-[420px] lg:rounded-2xl lg:overflow-hidden">
-          <div className="col-span-2 row-span-2 relative overflow-hidden">
-            <img src={remaining[0]} alt={property.title} className="w-full h-full object-cover" />
+          <div className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer" onClick={() => openLightbox(0)}>
+            <img src={remaining[0]} alt={property.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
           </div>
           {remaining.slice(1, 5).map((url, i) => (
-            <div key={i} className="relative overflow-hidden">
-              <img src={url} alt={`${property.title} ${i + 2}`} className="w-full h-full object-cover" />
+            <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => openLightbox(i + 1)}>
+              <img src={url} alt={`${property.title} ${i + 2}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
             </div>
           ))}
         </div>
@@ -229,8 +263,8 @@ export default function PropertyDetailPage() {
       return (
         <div className={`hidden lg:grid ${cols} lg:gap-2 lg:h-[360px] lg:rounded-2xl lg:overflow-hidden`}>
           {images.map((url, i) => (
-            <div key={i} className="relative overflow-hidden">
-              <img src={url} alt={`${property.title} ${i + 1}`} className="w-full h-full object-cover" />
+            <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => openLightbox(i)}>
+              <img src={url} alt={`${property.title} ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
             </div>
           ))}
         </div>
@@ -238,48 +272,38 @@ export default function PropertyDetailPage() {
     }
 
     return (
-      <div className="hidden lg:block lg:rounded-2xl overflow-hidden">
-        <img src={heroImage} alt={property.title} className="w-full h-full object-cover" />
+      <div className="hidden lg:block lg:rounded-2xl overflow-hidden cursor-pointer" onClick={() => openLightbox(0)}>
+        <img src={heroImage} alt={property.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
       </div>
     )
   }
 
   function GalleryMobile() {
+    const thumbStartIndex = 1
+    const thumbImages = images.slice(thumbStartIndex, thumbStartIndex + 4)
     return (
       <div className="lg:hidden">
-        <div className="relative aspect-[4/3] overflow-hidden">
-          <img src={images[0] || FALLBACK_IMAGE} alt={property.title} className="w-full h-full object-cover" />
+        <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => openLightbox(0)}>
+          <img src={images[0] || FALLBACK_IMAGE} alt={property.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
         </div>
         <div className="grid grid-cols-4 gap-0.5">
-          {images.slice(1, 5).map((url, i) => {
+          {thumbImages.map((url, i) => {
+            const imgIndex = thumbStartIndex + i
             const isLast = i === 3 && images.length > 5
             return (
-              <div key={i} className="relative aspect-[4/3] overflow-hidden">
-                <img src={url} alt={`${property.title} ${i + 2}`} className="w-full h-full object-cover" />
+              <div key={i} className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => openLightbox(isLast ? 0 : imgIndex)}>
+                <img src={url} alt={`${property.title} ${imgIndex + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
                 {isLast && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
                     <span className="text-white text-xs font-bold">Lihat Semua</span>
                   </div>
                 )}
               </div>
             )
           })}
-          {images.length <= 1 && (
-            <>
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="aspect-[4/3] bg-brand-border" />
-              ))}
-            </>
-          )}
-          {images.length === 2 && (
-            <>
-              <div className="aspect-[4/3] bg-brand-border" />
-              <div className="aspect-[4/3] bg-brand-border" />
-            </>
-          )}
-          {images.length === 3 && (
-            <div className="aspect-[4/3] bg-brand-border" />
-          )}
+          {Array.from({ length: Math.max(0, 4 - thumbImages.length) }).map((_, n) => (
+            <div key={n} className="aspect-[4/3] bg-brand-border" />
+          ))}
         </div>
       </div>
     )
@@ -327,6 +351,48 @@ export default function PropertyDetailPage() {
             <MessageCircle size={16} />
             WhatsApp
           </a>
+        </div>
+      </div>
+    )
+  }
+
+  function Lightbox() {
+    if (!isLightboxOpen) return null
+    return (
+      <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 shrink-0">
+          <button
+            type="button"
+            onClick={closeLightbox}
+            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          >
+            <X size={20} />
+          </button>
+          <span className="text-sm text-white/80 font-medium">
+            {lightboxIndex + 1} / {images.length}
+          </span>
+          <div className="w-10" />
+        </div>
+        <div className="flex-1 flex items-center justify-center relative min-h-0 px-4">
+          <button
+            type="button"
+            onClick={prevImage}
+            className="absolute left-2 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <img
+            src={images[lightboxIndex]}
+            alt={`${property.title} ${lightboxIndex + 1}`}
+            className="max-w-full max-h-full object-contain"
+          />
+          <button
+            type="button"
+            onClick={nextImage}
+            className="absolute right-2 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          >
+            <ChevronRight size={24} />
+          </button>
         </div>
       </div>
     )
@@ -441,6 +507,8 @@ export default function PropertyDetailPage() {
           'Informasi yang ditampilkan pada halaman ini disediakan oleh pengiklan dan/atau pihak ketiga. HuniOne tidak bertanggung jawab atas keakuratan, kelengkapan, atau keabsahan informasi tersebut. Segala transaksi dan kesepakatan sepenuhnya merupakan tanggung jawab antara pembeli dan penjual.'
         ))}
       </div>
+
+      {Lightbox()}
 
       <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-30">
         <a

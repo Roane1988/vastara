@@ -42,9 +42,9 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 | File | Fungsi |
 |---|---|
 | **Footer.jsx** | Mega footer premium: dark background (`bg-brand-primary`), grid 5 kolom (brand + Layanan + Perusahaan + Dukungan + sosial media), container `max-w-7xl`, bottom bar copyright + ikon Instagram/Twitter/LinkedIn (inline SVG). Terpasang di `App.jsx` setelah routing. |
-| **ExplorePage.jsx** | Halaman utama: hero banner, search, grid properti, filter drawer (server-side via Supabase), rekomendasi, listing lengkap. `fetchProperties()` menerima `filters` object. |
-| **PropertyDetailPage.jsx** | Detail properti: galeri gambar, spesifikasi, info seller, tombol jadwal survei. Guard `if (!id)` + fallback column names (`address ?? location`, `area_sqm ?? sqm`, `seller_whatsapp ?? agent_whatsapp`). |
-| **SellPropertyPage.jsx** | Form multi-step (5 step) jual properti: pilih peran, upload gambar ke storage `PROPERTIES_IMAGE`, input fields, submit ke Supabase. Inline notification (`AppToast`) + success state. |
+| **ExplorePage.jsx** | Halaman utama: hero banner, search, grid properti, filter drawer (server-side via Supabase), rekomendasi, listing lengkap. `fetchProperties()` menerima `filters` object. Thumbnail pakai `getImageSrc(p.image_url)` dari `utils/images.js` untuk backward compatibility (single string or JSON array). |
+| **PropertyDetailPage.jsx** | Detail properti: **GalleryDesktop** (Airbnb-style: 1 main large + 2x2 grid) sembunyi di `lg:block`, **GalleryMobile** (`<lg`: hero aspect-[4/3] + 4-thumb grid `grid-cols-4 gap-0.5`, thumb ke-4 overlay "Lihat Semua" jika >5 gambar, filler `bg-brand-border` untuk <4 gambar). Mobile CTA `bg-red-50` "Hubungi Pengiklan Segera". Agent Card (avatar inisial + warna hash dari `seller_id`, nama dari `profiles.first_name` via join query, role dari `profiles.role`, 2-col grid Phone outline + WhatsApp green-solid). Accordion "Panduan Membeli Properti" + "Disclaimer". Guard `if (!id)` + fallback column names. |
+| **SellPropertyPage.jsx** | Form multi-step (5 step) jual properti: pilih peran, **multi-image upload** (maks 10 foto, preview grid 3-4 kolom dengan thumbnail + tombol X hapus per file + tombol "Tambah"), upload paralel via `Promise.all()` ke storage `PROPERTIES_IMAGE`, `image_url` disimpan sebagai `JSON.stringify([url1, url2, ...])`. Inline notification (`AppToast`) + success state. |
 | **MyListingsPage.jsx** | Daftar properti milik user sendiri (fetch by `seller_id`). Status badge "Menunggu Verifikasi" / "Terverifikasi". |
 | **RoleSelectionPage.jsx** | Onboarding pilih peran (Agent/Developer/Owner) setelah login. |
 | **ForumPage.jsx** | Daftar diskusi forum: kartu post dengan avatar (inisial + warna hash), badge "Umum", info aktivitas (replies count + avatar stack), compose form collapse toggle. |
@@ -71,6 +71,7 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 
 ### `utils/`
 - **favorites.js**: Helper favorite (pakai localStorage): `getFavorites()`, `toggleFavorite(id)`, `isFavorite(id)`.
+- **images.js**: Helper multi-image: `parseImages(imageUrl)` → array of URLs (handle single string, JSON array, atau array literal). `getImageSrc(imageUrl)` → URL pertama atau fallback Unsplash. Dipakai di ExplorePage, PropertyDetailPage, SavedPropertiesPage, HamburgerMenu, ProfileDrawer, MyListingsPage.
 
 ### `locales/`
 - `id/translation.json` — Bahasa Indonesia (238 baris)
@@ -112,7 +113,8 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - `title`, `property_type`, `price` (bigint)
 - `description_id`, `address`
 - `bedrooms`, `bathrooms`, `area_sqm` (int, **bukan** `sqm`)
-- `image_url`, `seller_whatsapp`
+- `image_url` (TEXT — bisa single URL string legacy atau `JSON.stringify([url1, url2, ...])` untuk multi-image. Parsing via `utils/images.js:parseImages()`)
+- `seller_whatsapp`
 - `status` ('verified' / 'pending')
 - `created_at`
 - RLS: select all, insert/update/delete hanya seller.
@@ -134,26 +136,33 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 
 ### Properties
 4. **Nama kolom**: properties pakai `address` (bukan `location`), `area_sqm` (bukan `sqm`), `seller_whatsapp` (bukan `agent_whatsapp`), `description_id` (bukan `description`). Semua component sudah punya fallback `??` untuk backward compatibility.
-5. Filter properties di `ExplorePage` via server-side Supabase query (`.eq()`, `.gte()`, `.lte()`, `.limit()`, `.range()`). Hanya `activeCategory` yang client-side.
-6. **BELUM ada pagination** di `ExplorePage` dan `ForumPage` — query fetch **semua** data tanpa `.limit()`. Penting untuk diperhatikan kalau performanya berat.
+5. **Multi-image**: `image_url` sekarang menyimpan array JSON `JSON.stringify([url1, url2, ...])`. `parseImages(imageUrl)` dari `utils/images.js` handle backward compatibility (single string, JSON array, atau array literal). `getImageSrc(imageUrl)` ambil URL pertama untuk thumbnail. Dipakai di: ExplorePage (thumbnails), PropertyDetailPage (gallery), SavedPropertiesPage, HamburgerMenu, ProfileDrawer, MyListingsPage.
+6. **SellProperty upload**: Maks 10 foto, preview grid dengan tombol Hapus (X) per file + tombol "Tambah" untuk menambah. Upload paralel via `Promise.all()`. Kolom `image_url` diisi `JSON.stringify(urls)`.
+7. Filter properties di `ExplorePage` via server-side Supabase query (`.eq()`, `.gte()`, `.lte()`, `.limit()`, `.range()`). Hanya `activeCategory` yang client-side.
+8. **BELUM ada pagination** di `ExplorePage` dan `ForumPage` — query fetch **semua** data tanpa `.limit()`.
+9. **PropertyDetail gallery**: `GalleryDesktop()` (Airbnb-style grid, sembunyi di `<lg`) + `GalleryMobile()` (hero aspect-[4/3] + 4-thumb grid, thumb ke-4 overlay "Lihat Semua" jika >5 gambar). Semua image + overlay "Lihat Semua" bisa diklik → `openLightbox(index)`. Menggunakan `parseImages(property.image_url)`.
+10. **Lightbox**: Fullscreen modal `z-[100] bg-black` — header dengan tombol Close (`X`) + counter "N / total", image `object-contain` di tengah, navigasi prev/next (`ChevronLeft`/`ChevronRight`). Keyboard: Escape=tutup, ArrowLeft/Right=navigasi. Body scroll di-lock via `document.body.style.overflow='hidden'`.
+11. **Agent Card**: Query properties dengan join `profiles(first_name, role)`. Seller avatar: inisial dari `profiles.first_name` + warna hash dari `seller_id`. Role: agent/developer/owner → "Agen Properti"/"Pengembang"/"Pemilik Langsung".
+12. **Mobile CTA**: `bg-red-50 border-red-200 text-red-700` — "Hubungi Pengiklan Segera".
+13. **Accordion**: "Panduan Membeli Properti" (6 langkah) + "Disclaimer" (teks legal). State via objek `accordionState`.
 
 ### Forum
-7. Format quoted reply: `<!--replyto:authorName|snippet-->\npesan_baru`. Diparse oleh `parseReplyContent()`.
-8. Realtime: `ForumDetailPage` subscribe ke `postgres_changes` INSERT on `forum_replies` — update daftar balasan otomatis tanpa refresh.
-9. `timeAgo(dateString)` — relative time in Indonesian ("baru saja", "5 menit yang lalu", dll).
-10. Avatar tidak pakai `avatar_url` — inisial dari `first_name` + warna konsisten dari hash `UUID user` (`getAvatarColor()` + `getInitials()`).
+14. Format quoted reply: `<!--replyto:authorName|snippet-->\npesan_baru`. Diparse oleh `parseReplyContent()`.
+15. Realtime: `ForumDetailPage` subscribe ke `postgres_changes` INSERT on `forum_replies` — update daftar balasan otomatis tanpa refresh.
+16. `timeAgo(dateString)` — relative time in Indonesian ("baru saja", "5 menit yang lalu", dll).
+17. Avatar tidak pakai `avatar_url` — inisial dari `first_name` + warna konsisten dari hash `UUID user` (`getAvatarColor()` + `getInitials()`).
 
 ### Styling
-11. **Tailwind v4**: Tidak ada `tailwind.config.js`. Konfigurasi theme via CSS `@theme` di `index.css`. Custom colors: `brand-primary` (#183B63), `brand-secondary` (#4F8FD8), `brand-bg` (#EEF3F7), `brand-surface` (#FFFFFF), `brand-text` (#1C2733), `brand-muted` (#66788A), `brand-border` (#D6DEE7).
-12. **Desktop layout**: Halaman memakai `max-w-7xl mx-auto` untuk membatasi lebar konten di desktop, meniru tata letak portal properti profesional seperti Rumah123. Berlaku di `ExplorePage`, `PropertyDetailPage`, `ForumPage`, `ForumDetailPage`.
-13. Animasi: framer-motion untuk page transition + custom CSS keyframes `slide-up` dan `fadeIn`.
+18. **Tailwind v4**: Tidak ada `tailwind.config.js`. Konfigurasi theme via CSS `@theme` di `index.css`. Custom colors: `brand-primary` (#183B63), `brand-secondary` (#4F8FD8), `brand-bg` (#EEF3F7), `brand-surface` (#FFFFFF), `brand-text` (#1C2733), `brand-muted` (#66788A), `brand-border` (#D6DEE7).
+19. **Desktop layout**: Halaman memakai `max-w-7xl mx-auto` untuk membatasi lebar konten di desktop, meniru tata letak portal properti profesional seperti Rumah123. Berlaku di `ExplorePage`, `PropertyDetailPage`, `ForumPage`, `ForumDetailPage`.
+20. Animasi: framer-motion untuk page transition + custom CSS keyframes `slide-up` dan `fadeIn`.
 
 ### Pola Kode
-14. **Error handling**: Semua async operation (Supabase query) harus dibungkus `try/catch` + cancelled flag di `useEffect` untuk menghindari state update setelah unmount.
-15. **Lint**: Project pake ESLint dengan aturan `react-hooks/set-state-in-effect` (React 19). Kalau terpaksa setState di dalam effect, tambah `// eslint-disable-next-line react-hooks/set-state-in-effect`.
-16. **Import react-router-dom**: Project pake react-router-dom v7 — `useNavigate`, `useParams`, `Navigate`, `useLocation` masih sama seperti v6.
-17. **Protected Route**: `ProtectedRoute` di `App.jsx` — render `<Navigate to="/login" state={{ from }} />` kalau `!isAuth`.
+21. **Error handling**: Semua async operation (Supabase query) harus dibungkus `try/catch` + cancelled flag di `useEffect` untuk menghindari state update setelah unmount.
+22. **Lint**: Project pake ESLint dengan aturan `react-hooks/set-state-in-effect` (React 19) dan `react-hooks/static-components` (komponen tidak boleh dibuat di dalam render — ganti dengan regular function call `{myFunc()}` bukan JSX `<MyComp />`). Kalau terpaksa setState di dalam effect, tambah `// eslint-disable-next-line react-hooks/set-state-in-effect`.
+23. **Import react-router-dom**: Project pake react-router-dom v7 — `useNavigate`, `useParams`, `Navigate`, `useLocation` masih sama seperti v6.
+24. **Protected Route**: `ProtectedRoute` di `App.jsx` — render `<Navigate to="/login" state={{ from }} />` kalau `!isAuth`.
 
 ### Perubahan Brand
-18. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
-19. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
+25. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
+26. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
