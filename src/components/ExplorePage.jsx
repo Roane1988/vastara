@@ -105,7 +105,7 @@ export default function ExplorePage() {
       let query = supabase
         .from('properties')
         .select('*')
-        .in('status', ['verified', 'pending'])
+        .eq('status', 'verified')
 
       if (filters.type) {
         query = query.eq('property_type', filters.type)

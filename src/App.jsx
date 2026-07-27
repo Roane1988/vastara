@@ -16,6 +16,7 @@ import ForumPage from './components/ForumPage'
 import ForumDetailPage from './components/ForumDetailPage'
 import MyListingsPage from './components/MyListingsPage'
 import ComingSoonPage from './components/ComingSoonPage'
+import AdminDashboardPage from './components/AdminDashboardPage'
 
 const pageTransition = {
   initial: { opacity: 0, scale: 0.97, y: 8 },
@@ -106,6 +107,11 @@ function AppContent() {
             <Route path="/forum" element={<ForumPage />} />
             <Route path="/forum/:id" element={<ForumDetailPage />} />
             <Route path="/property/:id" element={<PropertyDetailPage />} />
+            <Route path="/admin" element={
+              <ProtectedRoute isAuth={isAuth} location={location}>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } />
             <Route path="/coming-soon" element={<ComingSoonPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
