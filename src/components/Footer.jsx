@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
-import logo from '../assets/hunione-logo.jpeg'
 
 const linkClass = 'text-slate-400 hover:text-white transition-colors duration-200 text-sm'
 
@@ -69,7 +68,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
           <div className="md:col-span-2">
             <Link to="/" className="inline-block">
-              <img src={logo} alt="HuniOne" className="h-9 w-auto object-contain brightness-0 invert" />
+              <span className="text-2xl font-bold text-white tracking-tight">HuniOne</span>
             </Link>
             <p className="mt-4 text-slate-400 text-sm leading-relaxed max-w-sm">
               Platform properti terdepan dan terpercaya di Indonesia. Bagian dari ekosistem{' '}
