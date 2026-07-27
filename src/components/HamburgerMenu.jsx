@@ -161,6 +161,26 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
   const navigate = useNavigate()
   const [loggingOut, setLoggingOut] = useState(false)
   const [savedOpen, setSavedOpen] = useState(false)
+  const [role, setRole] = useState('')
+
+  useEffect(() => {
+    if (!isOpen || !isAuth) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!cancelled && user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+          if (!cancelled && profile?.role) setRole(profile.role)
+        }
+      } catch {}
+    })()
+    return () => { cancelled = true }
+  }, [isOpen, isAuth])
 
   const handleNavigate = (path) => {
     onClose()
@@ -276,6 +296,20 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                         label="Chat"
                         onClick={() => handleNavigate('/chat')}
                       />
+                      {role === 'admin' && (
+                        <MenuItem
+                          icon={
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="3" width="7" height="7" />
+                              <rect x="14" y="3" width="7" height="7" />
+                              <rect x="14" y="14" width="7" height="7" />
+                              <rect x="3" y="14" width="7" height="7" />
+                            </svg>
+                          }
+                          label="Dashboard Admin"
+                          onClick={() => handleNavigate('/admin')}
+                        />
+                      )}
                     </div>
                   </div>
 
