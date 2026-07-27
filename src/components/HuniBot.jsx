@@ -127,7 +127,7 @@ export default function HuniBot() {
               <span className="font-semibold">HuniBot - Asisten Properti</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 pb-16 space-y-3">
               {messages.map(msg => (
                 msg.role === 'user' ? (
                   <div key={msg.id} className="flex justify-end">
@@ -150,7 +150,7 @@ export default function HuniBot() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-brand-border p-3 flex gap-2 shrink-0">
+            <div className="border-t border-brand-border bg-brand-surface p-3 flex gap-2 shrink-0">
               <input
                 ref={inputRef}
                 type="text"
