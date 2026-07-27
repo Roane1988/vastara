@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import HamburgerMenu from './HamburgerMenu'
+import logo from '../assets/hunione-logo.jpeg'
 
 function GlobeIcon() {
   return (
@@ -65,9 +66,9 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="text-2xl font-extrabold tracking-tighter text-brand-primary"
+            className="flex items-center"
           >
-            HuniOne
+            <img src={logo} alt="HuniOne" className="h-8 w-auto object-contain" />
           </button>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
