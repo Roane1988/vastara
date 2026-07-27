@@ -120,7 +120,7 @@ export default function HuniBot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-20 right-6 z-50 w-80 md:w-96 h-[500px] flex flex-col bg-brand-surface shadow-2xl rounded-2xl overflow-hidden border border-brand-border"
+            className="fixed inset-x-0 bottom-0 sm:left-auto sm:bottom-20 sm:right-6 z-50 w-full sm:w-80 lg:w-96 max-h-[80dvh] sm:max-h-none sm:h-[500px] flex flex-col bg-brand-surface shadow-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden border-t sm:border border-brand-border"
           >
             <div className="bg-brand-primary text-white px-4 py-3 flex items-center gap-2 shrink-0">
               <MessageCircle className="w-5 h-5" />
@@ -177,7 +177,7 @@ export default function HuniBot() {
       <button
         type="button"
         onClick={toggleOpen}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-primary/90 transition-colors flex items-center justify-center"
+        className="fixed bottom-6 right-6 z-[60] w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-primary/90 transition-colors flex items-center justify-center"
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
       </button>
