@@ -245,7 +245,9 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-brand-text truncate">{userName}</p>
-                        <p className="text-xs text-brand-muted">Pembeli</p>
+                        <p className={`text-xs font-semibold ${role === 'admin' ? 'text-brand-secondary' : 'text-brand-muted'}`}>
+                          {role === 'admin' ? 'Admin Internal' : 'Pembeli'}
+                        </p>
                       </div>
                     </div>
                   ) : (

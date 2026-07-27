@@ -285,6 +285,11 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                 <div className="flex items-center gap-2 mb-4">
                   <UserIcon />
                   <h3 className="font-semibold text-brand-text">{t('profileDrawer.section_title')}</h3>
+                  {role === 'admin' && (
+                    <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20">
+                      Admin Internal
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-4">
