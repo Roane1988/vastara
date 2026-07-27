@@ -425,15 +425,15 @@ export default function PropertyDetailPage() {
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <div className="w-full max-w-7xl mx-auto lg:px-5 lg:mt-5 relative">
+        {GalleryDesktop()}
+        {GalleryMobile()}
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-sm hover:bg-white transition-colors"
+          className="absolute top-4 left-4 z-30 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-md hover:bg-white transition-colors cursor-pointer"
         >
           <ArrowLeftIcon />
         </button>
-        {GalleryDesktop()}
-        {GalleryMobile()}
 
         {/* Mobile CTA */}
         <div className="lg:hidden px-4 pt-3">
