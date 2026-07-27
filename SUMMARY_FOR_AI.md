@@ -51,7 +51,7 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 | **RoleSelectionPage.jsx** | Onboarding pilih peran (Agent/Developer/Owner) setelah login. |
 | **ForumPage.jsx** | Daftar diskusi forum: kartu post dengan avatar (inisial + warna hash), badge "Umum", info aktivitas (replies count + avatar stack), compose form collapse toggle. |
 | **ForumDetailPage.jsx** | Detail post + reply system: avatar inisial, OP badge, upvote button (`ThumbsUp`), quote reply (`<!--replyto:...-->`), realtime subscription ke `forum_replies`, relative time (`timeAgo`), sticky reply form, guest CTA. |
-| **ChatHubPage.jsx** | Daftar kontak agen/legal untuk dihubungi via WhatsApp. |
+| **ChatHubPage.jsx** | In-app realtime direct messaging: contact list (kiri) + chat window (kanan). Responsive two-column (desktop) / toggle view (mobile). Contact list menampilkan profil agen/admin + riwayat chat terakhir. Chat window: message bubbles (brand-primary untuk sent, white untuk received), scroll-to-bottom otomatis, realtime subscription via Supabase Realtime, input bar dengan Enter/Esc support. Auth guard: jika belum login tampilkan prompt login. |
 | **AdminAnalyticsCards.jsx** | 4 metric cards di dashboard Overview: Properti Terverifikasi (CheckCircle/emerald), Menunggu Verifikasi (Clock/amber), Total Pengguna (Users/sky), Agen & Developer (Briefcase/violet). Fetch count via `select(*, { count: 'exact', head: true })` in parallel `Promise.all`. Loading state: skeleton cards. |
 | **AdminUserManagement.jsx** | Data table semua user dari `profiles` dengan kolom Nama, Email, WhatsApp, Role (badge warna), Aksi. Inline `<select>` dropdown untuk ubah role (pembeli/owner/agent/developer/admin). Update role → insert `audit_logs`. Badge "Anda" untuk user sendiri. |
 | **AdminAuditLog.jsx** | Data table audit trail dari `audit_logs` (100 entri terbaru, DESC). Kolom: Admin, Tindakan (badge warna: verify=emerald, reject=red, change_role=blue), Target (summary dari `target_detail` JSONB), Waktu (`timeAgo`). Empty state: ikon History. |
@@ -140,6 +140,17 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - Migration: `supabase/migrations/20260727_create_audit_logs.sql`.
 - Dipakai oleh: `AdminDashboardPage.handleVerify` + `handleConfirmReject` (insert on success), `AdminUserManagement.handleRoleChange` (insert on role update), `AdminAuditLog` (select for display).
 
+### Table: `direct_messages`
+- `id` (UUID, PK)
+- `sender_id` (UUID, FK → `profiles.id`, NOT NULL)
+- `receiver_id` (UUID, FK → `profiles.id`, NOT NULL)
+- `content` (TEXT, NOT NULL)
+- `created_at` (TIMESTAMPTZ, default now())
+- RLS: select where user is sender or receiver, insert where user is sender.
+- Migration: `supabase/migrations/20260727_create_direct_messages.sql`.
+- Realtime: harus di-enable manual di Supabase Dashboard → Database → Replication → toggle INSERT on `direct_messages`.
+- Dipakai oleh: `ChatHubPage` — fetch contacts, fetch messages, send message, realtime subscription.
+
 ### Storage: `PROPERTIES_IMAGE` (bucket)
 - Untuk upload gambar properti dari `SellPropertyPage.jsx`.
 - File path: `{userId}-{timestamp}-{sanitizedFileName}`
@@ -227,6 +238,17 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - **ExplorePage**: Recommendation images + listing grid images ditambah `onError` fallback.
 - **ProfileDrawer**: Saved thumbnail images ditambah `onError` fallback.
 - **HamburgerMenu**: Saved thumbnail images ditambah `onError` fallback.
+
+### In-App Realtime Messaging (Session #4 — July 2026)
+- **`ChatHubPage.jsx`** — Complete rewrite from static WhatsApp/FAQ list to production-grade realtime direct messaging system. Architecture:
+  - **Two-column layout**: Contact list (`w-80`, left) + Chat window (right, `flex-1`). Mobile: toggle view via `showMobileList` state (back button in chat header, contact tap in list).
+  - **Contact list**: Built from `direct_messages` (extract unique counterparty IDs) + `profiles` where `role IN ('agent','developer','admin')`. Merged, sorted by last message time DESC. Each contact shows: avatar (initials + getAvatarColor), name, role label, last message preview, timeAgo.
+  - **Chat window**: Message history (own = `bg-brand-primary text-white rounded-br-md`, received = `bg-white border rounded-bl-md`), auto scroll-to-bottom via `messagesEndRef`, relative timestamps via `timeAgo`. Empty state + login prompt.
+  - **Send message**: Enter key or button click → `supabase.from('direct_messages').insert({ sender_id, receiver_id, content })`. Input disabled during send, spinner on button.
+  - **Realtime**: Subscription via `supabase.channel('direct-messages-{userId}').on('postgres_changes', { event: 'INSERT', filter: 'or(sender_id.eq.USER,receiver_id.eq.USER)' })`. On new message: append to messages (if viewing that conversation), update contact list (reorder + preview).
+  - **Auth guard**: `LoginPrompt` component shown when `userId` is not available.
+  - **Safety**: `cancelledRef` in all effects, try/catch on every Supabase call, eslint-disable for unavoidable `set-state-in-effect` guard clauses.
+- **`supabase/migrations/20260727_create_direct_messages.sql`** — DDL for `direct_messages` table + RLS policies (select: sender or receiver, insert: authenticated sender). Realtime must be enabled manually in Supabase dashboard.
 
 ### Admin Dashboard Upgrade (Session #3 — July 2026)
 - **`AdminDashboardPage.jsx`** — Direfactor ke 3-tab layout: tab bar sticky di header (Overview/Users/Audit). Menyimpan pending properties table di tab Overview + menambahkan analitycs cards di atasnya. Verify dan Reject properti kini otomatis mencatat ke `audit_logs` via `insertAuditLog()` (fire-and-forget, exception-safe).
