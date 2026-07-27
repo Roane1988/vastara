@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, X, Send } from 'lucide-react'
+import { Bot, X, Send, ChevronDown } from 'lucide-react'
 
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const API_KEY = import.meta.env.VITE_GROQ_API_KEY
@@ -8,6 +8,23 @@ const API_KEY = import.meta.env.VITE_GROQ_API_KEY
 const SYSTEM_MESSAGE = {
   role: 'system',
   content: 'Kamu adalah HuniBot, asisten properti cerdas dan profesional dari HuniOne. Tugasmu HANYA menjawab pertanyaan seputar properti, KPR, investasi real estate, dan hukum jual-beli tanah di Indonesia (seperti SHM, HGB, BPHTB, Notaris). Gunakan bahasa Indonesia yang santai, sopan, dan mudah dimengerti. Jika user bertanya di luar topik ini, tolak dengan halus dan arahkan kembali ke topik properti.',
+}
+
+const QUICK_REPLIES = [
+  'Cara mengajukan KPR?',
+  'Apa itu BPHTB?',
+  'Tips beli rumah pertama',
+  'Perbedaan SHM dan HGB',
+]
+
+function formatTime(ts) {
+  const d = new Date(Number(ts))
+  const now = new Date()
+  const diff = now - d
+  if (diff < 60000) return 'baru saja'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}j`
+  return d.toLocaleDateString('id-ID', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 function TypingIndicator() {
@@ -32,12 +49,18 @@ export default function HuniBot() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showScrollBtn, setShowScrollBtn] = useState(false)
   const messagesEndRef = useRef(null)
+  const scrollRef = useRef(null)
   const inputRef = useRef(null)
 
+  const scrollToBottom = useCallback((behavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior })
+  }, [])
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isLoading])
+    scrollToBottom('smooth')
+  }, [messages, isLoading, scrollToBottom])
 
   useEffect(() => {
     if (isOpen) {
@@ -46,8 +69,15 @@ export default function HuniBot() {
     }
   }, [isOpen])
 
-  const handleSend = useCallback(async () => {
-    const text = input.trim()
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight
+    setShowScrollBtn(dist > 100)
+  }, [])
+
+  const handleSend = useCallback(async (overrideText) => {
+    const text = (overrideText || input).trim()
     if (!text || isLoading) return
 
     if (!API_KEY) {
@@ -100,6 +130,10 @@ export default function HuniBot() {
     }
   }, [input, isLoading, messages])
 
+  const handleQuickReply = useCallback((text) => {
+    handleSend(text)
+  }, [handleSend])
+
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -130,21 +164,50 @@ export default function HuniBot() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 pb-16 space-y-3">
+            <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 pb-16 space-y-3">
+              {messages.length === 0 && (
+                <div className="flex flex-col items-center text-center py-6 space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center">
+                    <Bot className="w-8 h-8 text-brand-primary" />
+                  </div>
+                  <div>
+                    <p className="text-brand-text font-semibold">Halo! Ada yang bisa dibantu?</p>
+                    <p className="text-brand-muted text-xs mt-1">
+                      Tanya seputar properti, KPR, atau hukum jual-beli
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {QUICK_REPLIES.map(q => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => handleQuickReply(q)}
+                        className="px-3 py-1.5 text-xs bg-brand-bg border border-brand-border rounded-xl text-brand-text hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-colors"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {messages.map(msg => (
                 msg.role === 'user' ? (
-                  <div key={msg.id} className="flex justify-end">
+                  <div key={msg.id} className="flex flex-col items-end gap-0.5">
                     <div className="bg-brand-primary text-white rounded-2xl rounded-br-md px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">
                       {msg.text}
                     </div>
+                    <span className="text-[10px] text-brand-muted/60 px-1">{formatTime(msg.id)}</span>
                   </div>
                 ) : (
                   <div key={msg.id} className="flex items-start gap-2">
                     <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white shrink-0">
                       <Bot className="w-4 h-4" />
                     </div>
-                    <div className="bg-brand-bg text-brand-text rounded-2xl rounded-bl-md px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">
-                      {msg.text}
+                    <div className="flex flex-col gap-0.5">
+                      <div className="bg-brand-bg text-brand-text rounded-2xl rounded-bl-md px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">
+                        {msg.text}
+                      </div>
+                      <span className="text-[10px] text-brand-muted/60 px-1">{formatTime(msg.id)}</span>
                     </div>
                   </div>
                 )
@@ -152,6 +215,16 @@ export default function HuniBot() {
               {isLoading && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </div>
+
+            {showScrollBtn && (
+              <button
+                type="button"
+                onClick={() => scrollToBottom('smooth')}
+                className="absolute bottom-16 right-4 z-10 w-8 h-8 bg-white border border-brand-border rounded-full shadow-md flex items-center justify-center hover:bg-brand-bg transition-colors"
+              >
+                <ChevronDown className="w-4 h-4 text-brand-muted" />
+              </button>
+            )}
 
             <div className="border-t border-brand-border bg-brand-surface p-3 flex gap-2 shrink-0">
               <input
