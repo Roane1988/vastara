@@ -42,7 +42,7 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 
 | File | Fungsi |
 |---|---|
-| **AdminDashboardPage.jsx** | Backoffice admin: tampilkan properti `status=pending` dalam data table profesional. Kolom: Tanggal, Judul (link ke detail), Harga (`formatPrice`), Penjual (inisial + nama), Kontak (WhatsApp link), Aksi. Tombol hijau "Verifikasi & Terbitkan" → update `status=verified` + hapus dari list. Tombol merah "Tolak" → `ConfirmModal` → `delete` dari DB. `showToast` untuk feedback. Route `/admin` via `ProtectedRoute`. |
+| **AdminDashboardPage.jsx** | Backoffice admin 3-tab: **Overview** (analytics cards + pending properties table), **Users** (manajemen pengguna), **Audit Trail** (log riwayat tindakan admin). Tab bar sticky dengan underline indicator. Verify/Reject properti otomatis mencatat ke `audit_logs`. Route `/admin` via `ProtectedRoute`. |
 | **Footer.jsx** | Mega footer premium: dark background (`bg-brand-primary`), grid 5 kolom (brand + Layanan + Perusahaan + Dukungan + sosial media), container `max-w-7xl`, bottom bar copyright + ikon Instagram/Twitter/LinkedIn (inline SVG). Terpasang di `App.jsx` setelah routing. |
 | **ExplorePage.jsx** | Halaman utama: hero banner, search, grid properti, filter drawer (server-side via Supabase), rekomendasi, listing lengkap. `fetchProperties()` menerima `filters` object. Thumbnail pakai `getImageSrc(p.image_url)` dari `utils/images.js` untuk backward compatibility (single string or JSON array). |
 | **PropertyDetailPage.jsx** | Detail properti: **GalleryDesktop** (Airbnb-style: 1 main large + 2x2 grid) sembunyi di `lg:block`, **GalleryMobile** (`<lg`: hero aspect-[4/3] + 4-thumb grid `grid-cols-4 gap-0.5`, thumb ke-4 overlay "Lihat Semua" jika >5 gambar, filler `bg-brand-border` untuk <4 gambar). Mobile CTA `bg-red-50` "Hubungi Pengiklan Segera". Agent Card (avatar inisial + warna hash dari `seller_id`, nama dari `profiles.first_name` via join query, role dari `profiles.role`, 2-col grid Phone outline + WhatsApp green-solid). Accordion "Panduan Membeli Properti" + "Disclaimer". Guard `if (!id)` + fallback column names. |
@@ -52,6 +52,9 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 | **ForumPage.jsx** | Daftar diskusi forum: kartu post dengan avatar (inisial + warna hash), badge "Umum", info aktivitas (replies count + avatar stack), compose form collapse toggle. |
 | **ForumDetailPage.jsx** | Detail post + reply system: avatar inisial, OP badge, upvote button (`ThumbsUp`), quote reply (`<!--replyto:...-->`), realtime subscription ke `forum_replies`, relative time (`timeAgo`), sticky reply form, guest CTA. |
 | **ChatHubPage.jsx** | Daftar kontak agen/legal untuk dihubungi via WhatsApp. |
+| **AdminAnalyticsCards.jsx** | 4 metric cards di dashboard Overview: Properti Terverifikasi (CheckCircle/emerald), Menunggu Verifikasi (Clock/amber), Total Pengguna (Users/sky), Agen & Developer (Briefcase/violet). Fetch count via `select(*, { count: 'exact', head: true })` in parallel `Promise.all`. Loading state: skeleton cards. |
+| **AdminUserManagement.jsx** | Data table semua user dari `profiles` dengan kolom Nama, Email, WhatsApp, Role (badge warna), Aksi. Inline `<select>` dropdown untuk ubah role (pembeli/owner/agent/developer/admin). Update role → insert `audit_logs`. Badge "Anda" untuk user sendiri. |
+| **AdminAuditLog.jsx** | Data table audit trail dari `audit_logs` (100 entri terbaru, DESC). Kolom: Admin, Tindakan (badge warna: verify=emerald, reject=red, change_role=blue), Target (summary dari `target_detail` JSONB), Waktu (`timeAgo`). Empty state: ikon History. |
 | **ConfirmModal.jsx** | Modal konfirmasi reusable untuk aksi destruktif (hapus post forum, dll). Animasi framer-motion `AnimatePresence`, backdrop blur, tombol Batal + Konfirmasi (merah). Dipakai di `ForumPage` dan `ForumDetailPage`. |
 | **MinimalistLogin.jsx** | Login/Signup: email/password, Google OAuth (`supabase.auth.signInWithOAuth`), toggle password visibility. |
 | **TopNavbar.jsx** | Navbar sticky: logo "HuniOne", language switcher, notifikasi, profil, hamburger menu. |
@@ -124,6 +127,19 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - `created_at`
 - RLS: select all, insert/update/delete hanya seller.
 
+### Table: `audit_logs`
+- `id` (UUID, PK)
+- `admin_id` (UUID, FK → `profiles.id`)
+- `admin_name` (TEXT — denormalized for display)
+- `action_type` (TEXT — `'verify_property'`, `'reject_property'`, `'change_role'`)
+- `target_type` (TEXT — `'property'`, `'user'`)
+- `target_id` (TEXT)
+- `target_detail` (JSONB — flexible payload: `{ property_title, property_price }` or `{ user_name, old_role, new_role }`)
+- `created_at` (TIMESTAMPTZ)
+- RLS: select only admin, insert authenticated.
+- Migration: `supabase/migrations/20260727_create_audit_logs.sql`.
+- Dipakai oleh: `AdminDashboardPage.handleVerify` + `handleConfirmReject` (insert on success), `AdminUserManagement.handleRoleChange` (insert on role update), `AdminAuditLog` (select for display).
+
 ### Storage: `PROPERTIES_IMAGE` (bucket)
 - Untuk upload gambar properti dari `SellPropertyPage.jsx`.
 - File path: `{userId}-{timestamp}-{sanitizedFileName}`
@@ -163,17 +179,18 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 20. Animasi: framer-motion untuk page transition + custom CSS keyframes `slide-up` dan `fadeIn`.
 
 ### Pola Kode
-21. **Error handling**: Semua async operation (Supabase query) harus dibungkus `try/catch` + cancelled flag di `useEffect` untuk menghindari state update setelah unmount.
+21. **Error handling**: Semua async operation (Supabase query) harus dibungkus `try/catch` + cancelled flag di `useEffect` untuk menghindari state update setelah unmount. Untuk count queries, pakai `select('*', { count: 'exact', head: true })` agar hanya fetch metadata tanpa data rows. Contoh: `AdminAnalyticsCards.jsx`.
 22. **Lint**: Project pake ESLint dengan aturan `react-hooks/set-state-in-effect` (React 19) dan `react-hooks/static-components` (komponen tidak boleh dibuat di dalam render — ganti dengan regular function call `{myFunc()}` bukan JSX `<MyComp />`). Kalau terpaksa setState di dalam effect, tambah `// eslint-disable-next-line react-hooks/set-state-in-effect`.
 23. **Import react-router-dom**: Project pake react-router-dom v7 — `useNavigate`, `useParams`, `Navigate`, `useLocation` masih sama seperti v6.
 24. **Protected Route**: `ProtectedRoute` di `App.jsx` — render `<Navigate to="/login" state={{ from }} />` kalau `!isAuth`.
 25. **Image error fallback**: Semua `<img>` tag yang menampilkan data dari DB/API harus punya `onError` handler yang set `e.target.src` ke fallback (biasanya `FALLBACK_IMAGE` dari `utils/images.js` atau hardcoded fallback). Berlaku di: `PropertyDetailPage` (semua gallery images), `ExplorePage` (recommendations + listing grid), `ProfileDrawer` (saved thumbnails), `HamburgerMenu` (saved thumbnails).
 26. **URL.revokeObjectURL**: Di `SellPropertyPage`, object URL dari `URL.createObjectURL` untuk preview gambar dibersihkan via `useEffect` return cleanup setiap kali `imageFiles` berubah, untuk mencegah memory leak.
 27. **RBAC Role**: `profiles.role` menentukan akses admin. `role === 'admin'` memicu: (a) item "Dashboard Admin" di `HamburgerMenu` menu utama, (b) item "Dashboard Admin" di `ProfileDrawer`, (c) badge "Admin Internal" di avatar header kedua drawer, (d) navigasi `/admin`. Role di-fetch via `supabase.from('profiles').select('role')` tiap kali drawer dibuka. Fallback role lain: "Pembeli".
+28. **Audit logging**: Setiap tindakan admin yang mengubah data (verify/reject property, change role) harus mencatat ke `audit_logs`. Pola: `insertAuditLog()` dipanggil fire-and-forget (tanpa `await` atau `await` dengan `try/catch` kosong) agar tidak memblokir main operation. `target_detail` JSONB berisi payload kontekstual (`{ property_title, property_price }` untuk property, `{ user_name, old_role, new_role }` untuk user).
 
 ### Perubahan Brand
-28. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
-29. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
+29. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` logo, `MinimalistLogin` heading, `index.html` title, locale strings, `SellPropertyPage` success message.
+30. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
 
 ---
 
@@ -211,10 +228,15 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - **ProfileDrawer**: Saved thumbnail images ditambah `onError` fallback.
 - **HamburgerMenu**: Saved thumbnail images ditambah `onError` fallback.
 
-### Admin Verification Workflow
-- **`AdminDashboardPage.jsx`** — Halaman baru `/admin` (ProtectedRoute). Data table properti `pending` dengan join `profiles`. Tombol: Verify (`update status=verified` + hapus dari list) dan Reject (`ConfirmModal` + `delete`). `showToast` untuk semua feedback.
+### Admin Dashboard Upgrade (Session #3 — July 2026)
+- **`AdminDashboardPage.jsx`** — Direfactor ke 3-tab layout: tab bar sticky di header (Overview/Users/Audit). Menyimpan pending properties table di tab Overview + menambahkan analitycs cards di atasnya. Verify dan Reject properti kini otomatis mencatat ke `audit_logs` via `insertAuditLog()` (fire-and-forget, exception-safe).
+- **`AdminAnalyticsCards.jsx`** — 4 metric cards di grid `grid-cols-2 lg:grid-cols-4`. Fetch 4 count queries paralel via `Promise.all`. Setiap card: icon lucide di lingkaran dengan warna tematik, count besar (`text-2xl font-extrabold`), label, badge status. Loading: skeleton card.
+- **`AdminUserManagement.jsx`** — Table user dari `profiles` dengan inline `<select>` untuk ubah role. Role change: `profiles.update({ role })` → `audit_logs.insert({ action_type: 'change_role', target_detail: { old_role, new_role, user_name } })` → `showToast`. Badge warna berbeda per role (admin=blue, agent/dev=violet, owner=emerald, pembeli=netral). Role dropdown tidak muncul untuk user sendiri? Tidak, tapi user sendiri diberi label "Anda".
+- **`AdminAuditLog.jsx`** — Table audit trail 100 entri terbaru DESC. Kolom: Admin (nama), Tindakan (badge warna sesuai jenis), Target (summary dari `target_detail` JSONB — untuk verify/reject tampil `property_title`, untuk change_role tampil `user_name: old → new`), Waktu (`timeAgo`). Empty state: ikon `History` + teks.
+- **`audit_logs` table** — Tabel baru untuk audit trail. Setiap admin action (verify, reject, change_role) insert satu baris. Struktur detail di bagian Database Supabase.
+- **`supabase/migrations/20260727_create_audit_logs.sql`** — Migration SQL untuk membuat `audit_logs` table + RLS policies (admin select, authenticated insert). Harus dijalankan di Supabase dashboard sebelum fitur audit berfungsi.
 - **`SellPropertyPage.jsx`** — (Tidak ada perubahan, sudah `status: 'pending'` di insert payload).
-- **`ExplorePage.jsx`** — `fetchProperties()` ganti dari `.in('status', ['verified', 'pending'])` → `.eq('status', 'verified')` agar properti pending tidak bocor ke publik.
+- **`ExplorePage.jsx`** — `fetchProperties()` hanya query `status === 'verified'` (`.eq('status', 'verified')`). Properti `pending` tidak bocor ke publik. Admin lihat properti pending di `/admin`.
 - **`TopNavbar.jsx`** — Tombol "Dashboard" (grid icon) navigasi ke `/admin`, ditempatkan sebelum tombol "Jual Properti".
-- **`HamburgerMenu.jsx`** — Fetch `role` via `useEffect` tiap drawer terbuka. Jika `role === 'admin'`: item "Dashboard Admin" di menu utama + label header "Admin Internal" (`text-brand-secondary`). Fallback: "Pembeli".
-- **`ProfileDrawer.jsx`** — Fetch `role` dari `profiles` (ditambah ke `.select()`). Jika `role === 'admin'`: badge "Admin Internal" (`bg-brand-secondary/10` pill) di samping judul seksi + item "Dashboard Admin" di atas "Iklan Saya".
+- **`HamburgerMenu.jsx`** — Fetch `role` via `useEffect` tiap drawer terbuka. Jika `role === 'admin'`: item "Dashboard Admin" di menu utama + label header "Admin Internal" (`text-brand-secondary`).
+- **`ProfileDrawer.jsx`** — Fetch `role` dari `profiles`. Jika `role === 'admin'`: badge "Admin Internal" + item "Dashboard Admin".
