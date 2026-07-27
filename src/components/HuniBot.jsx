@@ -252,7 +252,7 @@ export default function HuniBot() {
               />
               <button
                 type="button"
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={!input.trim() || isLoading || !API_KEY}
                 className="w-9 h-9 bg-brand-primary text-white rounded-xl flex items-center justify-center disabled:opacity-40 transition-opacity shrink-0"
               >
