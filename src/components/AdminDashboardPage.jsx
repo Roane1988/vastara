@@ -28,17 +28,18 @@ export default function AdminDashboardPage() {
   const { showToast, user, role } = useAuth()
   const cancelledRef = useRef(false)
   const [activeTab, setActiveTab] = useState('overview')
-
-  if (role !== 'admin') {
-    navigate('/', { replace: true })
-    return null
-  }
-
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [rejectTarget, setRejectTarget] = useState(null)
   const [rejecting, setRejecting] = useState(false)
   const [verifyLoading, setVerifyLoading] = useState(null)
+
+  useEffect(() => {
+    if (role !== 'admin') {
+      navigate('/', { replace: true })
+      return
+    }
+  }, [role, navigate])
 
   useEffect(() => {
     let cancelled = false
@@ -150,6 +151,8 @@ export default function AdminDashboardPage() {
       setRejectTarget(null)
     }
   }
+
+  if (role !== 'admin') return null
 
   return (
     <div className="min-h-screen bg-brand-bg">
