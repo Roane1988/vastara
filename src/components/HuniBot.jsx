@@ -201,27 +201,34 @@ export default function HuniBot() {
                   </div>
                 </div>
               )}
-              {messages.map(msg => (
-                msg.role === 'user' ? (
-                  <div key={msg.id} className="flex flex-col items-end gap-0.5">
-                    <div className="bg-brand-primary text-white rounded-2xl rounded-br-md px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">
-                      {msg.text}
-                    </div>
-                    <span className="text-[10px] text-brand-muted/60 px-1">{formatTime(msg.id)}</span>
-                  </div>
-                ) : (
-                  <div key={msg.id} className="flex items-start gap-2">
-                    <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white shrink-0">
-                      <Bot className="w-4 h-4" />
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      <div className="bg-brand-bg text-brand-text rounded-2xl rounded-bl-md px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">
+              {messages.map((msg, i) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.25, ease: 'easeOut', delay: i === messages.length - 1 ? 0 : 0 }}
+                >
+                  {msg.role === 'user' ? (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <div className="bg-brand-primary text-white rounded-2xl rounded-br-md px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">
                         {msg.text}
                       </div>
                       <span className="text-[10px] text-brand-muted/60 px-1">{formatTime(msg.id)}</span>
                     </div>
-                  </div>
-                )
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white shrink-0">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="bg-brand-bg text-brand-text rounded-2xl rounded-bl-md px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap">
+                          {msg.text}
+                        </div>
+                        <span className="text-[10px] text-brand-muted/60 px-1">{formatTime(msg.id)}</span>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
               ))}
               {isLoading && <TypingIndicator />}
               <div ref={messagesEndRef} />
