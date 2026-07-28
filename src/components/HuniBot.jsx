@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, X, Send, ChevronDown } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const API_KEY = import.meta.env.VITE_GROQ_API_KEY
@@ -45,6 +46,8 @@ function TypingIndicator() {
 }
 
 export default function HuniBot() {
+  const { user } = useAuth()
+  const firstName = user?.user_metadata?.first_name || null
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -179,7 +182,7 @@ export default function HuniBot() {
                     <Bot className="w-8 h-8 text-brand-primary" />
                   </div>
                   <div>
-                    <p className="text-brand-text font-semibold">Halo! Ada yang bisa dibantu?</p>
+                    <p className="text-brand-text font-semibold">{firstName ? `Halo, ${firstName}!` : 'Halo! Ada yang bisa dibantu?'}</p>
                     <p className="text-brand-muted text-xs mt-1">
                       Tanya seputar properti, KPR, atau hukum jual-beli
                     </p>
