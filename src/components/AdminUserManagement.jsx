@@ -31,7 +31,7 @@ function getRoleBadgeClass(role) {
 }
 
 export default function AdminUserManagement() {
-  const { showToast, user: currentUser } = useAuth()
+  const { showToast, user: currentUser, role } = useAuth()
   const cancelledRef = useRef(false)
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -65,7 +65,7 @@ export default function AdminUserManagement() {
   }, [])
 
   async function handleRoleChange(userId, newRole) {
-    if (updatingId) return
+    if (updatingId || role !== 'admin') return
     setUpdatingId(userId)
 
     try {

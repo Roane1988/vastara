@@ -160,14 +160,14 @@ export default function ForumDetailPage() {
       fetchReplies()
     }
     } catch (err) {
-      showToast(err.message || 'Gagal mengirim balasan', 'error')
+      if (!cancelledRef.current) showToast(err.message || 'Gagal mengirim balasan', 'error')
     }
-    setSubmitting(false)
+    if (!cancelledRef.current) setSubmitting(false)
   }
 
   async function handleConfirmDelete() {
     setDeleting(true)
-    const { error } = await supabase.from('forum_posts').delete().eq('id', id)
+    const { error } = await supabase.from('forum_posts').delete().eq('id', id).eq('author_id', user?.id)
     setDeleting(false)
     setShowDeleteModal(false)
     if (error) {

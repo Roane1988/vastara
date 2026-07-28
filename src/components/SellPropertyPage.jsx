@@ -104,7 +104,9 @@ export default function SellPropertyPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { showToast, loading: authLoading } = useAuth()
-  const userRole = location.state?.role || 'owner'
+  const ALLOWED_ROLES = ['owner', 'agent', 'developer']
+  const rawRole = location.state?.role || 'owner'
+  const userRole = ALLOWED_ROLES.includes(rawRole) ? rawRole : 'owner'
 
   const STEPS = useMemo(() => [
     { id: 'kontak', label: t('sellProperty.steps.contact'), desc: t('sellProperty.steps.contact_desc') },
@@ -164,6 +166,8 @@ export default function SellPropertyPage() {
 
   const MAX_IMAGES = 10
 
+  const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
+
   const handleImagesSelect = (e) => {
     const selectedFiles = Array.from(e.target.files)
     if (!selectedFiles.length) return
@@ -175,6 +179,12 @@ export default function SellPropertyPage() {
     }
 
     const validFiles = selectedFiles.slice(0, remaining)
+    const invalidType = validFiles.find((f) => !ALLOWED_MIME_TYPES.includes(f.type))
+    if (invalidType) {
+      setImageUploadError('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.')
+      return
+    }
+
     const oversized = validFiles.find((f) => f.size > 5 * 1024 * 1024)
     if (oversized) {
       setImageUploadError('Ukuran file maksimal 5MB per gambar.')

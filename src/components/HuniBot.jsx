@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, X, Send, ChevronDown } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
+const RATE_LIMIT_MS = 2000
+
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const API_KEY = import.meta.env.VITE_GROQ_API_KEY
 
@@ -56,6 +58,12 @@ export default function HuniBot() {
   const messagesEndRef = useRef(null)
   const scrollRef = useRef(null)
   const textareaRef = useRef(null)
+  const cancelledRef = useRef(false)
+  const lastSendRef = useRef(0)
+
+  useEffect(() => {
+    return () => { cancelledRef.current = true }
+  }, [])
 
   const scrollToBottom = useCallback((behavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior })
@@ -91,6 +99,10 @@ export default function HuniBot() {
     const text = (overrideText || input).trim()
     if (!text || isLoading) return
 
+    const now = Date.now()
+    if (now - lastSendRef.current < RATE_LIMIT_MS) return
+    lastSendRef.current = now
+
     if (!API_KEY) {
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'bot', text: 'API Key Groq belum terkonfigurasi di file .env.local' }])
       return
@@ -123,21 +135,27 @@ export default function HuniBot() {
         }),
       })
 
+      if (cancelledRef.current) return
+
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}))
         throw new Error(errBody?.error?.message || `HTTP ${res.status}`)
       }
 
       const data = await res.json()
-      console.log('RAW GROQ RESPONSE:', JSON.stringify(data, null, 2))
       const botText = data?.choices?.[0]?.message?.content || 'Maaf, tidak ada respons dari AI.'
 
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'bot', text: botText }])
+      if (!cancelledRef.current) {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'bot', text: botText }])
+      }
     } catch (error) {
-      console.error('HuniBot Groq Error:', error)
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'bot', text: 'Maaf, terjadi kesalahan. Silakan coba lagi nanti.' }])
+      if (!cancelledRef.current) {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'bot', text: 'Maaf, terjadi kesalahan. Silakan coba lagi nanti.' }])
+      }
     } finally {
-      setIsLoading(false)
+      if (!cancelledRef.current) {
+        setIsLoading(false)
+      }
     }
   }, [input, isLoading, messages])
 

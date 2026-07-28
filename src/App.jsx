@@ -37,10 +37,20 @@ function ProtectedRoute({ isAuth, children, location }) {
   return children
 }
 
+function AdminRoute({ isAuth, role, children, location }) {
+  if (!isAuth) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+  if (role !== 'admin') {
+    return <Navigate to="/" replace />
+  }
+  return children
+}
+
 function AppContent() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { session, user, loading } = useAuth()
+  const { session, user, role, loading } = useAuth()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   const isAuth = !!session?.user
@@ -104,14 +114,18 @@ function AppContent() {
                 <MyListingsPage />
               </ProtectedRoute>
             } />
-            <Route path="/chat" element={<ChatHubPage onNavigate={onNavigate} />} />
+            <Route path="/chat" element={
+              <ProtectedRoute isAuth={isAuth} location={location}>
+                <ChatHubPage onNavigate={onNavigate} />
+              </ProtectedRoute>
+            } />
             <Route path="/forum" element={<ForumPage />} />
             <Route path="/forum/:id" element={<ForumDetailPage />} />
             <Route path="/property/:id" element={<PropertyDetailPage />} />
             <Route path="/admin" element={
-              <ProtectedRoute isAuth={isAuth} location={location}>
+              <AdminRoute isAuth={isAuth} role={role} location={location}>
                 <AdminDashboardPage />
-              </ProtectedRoute>
+              </AdminRoute>
             } />
             <Route path="/coming-soon" element={<ComingSoonPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

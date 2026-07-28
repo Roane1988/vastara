@@ -86,7 +86,7 @@ export default function ForumPage() {
   async function handleConfirmDelete() {
     if (!deleteTarget) return
     try {
-      const { error } = await supabase.from('forum_posts').delete().eq('id', deleteTarget)
+      const { error } = await supabase.from('forum_posts').delete().eq('id', deleteTarget).eq('author_id', user?.id)
       if (error) {
         showToast(error.message, 'error')
       } else {

@@ -25,9 +25,14 @@ const TABS = [
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate()
-  const { showToast, user } = useAuth()
+  const { showToast, user, role } = useAuth()
   const cancelledRef = useRef(false)
   const [activeTab, setActiveTab] = useState('overview')
+
+  if (role !== 'admin') {
+    navigate('/', { replace: true })
+    return null
+  }
 
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
