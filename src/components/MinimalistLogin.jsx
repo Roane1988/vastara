@@ -97,12 +97,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8 pt-4">
-          <h1 className="text-5xl font-bold tracking-[0.15em] text-brand-text select-none">
-            HuniOne
-          </h1>
-          <p className="text-xs tracking-[0.3em] text-brand-muted uppercase mt-2">
-            {t('login.subtitle')}
-          </p>
+          <img src="/huniOne_2.png" alt="HuniOne Logo" className="h-14 w-auto mx-auto mb-6 object-contain" />
         </div>
 
         {isLogin ? (

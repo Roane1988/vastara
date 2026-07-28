@@ -263,3 +263,8 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - **`TopNavbar.jsx`** — Tombol "Dashboard" (grid icon) navigasi ke `/admin`, ditempatkan sebelum tombol "Jual Properti".
 - **`HamburgerMenu.jsx`** — Fetch `role` via `useEffect` tiap drawer terbuka. Jika `role === 'admin'`: item "Dashboard Admin" di menu utama + label header "Admin Internal" (`text-brand-secondary`).
 - **`ProfileDrawer.jsx`** — Fetch `role` dari `profiles`. Jika `role === 'admin'`: badge "Admin Internal" + item "Dashboard Admin".
+
+### HuniBot Enhancements (Session #5 — July 2026)
+- **`HuniBot.jsx`** — Personalisasi greeting: import `useAuth` dari `AuthContext`, extrak `firstName` dari `user?.user_metadata?.first_name`. Greeting title berubah dinamis: jika login → "Halo, {firstName}!", jika tidak → "Halo! Ada yang bisa dibantu?". Subtitle dan quick reply buttons tetap utuh.
+- **`HuniBot.jsx`** — Animasi message bubbles: setiap pesan user dan bot dibungkus `<motion.div>` dengan `initial={{ opacity: 0, y: 16, scale: 0.97 }}` → `animate={{ opacity: 1, y: 0, scale: 1 }}` via `easeOut` 250ms.
+- **`HuniBot.jsx`** — System prompt di update: konten baru "Kamu adalah HuniBot, asisten virtual platform properti HuniOne. Jawablah setiap pertanyaan pengguna dengan ramah, profesional, sangat ringkas, padat, dan langsung ke intinya (maksimal 2-3 paragraf pendek). Hindari penjelasan yang bertele-tele." — hanya dikirim ke API Groq, tidak tampil di UI.
