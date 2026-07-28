@@ -5,8 +5,7 @@ import { useAuth } from '../context/AuthContext'
 
 const RATE_LIMIT_MS = 2000
 
-const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const API_KEY = import.meta.env.VITE_GROQ_API_KEY
+const API_URL = '/api/groq'
 
 const SYSTEM_MESSAGE = {
   role: 'system',
@@ -103,11 +102,6 @@ export default function HuniBot() {
     if (now - lastSendRef.current < RATE_LIMIT_MS) return
     lastSendRef.current = now
 
-    if (!API_KEY) {
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'bot', text: 'API Key Groq belum terkonfigurasi di file .env.local' }])
-      return
-    }
-
     const userMessage = { id: Date.now().toString(), role: 'user', text }
     setInput('')
     setMessages(prev => [...prev, userMessage])
@@ -125,10 +119,7 @@ export default function HuniBot() {
 
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${API_KEY}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           messages: conversation,
@@ -281,7 +272,7 @@ export default function HuniBot() {
               <button
                 type="button"
                 onClick={() => handleSend()}
-                disabled={!input.trim() || isLoading || !API_KEY}
+                disabled={!input.trim() || isLoading}
                 className="w-9 h-9 bg-brand-primary text-white rounded-xl flex items-center justify-center disabled:opacity-40 transition-opacity shrink-0"
               >
                 <Send className="w-4 h-4" />
