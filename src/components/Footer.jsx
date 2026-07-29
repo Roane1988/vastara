@@ -85,7 +85,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-1">
             <Link to="/" className="inline-block">
-              <img src="/huniOne.svg" alt="HuniOne" className="h-8 sm:h-9 w-auto" />
+              <img src="/huniOne.svg" alt="HuniOne" className="h-10 sm:h-12 w-auto" />
             </Link>
             <p className="mt-4 text-slate-400 text-sm leading-relaxed">
               Hunione adalah platform digital yang membantu masyarakat membeli dan menjual rumah dengan lebih mudah, aman, dan terpercaya.
