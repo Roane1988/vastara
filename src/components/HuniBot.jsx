@@ -122,6 +122,7 @@ export default function HuniBot() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
+          purpose: 'chat',
           messages: conversation,
         }),
       })

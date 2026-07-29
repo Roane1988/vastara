@@ -19,11 +19,8 @@ async function fetchTranslation(texts, signal) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
+      purpose: 'translation',
       messages: [
-        {
-          role: 'system',
-          content: 'You are a professional Indonesian-to-English translator for a property platform. Translate the following Indonesian property fields to English. Keep it natural and accurate for real estate context. Return ONLY a valid JSON object with the same keys. No explanation, no markdown.',
-        },
         { role: 'user', content: JSON.stringify(texts) },
       ],
     }),
