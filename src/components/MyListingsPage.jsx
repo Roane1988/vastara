@@ -125,7 +125,7 @@ export default function MyListingsPage() {
       <div className="px-4 pt-4 pb-8 space-y-4 max-w-2xl mx-auto">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : listings.length === 0 ? (
           <div className="text-center py-20">

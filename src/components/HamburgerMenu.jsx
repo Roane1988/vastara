@@ -49,10 +49,10 @@ function MenuItem({ icon, label, onClick, active, destructive }) {
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
         destructive
-          ? 'text-red-500 hover:bg-red-50'
+          ? 'text-[#DC2626] hover:bg-red-50'
           : active
-            ? 'text-brand-secondary bg-brand-secondary/10'
-            : 'text-brand-text hover:bg-brand-bg'
+            ? 'text-[#1E3A5F] bg-[#EDF4FD] font-semibold'
+            : 'text-brand-muted hover:bg-[#EDF4FD] hover:text-[#1E3A5F]'
       }`}
     >
       <span className="shrink-0">{icon}</span>
@@ -117,7 +117,7 @@ function SavedDrawer({ onBack }) {
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : properties.length === 0 ? (
           <p className="text-sm text-brand-muted text-center py-12">Belum ada properti disimpan</p>
@@ -244,12 +244,12 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                       onClick={handleProfile}
                       className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-bg border border-brand-border cursor-pointer transition-colors hover:bg-gray-100 active:bg-gray-200 text-left"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0">
                         {initial}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-brand-text truncate">{userName}</p>
-                        <p className={`text-xs font-semibold ${role === 'admin' ? 'text-brand-secondary' : 'text-brand-muted'}`}>
+                        <p className={`text-xs font-semibold ${role === 'admin' ? 'text-brand-accent' : 'text-brand-muted'}`}>
                           {role === 'admin' ? 'Admin Internal' : 'Pembeli'}
                         </p>
                       </div>

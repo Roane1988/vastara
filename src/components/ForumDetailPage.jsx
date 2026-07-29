@@ -27,9 +27,9 @@ function parseReplyContent(content) {
 
 function QuoteBox({ quoted }) {
   return (
-    <div className="flex items-start gap-2 mb-3 pl-3 border-l-[3px] border-brand-secondary/50 bg-brand-bg/70 rounded-r-xl py-2 px-3">
+    <div className="flex items-start gap-2 mb-3 pl-3 border-l-[3px] border-brand-accent/50 bg-brand-bg/70 rounded-r-xl py-2 px-3">
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-semibold text-brand-secondary leading-tight">{quoted.authorName}</p>
+        <p className="text-[11px] font-semibold text-brand-accent leading-tight">{quoted.authorName}</p>
         <p className="text-[11px] text-brand-muted leading-snug truncate">{quoted.content}</p>
       </div>
     </div>
@@ -181,7 +181,7 @@ export default function ForumDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="w-6 h-6 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -228,7 +228,7 @@ export default function ForumDetailPage() {
       </div>
 
       <div className="flex-1 px-5 pt-5 pb-32 max-w-2xl mx-auto w-full space-y-5">
-        <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-5">
           <div className="flex items-start gap-3">
             <div
               className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 mt-0.5"
@@ -238,10 +238,10 @@ export default function ForumDetailPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm text-brand-secondary">
+                <span className="font-semibold text-sm text-brand-accent">
                   {post.profiles?.first_name || 'Anonymous'}
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1E3A5F] text-white">
                   OP
                 </span>
               </div>
@@ -250,7 +250,7 @@ export default function ForumDetailPage() {
             <div className="flex items-center gap-1 text-brand-muted shrink-0">
               <button
                 type="button"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-brand-bg text-brand-muted hover:text-brand-secondary transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-brand-bg text-brand-muted hover:text-brand-accent transition-colors"
               >
                 <ThumbsUp size={14} />
                 <span className="text-xs font-medium">0</span>
@@ -277,7 +277,7 @@ export default function ForumDetailPage() {
               {replies.map((reply) => {
                 const parsed = parseReplyContent(reply.content)
                 return (
-                  <div key={reply.id} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-4 transition-all duration-200 hover:shadow-md">
+                  <div key={reply.id} className="bg-white rounded-2xl shadow-sm border border-brand-border p-4 transition-all duration-200 hover:shadow-md">
                     <div className="flex items-start gap-3">
                       <div
                         className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
@@ -287,11 +287,11 @@ export default function ForumDetailPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-xs text-brand-secondary">
+                          <span className="font-semibold text-xs text-brand-accent">
                             {reply.profiles?.first_name || 'Anonymous'}
                           </span>
                           {reply.author_id === post.author_id && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20 leading-none">
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#1E3A5F] text-white leading-none">
                               OP
                             </span>
                           )}
@@ -302,7 +302,7 @@ export default function ForumDetailPage() {
                       <div className="flex items-center gap-1 text-brand-muted shrink-0">
                         <button
                           type="button"
-                          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-brand-bg text-brand-muted hover:text-brand-secondary transition-colors"
+                          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-brand-bg text-brand-muted hover:text-brand-accent transition-colors"
                         >
                           <ThumbsUp size={13} />
                           <span className="text-[11px] font-medium">0</span>
@@ -317,7 +317,7 @@ export default function ForumDetailPage() {
                         setReplyingTo({ id: reply.id, authorName: reply.profiles?.first_name || 'Anonymous', content: reply.content })
                         replyInputRef.current?.focus()
                       }}
-                      className="mt-2 text-xs font-medium text-brand-muted hover:text-brand-secondary transition-colors"
+                      className="mt-2 text-xs font-medium text-brand-muted hover:text-brand-accent transition-colors"
                     >
                       Balas
                     </button>
@@ -329,11 +329,11 @@ export default function ForumDetailPage() {
         </div>
 
         {session?.user ? (
-          <form onSubmit={handleReply} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-4 transition-all duration-300 sticky bottom-4">
+          <form onSubmit={handleReply} className="bg-white rounded-2xl shadow-sm border border-brand-border p-4 transition-all duration-300 sticky bottom-4">
             {replyingTo && (
-              <div className="flex items-start gap-3 mb-3 pl-3 border-l-[3px] border-brand-secondary bg-brand-bg/70 rounded-r-xl py-2.5 px-3 transition-all duration-300 ease-out">
+              <div className="flex items-start gap-3 mb-3 pl-3 border-l-[3px] border-brand-accent bg-brand-bg/70 rounded-r-xl py-2.5 px-3 transition-all duration-300 ease-out">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-brand-secondary">{replyingTo.authorName}</p>
+                  <p className="text-xs font-bold text-brand-accent">{replyingTo.authorName}</p>
                   <p className="text-xs text-brand-muted leading-snug line-clamp-2">{replyingTo.content.replace(/<!--replyto:.*?-->\n?/s, '').trim()}</p>
                 </div>
                 <button
@@ -353,7 +353,7 @@ export default function ForumDetailPage() {
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder={replyingTo ? `Balas ${replyingTo.authorName}...` : t('forum.postContentPlaceholder')}
                   rows={2}
-                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted resize-none"
+                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted resize-none"
                 />
               </div>
               <button

@@ -49,7 +49,7 @@ function ContactItem({ contact, isActive, onClick }) {
       onClick={() => onClick(contact.id)}
       className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
         isActive
-          ? 'bg-brand-secondary/10 border-l-2 border-brand-secondary'
+          ? 'bg-brand-accent/10 border-l-2 border-brand-accent'
           : 'hover:bg-brand-bg border-l-2 border-transparent'
       }`}
     >
@@ -68,7 +68,7 @@ function ContactItem({ contact, isActive, onClick }) {
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {contact.role && (
-            <span className="text-[10px] font-medium text-brand-secondary shrink-0">{roleLabel}</span>
+            <span className="text-[10px] font-medium text-brand-accent shrink-0">{roleLabel}</span>
           )}
           <p className="text-xs text-brand-muted truncate">
             {contact.last_message || 'Belum ada pesan'}
@@ -115,8 +115,8 @@ function LoginPrompt() {
   const navigate = useNavigate()
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center px-6">
-      <div className="w-16 h-16 rounded-full bg-brand-secondary/10 flex items-center justify-center mb-4">
-        <MessageCircle size={32} className="text-brand-secondary" />
+      <div className="w-16 h-16 rounded-full bg-brand-accent/10 flex items-center justify-center mb-4">
+        <MessageCircle size={32} className="text-brand-accent" />
       </div>
       <h2 className="text-lg font-bold text-brand-text text-center">Masuk untuk Mengobrol</h2>
       <p className="text-sm text-brand-muted mt-1 text-center max-w-xs leading-relaxed">
@@ -479,7 +479,7 @@ export default function ChatHubPage() {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Tulis pesan..."
-                    className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
+                    className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted"
                     disabled={sending}
                   />
                 </div>

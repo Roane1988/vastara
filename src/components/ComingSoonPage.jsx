@@ -8,7 +8,7 @@ export default function ComingSoonPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-brand-bg px-6 text-center">
-      <Wrench className="w-16 h-16 text-brand-secondary" />
+      <Wrench className="w-16 h-16 text-brand-accent" />
       <h1 className="text-2xl font-bold text-brand-text mt-4">{t('comingSoon.title')}</h1>
       <p className="text-brand-muted mt-2 mb-8 max-w-xs">
         {t('comingSoon.description')}

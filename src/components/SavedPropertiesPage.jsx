@@ -8,7 +8,7 @@ const FILTERS = ['Semua', 'Tersedia', 'Sedang Nego']
 
 function HeartIcon({ filled }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? '#183B63' : 'none'} stroke={filled ? '#183B63' : 'white'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? '#1E3A5F' : 'none'} stroke={filled ? '#1E3A5F' : 'white'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>
   )
@@ -26,7 +26,7 @@ function ArrowLeftIcon() {
 function StatusBadge({ status }) {
   const colors = {
     Tersedia: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    'Sedang Nego': 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20',
+    'Sedang Nego': 'bg-brand-accent/10 text-brand-accent border-brand-accent/20',
   }
   const label = status === 'verified' ? 'Tersedia' : 'Sedang Nego'
   return (
@@ -130,7 +130,7 @@ export default function SavedPropertiesPage({ onBack }) {
       <div className="w-full max-w-7xl mx-auto px-4 pt-2 pb-8 space-y-5">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-center text-sm text-brand-muted pt-10">

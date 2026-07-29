@@ -205,7 +205,7 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* ─── HERO BANNER ─── */}
-      <div className="relative bg-brand-primary overflow-hidden">
+      <div className="relative bg-gradient-to-r from-[#1E3A5F] to-[#284D7A] overflow-hidden">
         <div className="absolute inset-0 opacity-[0.08]">
           <img
             src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1920&q=80"
@@ -223,7 +223,7 @@ export default function ExplorePage() {
               <h1 className="text-2xl font-bold text-white">
                 {t('explore.hero.welcome')}
               </h1>
-              <p className="text-white/80 text-sm mt-1">
+              <p className="text-white/75 text-sm mt-1">
                 {t('explore.hero.tagline')}
               </p>
             </>
@@ -251,7 +251,7 @@ export default function ExplorePage() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center px-3 py-2 bg-brand-bg rounded-xl gap-3">
+            <div className="flex items-center px-3 py-2 bg-white border border-brand-border rounded-xl gap-3 focus-within:border-[#4A90E2] focus-within:shadow-[0_0_0_3px_rgba(74,144,226,0.15)] transition-all">
               <span className="text-brand-muted shrink-0">
                 <SearchIcon />
               </span>
@@ -270,7 +270,7 @@ export default function ExplorePage() {
               <button
                 type="button"
                 onClick={() => setShowFilter(true)}
-                className="text-brand-muted hover:text-brand-secondary transition-colors shrink-0"
+                className="text-brand-muted hover:text-[#4A90E2] transition-colors shrink-0"
               >
                 <FilterIcon />
               </button>
@@ -293,9 +293,9 @@ export default function ExplorePage() {
                     if (item.drawer) return setIsMoreDrawerOpen(true)
                     if (item.path) navigate(item.path)
                   }}
-                  className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform group"
                 >
-                  <div className="w-12 h-12 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-secondary shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-[#F8FAFC] flex items-center justify-center text-[#1E3A5F] shadow-sm group-hover:bg-[#4A90E2] group-hover:text-white transition-colors duration-200">
                     <Icon size={20} />
                   </div>
                   <span className="text-[10px] text-brand-text font-semibold text-center leading-tight">
@@ -317,7 +317,7 @@ export default function ExplorePage() {
           <button
             type="button"
             onClick={() => navigate('/explore')}
-            className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
+            className="text-sm font-semibold text-[#4A90E2] hover:text-brand-primary transition-colors"
           >
             {t('explore.recommendations.view_all')}
           </button>
@@ -329,7 +329,7 @@ export default function ExplorePage() {
               to={`/property/${p.id}`}
               className="min-w-[260px] w-[260px] shrink-0 group"
             >
-              <div className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden">
                 <div className="relative aspect-[4/3]">
                   <img
                     src={getImageSrc(p.image_url)}
@@ -338,7 +338,7 @@ export default function ExplorePage() {
                     onError={(e) => { e.target.src = FALLBACK_IMAGE }}
                   />
                   {p.status === 'verified' && (
-                    <span className="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
+                    <span className="absolute top-2 left-2 bg-[#EAF7EF] text-[#2E8B57] border border-[#2E8B57]/20 text-[10px] font-bold px-2.5 py-1 rounded-md">
                       {t('explore.property_card.verified_legal')}
                     </span>
                   )}
@@ -375,7 +375,7 @@ export default function ExplorePage() {
           <button
             type="button"
             onClick={() => navigate('/coming-soon')}
-            className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
+            className="text-sm font-semibold text-[#4A90E2] hover:text-brand-primary transition-colors"
           >
             {t('explore.popular_searches.shuffle')}
           </button>
@@ -395,7 +395,7 @@ export default function ExplorePage() {
                 />
               </div>
               <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center">
-                <h3 className="text-sm sm:text-base font-bold text-brand-text group-hover:text-brand-secondary transition-colors">
+                <h3 className="text-sm sm:text-base font-bold text-brand-text group-hover:text-[#4A90E2] transition-colors">
                   {item.title}
                 </h3>
                 <div className="flex flex-wrap gap-1.5 mt-2">
@@ -415,7 +415,7 @@ export default function ExplorePage() {
       </section>
 
       {/* ─── FULL PROPERTY LISTING ─── */}
-      <section className="max-w-7xl mx-auto px-4 pb-24">
+      <section className="max-w-7xl mx-auto px-4 pb-24 bg-[#F8FAFC]">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-brand-text">
             {t('explore.all_properties.title')}
@@ -424,7 +424,7 @@ export default function ExplorePage() {
             <button
               type="button"
               onClick={() => setShowFilter(true)}
-              className="text-sm font-semibold text-brand-secondary hover:text-brand-primary transition-colors"
+              className="text-sm font-semibold text-[#4A90E2] hover:text-brand-primary transition-colors"
             >
               {t('explore.all_properties.filter')}
             </button>
@@ -443,7 +443,7 @@ export default function ExplorePage() {
           {displayListings.map((p) => (
             <div key={p.id}>
               <Link to={`/property/${p.id}`} className="block group">
-                <div className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden h-full">
+                <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full">
                   <div className="relative aspect-[4/3]">
                     <img
                       src={getImageSrc(p.image_url)}
@@ -453,12 +453,12 @@ export default function ExplorePage() {
                     />
                     <div className="absolute top-3 left-3 flex gap-2">
                       {p.typeLabel && (
-                        <span className="bg-brand-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                        <span className="bg-[#1E3A5F] text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
                           {p.typeLabel}
                         </span>
                       )}
                       {p.status === 'verified' && (
-                        <span className="bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
+                        <span className="bg-[#EAF7EF] text-[#2E8B57] border border-[#2E8B57]/20 text-[10px] font-bold px-2.5 py-1 rounded-md">
                           {t('explore.property_card.verified_legal')}
                         </span>
                       )}
@@ -468,7 +468,7 @@ export default function ExplorePage() {
                     <p className="text-xl font-extrabold text-brand-primary">
                       {p.priceDisplay || formatPrice(p.price)}
                     </p>
-                    <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-secondary transition-colors">
+                    <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-[#4A90E2] transition-colors">
                       {getTranslated(p, 'title', p.title)}
                     </p>
                     <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
@@ -482,7 +482,7 @@ export default function ExplorePage() {
                         <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
                       </div>
                       {p.agent && (
-                        <span className="text-xs font-medium text-brand-secondary">{p.agent}</span>
+                        <span className="text-xs font-medium text-[#4A90E2]">{p.agent}</span>
                       )}
                     </div>
                   </div>
@@ -492,9 +492,9 @@ export default function ExplorePage() {
                 <button
                   type="button"
                   onClick={() => toggleSave(p.id)}
-                  className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-secondary transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-[#4A90E2] transition-colors"
                 >
-                   <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4F8FD8' : 'none'} stroke={saved.includes(p.id) ? '#4F8FD8' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                   <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4A90E2' : 'none'} stroke={saved.includes(p.id) ? '#4A90E2' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
                   {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
@@ -559,7 +559,7 @@ export default function ExplorePage() {
                       onClick={() => setFilterType(filterType === opt.value ? '' : opt.value)}
                       className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                         filterType === opt.value
-                          ? 'bg-brand-primary text-white'
+                          ? 'bg-[#1E3A5F] text-white'
                           : 'bg-brand-bg text-brand-muted border border-brand-border'
                       }`}
                     >
@@ -583,7 +583,7 @@ export default function ExplorePage() {
                       onClick={() => setFilterPrice(filterPrice === r.value ? '' : r.value)}
                       className={`rounded-lg py-2.5 text-sm font-medium transition-colors ${
                         filterPrice === r.value
-                          ? 'bg-brand-primary text-white'
+                          ? 'bg-[#1E3A5F] text-white'
                           : 'bg-brand-bg text-brand-muted border border-brand-border'
                       }`}
                     >
@@ -603,7 +603,7 @@ export default function ExplorePage() {
                       onClick={() => setFilterBeds(filterBeds === b ? '' : b)}
                       className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors ${
                         filterBeds === b
-                          ? 'bg-brand-primary text-white'
+                          ? 'bg-[#1E3A5F] text-white'
                           : 'bg-brand-bg text-brand-muted border border-brand-border'
                       }`}
                     >
@@ -619,7 +619,7 @@ export default function ExplorePage() {
                   fetchProperties({ type: filterType, beds: filterBeds, price: filterPrice })
                   setShowFilter(false)
                 }}
-                className="w-full bg-brand-primary text-white rounded-xl py-3 font-bold text-sm mt-2 active:scale-[0.98] transition-transform"
+                className="w-full bg-[#1E3A5F] text-white rounded-xl py-3 font-bold text-sm mt-2 hover:bg-[#284D7A] active:scale-[0.98] transition-transform"
               >
                 {t('explore.filter.apply')}
               </button>

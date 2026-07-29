@@ -58,7 +58,7 @@ function VerticalStepper({ steps, current }) {
                     isCompleted
                     ? 'bg-brand-primary text-white'
                     : isActive
-                    ? 'bg-brand-primary text-white ring-4 ring-brand-secondary/30'
+                    ? 'bg-brand-primary text-white ring-4 ring-brand-accent/30'
                     : 'bg-brand-bg border border-brand-border text-brand-muted'
                   }`}
                 >
@@ -83,7 +83,7 @@ function VerticalStepper({ steps, current }) {
                     isActive
                       ? 'text-brand-text'
                       : isCompleted
-                      ? 'text-brand-secondary'
+                      ? 'text-brand-accent'
                       : 'text-brand-muted'
                   }`}
                 >
@@ -290,7 +290,7 @@ export default function SellPropertyPage() {
                   placeholder={t('sellProperty.contact_step.phone_placeholder')}
                   value={form.whatsapp}
                   onChange={handleChange('whatsapp')}
-                  className="w-full py-4 pl-12 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
+                  className="w-full py-4 pl-12 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
                 />
               </div>
               <p className="text-xs text-brand-muted mt-1.5">
@@ -312,7 +312,7 @@ export default function SellPropertyPage() {
                 placeholder={t('sellProperty.property_step.title_placeholder')}
                 value={form.title}
                 onChange={handleChange('title')}
-                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
               />
             </div>
 
@@ -323,7 +323,7 @@ export default function SellPropertyPage() {
               <select
                 value={form.jenis_properti}
                 onChange={handleChange('jenis_properti')}
-                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors appearance-none"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none"
               >
                 <option value="">{t('sellProperty.property_step.type_placeholder')}</option>
                 <option value="Rumah">{t('sellProperty.property_types.rumah')}</option>
@@ -343,7 +343,7 @@ export default function SellPropertyPage() {
               <select
                 value={form.status_sertifikat}
                 onChange={handleChange('status_sertifikat')}
-                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors appearance-none"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none"
               >
                 <option value="">{t('sellProperty.property_step.certificate_placeholder')}</option>
                 <option value="SHM">{t('sellProperty.certificate_statuses.shm')}</option>
@@ -371,7 +371,7 @@ export default function SellPropertyPage() {
                     const raw = e.target.value.replace(/[^0-9]/g, '')
                     setForm((p) => ({ ...p, estimasi_harga: raw }))
                   }}
-                  className="w-full py-4 pl-10 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
+                  className="w-full py-4 pl-10 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
                 />
               </div>
               {form.estimasi_harga && (
@@ -395,7 +395,7 @@ export default function SellPropertyPage() {
                 placeholder={t('sellProperty.location_step.address_placeholder')}
                 value={form.address}
                 onChange={handleChange('address')}
-                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors resize-none"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none"
               />
             </div>
 
@@ -408,7 +408,7 @@ export default function SellPropertyPage() {
                 placeholder={t('sellProperty.location_step.maps_placeholder')}
                 value={locationUrl}
                 onChange={(e) => setLocationUrl(e.target.value)}
-                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
               />
               <p className="text-xs text-brand-muted mt-2 leading-relaxed">
                 {t('sellProperty.location_step.maps_helper')}
@@ -431,7 +431,7 @@ export default function SellPropertyPage() {
                   placeholder={t('sellProperty.detail_step.area_placeholder')}
                   value={form.sqm}
                   onChange={handleChange('sqm')}
-                  className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
+                  className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
                 />
               </div>
               <div>
@@ -444,7 +444,7 @@ export default function SellPropertyPage() {
                   placeholder={t('sellProperty.detail_step.bedroom_placeholder')}
                   value={form.bedrooms}
                   onChange={handleChange('bedrooms')}
-                  className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
+                  className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
                 />
               </div>
               <div>
@@ -457,7 +457,7 @@ export default function SellPropertyPage() {
                   placeholder={t('sellProperty.detail_step.bathroom_placeholder')}
                   value={form.bathrooms}
                   onChange={handleChange('bathrooms')}
-                  className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors"
+                  className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
                 />
               </div>
             </div>
@@ -470,7 +470,7 @@ export default function SellPropertyPage() {
                 placeholder={t('sellProperty.detail_step.description_placeholder')}
                 value={form.description}
                 onChange={handleChange('description')}
-                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors resize-none"
+                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none"
               />
             </div>
           </div>
@@ -511,7 +511,7 @@ export default function SellPropertyPage() {
                     </div>
                   ))}
                   {allImages.length < MAX_IMAGES && (
-                    <label className="aspect-square rounded-xl border-2 border-dashed border-brand-border bg-brand-bg/50 flex flex-col items-center justify-center cursor-pointer hover:border-brand-secondary hover:bg-brand-bg transition-colors">
+                    <label className="aspect-square rounded-xl border-2 border-dashed border-brand-border bg-brand-bg/50 flex flex-col items-center justify-center cursor-pointer hover:border-brand-accent hover:bg-brand-bg transition-colors">
                       <Plus size={24} className="text-brand-muted" />
                       <span className="text-[10px] text-brand-muted mt-1 font-medium">Tambah</span>
                       <input
@@ -527,7 +527,7 @@ export default function SellPropertyPage() {
               )}
 
               {allImages.length === 0 && (
-                <label className="flex flex-col items-center justify-center w-full py-10 px-4 border-2 border-dashed rounded-xl cursor-pointer border-brand-border bg-brand-bg hover:border-brand-secondary transition-colors">
+                <label className="flex flex-col items-center justify-center w-full py-10 px-4 border-2 border-dashed rounded-xl cursor-pointer border-brand-border bg-brand-bg hover:border-brand-accent transition-colors">
                   <UploadIcon />
                   <span className="mt-3 text-sm font-medium text-brand-text">
                     Klik untuk unggah foto
@@ -561,7 +561,7 @@ export default function SellPropertyPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-brand-surface flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }

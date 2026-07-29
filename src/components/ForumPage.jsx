@@ -130,21 +130,21 @@ export default function ForumPage() {
                 + Mulai Diskusi Baru
               </button>
             ) : (
-              <form onSubmit={handleSubmit} className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-secondary p-5 space-y-4 animate-fadeIn">
+              <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-brand-border border-l-4 border-l-brand-accent p-5 space-y-4 animate-fadeIn">
                 <h2 className="text-sm font-bold text-brand-text">{t('forum.createPost')}</h2>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={t('forum.postTitlePlaceholder')}
-                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
+                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted"
                 />
                 <textarea
                   rows={3}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder={t('forum.postContentPlaceholder')}
-                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted resize-none"
+                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted resize-none"
                 />
                 <div className="flex items-center gap-3">
                   <button
@@ -174,7 +174,7 @@ export default function ForumPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-16">
@@ -202,7 +202,7 @@ export default function ForumPage() {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && navigate(`/forum/${post.id}`)}
-                className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-5 hover:shadow-md hover:border-brand-secondary/20 active:scale-[0.99] transition-all duration-200 cursor-pointer"
+                className="bg-white rounded-2xl shadow-sm border border-brand-border p-5 hover:shadow-md hover:border-brand-accent/20 active:scale-[0.99] transition-all duration-200 cursor-pointer"
               >
                 <div className="flex items-start gap-4">
                   <div className="shrink-0">
@@ -221,7 +221,7 @@ export default function ForumPage() {
                     </div>
                     <p className="text-xs text-brand-muted mt-1">
                       {latestReply ? (
-                        <>↳ Balasan terakhir dari <span className="font-medium text-brand-secondary">{latestReply.profiles?.first_name || 'Anonymous'}</span> {timeAgo(latestReply.created_at)}</>
+                        <>↳ Balasan terakhir dari <span className="font-medium text-brand-accent">{latestReply.profiles?.first_name || 'Anonymous'}</span> {timeAgo(latestReply.created_at)}</>
                       ) : (
                         <>{authorName} &bull; {timeAgo(post.created_at)}</>
                       )}

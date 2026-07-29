@@ -450,7 +450,7 @@ export default function PropertyDetailPage() {
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-brand-text leading-tight">
                 {displayTitle}
                 {transLoading && lang === 'en' && (
-                  <span className="inline-block ml-2 align-middle w-4 h-4 border-2 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+                  <span className="inline-block ml-2 align-middle w-4 h-4 border-2 border-brand-accent border-t-transparent rounded-full animate-spin" />
                 )}
               </h1>
             </div>

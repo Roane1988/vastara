@@ -36,9 +36,9 @@ export default function RoleSelectionPage() {
               key={key}
               type="button"
               onClick={() => navigate('/sell', { state: { role: key } })}
-              className="w-full flex items-center gap-5 p-5 rounded-2xl bg-brand-surface border border-brand-border shadow-sm hover:shadow-md hover:border-brand-secondary/40 active:scale-[0.98] transition-all duration-200 text-left group"
+              className="w-full flex items-center gap-5 p-5 rounded-2xl bg-brand-surface border border-brand-border shadow-sm hover:shadow-md hover:border-brand-accent/40 active:scale-[0.98] transition-all duration-200 text-left group"
             >
-              <div className="w-14 h-14 rounded-2xl bg-brand-secondary/10 flex items-center justify-center text-brand-secondary shrink-0 group-hover:bg-brand-primary group-hover:text-white transition-colors duration-200">
+              <div className="w-14 h-14 rounded-2xl bg-brand-accent/10 flex items-center justify-center text-brand-accent shrink-0 group-hover:bg-brand-primary group-hover:text-white transition-colors duration-200">
                 <Icon size={26} />
               </div>
               <div>

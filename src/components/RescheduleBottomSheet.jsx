@@ -77,7 +77,7 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
             <div className="overflow-y-auto px-6 pt-5 pb-6">
               {/* Agent Info */}
               <div className="bg-brand-bg p-3 rounded-xl flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center text-xs text-white font-semibold flex-shrink-0">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center text-xs text-white font-semibold flex-shrink-0">
                   {agent?.initials || 'AF'}
                 </div>
                 <div>
@@ -98,14 +98,14 @@ export default function RescheduleBottomSheet({ isOpen, onClose, agent }) {
                       onClick={() => setSelectedDate(d.date)}
                       className={`snap-center shrink-0 rounded-xl p-3 flex flex-col items-center min-w-[70px] transition-all outline-none ${
                         isSelected
-                          ? 'border-2 border-brand-secondary bg-brand-secondary/10'
+                          ? 'border-2 border-brand-accent bg-brand-accent/10'
                           : 'border border-brand-border bg-brand-surface'
                       }`}
                     >
-                      <span className={`text-xs font-medium ${isSelected ? 'text-brand-secondary' : 'text-brand-muted'}`}>
+                      <span className={`text-xs font-medium ${isSelected ? 'text-brand-accent' : 'text-brand-muted'}`}>
                         {d.day}
                       </span>
-                      <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-brand-secondary' : 'text-brand-text'}`}>
+                      <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-brand-accent' : 'text-brand-text'}`}>
                         {d.date}
                       </span>
                     </button>

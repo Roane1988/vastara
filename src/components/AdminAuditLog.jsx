@@ -12,7 +12,7 @@ const ACTION_LABELS = {
 const ACTION_COLORS = {
   verify_property: 'text-emerald-600 bg-emerald-50 border-emerald-200',
   reject_property: 'text-red-600 bg-red-50 border-red-200',
-  change_role: 'text-brand-secondary bg-brand-secondary/10 border-brand-secondary/20',
+  change_role: 'text-brand-accent bg-brand-accent/10 border-brand-accent/20',
 }
 
 function getActionLabel(type) {
@@ -78,7 +78,7 @@ export default function AdminAuditLog() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }

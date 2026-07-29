@@ -19,7 +19,7 @@ function getRoleLabel(role) {
 function getRoleBadgeClass(role) {
   switch (role) {
     case 'admin':
-      return 'bg-brand-secondary/10 text-brand-secondary border-brand-secondary/20'
+      return 'bg-brand-accent/10 text-brand-accent border-brand-accent/20'
     case 'agent':
     case 'developer':
       return 'bg-violet-50 text-violet-700 border-violet-200'
@@ -114,7 +114,7 @@ export default function AdminUserManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -150,13 +150,13 @@ export default function AdminUserManagement() {
                   <tr key={u.id} className="hover:bg-brand-bg/50 transition-colors">
                     <td className="px-5 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-brand-secondary/10 flex items-center justify-center text-brand-secondary text-xs font-bold shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent text-xs font-bold shrink-0">
                           {(u.first_name || 'A').charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
                           <span className="font-medium text-brand-text">{u.first_name || 'Anonymous'}</span>
                           {isSelf && (
-                            <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20">
+                            <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-brand-accent/10 text-brand-accent border border-brand-accent/20">
                               Anda
                             </span>
                           )}
@@ -176,7 +176,7 @@ export default function AdminUserManagement() {
                           value={u.role || 'pembeli'}
                           disabled={updatingId === u.id}
                           onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                          className="appearance-none bg-brand-bg border border-brand-border rounded-xl px-3 py-2 pr-8 text-xs font-medium text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="appearance-none bg-brand-bg border border-brand-border rounded-xl px-3 py-2 pr-8 text-xs font-medium text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {ROLE_OPTIONS.map((r) => (
                             <option key={r.value} value={r.value}>{r.label}</option>

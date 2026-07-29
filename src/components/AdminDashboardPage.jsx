@@ -188,13 +188,13 @@ export default function AdminDashboardPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`pb-3 text-sm font-semibold transition-colors relative ${
                   activeTab === tab.key
-                    ? 'text-brand-secondary'
+                    ? 'text-brand-accent'
                     : 'text-brand-muted hover:text-brand-text'
                 }`}
               >
                 {tab.label}
                 {activeTab === tab.key && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-secondary rounded-full" />
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-accent rounded-full" />
                 )}
               </button>
             ))}
@@ -209,7 +209,7 @@ export default function AdminDashboardPage() {
 
             {loading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="w-8 h-8 border-4 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
               </div>
             ) : properties.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 bg-brand-surface rounded-2xl shadow-sm border border-brand-border">
@@ -254,7 +254,7 @@ export default function AdminDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => navigate(`/property/${p.id}`)}
-                                className="font-semibold text-brand-text hover:text-brand-secondary transition-colors text-left"
+                                className="font-semibold text-brand-text hover:text-brand-accent transition-colors text-left"
                               >
                                 {p.title}
                               </button>
@@ -274,7 +274,7 @@ export default function AdminDashboardPage() {
                             </td>
                             <td className="px-5 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-brand-secondary/10 flex items-center justify-center text-brand-secondary text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent text-xs font-bold shrink-0">
                                   {sellerName.charAt(0).toUpperCase()}
                                 </div>
                                 <span className="font-medium text-brand-text">{sellerName}</span>

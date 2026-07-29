@@ -96,7 +96,7 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
                             onClick={() => { navigate('/coming-soon'); onClose() }}
                             className="flex flex-col items-center text-center p-2 rounded-xl hover:bg-brand-bg transition-all cursor-pointer"
                           >
-                            <div className="relative w-12 h-12 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-secondary shadow-sm shrink-0">
+                            <div className="relative w-12 h-12 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent shadow-sm shrink-0">
                               <Icon size={20} />
                               {item.isNew && (
                                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none">

@@ -274,7 +274,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                   notification.type === 'success'
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : notification.type === 'info'
-                      ? 'bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20'
+                      ? 'bg-brand-accent/10 text-brand-accent border border-brand-accent/20'
                       : 'bg-red-50 text-red-700 border border-red-200'
                 }`}>
                   {notification.type === 'success' ? (
@@ -298,7 +298,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                   <UserIcon />
                   <h3 className="font-semibold text-brand-text">{t('profileDrawer.section_title')}</h3>
                   {role === 'admin' && (
-                    <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20">
+                    <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EDF4FD] text-[#1E3A5F] border border-[#1E3A5F]/20">
                       Admin Internal
                     </span>
                   )}
@@ -312,7 +312,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder={t('profileDrawer.name_placeholder')}
-                      className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
+                      className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted"
                     />
                   </div>
                   <div>
@@ -322,7 +322,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder={t('profileDrawer.email_placeholder')}
-                      className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
+                      className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted"
                     />
                   </div>
                   <div>
@@ -332,7 +332,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                       value={whatsapp}
                       onChange={(e) => setWhatsapp(e.target.value)}
                       placeholder={t('profileDrawer.whatsapp_placeholder')}
-                      className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
+                      className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted"
                     />
                   </div>
                 </div>
@@ -340,7 +340,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
               <section>
                 <div className="flex items-center gap-2 mb-4">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#4F8FD8" stroke="#4F8FD8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#4A90E2" stroke="#4A90E2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
                   <h3 className="font-semibold text-brand-text">{t('profileDrawer.saved_title')}</h3>
@@ -354,7 +354,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                         key={p.id}
                         type="button"
                         onClick={() => { onClose(); navigate(`/property/${p.id}`) }}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-brand-bg transition-colors text-left"
+                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors text-left"
                       >
                         <div className="w-12 h-12 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
                           {p.image_url ? (
@@ -384,7 +384,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                   <button
                     type="button"
                     onClick={() => { onClose(); navigate('/admin') }}
-                    className="w-full flex items-center gap-3 py-3 px-3 text-sm font-semibold text-brand-text hover:bg-brand-bg rounded-xl transition-colors"
+                    className="w-full flex items-center gap-3 py-3 px-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] rounded-xl transition-colors"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary">
                       <rect x="3" y="3" width="7" height="7" />
@@ -400,7 +400,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                 <button
                   type="button"
                   onClick={() => { onClose(); navigate('/my-listings') }}
-                  className="w-full flex items-center gap-3 py-3 px-3 text-sm font-semibold text-brand-text hover:bg-brand-bg rounded-xl transition-colors"
+                  className="w-full flex items-center gap-3 py-3 px-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] rounded-xl transition-colors"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -436,7 +436,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder={t('profileDrawer.password_placeholder')}
-                  className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-secondary/30 focus:border-brand-secondary transition-colors placeholder:text-brand-muted"
+                  className="w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted"
                 />
               </div>
               <button
