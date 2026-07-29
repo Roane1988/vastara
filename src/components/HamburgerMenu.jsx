@@ -239,7 +239,11 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
               ) : (
                 <div className="absolute inset-0 overflow-y-auto px-4 py-5 space-y-6">
                   {isAuth ? (
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-bg border border-brand-border">
+                    <button
+                      type="button"
+                      onClick={handleProfile}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-bg border border-brand-border cursor-pointer transition-colors hover:bg-gray-100 active:bg-gray-200 text-left"
+                    >
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0">
                         {initial}
                       </div>
@@ -249,7 +253,7 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                           {role === 'admin' ? 'Admin Internal' : 'Pembeli'}
                         </p>
                       </div>
-                    </div>
+                    </button>
                   ) : (
                     <button
                       type="button"
@@ -318,18 +322,6 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
                   <div className="border-t border-brand-border pt-4">
                     <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">Pengaturan</p>
                     <div className="space-y-0.5">
-                      {isAuth && (
-                        <MenuItem
-                          icon={
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                              <circle cx="12" cy="7" r="4" />
-                            </svg>
-                          }
-                          label="Informasi Pribadi"
-                          onClick={handleProfile}
-                        />
-                      )}
                       {isAuth && (
                         <MenuItem
                           icon={<LogOutIcon />}
