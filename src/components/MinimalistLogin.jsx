@@ -97,7 +97,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8 pt-4">
-          <img src="/huniOne.svg" alt="HuniOne" className="h-14 sm:h-16 w-auto mx-auto" />
+          <h1 className="text-5xl font-bold tracking-[0.15em] text-brand-primary">HuniOne</h1>
           <p className="text-sm font-medium text-brand-primary/70 tracking-wide mt-1">
             Platform Properti Terpercaya
           </p>
