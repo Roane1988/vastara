@@ -437,75 +437,83 @@ export default function PropertyDetailPage() {
             Hubungi Pengiklan Segera
           </a>
         </div>
-
-        <div className="px-5 pt-3 pb-2 lg:pt-4 lg:pb-0">
-          <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1">
-            <MapPinIcon />
-            <span>{displayAddress}</span>
-          </div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-brand-text leading-tight">
-            {displayTitle}
-            {transLoading && lang === 'en' && (
-              <span className="inline-block ml-2 align-middle w-4 h-4 border-2 border-brand-secondary border-t-transparent rounded-full animate-spin" />
-            )}
-          </h1>
-        </div>
       </div>
 
-      <div className="flex-1 w-full max-w-7xl mx-auto px-5 pt-5 pb-32 space-y-5">
-        <div>
-          <p className="text-2xl font-extrabold text-brand-primary">
-            {formatPrice(property.price)}
-          </p>
-        </div>
+      <div className="flex-1 w-full max-w-7xl mx-auto px-5 pt-5 pb-32">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-5">
+            <div>
+              <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1">
+                <MapPinIcon />
+                <span>{displayAddress}</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-brand-text leading-tight">
+                {displayTitle}
+                {transLoading && lang === 'en' && (
+                  <span className="inline-block ml-2 align-middle w-4 h-4 border-2 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+                )}
+              </h1>
+            </div>
 
-        <div className="flex gap-6">
-          <div className="flex items-center gap-2 text-brand-muted ">
-            <BedIcon />
-            <span className="text-sm font-medium">{property.bedrooms} Kamar</span>
+            <div>
+              <p className="text-2xl font-extrabold text-brand-primary">
+                {formatPrice(property.price)}
+              </p>
+            </div>
+
+            <div className="flex gap-6">
+              <div className="flex items-center gap-2 text-brand-muted ">
+                <BedIcon />
+                <span className="text-sm font-medium">{property.bedrooms} Kamar</span>
+              </div>
+              <div className="flex items-center gap-2 text-brand-muted ">
+                <BathIcon />
+                <span className="text-sm font-medium">{property.bathrooms} Kamar Mandi</span>
+              </div>
+              <div className="flex items-center gap-2 text-brand-muted ">
+                <SqmIcon />
+                <span className="text-sm font-medium">{property.area_sqm || property.sqm || '-'} m&sup2;</span>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-base font-semibold text-brand-text mb-2">
+                {lang === 'en' ? 'Description' : 'Deskripsi'}
+              </h2>
+              <p className="text-sm text-brand-muted leading-relaxed">
+                {lang === 'en' && property.description_en
+                  ? property.description_en
+                  : (property.description_id || `${displayTitle} — ${property.bedrooms} bedrooms, ${property.bathrooms} bathrooms, ${property.area_sqm || property.sqm || '-'} m².`)}
+              </p>
+            </div>
+
+            <AccordionBlock id="panduan" title="Panduan Membeli Properti" isOpen={accordionState.panduan} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
+              <ol className="list-decimal pl-4 space-y-1.5">
+                <li>Tentukan anggaran dan kebutuhan properti Anda.</li>
+                <li>Cari properti yang sesuai dengan kriteria Anda.</li>
+                <li>Lakukan survei langsung ke lokasi properti.</li>
+                <li>Periksa kelengkapan dokumen legalitas properti.</li>
+                <li>Lakukan negosiasi harga dengan penjual.</li>
+                <li>Proses akad jual beli di hadapan Pejabat Pembuat Akta Tanah (PPAT).</li>
+              </ol>
+            </AccordionBlock>
+
+            <AccordionBlock id="disclaimer" title="Disclaimer" isOpen={accordionState.disclaimer} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
+              Informasi yang ditampilkan pada halaman ini disediakan oleh pengiklan dan/atau pihak ketiga. HuniOne tidak bertanggung jawab atas keakuratan, kelengkapan, atau keabsahan informasi tersebut. Segala transaksi dan kesepakatan sepenuhnya merupakan tanggung jawab antara pembeli dan penjual.
+            </AccordionBlock>
           </div>
-          <div className="flex items-center gap-2 text-brand-muted ">
-            <BathIcon />
-            <span className="text-sm font-medium">{property.bathrooms} Kamar Mandi</span>
-          </div>
-          <div className="flex items-center gap-2 text-brand-muted ">
-            <SqmIcon />
-            <span className="text-sm font-medium">{property.area_sqm || property.sqm || '-'} m&sup2;</span>
+
+          <div className="lg:col-span-1">
+            <div className="sticky top-24 self-start">
+              <AgentCard sellerName={sellerName} sellerRole={sellerRole} waLink={waLink} phoneShort={phoneShort} sellerId={property.seller_id} />
+            </div>
           </div>
         </div>
-
-        <div>
-          <h2 className="text-base font-semibold text-brand-text mb-2">
-            {lang === 'en' ? 'Description' : 'Deskripsi'}
-          </h2>
-          <p className="text-sm text-brand-muted leading-relaxed">
-            {lang === 'en' && property.description_en
-              ? property.description_en
-              : (property.description_id || `${displayTitle} — ${property.bedrooms} bedrooms, ${property.bathrooms} bathrooms, ${property.area_sqm || property.sqm || '-'} m².`)}
-          </p>
-        </div>
-
-        <AgentCard sellerName={sellerName} sellerRole={sellerRole} waLink={waLink} phoneShort={phoneShort} sellerId={property.seller_id} />
-
-        <AccordionBlock id="panduan" title="Panduan Membeli Properti" isOpen={accordionState.panduan} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
-          <ol className="list-decimal pl-4 space-y-1.5">
-            <li>Tentukan anggaran dan kebutuhan properti Anda.</li>
-            <li>Cari properti yang sesuai dengan kriteria Anda.</li>
-            <li>Lakukan survei langsung ke lokasi properti.</li>
-            <li>Periksa kelengkapan dokumen legalitas properti.</li>
-            <li>Lakukan negosiasi harga dengan penjual.</li>
-            <li>Proses akad jual beli di hadapan Pejabat Pembuat Akta Tanah (PPAT).</li>
-          </ol>
-        </AccordionBlock>
-
-        <AccordionBlock id="disclaimer" title="Disclaimer" isOpen={accordionState.disclaimer} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
-          Informasi yang ditampilkan pada halaman ini disediakan oleh pengiklan dan/atau pihak ketiga. HuniOne tidak bertanggung jawab atas keakuratan, kelengkapan, atau keabsahan informasi tersebut. Segala transaksi dan kesepakatan sepenuhnya merupakan tanggung jawab antara pembeli dan penjual.
-        </AccordionBlock>
       </div>
 
       <Lightbox isOpen={isLightboxOpen} images={images} currentIndex={lightboxIndex} onClose={closeLightbox} onPrev={prevImage} onNext={nextImage} propertyTitle={property.title} />
 
-      <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-30">
+      <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-30 lg:hidden">
         <a
           href={waLink}
           target="_blank"
