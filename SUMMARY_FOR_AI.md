@@ -112,6 +112,8 @@ Proxy untuk Groq AI API. Menerima POST dengan `{ model, messages }`, meneruskan 
 - **Model restriction**: hanya `llama-3.3-70b-versatile` yang diizinkan.
 - **Body validation**: validasi `messages` array — tiap item harus punya `role` (system/user/assistant) dan `content` string (max 10.000 chars).
 - **Error handling**: 405 (method), 429 (rate limit), 400 (invalid body), 403 (model), 500 (fetch failed).
+- **Prompt injection prevention**: `req.body.purpose` (`'chat'` / `'translation'`) pilih system prompt dari `SYSTEM_PROMPTS` map. Client system role selalu di-strip. Dua prompt: HuniBot (ID, properti-only, maks 2-3 paragraf) dan translator (EN, JSON-only).
+- **Temperature & tokens**: chat → 0.7 / 1024, translation → 0.3 / 2048.
 
 ### `vercel.json`
 Security headers & routing konfigurasi untuk Vercel deploy.
@@ -134,7 +136,7 @@ Security headers & routing konfigurasi untuk Vercel deploy.
 - Credentials: true
 
 ### `vite.config.js`
-Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via `loadEnv()` (server-side). Sama seperti serverless function: model restriction, fetch ke Groq API, error handling.
+Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via `loadEnv()` (server-side). Identik dengan serverless function: rate limiting, model restriction, purpose-based system prompt, fetch ke Groq API, error handling.
 
 ---
 
@@ -232,7 +234,7 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 17. Avatar tidak pakai `avatar_url` — inisial dari `first_name` + warna konsisten dari hash UUID user. Helper di `utils/avatar.js`: `getAvatarColor()` + `getInitials()`.
 
 ### Styling
-18. **Tailwind v4**: Tidak ada `tailwind.config.js`. Konfigurasi theme via CSS `@theme` di `index.css`. Custom colors: `brand-primary` (#183B63), `brand-secondary` (#4F8FD8), `brand-bg` (#EEF3F7), `brand-surface` (#FFFFFF), `brand-text` (#1C2733), `brand-muted` (#66788A), `brand-border` (#D6DEE7).
+18. **Tailwind v4**: Tidak ada `tailwind.config.js`. Konfigurasi theme via CSS `@theme` di `index.css`. Custom colors: `brand-primary` (#1E3A5F), `brand-accent` (#4A90E2), `brand-bg` (#F8FAFC), `brand-surface` (#FFFFFF), `brand-text` (#1C2733), `brand-muted` (#6B7280), `brand-border` (#E5E7EB), `brand-highlight` (#EDF4FD), `brand-verified` (#2E8B57), `brand-danger` (#DC2626).
 19. **Desktop layout**: Halaman memakai `max-w-7xl mx-auto` untuk membatasi lebar konten di desktop, meniru tata letak portal properti profesional seperti Rumah123. Berlaku di `ExplorePage`, `PropertyDetailPage`, `ForumPage`, `ForumDetailPage`.
 20. Animasi: framer-motion untuk page transition + custom CSS keyframes `slide-up` dan `fadeIn`.
 
@@ -247,9 +249,9 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 28. **Audit logging**: Setiap tindakan admin yang mengubah data (verify/reject property, change role) harus mencatat ke `audit_logs`. Pola: `insertAuditLog()` dipanggil fire-and-forget (tanpa `await` atau `await` dengan `try/catch` kosong) agar tidak memblokir main operation. `target_detail` JSONB berisi payload kontekstual (`{ property_title, property_price }` untuk property, `{ user_name, old_role, new_role }` untuk user).
 
 ### Perubahan Brand & Aset
-29. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` (text `text-2xl font-extrabold tracking-tighter text-brand-primary`), `MinimalistLogin` (`<h1>` heading `text-5xl font-bold tracking-[0.15em]`), `Footer` (`<span>` `text-2xl font-extrabold text-white tracking-tight`), `index.html` title, locale strings, `SellPropertyPage` success message.
-30. **Logo asset**: `src/assets/huniOne.svg` — official vector logo tersedia tapi **tidak dipasang**. Branding saat ini menggunakan text-based "HuniOne" (bukan `<img>`). Jika ingin pasang SVG, ubah 3 komponen: import logo, ganti text dengan `<img src={logo} ...>` di tiap komponen.
-31. **Holding company dihapus**: Semua referensi "PT Vastara Holding Indonesia" sudah dihapus dari Footer (deskripsi, link, copyright). Copyright sekarang "© 2026 HuniOne. All rights reserved.".
+29. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` (`<img src="/huniOne.svg">`), `MinimalistLogin` (`<img src="/huniOne.svg">` + "Platform Properti Terpercaya"), `Footer` (`<img src="/huniOne.svg">`), `index.html` title, locale strings, `SellPropertyPage` success message.
+30. **Logo asset**: `public/huniOne.svg` — SVG logo dipasang via `<img>` di TopNavbar (h-9 sm:h-10), MinimalistLogin (h-14 sm:h-16), Footer (h-10 sm:h-12). Tidak lagi text-based.
+31. **Holding company dihapus**: Semua referensi "PT Vastara Holding Indonesia" sudah dihapus dari Footer (deskripsi, link, copyright). Copyright "© 2026 HuniOne. All rights reserved.".
 
 ---
 
@@ -310,6 +312,14 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - **`TopNavbar.jsx`** — Tombol "Dashboard" (grid icon) navigasi ke `/admin`, ditempatkan sebelum tombol "Jual Properti".
 - **`HamburgerMenu.jsx`** — Fetch `role` via `useEffect` tiap drawer terbuka. Jika `role === 'admin'`: item "Dashboard Admin" di menu utama + label header "Admin Internal" (`text-brand-secondary`).
 - **`ProfileDrawer.jsx`** — Fetch `role` dari `profiles`. Jika `role === 'admin'`: badge "Admin Internal" + item "Dashboard Admin".
+
+### Purpose-Based System Prompt & Logo SVG (Session #7 — July 2026)
+- **`api/groq.js`** & **`vite.config.js`** — `SYSTEM_PROMPTS` map dengan dua entry: `'chat'` (HuniBot, ID, properti-only) dan `'translation'` (EN translator, JSON-only, no markdown). Server baca `req.body.purpose` untuk memilih prompt. Client `system` role selalu di-strip untuk anti prompt injection.
+- **`useGroqTranslation.js`** — Request body kirim `purpose: 'translation'` tanpa `system` prompt (karena server sudah tahu dari purpose). Temperature 0.3, max_tokens 2048.
+- **`HuniBot.jsx`** — Request body kirim `purpose: 'chat'` eksplisit. Temperature 0.7, max_tokens 1024.
+- **`public/huniOne.svg`** — Logo SVG dipasang di TopNavbar, MinimalistLogin, Footer menggantikan text "HuniOne".
+- **Color palette updated**: Semua komponen (ExplorePage header gradient, search bar, tabs, verified badge, shortcut icons, property cards, HamburgerMenu, ProfileDrawer, ForumPage cards) migrated ke warna baru: primary #1E3A5F, accent #4A90E2, bg #F8FAFC, border #E5E7EB, muted #6B7280, highlight #EDF4FD, verified #2E8B57, danger #DC2626.
+- **`index.css`** — `brand-secondary` diganti `brand-accent` di `@theme`. Old hex `#183B63`/`#4F8FD8` dihapus dari inline SVGs.
 
 ### HuniBot Enhancements (Session #5 — July 2026)
 - **`HuniBot.jsx`** — Personalisasi greeting: import `useAuth` dari `AuthContext`, extrak `firstName` dari `user?.user_metadata?.first_name`. Greeting title berubah dinamis: jika login → "Halo, {firstName}!", jika tidak → "Halo! Ada yang bisa dibantu?". Subtitle dan quick reply buttons tetap utuh.
