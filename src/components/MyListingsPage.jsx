@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getImageSrc } from '../utils/images'
 import { formatPrice } from '../utils/format'
+import ConfirmModal from './ConfirmModal'
 
 function ArrowLeftIcon() {
   return (
@@ -15,6 +16,14 @@ function ArrowLeftIcon() {
 }
 
 function StatusBadge({ status }) {
+  if (status === 'sold') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full border bg-gray-100 text-gray-700 border-gray-200">
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+        Terjual
+      </span>
+    )
+  }
   const isPending = status === 'pending'
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full border ${
@@ -33,6 +42,36 @@ export default function MyListingsPage() {
   const { user } = useAuth()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showSoldModal, setShowSoldModal] = useState(false)
+  const [selectedPropertyId, setSelectedPropertyId] = useState(null)
+  const [soldLoading, setSoldLoading] = useState(false)
+
+  const handleConfirmSold = async () => {
+    if (!selectedPropertyId) return
+    setSoldLoading(true)
+    try {
+      const { error } = await supabase
+        .from('properties')
+        .update({ status: 'sold' })
+        .eq('id', selectedPropertyId)
+
+      if (error) throw error
+
+      setListings((prev) =>
+        prev.map((p) =>
+          p.id === selectedPropertyId ? { ...p, status: 'sold' } : p
+        )
+      )
+
+      showToast('Properti berhasil ditandai sebagai terjual', 'success')
+      setShowSoldModal(false)
+      setSelectedPropertyId(null)
+    } catch {
+      showToast('Gagal menandai properti. Silakan coba lagi.', 'error')
+    } finally {
+      setSoldLoading(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -143,12 +182,37 @@ export default function MyListingsPage() {
                     <span className="text-brand-border">&bull;</span>
                     <span>{p.area_sqm || p.sqm} m&sup2;</span>
                   </div>
+                  {p.status !== 'sold' && (
+                    <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPropertyId(p.id)
+                          setShowSoldModal(true)
+                        }}
+                        className="text-xs font-semibold text-gray-500 hover:text-red-600 border border-gray-200 hover:border-red-300 rounded-lg px-3 py-1.5 transition-colors"
+                      >
+                        Tandai Terjual
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </button>
           ))
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={showSoldModal}
+        onClose={() => { setShowSoldModal(false); setSelectedPropertyId(null) }}
+        onConfirm={handleConfirmSold}
+        title="Tandai Properti Terjual"
+        description="Apakah Anda yakin properti ini sudah laku? Iklan akan diturunkan dari pencarian publik dan tidak bisa dibatalkan sendiri."
+        confirmText="Ya, Tandai Terjual"
+        cancelText="Batal"
+        loading={soldLoading}
+      />
     </div>
   )
 }
