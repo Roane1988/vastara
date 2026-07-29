@@ -1,6 +1,8 @@
 # Project HuniOne — Ringkasan Struktur untuk AI
 
-Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
+Platform properti (jual/beli/sewa) dengan forum diskusi komunitas, AI chatbot (HuniBot), dynamic i18n translation via Groq API, realtime direct messaging, admin dashboard.
+
+Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 
 ---
 
@@ -13,7 +15,10 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - **Icons**: lucide-react
 - **Animasi**: framer-motion
 - **i18n**: react-i18next + i18next (ID/EN)
+- **AI Translation**: Groq API (`llama-3.3-70b-versatile`) via backend proxy
+- **Chatbot**: HuniBot with Groq API
 - **Map**: leaflet + react-leaflet
+- **Rate Limiting**: lru-cache (in-memory, Vercel serverless)
 
 ---
 
@@ -29,10 +34,10 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 | `/forum` | ForumPage | Tidak |
 | `/forum/:id` | ForumDetailPage | Tidak |
 | `/property/:id` | PropertyDetailPage | Tidak |
-| `/admin` | AdminDashboardPage | **Ya** |
+| `/admin` | AdminDashboardPage (via `AdminRoute`) | **Ya (admin only)** |
 | `/coming-soon` | ComingSoonPage | Tidak |
 
-`ProtectedRoute` redirect ke `/login` jika belum login, menyimpan `state.from` untuk redirect balik.
+`ProtectedRoute` redirect ke `/login` jika belum login, menyimpan `state.from` untuk redirect balik. `AdminRoute` redirect ke `/` jika `role !== 'admin'`.
 
 ---
 
@@ -43,9 +48,9 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 | File | Fungsi |
 |---|---|
 | **AdminDashboardPage.jsx** | Backoffice admin 3-tab: **Overview** (analytics cards + pending properties table), **Users** (manajemen pengguna), **Audit Trail** (log riwayat tindakan admin). Tab bar sticky dengan underline indicator. Verify/Reject properti otomatis mencatat ke `audit_logs`. Route `/admin` via `ProtectedRoute`. |
-| **Footer.jsx** | Mega footer premium: dark background (`bg-brand-primary`), grid 5 kolom (brand + Layanan + Perusahaan + Dukungan + sosial media), container `max-w-7xl`, bottom bar copyright + ikon Instagram/Twitter/LinkedIn (inline SVG). Terpasang di `App.jsx` setelah routing. |
-| **ExplorePage.jsx** | Halaman utama: hero banner, search, grid properti, filter drawer (server-side via Supabase), rekomendasi, listing lengkap. `fetchProperties()` menerima `filters` object. Thumbnail pakai `getImageSrc(p.image_url)` dari `utils/images.js` untuk backward compatibility (single string or JSON array). |
-| **PropertyDetailPage.jsx** | Detail properti: **GalleryDesktop** (Airbnb-style: 1 main large + 2x2 grid) sembunyi di `lg:block`, **GalleryMobile** (`<lg`: hero aspect-[4/3] + 4-thumb grid `grid-cols-4 gap-0.5`, thumb ke-4 overlay "Lihat Semua" jika >5 gambar, filler `bg-brand-border` untuk <4 gambar). Mobile CTA `bg-red-50` "Hubungi Pengiklan Segera". Agent Card (avatar inisial + warna hash dari `seller_id`, nama dari `profiles.first_name` via join query, role dari `profiles.role`, 2-col grid Phone outline + WhatsApp green-solid). Accordion "Panduan Membeli Properti" + "Disclaimer". Guard `if (!id)` + fallback column names. |
+| **Footer.jsx** | Mega footer premium: dark background (`bg-brand-primary`), grid 5 kolom (brand + 4 nav columns: Jelajahi, Perusahaan, Bantuan, Legal), container `max-w-7xl`. Bottom section: "Follow Us" heading + 4 social icons (Instagram/LinkedIn/TikTok/Facebook) with real links + copyright "© 2026 HuniOne. All rights reserved.". Terpasang di `App.jsx` setelah routing. |
+| **ExplorePage.jsx** | Halaman utama: hero banner, search, grid properti, filter drawer (server-side via Supabase), rekomendasi, listing lengkap. `fetchProperties()` menerima `filters` object. Thumbnail pakai `getImageSrc(p.image_url)` dari `utils/images.js` untuk backward compatibility (single string or JSON array). **Dynamic EN translation**: `useEffect` memanggil `batchTranslate(allProps)` saat `lang === 'en'`, menyimpan hasil di `translationRef`. `getTranslated(prop, field, fallback)` digunakan di recommendation cards dan listing grid untuk title/address. |
+| **PropertyDetailPage.jsx** | Detail properti: **GalleryDesktop** (Airbnb-style: 1 main large + 2x2 grid) sembunyi di `lg:block`, **GalleryMobile** (`<lg`: hero aspect-[4/3] + 4-thumb grid `grid-cols-4 gap-0.5`, thumb ke-4 overlay "Lihat Semua" jika >5 gambar, filler `bg-brand-border` untuk <4 gambar). Mobile CTA `bg-red-50` "Hubungi Pengiklan Segera". Agent Card (avatar inisial + warna hash dari `seller_id`, nama dari `profiles.first_name` via join query, role dari `profiles.role`, 2-col grid Phone outline + WhatsApp green-solid). Accordion "Panduan Membeli Properti" + "Disclaimer". Guard `if (!id)` + fallback column names. **Dynamic EN translation**: `useGroqTranslation` hook untuk title/address/type. `description_en` ditampilkan langsung saat `lang === 'en'` dan tersedia, fallback ke `description_id`. Spinner animasi saat translation loading. WhatsApp message lokalized. |
 | **SellPropertyPage.jsx** | Form multi-step (5 step) jual properti: pilih peran, **multi-image upload** (maks 10 foto, preview grid 3-4 kolom dengan thumbnail + tombol X hapus per file + tombol "Tambah"), upload paralel via `Promise.all()` ke storage `PROPERTIES_IMAGE`, `image_url` disimpan sebagai `JSON.stringify([url1, url2, ...])`. Notifikasi pakai `showToast` dari `useAuth` (bukan komponen lokal `AppToast`). Ada `useEffect` cleanup untuk `URL.revokeObjectURL` pada preview. |
 | **MyListingsPage.jsx** | Daftar properti milik user sendiri (fetch by `seller_id`). Status badge "Menunggu Verifikasi" / "Terverifikasi". |
 | **RoleSelectionPage.jsx** | Onboarding pilih peran (Agent/Developer/Owner) setelah login. |
@@ -58,10 +63,10 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 | **ConfirmModal.jsx** | Modal konfirmasi reusable untuk aksi destruktif (hapus post forum, dll). Animasi framer-motion `AnimatePresence`, backdrop blur, tombol Batal + Konfirmasi (merah). Dipakai di `ForumPage` dan `ForumDetailPage`. |
 | **MinimalistLogin.jsx** | Login/Signup: email/password, Google OAuth (`supabase.auth.signInWithOAuth`), toggle password visibility. |
 | **TopNavbar.jsx** | Navbar sticky: logo "HuniOne", language switcher, notifikasi, profil, hamburger menu. |
-| **HamburgerMenu.jsx** | Menu slide-out navigasi samping dengan daftar favorit. Fetch `role` dari `profiles` tiap buka. Jika `role === 'admin'`: tampilkan item "Dashboard Admin" di menu utama + label "Admin Internal" (biru) alih-alih "Pembeli". |
+| **HamburgerMenu.jsx** | Menu slide-out navigasi samping dengan daftar favorit. Fetch `role` dari `profiles` tiap buka. Jika `role === 'admin'`: tampilkan item "Dashboard Admin" di menu utama + label "Admin Internal" (biru) alih-alih "Pembeli". **Profile card clickable**: avatar + nama + role dibungkus `<button>` dengan `onClick={handleProfile}` — membuka ProfileDrawer. Styling: `cursor-pointer transition-colors hover:bg-gray-100 active:bg-gray-200`. Duplikasi item "Informasi Pribadi" di bagian Pengaturan sudah dihapus. |
 | **ProfileDrawer.jsx** | Drawer profil: info user, edit profil (first_name, email, whatsapp), saved properties, logout. Ada 2 efek: fetch saved + fetch profile (termasuk `role`). Jika `role === 'admin'`: tampilkan badge "Admin Internal" di header + item "Dashboard Admin" di menu navigasi. |
 | **NotificationDrawer.jsx** | Drawer notifikasi (grup Today/Yesterday). |
-| **MoreCategoriesDrawer.jsx** | Drawer bawah filter kategori properti tambahan. |
+| **MoreCategoriesDrawer.jsx** | Bottom sheet kategori properti. **Swipe-to-close**: `useDragControls` dari framer-motion — `drag="y"` pada sheet container, `dragConstraints={{ top: 0 }}`. Drag handle (`onPointerDown`) trigger drag, `touch-none` biar scroll content tidak konflik. `onDragEnd` tutup drawer jika offset.y > 100 atau velocity.y > 300. Handle punya `cursor-grab active:cursor-grabbing`. |
 | **RescheduleBottomSheet.jsx** | Bottom sheet reschedule janji survei (pilih tanggal & jam). |
 | **SavedPropertiesPage.jsx** | Properti tersimpan/favorit user (localStorage via `favorites.js`). |
 | **ComingSoonPage.jsx** | Placeholder halaman dalam pengembangan. |
@@ -85,10 +90,51 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - `id/translation.json` — Bahasa Indonesia (238 baris)
 - `en/translation.json` — English (238 baris)
 
+### `hooks/`
+- **useGroqTranslation.js**: Hook + utility untuk dynamic Indonesian-to-English translation via Groq AI. Module-level `cache` Map + `inflight` Map untuk dedup request. Dua export:
+  - `useGroqTranslation(propertyId, fields)` — untuk single property (PropertyDetailPage). Return `{ translated, loading, getText(field, fallback) }`.
+  - `batchTranslate(properties, signal)` — async batch utility (ExplorePage). Dedup otomatis, kirim hanya uncached texts dalam satu POST ke `/api/groq`.
+
 ### Root files
 - **i18n.js**: Konfigurasi i18next dengan deteksi bahasa browser.
 - **supabaseClient.js**: Inisialisasi Supabase client + validasi env var.
 - **index.css**: Tailwind v4 theme (`@theme`) + custom keyframes + `no-scrollbar` utility.
+
+---
+
+## Backend / API
+
+### `api/groq.js` (Vercel Serverless Function)
+Proxy untuk Groq AI API. Menerima POST dengan `{ model, messages }`, meneruskan ke `api.groq.com` dengan `process.env.GROQ_API_KEY` (server-side only, tidak ada `VITE_` prefix).
+
+**Keamanan**:
+- **Rate limiting**: lru-cache in-memory, max 20 req/min per IP.
+- **Model restriction**: hanya `llama-3.3-70b-versatile` yang diizinkan.
+- **Body validation**: validasi `messages` array — tiap item harus punya `role` (system/user/assistant) dan `content` string (max 10.000 chars).
+- **Error handling**: 405 (method), 429 (rate limit), 400 (invalid body), 403 (model), 500 (fetch failed).
+
+### `vercel.json`
+Security headers & routing konfigurasi untuk Vercel deploy.
+
+**Rewrites**:
+- `/api/(.*)` → `/api/groq`
+- `/(.*)` → `/index.html` (SPA fallback)
+
+**Security Headers** (semua routes):
+| Header | Value |
+|---|---|
+| `X-Frame-Options` | `SAMEORIGIN` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Content-Security-Policy` | `default-src 'self'`; script/style: `unsafe-inline` + `unsafe-eval`; img: supabase.co + images.unsplash.com; connect: supabase.co + accounts.google.com |
+
+**CORS** (API routes `/api/(.*)`):
+- `Access-Control-Allow-Origin: https://hunione.com`
+- Methods: GET, POST, OPTIONS
+- Credentials: true
+
+### `vite.config.js`
+Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via `loadEnv()` (server-side). Sama seperti serverless function: model restriction, fetch ke Groq API, error handling.
 
 ---
 
@@ -119,7 +165,8 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - `seller_id` (UUID, FK → `profiles.id`)
 - `category` ('Dijual')
 - `title`, `property_type`, `price` (bigint)
-- `description_id`, `address`
+- `description_id`, `description_en` (TEXT — untuk EN description, disimpan statis dari hasil Groq translation atau input manual)
+- `address`
 - `bedrooms`, `bathrooms`, `area_sqm` (int, **bukan** `sqm`)
 - `image_url` (TEXT — bisa single URL string legacy atau `JSON.stringify([url1, url2, ...])` untuk multi-image. Parsing via `utils/images.js:parseImages()`)
 - `seller_whatsapp`
@@ -200,9 +247,9 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 28. **Audit logging**: Setiap tindakan admin yang mengubah data (verify/reject property, change role) harus mencatat ke `audit_logs`. Pola: `insertAuditLog()` dipanggil fire-and-forget (tanpa `await` atau `await` dengan `try/catch` kosong) agar tidak memblokir main operation. `target_detail` JSONB berisi payload kontekstual (`{ property_title, property_price }` untuk property, `{ user_name, old_role, new_role }` untuk user).
 
 ### Perubahan Brand & Aset
-29. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` (text `text-2xl font-extrabold tracking-tighter text-brand-primary`), `MinimalistLogin` (`<h1>` heading `text-5xl font-bold tracking-[0.15em]`), `Footer` (`<span>` `text-2xl font-bold text-white tracking-tight`), `index.html` title, locale strings, `SellPropertyPage` success message.
+29. **Brand name**: "HuniOne" (bukan "Vastara"). Muncul di: `TopNavbar` (text `text-2xl font-extrabold tracking-tighter text-brand-primary`), `MinimalistLogin` (`<h1>` heading `text-5xl font-bold tracking-[0.15em]`), `Footer` (`<span>` `text-2xl font-extrabold text-white tracking-tight`), `index.html` title, locale strings, `SellPropertyPage` success message.
 30. **Logo asset**: `src/assets/huniOne.svg` — official vector logo tersedia tapi **tidak dipasang**. Branding saat ini menggunakan text-based "HuniOne" (bukan `<img>`). Jika ingin pasang SVG, ubah 3 komponen: import logo, ganti text dengan `<img src={logo} ...>` di tiap komponen.
-31. **Perusahaan**: PT Vastara Holding Indonesia (group ecosystem).
+31. **Holding company dihapus**: Semua referensi "PT Vastara Holding Indonesia" sudah dihapus dari Footer (deskripsi, link, copyright). Copyright sekarang "© 2026 HuniOne. All rights reserved.".
 
 ---
 
@@ -268,3 +315,22 @@ Platform properti (jual/beli/sewa) dengan forum diskusi komunitas.
 - **`HuniBot.jsx`** — Personalisasi greeting: import `useAuth` dari `AuthContext`, extrak `firstName` dari `user?.user_metadata?.first_name`. Greeting title berubah dinamis: jika login → "Halo, {firstName}!", jika tidak → "Halo! Ada yang bisa dibantu?". Subtitle dan quick reply buttons tetap utuh.
 - **`HuniBot.jsx`** — Animasi message bubbles: setiap pesan user dan bot dibungkus `<motion.div>` dengan `initial={{ opacity: 0, y: 16, scale: 0.97 }}` → `animate={{ opacity: 1, y: 0, scale: 1 }}` via `easeOut` 250ms.
 - **`HuniBot.jsx`** — System prompt di update: konten baru "Kamu adalah HuniBot, asisten virtual platform properti HuniOne. Jawablah setiap pertanyaan pengguna dengan ramah, profesional, sangat ringkas, padat, dan langsung ke intinya (maksimal 2-3 paragraf pendek). Hindari penjelasan yang bertele-tele." — hanya dikirim ke API Groq, tidak tampil di UI.
+
+### Dynamic EN Translation via Groq (Session #6 — July 2026)
+- **`src/hooks/useGroqTranslation.js`** — Hook baru + `batchTranslate` utility. Module-level cache Map + in-flight dedup Map untuk menghindari redundant API calls.
+  - `useGroqTranslation(id, fields)` — untuk single property page, return `{ getText, loading }`.
+  - `batchTranslate(properties)` — dedup across all visible cards, kirim satu POST ke `/api/groq`.
+- **`PropertyDetailPage.jsx`** — Title/address/type diterjemahkan via `useGroqTranslation`. `description_en` ditampilkan langsung saat `lang === 'en'` (static check, fallback ke `description_id`). Spinner saat loading. WhatsApp message localized.
+- **`ExplorePage.jsx`** — `useEffect` calls `batchTranslate(displayListings)` saat `lang === 'en'`. `getTranslated(prop, field, fallback)` di recommendation cards + listing grid. Fallback ke teks Indonesia tanpa flicker.
+
+### MoreCategoriesDrawer Swipe-to-Close (Session #6 — July 2026)
+- **`MoreCategoriesDrawer.jsx`** — `useDragControls` dari framer-motion. `drag="y"` + `dragConstraints={{ top: 0 }}` + `dragElastic={0.15}`. Drag handle punya `onPointerDown` untuk initiate drag, `touch-none` mencegah scroll conflict. `onDragEnd` tutup drawer jika offset.y > 100 atau velocity.y > 300.
+
+### Security Headers (Session #6 — July 2026)
+- **`vercel.json`** — Added CSP, X-Frame-Options (SAMEORIGIN), X-Content-Type-Options (nosniff), Referrer-Policy (strict-origin-when-cross-origin). CORS headers on `/api/*` restricted to `https://hunione.com`.
+
+### HamburgerMenu Clickable Profile (Session #6 — July 2026)
+- **`HamburgerMenu.jsx`** — Profile card (avatar + name + role) changed from `<div>` to `<button>` with `onClick={handleProfile}`. Added `cursor-pointer transition-colors hover:bg-gray-100 active:bg-gray-200`. Removed duplicate "Informasi Pribadi" MenuItem from Pengaturan section.
+
+### Footer Redesign (Session #6 — July 2026)
+- **`Footer.jsx`** — Complete redesign: 5-column grid (brand + Jelajahi + Perusahaan + Bantuan + Legal). New descriptions, updated nav links. "Follow Us" section with Instagram (real link), LinkedIn, TikTok (real link), Facebook. Copyright "© 2026 HuniOne. All rights reserved." Removed all PT Vastara Holding references.
