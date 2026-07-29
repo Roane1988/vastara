@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useDragControls } from 'framer-motion'
 import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine } from 'lucide-react'
 
 const SECTIONS = [
@@ -28,6 +28,7 @@ const SECTIONS = [
 
 export default function MoreCategoriesDrawer({ isOpen, onClose }) {
   const navigate = useNavigate()
+  const dragControls = useDragControls()
 
   return (
     <AnimatePresence>
@@ -46,10 +47,22 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            drag="y"
+            dragControls={dragControls}
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.15}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100 || info.velocity.y > 300) {
+                onClose()
+              }
+            }}
             className="fixed bottom-0 left-0 right-0 z-[110] flex justify-center"
           >
             <div className="w-full max-w-lg mx-auto bg-brand-surface rounded-t-3xl max-h-[85vh] overflow-y-auto pb-8">
-              <div className="sticky top-0 bg-brand-surface rounded-t-3xl pt-2 pb-1 flex justify-center">
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="sticky top-0 bg-brand-surface rounded-t-3xl pt-2 pb-1 flex justify-center cursor-grab active:cursor-grabbing touch-none"
+              >
                 <div className="w-10 h-1 rounded-full bg-brand-border" />
               </div>
 
