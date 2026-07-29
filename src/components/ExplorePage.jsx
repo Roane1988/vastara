@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin } from 'lucide-react'
@@ -8,6 +8,7 @@ import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { getImageSrc } from '../utils/images'
 import { formatPrice } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
+import { batchTranslate } from '../hooks/useGroqTranslation'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
@@ -177,6 +178,30 @@ export default function ExplorePage() {
   const displayRecommendations = sorted.length > 0 ? sorted.slice(0, 4) : DUMMY_PROPERTIES.slice(0, 4)
   const displayListings = sorted.length > 0 ? sorted : DUMMY_PROPERTIES
 
+  const translationRef = useRef({})
+  const { i18n } = useTranslation()
+  const lang = i18n.language
+
+  useEffect(() => {
+    if (lang !== 'en') {
+      translationRef.current = {}
+      return
+    }
+    const allProps = [...new Map([...displayListings, ...displayRecommendations].map((p) => [p.id, p])).values()]
+    const controller = new AbortController()
+    batchTranslate(allProps, controller.signal)
+      .then((result) => {
+        if (result) translationRef.current = { ...translationRef.current, ...result }
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [lang, displayListings, displayRecommendations])
+
+  const getTranslated = useCallback((prop, field, fallback) => {
+    if (lang !== 'en') return fallback
+    return translationRef.current[prop.id]?.[field] ?? fallback
+  }, [lang])
+
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* ─── HERO BANNER ─── */}
@@ -323,11 +348,11 @@ export default function ExplorePage() {
                     {formatPrice(p.price)}
                   </p>
                   <p className="text-sm font-semibold text-brand-text mt-0.5 truncate">
-                    {p.title}
+                    {getTranslated(p, 'title', p.title)}
                   </p>
                   <p className="text-xs text-brand-muted mt-0.5 flex items-center gap-1">
                     <MapPin size={12} />
-                    {p.address || p.location || t('explore.location_fallback')}
+                    {getTranslated(p, 'address', p.address || p.location || t('explore.location_fallback'))}
                   </p>
                   <div className="flex gap-3 text-[11px] text-brand-muted mt-2 pt-2 border-t border-brand-border">
                     <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
@@ -444,11 +469,11 @@ export default function ExplorePage() {
                       {p.priceDisplay || formatPrice(p.price)}
                     </p>
                     <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-secondary transition-colors">
-                      {p.title}
+                      {getTranslated(p, 'title', p.title)}
                     </p>
                     <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
                       <MapPin size={14} />
-                      {p.address || p.location || t('explore.location_fallback')}
+                      {getTranslated(p, 'address', p.address || p.location || t('explore.location_fallback'))}
                     </p>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
                       <div className="flex gap-3 text-xs text-brand-muted">

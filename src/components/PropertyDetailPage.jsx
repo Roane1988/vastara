@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { formatPrice } from '../utils/format'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { parseImages } from '../utils/images'
+import { useGroqTranslation } from '../hooks/useGroqTranslation'
 import NotFoundPage from './NotFoundPage'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
@@ -272,6 +274,8 @@ function AccordionBlock({ id, title, children, isOpen, onToggle }) {
 export default function PropertyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { i18n } = useTranslation()
+  const lang = i18n.language
 
   const [property, setProperty] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -281,6 +285,18 @@ export default function PropertyDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
   const images = property ? parseImages(property.image_url) : []
+
+  const transFields = property ? {
+    title: property.title,
+    address: property.address || property.location || '',
+    property_type: property.property_type || '',
+  } : {}
+
+  const { getText, loading: transLoading } = useGroqTranslation(property?.id || id, transFields)
+
+  const displayTitle = getText('title', property?.title || '')
+  const displayAddress = getText('address', property?.address || property?.location || 'Indonesia')
+  const displayType = getText('property_type', property?.property_type || '')
 
   const openLightbox = (index) => {
     setLightboxIndex(index)
@@ -382,7 +398,11 @@ export default function PropertyDetailPage() {
   }
 
   const waNumber = property.seller_whatsapp || property.agent_whatsapp || '6281234567890'
-  const waMessage = encodeURIComponent(`Halo, saya tertarik dengan properti ${property.title}`)
+  const waMessage = encodeURIComponent(
+    lang === 'en'
+      ? `Hello, I am interested in ${displayTitle}`
+      : `Halo, saya tertarik dengan properti ${displayTitle}`
+  )
   const waLink = `https://wa.me/${waNumber}?text=${waMessage}`
 
   const sellerName = property.profiles?.first_name || 'Agen Properti'
@@ -421,10 +441,13 @@ export default function PropertyDetailPage() {
         <div className="px-5 pt-3 pb-2 lg:pt-4 lg:pb-0">
           <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1">
             <MapPinIcon />
-            <span>{property.address || property.location || 'Indonesia'}</span>
+            <span>{displayAddress}</span>
           </div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-brand-text leading-tight">
-            {property.title}
+            {displayTitle}
+            {transLoading && lang === 'en' && (
+              <span className="inline-block ml-2 align-middle w-4 h-4 border-2 border-brand-secondary border-t-transparent rounded-full animate-spin" />
+            )}
           </h1>
         </div>
       </div>
@@ -453,10 +476,12 @@ export default function PropertyDetailPage() {
 
         <div>
           <h2 className="text-base font-semibold text-brand-text mb-2">
-            Deskripsi
+            {lang === 'en' ? 'Description' : 'Deskripsi'}
           </h2>
-          <p className="text-sm text-brand-muted  leading-relaxed">
-            {property.description_id || property.description_en || `${property.title} — properti premium dengan ${property.bedrooms} kamar tidur dan ${property.bathrooms} kamar mandi, luas bangunan ${property.area_sqm || property.sqm || '-'} m&sup2;.`}
+          <p className="text-sm text-brand-muted leading-relaxed">
+            {lang === 'en' && property.description_en
+              ? property.description_en
+              : (property.description_id || `${displayTitle} — ${property.bedrooms} bedrooms, ${property.bathrooms} bathrooms, ${property.area_sqm || property.sqm || '-'} m².`)}
           </p>
         </div>
 

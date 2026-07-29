@@ -1,0 +1,163 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+
+const cache = new Map()
+const inflight = new Map()
+
+function normalizeKey(obj) {
+  return Object.keys(obj).sort().map((k) => `${k}:${String(obj[k]).slice(0, 80)}`).join('|')
+}
+
+function cacheKey(propertyId, fields) {
+  return `${propertyId}|${normalizeKey(fields)}`
+}
+
+async function fetchTranslation(texts, signal) {
+  const res = await fetch('/api/groq', {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional Indonesian-to-English translator for a property platform. Translate the following Indonesian property fields to English. Keep it natural and accurate for real estate context. Return ONLY a valid JSON object with the same keys. No explanation, no markdown.',
+        },
+        { role: 'user', content: JSON.stringify(texts) },
+      ],
+    }),
+  })
+
+  if (!res.ok) throw new Error('Translation failed')
+  const data = await res.json()
+  const content = data?.choices?.[0]?.message?.content
+  if (!content) throw new Error('Empty response')
+
+  const match = content.match(/\{[\s\S]*\}/)
+  if (!match) throw new Error('Invalid response format')
+  return JSON.parse(match[0])
+}
+
+function getFromCache(propertyId, fields) {
+  const key = cacheKey(propertyId, fields)
+  return cache.get(key) || null
+}
+
+function setCache(propertyId, fields, result) {
+  const key = cacheKey(propertyId, fields)
+  cache.set(key, result)
+}
+
+function batchNeeded(properties) {
+  const batch = {}
+  for (const p of properties) {
+    const key = cacheKey(p.id, { title: p.title, address: p.address || p.location || '', property_type: p.property_type || '' })
+    if (!cache.has(key) && !inflight.has(key)) {
+      batch[p.id] = {
+        title: p.title,
+        address: p.address || p.location || '',
+        property_type: p.property_type || '',
+      }
+    }
+  }
+  return batch
+}
+
+export async function batchTranslate(properties, signal) {
+  const batch = batchNeeded(properties)
+  const ids = Object.keys(batch)
+  if (ids.length === 0) return
+
+  const inflightKey = 'batch:' + ids.sort().join(',')
+  if (inflight.has(inflightKey)) return inflight.get(inflightKey)
+
+  const promise = (async () => {
+    const result = await fetchTranslation(batch, signal)
+    for (const id of ids) {
+      if (result[id]) {
+        setCache(id, batch[id], result[id])
+      }
+    }
+    return result
+  })()
+
+  inflight.set(inflightKey, promise)
+  promise.finally(() => inflight.delete(inflightKey))
+  return promise
+}
+
+export function useGroqTranslation(propertyId, fields) {
+  const { i18n } = useTranslation()
+  const lang = i18n.language
+  const [translated, setTranslated] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    return () => { mountedRef.current = false }
+  }, [])
+
+  const hasFields = fields && Object.keys(fields).length > 0
+
+  useEffect(() => {
+    if (lang !== 'en' || !hasFields) {
+      setTranslated(null)
+      setLoading(false)
+      return
+    }
+
+    const cached = getFromCache(propertyId, fields)
+    if (cached) {
+      setTranslated(cached)
+      setLoading(false)
+      return
+    }
+
+    const key = cacheKey(propertyId, fields)
+    let cancelled = false
+
+    setLoading(true)
+
+    if (inflight.has(key)) {
+      inflight.get(key)
+        .then((result) => {
+          if (!cancelled && mountedRef.current) {
+            const merged = { ...fields, ...result }
+            setTranslated(merged)
+            setLoading(false)
+          }
+        })
+        .catch(() => {
+          if (!cancelled && mountedRef.current) setLoading(false)
+        })
+      return () => { cancelled = true }
+    }
+
+    const promise = fetchTranslation(fields)
+      .then((result) => {
+        const merged = { ...fields, ...result }
+        setCache(propertyId, fields, merged)
+        if (!cancelled && mountedRef.current) {
+          setTranslated(merged)
+          setLoading(false)
+        }
+        return merged
+      })
+      .catch(() => {
+        if (!cancelled && mountedRef.current) setLoading(false)
+      })
+
+    inflight.set(key, promise)
+    promise.finally(() => { if (inflight.get(key) === promise) inflight.delete(key) })
+
+    return () => { cancelled = true }
+  }, [lang, propertyId, hasFields])
+
+  const getText = useCallback((field, fallback) => {
+    if (lang !== 'en') return fallback
+    return translated?.[field] ?? fallback
+  }, [lang, translated])
+
+  return { translated, loading, getText }
+}
