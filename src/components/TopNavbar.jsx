@@ -67,7 +67,7 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
             onClick={() => navigate('/')}
             className="flex items-center"
           >
-            <span className="font-bold text-xl text-slate-900 tracking-tight">HuniOne</span>
+            <img src="/huniOne.svg" alt="HuniOne" className="h-7 sm:h-8 w-auto" />
           </button>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
