@@ -39,7 +39,7 @@ function StatusBadge({ status }) {
 
 export default function MyListingsPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, showToast } = useAuth()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [showSoldModal, setShowSoldModal] = useState(false)
@@ -91,11 +91,18 @@ export default function MyListingsPage() {
           .order('created_at', { ascending: false })
 
         if (!cancelled) {
-          if (!error && data) setListings(data)
+          if (error) {
+            showToast('Gagal memuat iklan. Silakan coba lagi.', 'error')
+          } else if (data) {
+            setListings(data)
+          }
           setLoading(false)
         }
       } catch {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          showToast('Gagal memuat iklan. Silakan coba lagi.', 'error')
+          setLoading(false)
+        }
       }
     }
 

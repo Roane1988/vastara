@@ -20,7 +20,11 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      /* sign-out failure is non-critical */
+    }
     setSession(null)
     setUser(null)
     setRole(null)
@@ -29,8 +33,8 @@ export function AuthProvider({ children }) {
   const fetchRole = useCallback(async (userId) => {
     if (!userId) { setRole(null); return }
     try {
-      const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
-      if (data) setRole(data.role)
+      const { data, error } = await supabase.from('profiles').select('role').eq('id', userId).single()
+      if (!error && data) setRole(data.role)
     } catch {
       /* role fetch failure is non-critical */
     }

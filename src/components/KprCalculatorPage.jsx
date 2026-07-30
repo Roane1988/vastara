@@ -42,6 +42,7 @@ export default function KprCalculatorPage() {
       return numMonths > 0 ? principal / numMonths : 0
     }
     const factor = Math.pow(1 + monthlyRate, numMonths)
+    if (!Number.isFinite(factor)) return principal / numMonths
     return (principal * monthlyRate * factor) / (factor - 1)
   }, [principal, interestRate, tenorYears])
 

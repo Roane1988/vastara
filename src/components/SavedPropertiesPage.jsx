@@ -61,7 +61,9 @@ export default function SavedPropertiesPage({ onBack }) {
           .in('id', ids)
 
         if (!cancelled) {
-          if (!error && data) {
+          if (error) {
+            setProperties([])
+          } else if (data) {
             setProperties(data)
           }
           setLoading(false)

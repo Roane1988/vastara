@@ -96,19 +96,21 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     }
     ;(async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('properties')
           .select('*')
           .in('id', favIds)
         if (!cancelled) {
-          if (data) {
+          if (error) {
+            setSavedProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
+          } else if (data) {
             setSavedProperties(data)
           } else {
-            setSavedProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
+            setSavedProperties([])
           }
         }
       } catch {
-        if (!cancelled) setSavedProperties([])
+        if (!cancelled) setSavedProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
       }
     })()
     return () => { cancelled = true }
@@ -170,64 +172,65 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     setSaving(true)
     notify(t('profileDrawer.verifying'), 'info')
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: currentEmail,
-      password: currentPassword,
-    })
-
-    if (!isMountedRef.current) return
-
-    if (signInError) {
-      notify(t('profileDrawer.wrong_password'), 'error')
-      setSaving(false)
-      return
-    }
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!isMountedRef.current) return
-
-    if (!user) {
-      notify(t('profileDrawer.session_expired'), 'error')
-      setSaving(false)
-      return
-    }
-
-    const authUpdates = { data: { first_name: name, whatsapp } }
-    if (email !== currentEmail) {
-      authUpdates.email = email
-    }
-
-    const { error: authError } = await supabase.auth.updateUser(authUpdates)
-    if (!isMountedRef.current) return
-
-    if (authError) {
-      notify(authError.message, 'error')
-      setSaving(false)
-      return
-    }
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        first_name: name,
-        email,
-        whatsapp,
-        updated_at: new Date().toISOString(),
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentEmail,
+        password: currentPassword,
       })
-      .eq('id', user.id)
 
-    if (!isMountedRef.current) return
+      if (!isMountedRef.current) return
 
-    if (profileError) {
-      notify(profileError.message, 'error')
+      if (signInError) {
+        notify(t('profileDrawer.wrong_password'), 'error')
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!isMountedRef.current) return
+
+      if (!user) {
+        notify(t('profileDrawer.session_expired'), 'error')
+        return
+      }
+
+      const authUpdates = { data: { first_name: name, whatsapp } }
+      if (email !== currentEmail) {
+        authUpdates.email = email
+      }
+
+      const { error: authError } = await supabase.auth.updateUser(authUpdates)
+      if (!isMountedRef.current) return
+
+      if (authError) {
+        notify(authError.message, 'error')
+        return
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: name,
+          email,
+          whatsapp,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+
+      if (!isMountedRef.current) return
+
+      if (profileError) {
+        notify(profileError.message, 'error')
+        return
+      }
+
+      setCurrentPassword('')
+      setCurrentEmail(email)
+      notify(t('profileDrawer.save_success'), 'success')
+    } catch (err) {
+      notify(err.message || 'Terjadi kesalahan saat menyimpan profil', 'error')
+    } finally {
       setSaving(false)
-      return
     }
-
-    setCurrentPassword('')
-    setCurrentEmail(email)
-    setSaving(false)
-    notify(t('profileDrawer.save_success'), 'success')
   }
 
   return (

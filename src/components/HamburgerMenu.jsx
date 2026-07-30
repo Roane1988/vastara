@@ -82,7 +82,9 @@ function SavedDrawer({ onBack }) {
           .select('*')
           .in('id', favIds)
         if (!cancelled) {
-          if (!error && data) {
+          if (error) {
+            setProperties([])
+          } else if (data) {
             setProperties(data)
           }
           setLoading(false)

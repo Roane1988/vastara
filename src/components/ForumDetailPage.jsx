@@ -114,10 +114,14 @@ export default function ForumDetailPage() {
         .eq('id', id)
         .single()
       if (cancelledRef.current) return
-      if (!error && data) setPost(data)
+      if (error) {
+        showToast(error.message, 'error')
+      } else if (data) {
+        setPost(data)
+      }
     } catch (err) {
       if (cancelledRef.current) return
-      console.warn('Gagal memuat post:', err.message)
+      showToast(err.message || 'Gagal memuat diskusi', 'error')
     }
     if (!cancelledRef.current) setLoading(false)
   }
@@ -130,10 +134,14 @@ export default function ForumDetailPage() {
         .eq('post_id', id)
         .order('created_at', { ascending: true })
       if (cancelledRef.current) return
-      if (!error && data) setReplies(data)
+      if (error) {
+        showToast(error.message, 'error')
+      } else if (data) {
+        setReplies(data)
+      }
     } catch (err) {
       if (cancelledRef.current) return
-      console.warn('Gagal memuat balasan:', err.message)
+      showToast(err.message || 'Gagal memuat balasan', 'error')
     }
   }
 
@@ -167,14 +175,19 @@ export default function ForumDetailPage() {
 
   async function handleConfirmDelete() {
     setDeleting(true)
-    const { error } = await supabase.from('forum_posts').delete().eq('id', id).eq('author_id', user?.id)
-    setDeleting(false)
-    setShowDeleteModal(false)
-    if (error) {
-      showToast(error.message, 'error')
-    } else {
-      showToast('Diskusi berhasil dihapus', 'success')
-      navigate('/forum')
+    try {
+      const { error } = await supabase.from('forum_posts').delete().eq('id', id).eq('author_id', user?.id)
+      if (error) {
+        showToast(error.message, 'error')
+      } else {
+        showToast('Diskusi berhasil dihapus', 'success')
+        navigate('/forum')
+      }
+    } catch (err) {
+      showToast(err.message || 'Gagal menghapus diskusi', 'error')
+    } finally {
+      setDeleting(false)
+      setShowDeleteModal(false)
     }
   }
 
