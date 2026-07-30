@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
@@ -99,7 +99,9 @@ export default function ExplorePage() {
 
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [properties, setProperties] = useState([])
-  const { user } = useAuth()
+  const [smartSearchText, setSmartSearchText] = useState('')
+  const [isSmartSearching, setIsSmartSearching] = useState(false)
+  const { user, showToast } = useAuth()
   const cancelledRef = useRef(false)
 
   useEffect(() => {
@@ -168,6 +170,76 @@ export default function ExplorePage() {
     t('explore.all_properties.sort_cheapest'),
     t('explore.all_properties.sort_expensive'),
   ]
+
+  async function handleSmartSearch(e) {
+    e.preventDefault()
+    if (!smartSearchText.trim()) return
+    setIsSmartSearching(true)
+
+    try {
+      const response = await fetch('/api/groq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          purpose: 'smart_search',
+          messages: [{ role: 'user', content: smartSearchText.trim() }],
+        }),
+      })
+
+      if (!response.ok) throw new Error('Gagal terhubung ke AI')
+
+      const data = await response.json()
+      const rawContent = data?.choices?.[0]?.message?.content
+      if (!rawContent) throw new Error('AI tidak mengembalikan data')
+
+      const cleaned = rawContent.replace(/```json/g, '').replace(/```/g, '').trim()
+      const parsed = JSON.parse(cleaned)
+
+      if (cancelledRef.current) return
+
+      let query = supabase
+        .from('properties')
+        .select('*')
+        .eq('status', 'verified')
+
+      if (parsed.maxPrice) query = query.lte('price', parsed.maxPrice)
+      if (parsed.minPrice) query = query.gte('price', parsed.minPrice)
+      if (parsed.city) query = query.ilike('city', `%${parsed.city}%`)
+      if (parsed.category) query = query.eq('category', parsed.category)
+      if (parsed.propertyType) query = query.eq('property_type', parsed.propertyType)
+      if (parsed.bedrooms) query = query.gte('bedrooms', parsed.bedrooms)
+      if (parsed.bathrooms) query = query.gte('bathrooms', parsed.bathrooms)
+      if (parsed.keyword) {
+        query = query.or(`title.ilike.%${parsed.keyword}%,description_id.ilike.%${parsed.keyword}%`)
+      }
+
+      query = query.order('created_at', { ascending: false })
+
+      const { data: results, error } = await query
+
+      if (cancelledRef.current) return
+
+      if (!error && results) {
+        setProperties(results)
+      } else if (error) {
+        throw new Error(error.message)
+      }
+    } catch (err) {
+      if (cancelledRef.current) return
+      try {
+        const { data: fallback, error } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('status', 'verified')
+          .ilike('title', `%${smartSearchText.trim()}%`)
+          .order('created_at', { ascending: false })
+        if (!error && fallback) setProperties(fallback)
+      } catch { /* silent */ }
+      showToast('Gagal memproses pencarian AI. Menampilkan hasil pencarian biasa.', 'error')
+    }
+    setIsSmartSearching(false)
+  }
 
   const toggleSave = async (id) => {
     const updated = await toggleFav(id)
@@ -290,6 +362,31 @@ export default function ExplorePage() {
               >
                 <FilterIcon />
               </button>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-brand-border/50">
+              <form onSubmit={handleSmartSearch} className="flex items-center px-3 py-2 bg-gradient-to-r from-brand-highlight to-white border border-brand-accent/30 rounded-xl gap-3 focus-within:border-brand-accent focus-within:shadow-[0_0_0_3px_rgba(74,144,226,0.15)] transition-all">
+                <Sparkles size={16} className="text-brand-accent shrink-0" />
+                <input
+                  type="text"
+                  value={smartSearchText}
+                  onChange={(e) => setSmartSearchText(e.target.value)}
+                  placeholder="Cari pakai AI: rumah di BSD harga di bawah 2M..."
+                  className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted/60 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={isSmartSearching || !smartSearchText.trim()}
+                  className="shrink-0 text-xs font-bold text-white bg-brand-accent hover:brightness-90 active:scale-[0.98] transition-all duration-200 rounded-lg px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  {isSmartSearching ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Sparkles size={14} />
+                  )}
+                  {isSmartSearching ? 'Memproses...' : 'Cari AI'}
+                </button>
+              </form>
             </div>
           </div>
         </div>
