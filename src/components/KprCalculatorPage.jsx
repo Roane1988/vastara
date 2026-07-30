@@ -213,6 +213,7 @@ export default function KprCalculatorPage() {
                       </span>
                     </div>
                   </div>
+                  <div>
                     <input
                       type="number"
                       min="0"

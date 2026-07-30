@@ -337,10 +337,53 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - **`MoreCategoriesDrawer.jsx`** — `useDragControls` dari framer-motion. `drag="y"` + `dragConstraints={{ top: 0 }}` + `dragElastic={0.15}`. Drag handle punya `onPointerDown` untuk initiate drag, `touch-none` mencegah scroll conflict. `onDragEnd` tutup drawer jika offset.y > 100 atau velocity.y > 300.
 
 ### Security Headers (Session #6 — July 2026)
-- **`vercel.json`** — Added CSP, X-Frame-Options (SAMEORIGIN), X-Content-Type-Options (nosniff), Referrer-Policy (strict-origin-when-cross-origin). CORS headers on `/api/*` restricted to `https://hunione.com`.
+- **`vercel.json`** — Added CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy (strict-origin-when-cross-origin). CORS headers on `/api/*` restricted to `https://hunione.com`.
 
 ### HamburgerMenu Clickable Profile (Session #6 — July 2026)
 - **`HamburgerMenu.jsx`** — Profile card (avatar + name + role) changed from `<div>` to `<button>` with `onClick={handleProfile}`. Added `cursor-pointer transition-colors hover:bg-gray-100 active:bg-gray-200`. Removed duplicate "Informasi Pribadi" MenuItem from Pengaturan section.
 
 ### Footer Redesign (Session #6 — July 2026)
 - **`Footer.jsx`** — Complete redesign: 5-column grid (brand + Jelajahi + Perusahaan + Bantuan + Legal). New descriptions, updated nav links. "Follow Us" section with Instagram (real link), LinkedIn, TikTok (real link), Facebook. Copyright "© 2026 HuniOne. All rights reserved." Removed all PT Vastara Holding references.
+
+### Logo SVG Integration (Session #8 — July 2026)
+- **`public/huniOne.svg`** — Fixed scaling issue: removed hardcoded `width="1920" height="1080"`, added `viewBox="0 0 1920 1080"` so Tailwind `h-*` classes control size properly.
+- **TopNavbar**: `<img src="/huniOne.svg">` with `h-20`, responsive.
+- **MinimalistLogin**: `<img src="/huniOne.svg">` with `h-32 md:h-48`, centered.
+- **Footer**: `<img src="/huniOne.svg">` with `h-20 md:h-24`.
+
+### KPR Calculator Components (Sessions #9-10 — July 2026)
+
+#### KprSimulator.jsx (Reusable widget)
+- Self-contained mortgage calculator widget. Props: `initialPrice` (default 900M).
+- Standard annuity formula: `M = P * i * (1+i)^n / ((1+i)^n - 1)`.
+- State: propertyPrice, dpPercentage, interestRate, tenorYears. DP synced bidirectionally (% ↔ amount). Dp slider 0-50%.
+- Edge cases: 0% interest → simple division; principal ≤ 0 → "Lunas"; NaN/Infinity → Rp 0.
+- Format: `Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' })`.
+- Integrated into PropertyDetailPage below description, receives real `property.price`.
+
+#### KprCalculatorPage.jsx (Full page)
+- Route: `/kpr` — linked from home quick menu "Kalkulator KPR".
+- 2-column desktop layout (left: inputs, right: results), single-column mobile.
+- Inputs: Harga Properti (default Rp 1M), DP dual input + slider (0-80%), Suku Bunga (default 5.5%), Tenor select (5-25 tahun).
+- Right column: monthly installment card with `AnimatePresence` animation on value change, Rincian Finansial with DP/Pokok progress bar, Tabel Amortisasi (collapsible, yearly breakdown), Estimasi Biaya Lainnya (BPHTB 5%, PPN 11%, Notaris 1%, Provisi 1%) + Total Dana Awal Dibutuhkan.
+- Action: WhatsApp consultation (pre-filled message with KPR data) + HuniBot consultation (passes live KPR context via custom event).
+- Safe back navigation: `window.history.length > 1` check.
+
+#### PropertyDetailPage Layout Refactor
+- **2-column grid**: `grid-cols-1 lg:grid-cols-3 gap-8 mt-8`. Left (lg:col-span-2): title, price, specs, description, KprSimulator, accordions. Right (lg:col-span-1): sticky Agent Card (`sticky top-24`).
+- **Agent Card**: Moved from inline to right sidebar. Buttons stacked `flex-col` (full-width, Rumah123 style). Styling: `shadow-md rounded-xl border bg-white p-5`.
+- **Smart floating WhatsApp bar**: IntersectionObserver on Agent Card (`rootMargin: '0px 0px 50px 0px'`, `threshold: 0.1`). Hides floating bar via `translate-y-[150%]` when card visible, reappears when scrolled past.
+- **KprSimulator**: positioned right after description, receives `initialPrice={property?.price || 900000000}`.
+
+### HuniBot Enhancements (Sessions #8-10 — July 2026)
+- **Contextual data from KPR page**: Listens for `open-hunibot-with-context` custom event. On trigger: opens chat, injects contextual greeting with property price, monthly installment, and tenor. Uses `formatCurrency` from shared utils.
+- **Route-aware hiding**: On `/kpr` page, only the floating trigger button is hidden (`hidden` class), component stays mounted so chat can receive open events. Uses `useLocation()` from react-router-dom.
+- **Shared formatCurrency**: Added `formatCurrency()` function to HuniBot (duplicated from utils to keep standalone).
+
+### Shared Utilities (Session #10 — July 2026)
+- **`src/utils/format.js`** — Added `formatCurrency(value)` (Intl.NumberFormat IDR) and `formatShort(value)` (M/Jt suffix). Previously duplicated across KprSimulator, KprCalculatorPage, HuniBot. Now imported from utils.
+- Safe navigation pattern: `window.history.length > 1 ? navigate(-1) : navigate('/')`.
+
+### Routing Updates
+- **`src/App.jsx`** — Added route `/kpr` → `KprCalculatorPage`. Import added.
+- **`src/components/ExplorePage.jsx`** — Quick menu "Kalkulator KPR" path changed from `/coming-soon` to `/kpr`.
