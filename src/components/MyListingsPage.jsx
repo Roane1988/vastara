@@ -86,7 +86,7 @@ export default function MyListingsPage() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, status, image_url, address, location, bedrooms, bathrooms, area_sqm, sqm, created_at')
+          .select('id, title, price, status, image_url, address, location, bedrooms, bathrooms, area_sqm, sqm, created_at, latitude, longitude')
           .eq('seller_id', user.id)
           .order('created_at', { ascending: false })
 

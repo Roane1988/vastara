@@ -1,9 +1,22 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle, X, Plus } from 'lucide-react'
+import { CheckCircle, X, Plus, MapPin } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+})
 
 function ArrowLeftIcon() {
   return (
@@ -38,6 +51,29 @@ function SpinnerIcon() {
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>
+  )
+}
+
+const BSD_CENTER = [-6.3006, 106.6527]
+
+function DraggableMarker({ position, onPositionChange }) {
+  useMapEvents({
+    click(e) {
+      onPositionChange(e.latlng.lat, e.latlng.lng)
+    },
+  })
+
+  return (
+    <Marker
+      position={position}
+      draggable={true}
+      eventHandlers={{
+        dragend(e) {
+          const pos = e.target.getLatLng()
+          onPositionChange(pos.lat, pos.lng)
+        },
+      }}
+    />
   )
 }
 
@@ -128,6 +164,8 @@ export default function SellPropertyPage() {
     sqm: '',
     bedrooms: '',
     bathrooms: '',
+    latitude: null,
+    longitude: null,
   })
   const [locationUrl, setLocationUrl] = useState('')
   const [imageFiles, setImageFiles] = useState([])
@@ -255,6 +293,8 @@ export default function SellPropertyPage() {
           area_sqm: Number(form.sqm) || 0,
           image_url: JSON.stringify(uploadedImageUrls),
           status: 'pending',
+          latitude: form.latitude,
+          longitude: form.longitude,
         })
 
       if (insertError) {
@@ -400,19 +440,42 @@ export default function SellPropertyPage() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-brand-text mb-1.5 block">
-                {t('sellProperty.location_step.maps_label')}
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block flex items-center gap-1.5">
+                <MapPin size={15} />
+                Lokasi di Peta <span className="text-xs text-brand-muted font-normal">(opsional)</span>
               </label>
-              <input
-                type="url"
-                placeholder={t('sellProperty.location_step.maps_placeholder')}
-                value={locationUrl}
-                onChange={(e) => setLocationUrl(e.target.value)}
-                className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
-              />
-              <p className="text-xs text-brand-muted mt-2 leading-relaxed">
-                {t('sellProperty.location_step.maps_helper')}
+              <p className="text-xs text-brand-muted mb-2">
+                Seret marker atau klik peta untuk menentukan lokasi properti.
               </p>
+              <div className="rounded-xl overflow-hidden border border-brand-border">
+                <MapContainer
+                  center={BSD_CENTER}
+                  zoom={13}
+                  className="h-[300px] w-full"
+                  style={{ height: '300px', width: '100%' }}
+                  scrollWheelZoom={true}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <DraggableMarker
+                    position={
+                      form.latitude != null && form.longitude != null
+                        ? [form.latitude, form.longitude]
+                        : BSD_CENTER
+                    }
+                    onPositionChange={(lat, lng) =>
+                      setForm((prev) => ({ ...prev, latitude: lat, longitude: lng }))
+                    }
+                  />
+                </MapContainer>
+              </div>
+              {form.latitude != null && form.longitude != null && (
+                <p className="text-xs text-brand-muted mt-1.5">
+                  {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+                </p>
+              )}
             </div>
           </div>
         )

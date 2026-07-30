@@ -27,9 +27,12 @@ function randomInRange(min, max) {
   return min + Math.random() * (max - min)
 }
 
-function assignRandomCoords(properties) {
+function assignCoords(properties) {
   return properties.map((p) => {
     if (p._lat && p._lng) return p
+    if (p.latitude != null && p.longitude != null) {
+      return { ...p, _lat: p.latitude, _lng: p.longitude }
+    }
     return {
       ...p,
       _lat: randomInRange(BSD_CENTER[0] - LAT_OFFSET, BSD_CENTER[0] + LAT_OFFSET),
@@ -41,7 +44,7 @@ function assignRandomCoords(properties) {
 export default function PropertyMap({ properties }) {
   const navigate = useNavigate()
 
-  const markers = useMemo(() => assignRandomCoords(properties), [properties])
+  const markers = useMemo(() => assignCoords(properties), [properties])
 
   return (
     <MapContainer
