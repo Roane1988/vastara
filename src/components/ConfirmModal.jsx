@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trash2, X } from 'lucide-react'
+import { Trash2, X, AlertTriangle } from 'lucide-react'
 
 export default function ConfirmModal({
   isOpen,
@@ -11,6 +11,10 @@ export default function ConfirmModal({
   confirmText = 'Ya, Hapus',
   cancelText = 'Batal',
   loading = false,
+  danger = true,
+  icon: Icon = Trash2,
+  children,
+  confirmDisabled = false,
 }) {
   useEffect(() => {
     if (!isOpen) return
@@ -46,12 +50,14 @@ export default function ConfirmModal({
               <X size={16} />
             </button>
 
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={24} className="text-red-500" />
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${danger ? 'bg-red-50' : 'bg-amber-50'}`}>
+              <Icon size={24} className={danger ? 'text-red-500' : 'text-amber-500'} />
             </div>
 
             <h3 className="text-lg font-bold text-brand-text text-center">{title}</h3>
             <p className="text-sm text-brand-muted text-center mt-2 leading-relaxed">{description}</p>
+
+            {children && <div className="mt-4">{children}</div>}
 
             <div className="flex items-center gap-3 mt-6">
               <button
@@ -65,8 +71,8 @@ export default function ConfirmModal({
               <button
                 type="button"
                 onClick={onConfirm}
-                disabled={loading}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                disabled={loading || confirmDisabled}
+                className={`flex-1 py-3 rounded-xl text-sm font-bold text-white active:scale-[0.98] transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 ${danger ? 'bg-red-500 hover:bg-red-600' : 'bg-brand-primary hover:brightness-90'}`}
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
