@@ -13,8 +13,8 @@ function formatCurrency(value) {
   }).format(value)
 }
 
-export default function KprSimulator() {
-  const [propertyPrice, setPropertyPrice] = useState(900000000)
+export default function KprSimulator({ initialPrice = 900000000 }) {
+  const [propertyPrice, setPropertyPrice] = useState(initialPrice)
   const [dpPercentage, setDpPercentage] = useState(20)
   const [dpAmountText, setDpAmountText] = useState('')
   const [interestRate, setInterestRate] = useState(5.5)

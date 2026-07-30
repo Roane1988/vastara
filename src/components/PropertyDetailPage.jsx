@@ -451,7 +451,7 @@ export default function PropertyDetailPage() {
 
             <div className="mt-10 pt-8 border-t border-gray-200">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Simulasi KPR</h3>
-              <KprSimulator />
+              <KprSimulator initialPrice={property?.price || 900000000} />
             </div>
 
             <AccordionBlock id="panduan" title="Panduan Membeli Properti" isOpen={accordionState.panduan} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
