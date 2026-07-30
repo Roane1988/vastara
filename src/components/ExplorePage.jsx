@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
@@ -104,6 +104,8 @@ export default function ExplorePage() {
   const { user, showToast } = useAuth()
   const cancelledRef = useRef(false)
   const listingRef = useRef(null)
+  const smartSearchInputRef = useRef(null)
+  const isAiSearchRef = useRef(false)
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 600)
@@ -225,6 +227,7 @@ export default function ExplorePage() {
       if (cancelledRef.current) return
 
       if (!error && results) {
+        isAiSearchRef.current = true
         setProperties(results)
         listingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       } else if (error) {
@@ -239,11 +242,22 @@ export default function ExplorePage() {
           .eq('status', 'verified')
           .ilike('title', `%${smartSearchText.trim()}%`)
           .order('created_at', { ascending: false })
-        if (!error && fallback) setProperties(fallback)
+        if (!error && fallback) {
+          isAiSearchRef.current = true
+          setProperties(fallback)
+        }
       } catch { /* silent */ }
       showToast('Gagal memproses pencarian AI. Menampilkan hasil pencarian biasa.', 'error')
     }
     setIsSmartSearching(false)
+  }
+
+  function resetSmartSearch() {
+    isAiSearchRef.current = false
+    setSmartSearchText('')
+    setProperties([])
+    fetchProperties().catch(() => {})
+    smartSearchInputRef.current?.focus()
   }
 
   const toggleSave = async (id) => {
@@ -269,8 +283,10 @@ export default function ExplorePage() {
     return 0
   })
 
+  const hasAiSearchResults = isAiSearchRef.current && sorted.length > 0
+  const isAiSearchEmpty = isAiSearchRef.current && sorted.length === 0
   const displayRecommendations = sorted.length > 0 ? sorted.slice(0, 4) : DUMMY_PROPERTIES.slice(0, 4)
-  const displayListings = sorted.length > 0 ? sorted : DUMMY_PROPERTIES
+  const displayListings = sorted.length > 0 ? sorted : (isAiSearchRef.current ? [] : DUMMY_PROPERTIES)
 
   const translationRef = useRef({})
   const lang = i18n.language
@@ -370,24 +386,34 @@ export default function ExplorePage() {
             </div>
 
             <div className="mt-3 pt-3 border-t border-brand-border/50">
-              <form onSubmit={handleSmartSearch} className="flex items-center px-3 py-2 bg-gradient-to-r from-brand-highlight to-white border border-brand-accent/30 rounded-xl gap-3 focus-within:border-brand-accent focus-within:shadow-[0_0_0_3px_rgba(74,144,226,0.15)] transition-all">
-                <Sparkles size={16} className="text-brand-accent shrink-0" />
+              <form onSubmit={handleSmartSearch} className="w-full max-w-2xl mx-auto flex items-center p-1.5 md:p-2 bg-white/95 backdrop-blur rounded-full shadow-lg border border-brand-accent/20 focus-within:ring-2 focus-within:ring-brand-accent/50 transition-all duration-300">
+                <Sparkles size={18} className="text-brand-accent shrink-0 ml-2.5 md:ml-3.5" />
                 <input
+                  ref={smartSearchInputRef}
                   type="text"
                   value={smartSearchText}
                   onChange={(e) => setSmartSearchText(e.target.value)}
                   placeholder="Cari pakai AI: rumah di BSD harga di bawah 2M..."
-                  className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted/60 focus:outline-none"
+                  className="flex-1 bg-transparent border-none ring-0 focus:outline-none focus:ring-0 text-sm md:text-base text-brand-text placeholder:text-brand-muted/50 px-2.5 md:px-3 py-2"
                 />
+                {smartSearchText.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setSmartSearchText(''); smartSearchInputRef.current?.focus() }}
+                    className="shrink-0 text-brand-muted/60 hover:text-brand-text transition-colors p-1 mr-0.5"
+                  >
+                    <XCircle size={18} />
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={isSmartSearching || !smartSearchText.trim()}
-                  className="shrink-0 text-xs font-bold text-white bg-brand-accent hover:brightness-90 active:scale-[0.98] transition-all duration-200 rounded-lg px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  className="shrink-0 text-sm md:text-base font-bold text-white bg-brand-accent hover:brightness-90 hover:scale-105 active:scale-95 transition-all duration-200 rounded-full px-4 py-2 md:px-6 md:py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                 >
                   {isSmartSearching ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <Sparkles size={14} />
+                    <Sparkles size={16} />
                   )}
                   {isSmartSearching ? 'Memproses...' : 'Cari AI'}
                 </button>
@@ -557,70 +583,91 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {displayListings.map((p) => (
-            <div key={p.id}>
-              <Link to={`/property/${p.id}`} className="block group">
-                <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full">
-                  <div className="relative aspect-[4/3]">
-                    <img loading="lazy"
-                      src={getImageSrc(p.image_url)}
-                      alt={p.title}
-                      onError={(e) => { e.target.src = FALLBACK_IMAGE }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-3 left-3 flex gap-2">
-                      {p.typeLabel && (
-                        <span className="bg-[#1E3A5F] text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                          {p.typeLabel}
-                        </span>
-                      )}
-                      {p.status === 'verified' && (
-                        <span className="bg-[#EAF7EF] text-[#2E8B57] border border-[#2E8B57]/20 text-[10px] font-bold px-2.5 py-1 rounded-md">
-                          {t('explore.property_card.verified_legal')}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <p className="text-xl font-extrabold text-brand-primary">
-                      {p.priceDisplay || formatPrice(p.price)}
-                    </p>
-                    <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-[#4A90E2] transition-colors">
-                      {getTranslated(p, 'title', p.title)}
-                    </p>
-                    <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
-                      <MapPin size={14} />
-                      {getTranslated(p, 'address', p.address || p.location || t('explore.location_fallback'))}
-                    </p>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
-                      <div className="flex gap-3 text-xs text-brand-muted">
-                        <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
-                        <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
-                        <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
-                      </div>
-                      {p.agent && (
-                        <span className="text-xs font-medium text-[#4A90E2]">{p.agent}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Link>
-              <div className="mt-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => toggleSave(p.id)}
-                  className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-[#4A90E2] transition-colors"
-                >
-                   <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4A90E2' : 'none'} stroke={saved.includes(p.id) ? '#4A90E2' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                  </svg>
-                  {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
-                </button>
-              </div>
+        {isAiSearchEmpty ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center mb-4">
+              <Sparkles size={32} className="text-brand-muted/40" />
             </div>
-          ))}
-        </div>
+            <p className="text-base font-semibold text-brand-text mb-1">
+              Properti dengan kriteria tersebut belum ditemukan
+            </p>
+            <p className="text-sm text-brand-muted mb-6 max-w-xs">
+              Coba ubah kata kunci pencarian atau gunakan kata yang lebih umum.
+            </p>
+            <button
+              type="button"
+              onClick={resetSmartSearch}
+              className="px-6 py-3 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all duration-200"
+            >
+              Reset Pencarian
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {displayListings.map((p) => (
+              <div key={p.id}>
+                <Link to={`/property/${p.id}`} className="block group">
+                  <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full">
+                    <div className="relative aspect-[4/3]">
+                      <img loading="lazy"
+                        src={getImageSrc(p.image_url)}
+                        alt={p.title}
+                        onError={(e) => { e.target.src = FALLBACK_IMAGE }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute top-3 left-3 flex gap-2">
+                        {p.typeLabel && (
+                          <span className="bg-[#1E3A5F] text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                            {p.typeLabel}
+                          </span>
+                        )}
+                        {p.status === 'verified' && (
+                          <span className="bg-[#EAF7EF] text-[#2E8B57] border border-[#2E8B57]/20 text-[10px] font-bold px-2.5 py-1 rounded-md">
+                            {t('explore.property_card.verified_legal')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <p className="text-xl font-extrabold text-brand-primary">
+                        {p.priceDisplay || formatPrice(p.price)}
+                      </p>
+                      <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-[#4A90E2] transition-colors">
+                        {getTranslated(p, 'title', p.title)}
+                      </p>
+                      <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
+                        <MapPin size={14} />
+                        {getTranslated(p, 'address', p.address || p.location || t('explore.location_fallback'))}
+                      </p>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
+                        <div className="flex gap-3 text-xs text-brand-muted">
+                          <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
+                          <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
+                          <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
+                        </div>
+                        {p.agent && (
+                          <span className="text-xs font-medium text-[#4A90E2]">{p.agent}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => toggleSave(p.id)}
+                    className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-[#4A90E2] transition-colors"
+                  >
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4A90E2' : 'none'} stroke={saved.includes(p.id) ? '#4A90E2' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ─── DRAWERS ─── */}
