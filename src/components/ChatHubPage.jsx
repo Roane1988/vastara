@@ -418,11 +418,13 @@ export default function ChatHubPage() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      const { error } = await supabase.from('direct_messages').delete().eq('id', deleteTarget).eq('sender_id', userId)
-      if (!error) {
+      const { data, error } = await supabase.from('direct_messages').delete().eq('id', deleteTarget).eq('sender_id', userId).select()
+      if (data?.length > 0) {
         setMessages(prev => prev.filter(m => m.id !== deleteTarget))
-      } else {
+      } else if (error) {
         showToast(error.message, 'error')
+      } else {
+        showToast('Gagal menghapus — tidak ada izin. Hubungi admin.', 'error')
       }
     } catch (err) {
       showToast(err.message || 'Gagal menghapus pesan', 'error')

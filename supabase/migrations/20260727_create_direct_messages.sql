@@ -16,5 +16,9 @@ create policy "Users can send messages"
   on direct_messages for insert
   with check (auth.uid() = sender_id);
 
+create policy "Users can delete their own messages"
+  on direct_messages for delete
+  using (auth.uid() = sender_id);
+
 -- Enable Realtime for the table (requires manual toggle in Supabase dashboard)
 -- Go to Database > Replication > enable 'direct_messages' for INSERT
