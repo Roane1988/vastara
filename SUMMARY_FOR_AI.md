@@ -51,7 +51,7 @@ Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 | **Footer.jsx** | Mega footer premium: dark background (`bg-brand-primary`), grid 5 kolom (brand + 4 nav columns: Jelajahi, Perusahaan, Bantuan, Legal), container `max-w-7xl`. Bottom section: "Follow Us" heading + 4 social icons (Instagram/LinkedIn/TikTok/Facebook) with real links + copyright "© 2026 HuniOne. All rights reserved.". Terpasang di `App.jsx` setelah routing. |
 | **ExplorePage.jsx** | Halaman utama: hero banner, search, grid properti, filter drawer (server-side via Supabase), rekomendasi, listing lengkap. `fetchProperties()` menerima `filters` object. Thumbnail pakai `getImageSrc(p.image_url)` dari `utils/images.js` untuk backward compatibility (single string or JSON array). **Dynamic EN translation**: `useEffect` memanggil `batchTranslate(allProps)` saat `lang === 'en'`, menyimpan hasil di `translationRef`. `getTranslated(prop, field, fallback)` digunakan di recommendation cards dan listing grid untuk title/address. |
 | **PropertyDetailPage.jsx** | Detail properti: **GalleryDesktop** (Airbnb-style: 1 main large + 2x2 grid) sembunyi di `lg:block`, **GalleryMobile** (`<lg`: hero aspect-[4/3] + 4-thumb grid `grid-cols-4 gap-0.5`, thumb ke-4 overlay "Lihat Semua" jika >5 gambar, filler `bg-brand-border` untuk <4 gambar). Mobile CTA `bg-red-50` "Hubungi Pengiklan Segera". Agent Card (avatar inisial + warna hash dari `seller_id`, nama dari `profiles.first_name` via join query, role dari `profiles.role`, 2-col grid Phone outline + WhatsApp green-solid). Accordion "Panduan Membeli Properti" + "Disclaimer". Guard `if (!id)` + fallback column names. **Dynamic EN translation**: `useGroqTranslation` hook untuk title/address/type. `description_en` ditampilkan langsung saat `lang === 'en'` dan tersedia, fallback ke `description_id`. Spinner animasi saat translation loading. WhatsApp message lokalized. |
-| **SellPropertyPage.jsx** | Form multi-step (5 step) jual properti: pilih peran, **multi-image upload** (maks 10 foto, preview grid 3-4 kolom dengan thumbnail + tombol X hapus per file + tombol "Tambah"), upload paralel via `Promise.all()` ke storage `PROPERTIES_IMAGE`, `image_url` disimpan sebagai `JSON.stringify([url1, url2, ...])`. Notifikasi pakai `showToast` dari `useAuth` (bukan komponen lokal `AppToast`). Ada `useEffect` cleanup untuk `URL.revokeObjectURL` pada preview. |
+| **SellPropertyPage.jsx** | Form multi-step (3 step) Iklankan Properti: **Step 0** Info Properti (category, type, title, price, bedrooms, bathrooms, sqm, certificate, description + AI suggestion button via Groq API, address, city, district). **Step 1** Foto & Lokasi (drag-and-drop reorder, parallel upload via `Promise.all()` ke storage `PROPERTIES_IMAGE`, `image_url` disimpan sebagai `JSON.stringify([url1, url2, ...])`, max 10 foto, max 5MB, JPG/PNG/WEBP/AVIF). **Step 2** Review & Kirim (PreviewCard, ringkasan properti, WhatsApp input). Draft autosave ke localStorage, clearDraft setelah submit sukses. Notifikasi pakai `showToast` dari `useAuth`. `useEffect` cleanup untuk `URL.revokeObjectURL`. |
 | **MyListingsPage.jsx** | Daftar properti milik user sendiri (fetch by `seller_id`). Status badge "Menunggu Verifikasi" / "Terverifikasi". |
 | **RoleSelectionPage.jsx** | Onboarding pilih peran (Agent/Developer/Owner) setelah login. |
 | **ForumPage.jsx** | Daftar diskusi forum: kartu post dengan avatar (inisial + warna hash), badge "Umum", info aktivitas (replies count + avatar stack), compose form collapse toggle. |
@@ -269,7 +269,7 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - **`AdminDashboardPage.jsx`**: Added `cancelledRef` with cleanup effect. Added cancelled checks to `handleVerify` and `handleConfirmReject`.
 - **`ProfileDrawer.jsx`**: Added `useRef` + `isMountedRef` cleanup effect. Added mounted checks to `handleSave` after each `await` to prevent setState on unmounted component.
 - **`ForumDetailPage.jsx`**: Replaced closure `cancelled` variable with `cancelledRef` ref (also in realtime handler). Added cancelled checks to `fetchPost` and `fetchReplies`.
-- **`SellPropertyPage.jsx`**: Wrapped `STEPS` array in `useMemo` to avoid re-construction on every render.
+- **`SellPropertyPage.jsx`** — Redesain dari 5-step ke 3-step flow (Info Properti → Foto & Lokasi → Review & Kirim). Tambah drag-and-drop image reorder, AI description button (Groq API), preview card, autosave draft.
 - **`HamburgerMenu.jsx`**: Added comment inside empty `catch {}` to satisfy no-empty rule.
 
 ### Code Deduplication
@@ -282,6 +282,7 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - **SellPropertyPage**: Hapus `AppToast` komponen lokal + `notification` state — ganti pakai `showToast` dari `useAuth`.
 - **SellPropertyPage**: Hapus dead `fetchAgent` effect + `setAgentWa` state (tidak pernah dibaca).
 - **SellPropertyPage**: Tambah `useEffect` cleanup untuk `URL.revokeObjectURL` pada preview image.
+- **SellPropertyPage**: 3-step redesign — gambar drag-reorder, AI description, draft autosave.
 
 ### Resilience
 - **PropertyDetailPage**: Semua `<img>` tags di gallery + lightbox ditambah `onError` fallback ke `FALLBACK_IMAGE`.
@@ -307,7 +308,7 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - **`AdminAuditLog.jsx`** — Table audit trail 100 entri terbaru DESC. Kolom: Admin (nama), Tindakan (badge warna sesuai jenis), Target (summary dari `target_detail` JSONB — untuk verify/reject tampil `property_title`, untuk change_role tampil `user_name: old → new`), Waktu (`timeAgo`). Empty state: ikon `History` + teks.
 - **`audit_logs` table** — Tabel baru untuk audit trail. Setiap admin action (verify, reject, change_role) insert satu baris. Struktur detail di bagian Database Supabase.
 - **`supabase/migrations/20260727_create_audit_logs.sql`** — Migration SQL untuk membuat `audit_logs` table + RLS policies (admin select, authenticated insert). Harus dijalankan di Supabase dashboard sebelum fitur audit berfungsi.
-- **`SellPropertyPage.jsx`** — (Tidak ada perubahan, sudah `status: 'pending'` di insert payload).
+- **`SellPropertyPage.jsx`** — Insert payload diperbarui: `category` (dari form, bukan hardcoded 'Dijual'), `city`, `district`, `certificate_status`. Field `location_url` dihapus.
 - **`ExplorePage.jsx`** — `fetchProperties()` hanya query `status === 'verified'` (`.eq('status', 'verified')`). Properti `pending` tidak bocor ke publik. Admin lihat properti pending di `/admin`.
 - **`TopNavbar.jsx`** — Tombol "Dashboard" (grid icon) navigasi ke `/admin`, ditempatkan sebelum tombol "Jual Properti".
 - **`HamburgerMenu.jsx`** — Fetch `role` via `useEffect` tiap drawer terbuka. Jika `role === 'admin'`: item "Dashboard Admin" di menu utama + label header "Admin Internal" (`text-brand-secondary`).
