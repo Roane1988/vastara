@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calculator, MessageCircle, Bot, ChevronDown, Plus } from 'lucide-react'
 import { formatCurrency, formatShort } from '../utils/format'
+import useSEO from '../hooks/useSEO'
 
 const TENOR_OPTIONS = [5, 10, 15, 20, 25]
 
@@ -16,6 +17,7 @@ function ArrowLeftIcon() {
 }
 
 export default function KprCalculatorPage() {
+  useSEO({ title: 'Kalkulator KPR — Simulasi Kredit Pemilikan Rumah', description: 'Hitung cicilan KPR bulanan dengan simulasi DP, suku bunga, dan tenor. Cek kemampuan finansial Anda sebelum membeli properti.' })
   const navigate = useNavigate()
 
   const [propertyPrice, setPropertyPrice] = useState(1000000000)

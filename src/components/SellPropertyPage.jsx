@@ -6,6 +6,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../utils/format'
 import { getImageSrc } from '../utils/images'
+import useSEO from '../hooks/useSEO'
 
 const DRAFT_KEY = 'hunione_sell_draft'
 const MAX_IMAGES = 10
@@ -133,6 +134,7 @@ function PreviewCard({ form, image }) {
 }
 
 export default function SellPropertyPage() {
+  useSEO({ title: 'Iklankan Properti — Jual atau Sewakan', description: 'Pasang iklan properti Anda di HuniOne. Proses cepat, mudah, dan menjangkau ribuan pembeli potensial.' })
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()

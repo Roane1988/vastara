@@ -8,6 +8,7 @@ import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { getImageSrc } from '../utils/images'
 import { formatPrice } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
+import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 
@@ -84,7 +85,8 @@ const POPULAR_SEARCHES = [
 ]
 
 export default function ExplorePage() {
-  const { t } = useTranslation()
+  useSEO({ title: 'Cari Properti — Jual, Beli & Sewa', description: 'Temukan properti terbaik untuk dijual, disewa di HuniOne. Rumah, apartemen, villa, tanah, ruko dan lainnya.' })
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const [saved, setSaved] = useState(getFavorites())
   const [showFilter, setShowFilter] = useState(false)
@@ -169,7 +171,15 @@ export default function ExplorePage() {
     setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
   }
 
-  const sorted = [...properties].sort((a, b) => {
+  const sorted = [...properties].filter((p) => {
+    if (searchCategory === 'dijual') return p.category === 'Dijual'
+    if (searchCategory === 'disewa') return p.category === 'Disewa'
+    if (searchCategory === 'baru') {
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+      return new Date(p.created_at).getTime() > weekAgo
+    }
+    return true
+  }).sort((a, b) => {
     if (sortIndex === 1) return (Number(a.price) || 0) - (Number(b.price) || 0)
     if (sortIndex === 2) return (Number(b.price) || 0) - (Number(a.price) || 0)
     return 0
@@ -179,7 +189,6 @@ export default function ExplorePage() {
   const displayListings = sorted.length > 0 ? sorted : DUMMY_PROPERTIES
 
   const translationRef = useRef({})
-  const { i18n } = useTranslation()
   const lang = i18n.language
 
   useEffect(() => {
@@ -207,7 +216,7 @@ export default function ExplorePage() {
       {/* ─── HERO BANNER ─── */}
       <div className="relative bg-gradient-to-r from-[#1E3A5F] to-[#284D7A] overflow-hidden">
         <div className="absolute inset-0 opacity-[0.08]">
-          <img
+          <img loading="lazy"
             src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1920&q=80"
             alt=""
             className="w-full h-full object-cover"
@@ -331,7 +340,7 @@ export default function ExplorePage() {
             >
               <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden">
                 <div className="relative aspect-[4/3]">
-                  <img
+                  <img loading="lazy"
                     src={getImageSrc(p.image_url)}
                     alt={p.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -388,7 +397,7 @@ export default function ExplorePage() {
               className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden flex items-stretch group"
             >
               <div className="w-24 sm:w-32 shrink-0 overflow-hidden">
-                <img
+                <img loading="lazy"
                   src={item.image}
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -445,7 +454,7 @@ export default function ExplorePage() {
               <Link to={`/property/${p.id}`} className="block group">
                 <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full">
                   <div className="relative aspect-[4/3]">
-                    <img
+                    <img loading="lazy"
                       src={getImageSrc(p.image_url)}
                       alt={p.title}
                       onError={(e) => { e.target.src = FALLBACK_IMAGE }}

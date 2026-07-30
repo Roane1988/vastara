@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { SearchX } from 'lucide-react'
+import useSEO from '../hooks/useSEO'
 
 export default function NotFoundPage({ message, onBack }) {
+  useSEO({ title: 'Halaman Tidak Ditemukan' })
   const navigate = useNavigate()
 
   const handleBack = () => {

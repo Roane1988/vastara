@@ -6,14 +6,6 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { Send, ArrowLeft, MessageCircle } from 'lucide-react'
 
-function ArrowLeftIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="19" y1="12" x2="5" y2="12" />
-      <polyline points="12 19 5 12 12 5" />
-    </svg>
-  )
-}
 
 function MessageBubble({ message, isOwn }) {
   return (
@@ -384,7 +376,7 @@ export default function ChatHubPage() {
               onClick={() => navigate(-1)}
               className="lg:hidden w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
             >
-              <ArrowLeftIcon />
+              <ArrowLeft size={20} />
             </button>
             <h1 className="text-lg font-bold text-brand-text">Pesan</h1>
           </div>

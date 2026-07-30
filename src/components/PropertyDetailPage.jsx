@@ -5,13 +5,12 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { formatPrice } from '../utils/format'
 import { getAvatarColor, getInitials } from '../utils/avatar'
-import { parseImages } from '../utils/images'
+import { parseImages, FALLBACK_IMAGE } from '../utils/images'
 import { useGroqTranslation } from '../hooks/useGroqTranslation'
+import useSEO from '../hooks/useSEO'
 import NotFoundPage from './NotFoundPage'
 import KprSimulator from './KprSimulator'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
-
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
 
 function ArrowLeftIcon() {
   return (
@@ -105,11 +104,11 @@ function GalleryDesktop({ images, property, onOpenLightbox }) {
     return (
       <div className="hidden lg:grid lg:grid-cols-4 lg:grid-rows-2 lg:gap-2 lg:h-[420px] lg:rounded-2xl lg:overflow-hidden">
         <div className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
-          <img src={remaining[0]} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+          <img loading="lazy" src={remaining[0]} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
         </div>
         {remaining.slice(1, 5).map((url, i) => (
           <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(i + 1)}>
-            <img src={url} alt={`${property.title} ${i + 2}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+            <img loading="lazy" src={url} alt={`${property.title} ${i + 2}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
           </div>
         ))}
       </div>
@@ -122,7 +121,7 @@ function GalleryDesktop({ images, property, onOpenLightbox }) {
       <div className={`hidden lg:grid ${cols} lg:gap-2 lg:h-[360px] lg:rounded-2xl lg:overflow-hidden`}>
         {images.map((url, i) => (
           <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(i)}>
-            <img src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+            <img loading="lazy" src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
           </div>
         ))}
       </div>
@@ -131,7 +130,7 @@ function GalleryDesktop({ images, property, onOpenLightbox }) {
 
   return (
     <div className="hidden lg:block lg:rounded-2xl overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
-      <img src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+      <img loading="lazy" src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
     </div>
   )
 }
@@ -142,7 +141,7 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
   return (
     <div className="lg:hidden">
       <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
-        <img src={images[0] || FALLBACK_IMAGE} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+        <img loading="lazy" src={images[0] || FALLBACK_IMAGE} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
       </div>
       <div className="grid grid-cols-4 gap-0.5">
         {thumbImages.map((url, i) => {
@@ -150,7 +149,7 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
           const isLast = i === 3 && images.length > 5
           return (
             <div key={i} className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(isLast ? 0 : imgIndex)}>
-              <img src={url} alt={`${property.title} ${imgIndex + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+              <img loading="lazy" src={url} alt={`${property.title} ${imgIndex + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
               {isLast && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
                   <span className="text-white text-xs font-bold">Lihat Semua</span>
@@ -192,7 +191,7 @@ function Lightbox({ isOpen, images, currentIndex, onClose, onPrev, onNext, prope
         >
           <ChevronLeft size={24} />
         </button>
-        <img
+        <img loading="lazy"
           src={images[currentIndex]}
           alt={`${propertyTitle} ${currentIndex + 1}`}
           onError={(e) => { e.target.src = FALLBACK_IMAGE }}
@@ -247,6 +246,12 @@ export default function PropertyDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const agentCardRef = useRef(null)
   const [showFloatingBtn, setShowFloatingBtn] = useState(true)
+
+  useSEO(property ? {
+    title: property.title,
+    description: `${property.property_type || 'Properti'} di ${property.city || 'Indonesia'} — ${property.bedrooms || 0} KT / ${property.bathrooms || 0} KM, ${property.area_sqm || '-'} m²`,
+    image: parseImages?.(property.image_url)?.[0],
+  } : { title: 'Detail Properti' })
 
   const images = property ? parseImages(property.image_url) : []
 
@@ -370,7 +375,7 @@ export default function PropertyDetailPage() {
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+  }, [loading])
 
   if (loading) return <LoadingSkeleton />
 
