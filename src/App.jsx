@@ -16,6 +16,7 @@ import ForumPage from './components/ForumPage'
 import ForumDetailPage from './components/ForumDetailPage'
 import MyListingsPage from './components/MyListingsPage'
 import ComingSoonPage from './components/ComingSoonPage'
+import KprCalculatorPage from './components/KprCalculatorPage'
 import AdminDashboardPage from './components/AdminDashboardPage'
 import HuniBot from './components/HuniBot'
 
@@ -128,6 +129,7 @@ function AppContent() {
               </AdminRoute>
             } />
             <Route path="/coming-soon" element={<ComingSoonPage />} />
+            <Route path="/kpr" element={<KprCalculatorPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </motion.div>
