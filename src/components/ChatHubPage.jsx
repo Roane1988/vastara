@@ -4,23 +4,34 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
-import { Send, ArrowLeft, MessageCircle } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X } from 'lucide-react'
+import ConfirmModal from './ConfirmModal'
 
 
-function MessageBubble({ message, isOwn }) {
+function MessageBubble({ message, isOwn, onDelete }) {
   return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 px-4`}>
-      <div
-        className={`max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 ${
-          isOwn
-            ? 'bg-brand-primary text-white rounded-br-md'
-            : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
-        }`}
-      >
+    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 px-4 group`}>
+      <div className={`relative max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 ${
+        isOwn
+          ? 'bg-brand-primary text-white rounded-br-md'
+          : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
+      }`}>
         <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-        <p className={`text-[10px] mt-1 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
-          {timeAgo(message.created_at)}
-        </p>
+        <div className={`flex items-center gap-2 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+          <p className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
+            {timeAgo(message.created_at)}
+          </p>
+          {isOwn && (
+            <button
+              type="button"
+              onClick={() => onDelete?.(message.id)}
+              className="opacity-0 group-hover:opacity-100 text-[10px] text-white/50 hover:text-red-300 transition-all"
+              title="Hapus pesan"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -67,7 +78,79 @@ function ContactItem({ contact, isActive, onClick }) {
           </p>
         </div>
       </div>
-    </button>
+
+      {showNewChat && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowNewChat(false)} />
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl p-6 pb-10 max-h-[70vh] overflow-y-auto animate-slide-up">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-brand-text">Obrolan Baru</h2>
+              <button type="button" onClick={() => setShowNewChat(false)} className="text-brand-muted hover:text-brand-text">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2.5 bg-brand-bg border border-brand-border rounded-xl mb-4">
+              <Search size={14} className="text-brand-muted shrink-0" />
+              <input
+                type="text"
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                placeholder="Cari pengguna..."
+                className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+              />
+              {userSearch && (
+                <button type="button" onClick={() => setUserSearch('')} className="text-brand-muted hover:text-brand-text">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <div className="space-y-1">
+              {allUsers
+                .filter(u => !userSearch || (u.first_name || '').toLowerCase().includes(userSearch.toLowerCase()))
+                .map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => handleStartNewChat(u.id)}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-brand-bg transition-colors text-left"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                      style={{ backgroundColor: getAvatarColor(u.id) }}
+                    >
+                      {getInitials(u.first_name)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-brand-text">{u.first_name || 'User'}</p>
+                      <p className="text-xs text-brand-muted">
+                        {u.role === 'admin' ? 'Admin Internal'
+                          : u.role === 'agent' ? 'Agent'
+                          : u.role === 'developer' ? 'Developer'
+                          : u.role === 'owner' ? 'Owner'
+                          : 'Pembeli'}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              {allUsers.length === 0 && (
+                <p className="text-sm text-brand-muted text-center py-8">Tidak ada pengguna lain.</p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteMessage}
+        title="Hapus Pesan"
+        description="Apakah Anda yakin ingin menghapus pesan ini?"
+        confirmText="Hapus"
+        cancelText="Batal"
+        loading={deleting}
+      />
+    </div>
   )
 }
 
@@ -145,8 +228,19 @@ export default function ChatHubPage() {
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showMobileList, setShowMobileList] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [showNewChat, setShowNewChat] = useState(false)
+  const [allUsers, setAllUsers] = useState([])
+  const [userSearch, setUserSearch] = useState('')
+  const [unreadMap, setUnreadMap] = useState({})
 
   const activeContact = contacts.find((c) => c.id === activeContactId) || null
+
+  const filteredContacts = contacts.filter((c) =>
+    !searchQuery.trim() || (c.first_name || '').toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   useEffect(() => {
     if (!userId) {
@@ -196,7 +290,10 @@ export default function ChatHubPage() {
 
         const ids = [...contactIds]
         if (ids.length === 0) {
-          if (!cancelledRef.current) setContacts([])
+          if (!cancelledRef.current) {
+            setContacts([])
+            setLoading(false)
+          }
           return
         }
 
@@ -298,6 +395,10 @@ export default function ChatHubPage() {
             return [...prev, msg]
           })
 
+          if (otherId !== activeContactId) {
+            setUnreadMap(prev => ({ ...prev, [otherId]: (prev[otherId] || 0) + 1 }))
+          }
+
           setContacts((prev) => {
             const idx = prev.findIndex((c) => c.id === otherId)
             if (idx >= 0) {
@@ -305,6 +406,17 @@ export default function ChatHubPage() {
               updated[idx] = { ...updated[idx], last_message: msg.content, last_message_at: msg.created_at }
               const [item] = updated.splice(idx, 1)
               return [item, ...updated]
+            }
+            const existingIds = new Set(prev.map(c => c.id))
+            if (!existingIds.has(otherId)) {
+              supabase.from('profiles').select('*').eq('id', otherId).single().then(({ data }) => {
+                if (data && !cancelledRef.current) {
+                  setContacts(p => {
+                    if (p.some(c => c.id === data.id)) return p
+                    return [{ ...data, last_message: msg.content, last_message_at: msg.created_at }, ...p]
+                  })
+                }
+              }).catch(() => {})
             }
             return prev
           })
@@ -324,6 +436,7 @@ export default function ChatHubPage() {
   function handleSelectContact(contactId) {
     setActiveContactId(contactId)
     setShowMobileList(false)
+    setUnreadMap(prev => ({ ...prev, [contactId]: 0 }))
   }
 
   function handleBackToList() {
@@ -357,6 +470,37 @@ export default function ChatHubPage() {
     if (!cancelledRef.current) setSending(false)
   }
 
+  async function handleDeleteMessage() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const { error } = await supabase.from('direct_messages').delete().eq('id', deleteTarget).eq('sender_id', userId)
+      if (!error) {
+        setMessages(prev => prev.filter(m => m.id !== deleteTarget))
+      } else {
+        showToast(error.message, 'error')
+      }
+    } catch (err) {
+      showToast(err.message || 'Gagal menghapus pesan', 'error')
+    }
+    setDeleting(false)
+    setDeleteTarget(null)
+  }
+
+  async function handleStartNewChat(contactId) {
+    setShowNewChat(false)
+    setActiveContactId(contactId)
+    setShowMobileList(false)
+    setUnreadMap(prev => ({ ...prev, [contactId]: 0 }))
+  }
+
+  useEffect(() => {
+    if (!showNewChat) return
+    supabase.from('profiles').select('id, first_name, role').neq('id', userId).then(({ data }) => {
+      if (data) setAllUsers(data)
+    }).catch(() => {})
+  }, [showNewChat, userId])
+
   if (!userId) {
     return <LoginPrompt />
   }
@@ -378,27 +522,61 @@ export default function ChatHubPage() {
             >
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-lg font-bold text-brand-text">Pesan</h1>
+            <h1 className="text-lg font-bold text-brand-text flex-1">Pesan</h1>
+            <button
+              type="button"
+              onClick={() => setShowNewChat(true)}
+              className="w-9 h-9 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent hover:bg-brand-accent/20 active:scale-90 transition-all"
+              title="Mulai obrolan baru"
+            >
+              <Plus size={18} />
+            </button>
           </div>
+
+          {contacts.length > 0 && (
+            <div className="px-4 py-2">
+              <div className="flex items-center gap-2 px-3 py-2 bg-brand-bg border border-brand-border rounded-lg">
+                <Search size={14} className="text-brand-muted shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari kontak..."
+                  className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} className="text-brand-muted hover:text-brand-text">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <ContactListSkeleton />
-            ) : contacts.length === 0 ? (
+            ) : filteredContacts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                 <MessageCircle size={32} className="text-brand-muted/40 mb-3" />
                 <p className="text-sm text-brand-muted leading-relaxed">
-                  Belum ada kontak. Mulai dengan menghubungi agen atau tim support.
+                  {searchQuery ? 'Kontak tidak ditemukan.' : 'Belum ada kontak. Mulai dengan menghubungi agen atau tim support.'}
                 </p>
               </div>
             ) : (
-              contacts.map((contact) => (
-                <ContactItem
-                  key={contact.id}
-                  contact={contact}
-                  isActive={contact.id === activeContactId}
-                  onClick={handleSelectContact}
-                />
+              filteredContacts.map((contact) => (
+                <div key={contact.id} className="relative">
+                  <ContactItem
+                    contact={contact}
+                    isActive={contact.id === activeContactId}
+                    onClick={handleSelectContact}
+                  />
+                  {(unreadMap[contact.id] || 0) > 0 && contact.id !== activeContactId && (
+                    <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      {unreadMap[contact.id]}
+                    </span>
+                  )}
+                </div>
               ))
             )}
           </div>
@@ -445,17 +623,18 @@ export default function ChatHubPage() {
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto py-4 space-y-1">
-                {messages.length === 0 ? (
-                  <EmptyChat contactName={activeContact.first_name} />
-                ) : (
-                  messages.map((msg) => (
-                    <MessageBubble
-                      key={msg.id}
-                      message={msg}
-                      isOwn={msg.sender_id === userId}
-                    />
-                  ))
-                )}
+                  {messages.length === 0 ? (
+                    <EmptyChat contactName={activeContact.first_name} />
+                  ) : (
+                    messages.map((msg) => (
+                      <MessageBubble
+                        key={msg.id}
+                        message={msg}
+                        isOwn={msg.sender_id === userId}
+                        onDelete={setDeleteTarget}
+                      />
+                    ))
+                  )}
                 <div ref={messagesEndRef} />
               </div>
 
