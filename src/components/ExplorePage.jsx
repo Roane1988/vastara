@@ -12,6 +12,8 @@ import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
+import CompareBar from './CompareBar'
+import { addToCompare, removeFromCompare, getCompareList } from '../utils/compare'
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
 
@@ -97,6 +99,18 @@ export default function ExplorePage() {
   const [sortIndex, setSortIndex] = useState(0)
   const [searchCategory, setSearchCategory] = useState('dijual')
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false)
+  const [compareSet, setCompareSet] = useState(new Set(getCompareList().map(p => p.id)))
+
+  function toggleCompare(p) {
+    if (compareSet.has(p.id)) {
+      removeFromCompare(p.id)
+      setCompareSet(prev => { const s = new Set(prev); s.delete(p.id); return s })
+    } else {
+      const updated = addToCompare(p)
+      setCompareSet(new Set(updated.map(x => x.id)))
+    }
+    window.dispatchEvent(new Event('compare-updated'))
+  }
 
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [properties, setProperties] = useState([])
@@ -658,7 +672,19 @@ export default function ExplorePage() {
                     </div>
                   </div>
                 </Link>
-                <div className="mt-2 flex justify-end">
+                <div className="mt-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => toggleCompare(p)}
+                    className={`flex items-center gap-1 text-xs transition-colors ${
+                      compareSet.has(p.id)
+                        ? 'text-brand-primary font-semibold'
+                        : 'text-brand-muted hover:text-brand-primary'
+                    }`}
+                  >
+                    <ArrowLeftRight size={14} />
+                    {compareSet.has(p.id) ? 'Terseleksi' : 'Bandingkan'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => toggleSave(p.id)}
@@ -798,6 +824,8 @@ export default function ExplorePage() {
           </div>
         </>
       )}
+
+      <CompareBar />
 
       {showBackToTop && (
         <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
