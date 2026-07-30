@@ -268,13 +268,14 @@ export default function SellPropertyPage() {
       const response = await fetch('/api/groq', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', purpose: 'chat', messages: [{ role: 'user', content: prompt }] }),
       })
       const data = await response.json()
-      if (data.content) {
-        updateFormValue('description', data.content)
+      const content = data?.choices?.[0]?.message?.content
+      if (content) {
+        updateFormValue('description', content)
       } else if (data.error) {
-        showToast('Gagal menghasilkan deskripsi: ' + data.error, 'error')
+        showToast('Gagal menghasilkan deskripsi: ' + (data.error.message || JSON.stringify(data.error)), 'error')
       }
     } catch {
       showToast('Gagal menghasilkan deskripsi. Coba lagi.', 'error')
