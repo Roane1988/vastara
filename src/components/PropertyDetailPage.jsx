@@ -359,8 +359,14 @@ export default function PropertyDetailPage() {
     const el = agentCardRef.current
     if (!el) return
     const observer = new IntersectionObserver(
-      ([entry]) => setShowFloatingBtn(!entry.isIntersecting),
-      { threshold: 0.1 }
+      ([entry]) => {
+        setShowFloatingBtn(!entry.isIntersecting)
+      },
+      {
+        root: null,
+        threshold: 0.1,
+        rootMargin: '0px 0px 50px 0px'
+      }
     )
     observer.observe(el)
     return () => observer.disconnect()
@@ -526,16 +532,18 @@ export default function PropertyDetailPage() {
 
       <Lightbox isOpen={isLightboxOpen} images={images} currentIndex={lightboxIndex} onClose={closeLightbox} onPrev={prevImage} onNext={nextImage} propertyTitle={property.title} />
 
-      <div className={`fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-30 lg:hidden transition-all duration-300 ease-in-out ${showFloatingBtn ? 'translate-y-0 opacity-100' : 'translate-y-32 opacity-0 pointer-events-none'}`}>
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:brightness-90 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-sm"
-        >
-          <WhatsAppIcon />
-          Hubungi Agent via WhatsApp
-        </a>
+      <div className={`fixed bottom-0 left-0 right-0 w-full z-50 transition-transform duration-300 ease-in-out ${showFloatingBtn ? 'translate-y-0' : 'translate-y-[150%]'}`}>
+        <div className="bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4">
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:brightness-90 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-sm"
+          >
+            <WhatsAppIcon />
+            Hubungi Agent via WhatsApp
+          </a>
+        </div>
       </div>
     </div>
   )
