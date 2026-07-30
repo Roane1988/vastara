@@ -379,23 +379,37 @@ export default function ChatHubPage() {
     if (!text || !userId || !activeContactId || sending) return
 
     setSending(true)
+    const optimisticMsg = {
+      id: `temp-${Date.now()}`,
+      sender_id: userId,
+      receiver_id: activeContactId,
+      content: text,
+      created_at: new Date().toISOString(),
+    }
+    setMessages(prev => [...prev, optimisticMsg])
+    setInputValue('')
+    inputRef.current?.focus()
+
     try {
-      const { error } = await supabase.from('direct_messages').insert({
+      const { data, error } = await supabase.from('direct_messages').insert({
         sender_id: userId,
         receiver_id: activeContactId,
         content: text,
-      })
+      }).select()
 
       if (cancelledRef.current) return
 
       if (error) {
         showToast(error.message, 'error')
-      } else {
-        setInputValue('')
-        inputRef.current?.focus()
+        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
+      } else if (data?.[0]) {
+        setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
       }
     } catch (err) {
-      if (!cancelledRef.current) showToast(err.message || 'Gagal mengirim pesan', 'error')
+      if (!cancelledRef.current) {
+        showToast(err.message || 'Gagal mengirim pesan', 'error')
+        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
+      }
     }
     if (!cancelledRef.current) setSending(false)
   }
