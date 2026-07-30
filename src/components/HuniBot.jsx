@@ -174,7 +174,7 @@ export default function HuniBot() {
     setIsOpen(prev => !prev)
   }, [])
 
-  if (location.pathname === '/kpr') return null
+  const isKprPage = location.pathname === '/kpr'
 
   return (
     <>
@@ -297,7 +297,7 @@ export default function HuniBot() {
         <button
           type="button"
           onClick={toggleOpen}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-primary/90 transition-colors flex items-center justify-center"
+          className={`fixed bottom-6 right-6 z-50 w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-primary/90 transition-colors flex items-center justify-center ${isKprPage ? 'hidden' : ''}`}
         >
           <Bot className="w-6 h-6" />
         </button>
