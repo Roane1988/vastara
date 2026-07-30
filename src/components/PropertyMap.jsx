@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { getImageSrc } from '../utils/images'
 import { formatPrice } from '../utils/format'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
 })
 
 const BSD_CENTER = [-6.3006, 106.6527]
@@ -45,6 +48,7 @@ export default function PropertyMap({ properties }) {
       center={BSD_CENTER}
       zoom={13}
       className="h-[600px] w-full rounded-xl z-0"
+      style={{ height: '600px', width: '100%', zIndex: 0 }}
       scrollWheelZoom={true}
     >
       <TileLayer
