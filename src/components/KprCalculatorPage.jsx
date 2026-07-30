@@ -87,6 +87,20 @@ export default function KprCalculatorPage() {
 
   const dpAmountDisplay = dpAmountText !== '' ? dpAmountText : dpAmount
 
+  const handleHuniBotClick = () => {
+    window.dispatchEvent(new CustomEvent('open-hunibot-with-context', {
+      detail: {
+        propertyPrice,
+        dpAmount,
+        dpPercentage,
+        loanAmount: principal,
+        monthlyInstallment,
+        interestRate,
+        tenorYears,
+      }
+    }))
+  }
+
   const waNumber = '6281234567890'
   const waMessage = encodeURIComponent(
     `Halo, saya ingin konsultasi KPR dengan detail:\n\n` +
@@ -310,7 +324,7 @@ export default function KprCalculatorPage() {
               </a>
               <button
                 type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('open-hunibot'))}
+                onClick={handleHuniBotClick}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.97] transition-all duration-200 shadow-sm"
               >
                 <Bot size={18} />
