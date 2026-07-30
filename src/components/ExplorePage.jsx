@@ -386,34 +386,34 @@ export default function ExplorePage() {
             </div>
 
             <div className="mt-3 pt-3 border-t border-brand-border/50">
-              <form onSubmit={handleSmartSearch} className="w-full max-w-2xl mx-auto flex items-center p-1.5 md:p-2 bg-white/95 backdrop-blur rounded-full shadow-lg border border-brand-accent/20 focus-within:ring-2 focus-within:ring-brand-accent/50 transition-all duration-300">
-                <Sparkles size={18} className="text-brand-accent shrink-0 ml-2.5 md:ml-3.5" />
+              <form onSubmit={handleSmartSearch} className="w-full max-w-2xl mx-auto flex items-center gap-1 md:gap-2 p-1 md:p-1.5 bg-white/95 backdrop-blur rounded-full shadow-lg border border-brand-accent/20 focus-within:ring-2 focus-within:ring-brand-accent/50 transition-all duration-300 overflow-hidden">
+                <Sparkles size={16} className="text-brand-accent shrink-0 ml-2 md:ml-3" />
                 <input
                   ref={smartSearchInputRef}
                   type="text"
                   value={smartSearchText}
                   onChange={(e) => setSmartSearchText(e.target.value)}
                   placeholder="Cari pakai AI: rumah di BSD harga di bawah 2M..."
-                  className="flex-1 bg-transparent border-none ring-0 focus:outline-none focus:ring-0 text-sm md:text-base text-brand-text placeholder:text-brand-muted/50 px-2.5 md:px-3 py-2"
+                  className="flex-1 min-w-0 bg-transparent border-none ring-0 focus:outline-none focus:ring-0 text-sm md:text-base text-brand-text placeholder:text-brand-muted/50 py-2"
                 />
                 {smartSearchText.length > 0 && (
                   <button
                     type="button"
                     onClick={() => { setSmartSearchText(''); smartSearchInputRef.current?.focus() }}
-                    className="shrink-0 text-brand-muted/60 hover:text-brand-text transition-colors p-1 mr-0.5"
+                    className="shrink-0 text-brand-muted/60 hover:text-brand-text transition-colors p-1"
                   >
-                    <XCircle size={18} />
+                    <XCircle size={16} />
                   </button>
                 )}
                 <button
                   type="submit"
                   disabled={isSmartSearching || !smartSearchText.trim()}
-                  className="shrink-0 text-sm md:text-base font-bold text-white bg-brand-accent hover:brightness-90 hover:scale-105 active:scale-95 transition-all duration-200 rounded-full px-4 py-2 md:px-6 md:py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  className="shrink-0 text-xs md:text-sm font-bold text-white bg-brand-accent hover:brightness-90 hover:scale-105 active:scale-95 transition-all duration-200 rounded-full px-3.5 py-1.5 md:px-5 md:py-2.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                 >
                   {isSmartSearching ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <Sparkles size={16} />
+                    <Sparkles size={14} />
                   )}
                   {isSmartSearching ? 'Memproses...' : 'Cari AI'}
                 </button>
