@@ -78,79 +78,7 @@ function ContactItem({ contact, isActive, onClick }) {
           </p>
         </div>
       </div>
-
-      {showNewChat && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowNewChat(false)} />
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl p-6 pb-10 max-h-[70vh] overflow-y-auto animate-slide-up">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-brand-text">Obrolan Baru</h2>
-              <button type="button" onClick={() => setShowNewChat(false)} className="text-brand-muted hover:text-brand-text">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-2.5 bg-brand-bg border border-brand-border rounded-xl mb-4">
-              <Search size={14} className="text-brand-muted shrink-0" />
-              <input
-                type="text"
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                placeholder="Cari pengguna..."
-                className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
-              />
-              {userSearch && (
-                <button type="button" onClick={() => setUserSearch('')} className="text-brand-muted hover:text-brand-text">
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-            <div className="space-y-1">
-              {allUsers
-                .filter(u => !userSearch || (u.first_name || '').toLowerCase().includes(userSearch.toLowerCase()))
-                .map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => handleStartNewChat(u.id)}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-brand-bg transition-colors text-left"
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                      style={{ backgroundColor: getAvatarColor(u.id) }}
-                    >
-                      {getInitials(u.first_name)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-brand-text">{u.first_name || 'User'}</p>
-                      <p className="text-xs text-brand-muted">
-                        {u.role === 'admin' ? 'Admin Internal'
-                          : u.role === 'agent' ? 'Agent'
-                          : u.role === 'developer' ? 'Developer'
-                          : u.role === 'owner' ? 'Owner'
-                          : 'Pembeli'}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              {allUsers.length === 0 && (
-                <p className="text-sm text-brand-muted text-center py-8">Tidak ada pengguna lain.</p>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-
-      <ConfirmModal
-        isOpen={deleteTarget !== null}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDeleteMessage}
-        title="Hapus Pesan"
-        description="Apakah Anda yakin ingin menghapus pesan ini?"
-        confirmText="Hapus"
-        cancelText="Batal"
-        loading={deleting}
-      />
-    </div>
+    </button>
   )
 }
 
@@ -506,6 +434,7 @@ export default function ChatHubPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <div className="flex-1 flex flex-col lg:flex-row lg:max-w-7xl lg:mx-auto lg:w-full lg:border-x lg:border-brand-border overflow-hidden">
         {/* ─── Contact List ───────────────────────────────────── */}
@@ -673,5 +602,78 @@ export default function ChatHubPage() {
         </div>
       </div>
     </div>
+
+    {showNewChat && (
+      <>
+        <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowNewChat(false)} />
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl p-6 pb-10 max-h-[70vh] overflow-y-auto animate-slide-up">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-brand-text">Obrolan Baru</h2>
+            <button type="button" onClick={() => setShowNewChat(false)} className="text-brand-muted hover:text-brand-text">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-brand-bg border border-brand-border rounded-xl mb-4">
+            <Search size={14} className="text-brand-muted shrink-0" />
+            <input
+              type="text"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="Cari pengguna..."
+              className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+            />
+            {userSearch && (
+              <button type="button" onClick={() => setUserSearch('')} className="text-brand-muted hover:text-brand-text">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <div className="space-y-1">
+            {allUsers
+              .filter(u => !userSearch || (u.first_name || '').toLowerCase().includes(userSearch.toLowerCase()))
+              .map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => handleStartNewChat(u.id)}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-brand-bg transition-colors text-left"
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                    style={{ backgroundColor: getAvatarColor(u.id) }}
+                  >
+                    {getInitials(u.first_name)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-brand-text">{u.first_name || 'User'}</p>
+                    <p className="text-xs text-brand-muted">
+                      {u.role === 'admin' ? 'Admin Internal'
+                        : u.role === 'agent' ? 'Agent'
+                        : u.role === 'developer' ? 'Developer'
+                        : u.role === 'owner' ? 'Owner'
+                        : 'Pembeli'}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            {allUsers.length === 0 && (
+              <p className="text-sm text-brand-muted text-center py-8">Tidak ada pengguna lain.</p>
+            )}
+          </div>
+        </div>
+      </>
+    )}
+
+    <ConfirmModal
+      isOpen={deleteTarget !== null}
+      onClose={() => setDeleteTarget(null)}
+      onConfirm={handleDeleteMessage}
+      title="Hapus Pesan"
+      description="Apakah Anda yakin ingin menghapus pesan ini?"
+      confirmText="Hapus"
+      cancelText="Batal"
+      loading={deleting}
+    />
+    </>
   )
 }
