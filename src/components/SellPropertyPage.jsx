@@ -451,8 +451,8 @@ export default function SellPropertyPage() {
                 <MapContainer
                   center={BSD_CENTER}
                   zoom={13}
-                  className="h-[300px] w-full"
-                  style={{ height: '300px', width: '100%' }}
+                  className="h-56 w-full"
+                  style={{ height: '224px', width: '100%' }}
                   scrollWheelZoom={true}
                 >
                   <TileLayer
@@ -671,7 +671,7 @@ export default function SellPropertyPage() {
         </aside>
 
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 px-5 pt-6 pb-4 overflow-y-auto">
+          <div className="flex-1 px-5 pt-6 pb-28 overflow-y-auto">
             {renderStep()}
           </div>
 
