@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, X, Send, ChevronDown } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useLocation } from 'react-router-dom'
 
 const RATE_LIMIT_MS = 2000
 
@@ -48,6 +49,7 @@ function TypingIndicator() {
 
 export default function HuniBot() {
   const { user } = useAuth()
+  const location = useLocation()
   const firstName = user?.user_metadata?.first_name || null
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
@@ -171,6 +173,8 @@ export default function HuniBot() {
   const toggleOpen = useCallback(() => {
     setIsOpen(prev => !prev)
   }, [])
+
+  if (location.pathname === '/kpr') return null
 
   return (
     <>
