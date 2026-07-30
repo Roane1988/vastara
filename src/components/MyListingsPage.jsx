@@ -193,6 +193,13 @@ export default function MyListingsPage() {
                     <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
+                        onClick={() => navigate(`/sell?edit=${p.id}`)}
+                        className="text-xs font-semibold text-brand-accent hover:text-brand-primary border border-brand-accent/30 hover:border-brand-primary rounded-lg px-3 py-1.5 transition-colors mr-2"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => {
                           setSelectedPropertyId(p.id)
                           setShowSoldModal(true)

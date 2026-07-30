@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
+import { setSupabase, initFavorites } from '../utils/favorites'
 import Toast from '../components/Toast'
 
 const AuthContext = createContext(null)
@@ -30,6 +31,10 @@ export function AuthProvider({ children }) {
     setRole(null)
   }, [])
 
+  useEffect(() => {
+    setSupabase(supabase)
+  }, [])
+
   const fetchRole = useCallback(async (userId) => {
     if (!userId) { setRole(null); return }
     try {
@@ -48,6 +53,7 @@ export function AuthProvider({ children }) {
       setSession(session)
       setUser(session?.user ?? null)
       fetchRole(session?.user?.id)
+      initFavorites(session?.user?.id)
       setLoading(false)
     }).catch(() => {
       if (cancelled) return
@@ -62,6 +68,7 @@ export function AuthProvider({ children }) {
       setSession(session)
       setUser(session?.user ?? null)
       fetchRole(session?.user?.id)
+      initFavorites(session?.user?.id)
     })
 
     return () => {

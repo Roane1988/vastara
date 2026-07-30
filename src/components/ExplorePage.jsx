@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin } from 'lucide-react'
@@ -97,9 +97,16 @@ export default function ExplorePage() {
   const [searchCategory, setSearchCategory] = useState('dijual')
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false)
 
+  const [showBackToTop, setShowBackToTop] = useState(false)
   const [properties, setProperties] = useState([])
   const { user } = useAuth()
   const cancelledRef = useRef(false)
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 600)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const firstName = user?.user_metadata?.first_name || null
 
@@ -162,8 +169,8 @@ export default function ExplorePage() {
     t('explore.all_properties.sort_expensive'),
   ]
 
-  const toggleSave = (id) => {
-    const updated = toggleFav(id)
+  const toggleSave = async (id) => {
+    const updated = await toggleFav(id)
     setSaved(updated)
   }
 
@@ -635,6 +642,15 @@ export default function ExplorePage() {
             </div>
           </div>
         </>
+      )}
+
+      {showBackToTop && (
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-24 right-5 z-40 w-11 h-11 rounded-full bg-brand-primary text-white shadow-lg flex items-center justify-center hover:brightness-90 active:scale-90 transition-all">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+        </button>
       )}
     </div>
   )

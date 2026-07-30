@@ -77,8 +77,8 @@ export default function SavedPropertiesPage({ onBack }) {
     return () => { cancelled = true }
   }, [])
 
-  const toggleSaved = (id) => {
-    const updated = toggleFavorite(id)
+  const toggleSaved = async (id) => {
+    const updated = await toggleFavorite(id)
     setFavIds(updated)
     setProperties((prev) => prev.filter((p) => updated.includes(p.id)))
   }

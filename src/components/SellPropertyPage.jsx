@@ -165,20 +165,55 @@ export default function SellPropertyPage() {
     kecamatan: '',
     whatsapp: '',
   })
+  const editId = new URLSearchParams(location.search).get('edit')
+  const [editLoading, setEditLoading] = useState(false)
   const [imageFiles, setImageFiles] = useState([])
   const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+
+  const hasUnsaved = editId ? false : (step > 0 || form.title || form.estimasi_harga || form.description || imageFiles.length > 0)
+
+  useEffect(() => {
+    if (!hasUnsaved) return
+    const handler = (e) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [hasUnsaved])
   const [dragIndex, setDragIndex] = useState(null)
   const [generatingDesc, setGeneratingDesc] = useState(false)
 
   useEffect(() => {
-    const draft = loadDraft()
-    if (draft) {
-      setForm(draft.form)
-      setImageFiles(draft.imageNames.map((n) => new File([], n)) || [])
+    if (!editId) {
+      const draft = loadDraft()
+      if (draft) {
+        setForm(draft.form)
+        setImageFiles(draft.imageNames.map((n) => new File([], n)) || [])
+      }
+      return
     }
-  }, [])
+    setEditLoading(true)
+    supabase.from('properties').select('*').eq('id', editId).single().then(({ data, error }) => {
+      if (!error && data) {
+        setForm({
+          title: data.title || '',
+          category: data.category || 'Dijual',
+          jenis_properti: data.property_type || '',
+          estimasi_harga: data.price ? String(data.price) : '',
+          bedrooms: data.bedrooms ? String(data.bedrooms) : '',
+          bathrooms: data.bathrooms ? String(data.bathrooms) : '',
+          sqm: data.area_sqm ? String(data.area_sqm) : '',
+          status_sertifikat: data.certificate_status || '',
+          description: data.description_id || '',
+          address: data.address || '',
+          city: data.city || '',
+          kecamatan: data.district || '',
+          whatsapp: data.seller_whatsapp || '',
+        })
+      }
+      setEditLoading(false)
+    })
+  }, [editId])
 
   useEffect(() => {
     if (!isSubmitted) {
@@ -326,36 +361,43 @@ export default function SellPropertyPage() {
         }
       }
 
-      const { error: insertError } = await supabase
-        .from('properties')
-        .insert({
-          seller_id: user.id,
-          category: form.category,
-          title: form.title,
-          property_type: form.jenis_properti,
-          seller_whatsapp: form.whatsapp,
-          description_id: form.description,
-          address: form.address,
-          city: form.city,
-          district: form.kecamatan,
-          price: form.estimasi_harga ? Number(form.estimasi_harga) : null,
-          bedrooms: Number(form.bedrooms) || 0,
-          bathrooms: Number(form.bathrooms) || 0,
-          area_sqm: Number(form.sqm) || 0,
-          certificate_status: form.status_sertifikat,
-          image_url: JSON.stringify(uploadedImageUrls),
-          status: 'pending',
-        })
+      const payload = {
+        seller_id: editId ? undefined : user.id,
+        category: form.category,
+        title: form.title,
+        property_type: form.jenis_properti,
+        seller_whatsapp: form.whatsapp,
+        description_id: form.description,
+        address: form.address,
+        city: form.city,
+        district: form.kecamatan,
+        price: form.estimasi_harga ? Number(form.estimasi_harga) : null,
+        bedrooms: Number(form.bedrooms) || 0,
+        bathrooms: Number(form.bathrooms) || 0,
+        area_sqm: Number(form.sqm) || 0,
+        certificate_status: form.status_sertifikat,
+        image_url: JSON.stringify(uploadedImageUrls),
+        status: editId ? undefined : 'pending',
+      }
 
-      if (insertError) {
-        showToast(insertError.message, 'error')
+      let queryError
+      if (editId) {
+        const { error } = await supabase.from('properties').update(payload).eq('id', editId)
+        queryError = error
+      } else {
+        const { error } = await supabase.from('properties').insert(payload)
+        queryError = error
+      }
+
+      if (queryError) {
+        showToast(queryError.message, 'error')
         setSubmitting(false)
         return
       }
 
       clearDraft()
       setSubmitting(false)
-      showToast('Properti berhasil dikirim', 'success')
+      showToast(editId ? 'Properti berhasil diperbarui' : 'Properti berhasil dikirim', 'success')
       setIsSubmitted(true)
     } catch (err) {
       showToast('Terjadi kesalahan: ' + (err.message || 'Silakan coba lagi.'), 'error')
@@ -564,9 +606,9 @@ export default function SellPropertyPage() {
           <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-6">
             <CheckCircle size={48} className="text-emerald-500" />
           </div>
-          <h2 className="text-2xl font-bold text-brand-text">Berhasil Terkirim!</h2>
+          <h2 className="text-2xl font-bold text-brand-text">{editId ? 'Berhasil Diperbarui!' : 'Berhasil Terkirim!'}</h2>
           <p className="text-brand-muted mt-2 mb-8 max-w-md leading-relaxed">
-            Tim HuniOne akan memverifikasi iklan Anda. Iklan akan tayang dalam 1x24 jam setelah disetujui.
+            {editId ? 'Perubahan pada properti Anda sudah disimpan.' : 'Tim HuniOne akan memverifikasi iklan Anda. Iklan akan tayang dalam 1x24 jam setelah disetujui.'}
           </p>
           <button type="button" onClick={() => navigate('/')} className="px-8 py-3.5 rounded-xl font-bold text-sm text-white bg-brand-primary hover:brightness-90 active:scale-[0.98] transition-all duration-200 shadow-sm">Kembali ke Beranda</button>
         </div>
