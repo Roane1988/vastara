@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calculator, ChevronLeft, MessageCircle } from 'lucide-react'
+import { Calculator, ChevronLeft, MessageCircle, Bot } from 'lucide-react'
 
 const TENOR_OPTIONS = [5, 10, 15, 20, 25]
 
@@ -298,15 +298,25 @@ export default function KprCalculatorPage() {
               </div>
             </div>
 
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 active:scale-[0.97] transition-all duration-200 shadow-sm"
-            >
-              <MessageCircle size={18} />
-              Konsultasi via WhatsApp
-            </a>
+            <div className="flex flex-col gap-3">
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 active:scale-[0.97] transition-all duration-200 shadow-sm"
+              >
+                <MessageCircle size={18} />
+                Konsultasi via WhatsApp
+              </a>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-hunibot'))}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.97] transition-all duration-200 shadow-sm"
+              >
+                <Bot size={18} />
+                Konsultasi dengan HuniBot
+              </button>
+            </div>
           </div>
         </div>
       </div>

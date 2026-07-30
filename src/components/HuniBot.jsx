@@ -64,6 +64,12 @@ export default function HuniBot() {
     return () => { cancelledRef.current = true }
   }, [])
 
+  useEffect(() => {
+    const handler = () => setIsOpen(true)
+    window.addEventListener('open-hunibot', handler)
+    return () => window.removeEventListener('open-hunibot', handler)
+  }, [])
+
   const scrollToBottom = useCallback((behavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior })
   }, [])
