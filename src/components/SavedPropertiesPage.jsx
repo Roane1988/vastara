@@ -57,7 +57,7 @@ export default function SavedPropertiesPage({ onBack }) {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, status, image_url, bedrooms, bathrooms, area_sqm, sqm')
+          .select('id, title, price, status, image_url, bedrooms, bathrooms, area_sqm')
           .in('id', ids)
 
         if (!cancelled) {
@@ -167,7 +167,7 @@ export default function SavedPropertiesPage({ onBack }) {
                   <span className="text-brand-border">&bull;</span>
                   <span>{p.bathrooms} Bath</span>
                   <span className="text-brand-border">&bull;</span>
-                  <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
+                  <span>{p.area_sqm || '-'} m&sup2;</span>
                 </div>
               </div>
             </div>

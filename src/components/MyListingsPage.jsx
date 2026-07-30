@@ -86,7 +86,7 @@ export default function MyListingsPage() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, status, image_url, address, location, bedrooms, bathrooms, area_sqm, sqm, created_at')
+          .select('id, title, price, status, image_url, address, bedrooms, bathrooms, area_sqm, created_at')
           .eq('seller_id', user.id)
           .order('created_at', { ascending: false })
 
@@ -180,14 +180,14 @@ export default function MyListingsPage() {
                     {formatPrice(p.price)}
                   </p>
                   <p className="text-xs text-brand-muted mt-1 truncate">
-                    {p.address || p.location || ''}
+                    {p.address || ''}
                   </p>
                   <div className="flex items-center gap-2 text-[11px] text-brand-muted mt-2">
                     <span>{p.bedrooms} KT</span>
                     <span className="text-brand-border">&bull;</span>
                     <span>{p.bathrooms} KM</span>
                     <span className="text-brand-border">&bull;</span>
-                    <span>{p.area_sqm || p.sqm} m&sup2;</span>
+                    <span>{p.area_sqm} m&sup2;</span>
                   </div>
                   {p.status !== 'sold' && (
                     <div className="mt-3" onClick={(e) => e.stopPropagation()}>
