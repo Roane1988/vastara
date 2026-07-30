@@ -54,8 +54,8 @@ Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 | **SellPropertyPage.jsx** | Form multi-step (3 step) Iklankan Properti: **Step 0** Info Properti (category, type, title, price, bedrooms, bathrooms, sqm, certificate, description + AI suggestion button via Groq API, address, city, district). **Step 1** Foto & Lokasi (drag-and-drop reorder, parallel upload via `Promise.all()` ke storage `PROPERTIES_IMAGE`, `image_url` disimpan sebagai `JSON.stringify([url1, url2, ...])`, max 10 foto, max 5MB, JPG/PNG/WEBP/AVIF). **Step 2** Review & Kirim (PreviewCard, ringkasan properti, WhatsApp input). Draft autosave ke localStorage, clearDraft setelah submit sukses. Notifikasi pakai `showToast` dari `useAuth`. `useEffect` cleanup untuk `URL.revokeObjectURL`. |
 | **MyListingsPage.jsx** | Daftar properti milik user sendiri (fetch by `seller_id`). Status badge "Menunggu Verifikasi" / "Terverifikasi". |
 | **RoleSelectionPage.jsx** | Onboarding pilih peran (Agent/Developer/Owner) setelah login. |
-| **ForumPage.jsx** | Daftar diskusi forum: kartu post dengan avatar (inisial + warna hash), badge "Umum", info aktivitas (replies count + avatar stack), compose form collapse toggle. |
-| **ForumDetailPage.jsx** | Detail post + reply system: avatar inisial, OP badge, upvote button (`ThumbsUp`), quote reply (`<!--replyto:...-->`), realtime subscription ke `forum_replies`, relative time (`timeAgo`), sticky reply form, guest CTA. |
+| **ForumPage.jsx** | Daftar diskusi forum: kartu post dengan avatar (inisial + warna hash), **dynamic category badges** (warna berbeda: Umum/KPR/Legalitas/Tips Properti/Rekomendasi), info aktivitas (replies count + avatar stack), **search bar** + **filter by category**, compose form dengan **category selector**, **edit post inline**, **delete** dengan ConfirmModal loading state, **cancel confirmation** saat batal compose. |
+| **ForumDetailPage.jsx** | Detail post + reply system: avatar inisial, OP badge, **like/upvote system** (toggle via `forum_likes` table, polymorphic target_type), **edit post** inline, **edit reply** inline, quote reply (`<!--replyto:...-->`), realtime subscription ke `forum_replies`, relative time (`timeAgo`), sticky reply form, **auto-scroll** ke reply baru, **success toast**, **cancel confirmation**, guest CTA. |
 | **ChatHubPage.jsx** | In-app realtime direct messaging: contact list (kiri) + chat window (kanan). Responsive two-column (desktop) / toggle view (mobile). Contact list menampilkan profil agen/admin + riwayat chat terakhir. Chat window: message bubbles (brand-primary untuk sent, white untuk received), scroll-to-bottom otomatis, realtime subscription via Supabase Realtime, input bar dengan Enter/Esc support. Auth guard: jika belum login tampilkan prompt login. |
 | **AdminAnalyticsCards.jsx** | 4 metric cards di dashboard Overview: Properti Terverifikasi (CheckCircle/emerald), Menunggu Verifikasi (Clock/amber), Total Pengguna (Users/sky), Agen & Developer (Briefcase/violet). Fetch count via `select(*, { count: 'exact', head: true })` in parallel `Promise.all`. Loading state: skeleton cards. |
 | **AdminUserManagement.jsx** | Data table semua user dari `profiles` dengan kolom Nama, Email, WhatsApp, Role (badge warna), Aksi. Inline `<select>` dropdown untuk ubah role (pembeli/owner/agent/developer/admin). Update role → insert `audit_logs`. Badge "Anda" untuk user sendiri. |
@@ -150,7 +150,7 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 ### Table: `forum_posts`
 - `id` (UUID, PK)
 - `author_id` (UUID, FK → `profiles.id`)
-- `title`, `content`, `created_at`
+- `title`, `content`, `category` (text, default 'Umum'), `created_at`
 - RLS: select all, insert/update/delete hanya author.
 
 ### Table: `forum_replies`
@@ -161,6 +161,16 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - `created_at`
 - RLS: select all, insert/update/delete hanya author.
 - Realtime: `INSERT` event on `forum_replies` (subscribe di `ForumDetailPage`).
+
+### Table: `forum_likes`
+- `id` (UUID, PK)
+- `user_id` (UUID, FK → `profiles.id`)
+- `target_id` (UUID — forum_post or forum_reply ID)
+- `target_type` (text — 'post' or 'reply')
+- `created_at`
+- Unique constraint on `(user_id, target_id, target_type)`
+- RLS: select all, insert/delete hanya owner (auth.uid() = user_id).
+- Migration: `supabase/migrations/20260731_create_forum_likes.sql`.
 
 ### Table: `properties`
 - `id` (UUID, PK)
@@ -232,6 +242,10 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 15. Realtime: `ForumDetailPage` subscribe ke `postgres_changes` INSERT on `forum_replies` — update daftar balasan otomatis tanpa refresh.
 16. `timeAgo(dateString)` — dari `utils/time.js` (shared). Relative time in Indonesian ("baru saja", "5 menit yang lalu", dll).
 17. Avatar tidak pakai `avatar_url` — inisial dari `first_name` + warna konsisten dari hash UUID user. Helper di `utils/avatar.js`: `getAvatarColor()` + `getInitials()`.
+18. **Like/upvote system**: Tabel `forum_likes` dengan polymorphic `target_type` ('post'/'reply'). Toggle via `handleToggleLike()` — cek existing, delete if found else insert. Count di-fetch via `fetchLikes()` per post + bulk per replies.
+19. **Edit inline**: Post bisa diedit langsung di list (`ForumPage`) atau di detail page (`ForumDetailPage`). Reply bisa diedit inline di detail page. Semua update via `.update()` dengan guard `author_id`.
+20. **Category system**: `forum_posts.category` — default 'Umum'. Selector di create form. Filter dropdown + search bar di ForumPage. Dynamic color mapping via `categoryColors` object.
+21. **Cancel confirmation**: Saat batal compose/reply dengan konten yang sudah ditulis, muncul ConfirmModal `danger={false}` dengan icon `AlertTriangle`.
 
 ### Styling
 18. **Tailwind v4**: Tidak ada `tailwind.config.js`. Konfigurasi theme via CSS `@theme` di `index.css`. Custom colors: `brand-primary` (#1E3A5F), `brand-accent` (#4A90E2), `brand-bg` (#F8FAFC), `brand-surface` (#FFFFFF), `brand-text` (#1C2733), `brand-muted` (#6B7280), `brand-border` (#E5E7EB), `brand-highlight` (#EDF4FD), `brand-verified` (#2E8B57), `brand-danger` (#DC2626).
