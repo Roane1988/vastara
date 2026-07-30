@@ -142,3 +142,31 @@ DO $$ BEGIN
     USING (auth.uid() = sender_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- ============================================================================
+-- TABLE: site_visits
+-- Stores scheduled property visit requests
+-- ============================================================================
+ALTER TABLE site_visits ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  CREATE POLICY "site_visits_select" ON site_visits
+    FOR SELECT
+    USING (auth.uid() = buyer_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "site_visits_insert" ON site_visits
+    FOR INSERT
+    WITH CHECK (auth.uid() = buyer_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "site_visits_update" ON site_visits
+    FOR UPDATE
+    USING (auth.uid() = buyer_id)
+    WITH CHECK (auth.uid() = buyer_id AND status IN ('cancelled'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { formatPrice } from '../utils/format'
@@ -12,6 +12,7 @@ import { addRecentlyViewed } from '../utils/recentlyViewed'
 import NotFoundPage from './NotFoundPage'
 import KprSimulator from './KprSimulator'
 import InvestmentAnalyzer from './InvestmentAnalyzer'
+import ScheduleVisit from './ScheduleVisit'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
 function ArrowLeftIcon() {
@@ -249,6 +250,7 @@ export default function PropertyDetailPage() {
   const agentCardRef = useRef(null)
   const [showFloatingBtn, setShowFloatingBtn] = useState(true)
   const [similar, setSimilar] = useState([])
+  const [showScheduleVisit, setShowScheduleVisit] = useState(false)
 
   useSEO(property ? {
     title: property.title,
@@ -544,6 +546,14 @@ export default function PropertyDetailPage() {
                     <Phone size={16} className="text-brand-muted" />
                     {phoneShort}
                   </a>
+                  <button
+                    type="button"
+                    onClick={() => setShowScheduleVisit(true)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
+                  >
+                    <Calendar size={16} className="text-brand-muted" />
+                    Jadwal Survei
+                  </button>
                   <a
                     href={waLink}
                     target="_blank"
@@ -580,6 +590,10 @@ export default function PropertyDetailPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {showScheduleVisit && (
+        <ScheduleVisit property={property} onClose={() => setShowScheduleVisit(false)} />
       )}
 
       <div className={`fixed bottom-0 left-0 right-0 w-full z-50 transition-transform duration-300 ease-in-out ${showFloatingBtn ? 'translate-y-0' : 'translate-y-[150%]'}`}>
