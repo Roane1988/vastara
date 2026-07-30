@@ -325,6 +325,8 @@ export default function ChatHubPage() {
 
           if (otherId !== activeContactId) {
             setUnreadMap(prev => ({ ...prev, [otherId]: (prev[otherId] || 0) + 1 }))
+            const senderName = contacts.find(c => c.id === otherId)?.first_name || 'Seseorang'
+            if (msg.content) showToast(`${senderName}: ${msg.content.slice(0, 80)}`, 'info')
           }
 
           setContacts((prev) => {
