@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calculator, ChevronLeft, MessageCircle, Bot } from 'lucide-react'
+import { Calculator, MessageCircle, Bot, ChevronDown, Plus } from 'lucide-react'
 import { formatCurrency, formatShort } from '../utils/format'
 
 const TENOR_OPTIONS = [5, 10, 15, 20, 25]
@@ -54,6 +54,50 @@ export default function KprCalculatorPage() {
     () => Math.max(0, totalPayment - principal),
     [totalPayment, principal]
   )
+
+  const amortizationSchedule = useMemo(() => {
+    if (principal <= 0 || monthlyInstallment === 0) return []
+    const monthlyRate = (interestRate / 100) / 12
+    const schedule = []
+    let balance = principal
+    const annualPayment = monthlyInstallment * 12
+    for (let year = 1; year <= tenorYears; year++) {
+      let totalInterestYear = 0
+      for (let m = 0; m < 12; m++) {
+        const interestMonth = balance * monthlyRate
+        totalInterestYear += interestMonth
+        const principalMonth = monthlyInstallment - interestMonth
+        balance = Math.max(0, balance - principalMonth)
+      }
+      schedule.push({
+        year,
+        beginningBalance: year === 1 ? principal : schedule[year - 2].endingBalance,
+        annualPayment,
+        interestPaid: totalInterestYear,
+        principalPaid: annualPayment - totalInterestYear,
+        endingBalance: balance,
+      })
+      if (balance <= 0) break
+    }
+    return schedule
+  }, [principal, monthlyInstallment, interestRate, tenorYears])
+
+  const additionalCosts = useMemo(() => {
+    const bphtb = Math.max(0, propertyPrice - 60000000) * 0.05
+    const ppn = propertyPrice * 0.11
+    const notaris = Math.min(Math.max(propertyPrice * 0.01, 5000000), 15000000)
+    const provisi = principal * 0.01
+    return {
+      bphtb,
+      ppn,
+      notaris,
+      provisi,
+      total: bphtb + ppn + notaris + provisi,
+    }
+  }, [propertyPrice, principal])
+
+  const [showAmortisasi, setShowAmortisasi] = useState(false)
+  const [showBiayaLain, setShowBiayaLain] = useState(false)
 
   const handleDpPercentageChange = (value) => {
     const pct = Math.min(100, Math.max(0, Number(value) || 0))
@@ -169,7 +213,6 @@ export default function KprCalculatorPage() {
                       </span>
                     </div>
                   </div>
-                  <div>
                     <input
                       type="number"
                       min="0"
@@ -319,6 +362,128 @@ export default function KprCalculatorPage() {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {principal > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm border border-brand-border overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowAmortisasi((prev) => !prev)}
+                  className="w-full flex items-center justify-between p-5 sm:p-6 text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-brand-text">Tabel Amortisasi</h3>
+                    <span className="text-xs text-brand-muted font-normal">
+                      ({amortizationSchedule.length} tahun)
+                    </span>
+                  </div>
+                  <ChevronDown
+                    size={18}
+                    className={`text-brand-muted transition-transform duration-200 ${showAmortisasi ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                <AnimatePresence>
+                  {showAmortisasi && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 sm:px-6 pb-5 sm:pb-6 border-t border-brand-border pt-4">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-brand-muted border-b border-brand-border">
+                                <th className="text-left pb-2 font-medium">Tahun</th>
+                                <th className="text-right pb-2 font-medium">Sisa Awal</th>
+                                <th className="text-right pb-2 font-medium">Angsuran/thn</th>
+                                <th className="text-right pb-2 font-medium">Bunga</th>
+                                <th className="text-right pb-2 font-medium">Pokok</th>
+                                <th className="text-right pb-2 font-medium">Sisa Akhir</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {amortizationSchedule.map((row) => (
+                                <tr key={row.year} className="border-b border-brand-border/50 last:border-0">
+                                  <td className="py-2 text-left font-semibold text-brand-text">{row.year}</td>
+                                  <td className="py-2 text-right text-brand-muted">{formatShort(row.beginningBalance)}</td>
+                                  <td className="py-2 text-right text-brand-muted">{formatShort(row.annualPayment)}</td>
+                                  <td className="py-2 text-right text-orange-600">{formatShort(row.interestPaid)}</td>
+                                  <td className="py-2 text-right text-green-600">{formatShort(row.principalPaid)}</td>
+                                  <td className="py-2 text-right font-medium text-brand-text">{formatShort(row.endingBalance)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            <div className="bg-white rounded-2xl shadow-sm border border-brand-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowBiayaLain((prev) => !prev)}
+                className="w-full flex items-center justify-between p-5 sm:p-6 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus size={16} className="text-brand-muted" />
+                  <h3 className="text-base font-bold text-brand-text">Estimasi Biaya Lainnya</h3>
+                </div>
+                <ChevronDown
+                  size={18}
+                  className={`text-brand-muted transition-transform duration-200 ${showBiayaLain ? 'rotate-180' : ''}`}
+                />
+              </button>
+              <AnimatePresence>
+                {showBiayaLain && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-5 sm:px-6 pb-5 sm:pb-6 border-t border-brand-border pt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-brand-muted">BPHTB (5% × (harga − Rp60jt))</span>
+                          <span className="text-sm font-semibold text-brand-text">{formatShort(additionalCosts.bphtb)}</span>
+                        </div>
+                        <div className="border-t border-brand-border/50" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-brand-muted">PPN 11% (properti baru)</span>
+                          <span className="text-sm font-semibold text-brand-text">{formatShort(additionalCosts.ppn)}</span>
+                        </div>
+                        <div className="border-t border-brand-border/50" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-brand-muted">Notaris &amp; SKMHT</span>
+                          <span className="text-sm font-semibold text-brand-text">{formatShort(additionalCosts.notaris)}</span>
+                        </div>
+                        <div className="border-t border-brand-border/50" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-brand-muted">Provisi Bank (1% × pokok)</span>
+                          <span className="text-sm font-semibold text-brand-text">{formatShort(additionalCosts.provisi)}</span>
+                        </div>
+                        <div className="border-t border-brand-border" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-brand-text">Total Biaya Lainnya</span>
+                          <span className="text-sm font-bold text-orange-600">{formatShort(additionalCosts.total)}</span>
+                        </div>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-sm font-bold text-brand-text">Total Dana Awal Dibutuhkan</span>
+                          <span className="text-sm font-extrabold text-brand-primary">{formatShort(dpAmount + additionalCosts.total)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="flex flex-col gap-3">
