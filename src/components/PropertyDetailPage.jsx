@@ -8,6 +8,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { parseImages, FALLBACK_IMAGE } from '../utils/images'
 import { useGroqTranslation } from '../hooks/useGroqTranslation'
 import useSEO from '../hooks/useSEO'
+import { addRecentlyViewed } from '../utils/recentlyViewed'
 import NotFoundPage from './NotFoundPage'
 import KprSimulator from './KprSimulator'
 import InvestmentAnalyzer from './InvestmentAnalyzer'
@@ -319,6 +320,7 @@ export default function PropertyDetailPage() {
         if (!cancelled) {
           if (match) {
             setProperty(match)
+            addRecentlyViewed(match)
           } else {
             setError('Properti tidak ditemukan')
           }
@@ -349,6 +351,7 @@ export default function PropertyDetailPage() {
         }
 
         setProperty(data)
+        addRecentlyViewed(data)
         setLoading(false)
       } catch (err) {
         if (!cancelled) {

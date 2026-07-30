@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
+import RecentlyViewed from './RecentlyViewed'
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
 
@@ -451,6 +452,11 @@ export default function ExplorePage() {
           </div>
         </div>
       </div>
+
+      {/* ─── TERAKHIR DILIHAT ─── */}
+      <section className="max-w-7xl mx-auto px-4 mt-8 mb-4">
+        <RecentlyViewed />
+      </section>
 
       {/* ─── REKOMENDASI SESUAI PENCARIANMU ─── */}
       <section className="max-w-7xl mx-auto px-4 mt-8 mb-8">
