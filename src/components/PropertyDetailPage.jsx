@@ -8,6 +8,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { parseImages } from '../utils/images'
 import { useGroqTranslation } from '../hooks/useGroqTranslation'
 import NotFoundPage from './NotFoundPage'
+import KprSimulator from './KprSimulator'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
@@ -485,6 +486,11 @@ export default function PropertyDetailPage() {
                   ? property.description_en
                   : (property.description_id || `${displayTitle} — ${property.bedrooms} bedrooms, ${property.bathrooms} bathrooms, ${property.area_sqm || property.sqm || '-'} m².`)}
               </p>
+            </div>
+
+            <div className="mt-10 pt-8 border-t border-gray-200">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Simulasi KPR</h3>
+              <KprSimulator />
             </div>
 
             <AccordionBlock id="panduan" title="Panduan Membeli Properti" isOpen={accordionState.panduan} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
