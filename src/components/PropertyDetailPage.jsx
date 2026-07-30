@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight, Calendar, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { formatPrice } from '../utils/format'
@@ -314,6 +314,8 @@ export default function PropertyDetailPage() {
   const [showFloatingBtn, setShowFloatingBtn] = useState(true)
   const [similar, setSimilar] = useState([])
   const [showScheduleVisit, setShowScheduleVisit] = useState(false)
+  const [showStickyBar, setShowStickyBar] = useState(false)
+  const [descExpanded, setDescExpanded] = useState(false)
 
   useSEO(property ? {
     title: property.title,
@@ -334,6 +336,18 @@ export default function PropertyDetailPage() {
   const displayTitle = getText('title', property?.title || '')
   const displayAddress = getText('address', property?.address || property?.location || 'Indonesia')
   const displayType = getText('property_type', property?.property_type || '')
+
+  const description = lang === 'en' && property?.description_en
+    ? property.description_en
+    : (property?.description_id || `${displayTitle} — ${property?.bedrooms} bedrooms, ${property?.bathrooms} bathrooms, ${property?.area_sqm || property?.sqm || '-'} m².`)
+
+  function handleShare() {
+    if (navigator.share) {
+      navigator.share({ title: property?.title, text: `${displayTitle} - ${formatPrice(property?.price)}`, url: window.location.href })
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+    }
+  }
 
   const openLightbox = (index) => {
     setLightboxIndex(index)
@@ -463,6 +477,13 @@ export default function PropertyDetailPage() {
     return () => observer.disconnect()
   }, [loading])
 
+  useEffect(() => {
+    function onScroll() { setShowStickyBar(window.scrollY > 300) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   if (loading) return <LoadingSkeleton />
 
   if (error) {
@@ -496,6 +517,14 @@ export default function PropertyDetailPage() {
           className="absolute top-4 left-4 z-30 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-md hover:bg-white transition-colors cursor-pointer"
         >
           <ArrowLeftIcon />
+        </button>
+        <button
+          type="button"
+          onClick={handleShare}
+          className="absolute top-4 right-4 z-30 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-md hover:bg-white transition-colors cursor-pointer"
+          aria-label="Share"
+        >
+          <Share2 size={18} />
         </button>
 
         <div className="lg:hidden px-4 pt-3">
@@ -531,6 +560,29 @@ export default function PropertyDetailPage() {
               <p className="text-2xl font-extrabold text-brand-primary">
                 {formatPrice(property.price)}
               </p>
+              {property.area_sqm > 0 && (
+                <p className="text-sm text-brand-muted mt-0.5">
+                  {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {property.certificate_status && (
+                <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  {property.certificate_status}
+                </span>
+              )}
+              {property.category && (
+                <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                  {property.category}
+                </span>
+              )}
+              {property.status === 'verified' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-brand-highlight/40 text-brand-text border border-brand-accent/30">
+                  Verified
+                </span>
+              )}
             </div>
 
             <div className="flex gap-6">
@@ -552,11 +604,14 @@ export default function PropertyDetailPage() {
               <h2 className="text-base font-semibold text-brand-text mb-2">
                 {lang === 'en' ? 'Description' : 'Deskripsi'}
               </h2>
-              <p className="text-sm text-brand-muted leading-relaxed">
-                {lang === 'en' && property.description_en
-                  ? property.description_en
-                  : (property.description_id || `${displayTitle} — ${property.bedrooms} bedrooms, ${property.bathrooms} bathrooms, ${property.area_sqm || property.sqm || '-'} m².`)}
-              </p>
+              <div className={`text-sm text-brand-muted leading-relaxed ${!descExpanded ? 'line-clamp-3' : ''}`}>
+                {description}
+              </div>
+              {description.length > 120 && (
+                <button type="button" onClick={() => setDescExpanded(!descExpanded)} className="text-xs font-semibold text-brand-primary mt-1 hover:underline cursor-pointer">
+                  {descExpanded ? (lang === 'en' ? 'Show less' : 'Sembunyikan') : (lang === 'en' ? 'Read more' : 'Baca selengkapnya')}
+                </button>
+              )}
             </div>
 
             <div className="mt-10 pt-8 border-t border-gray-200">
@@ -634,6 +689,19 @@ export default function PropertyDetailPage() {
       </div>
 
       <Lightbox isOpen={isLightboxOpen} images={images} currentIndex={lightboxIndex} onClose={closeLightbox} onPrev={prevImage} onNext={nextImage} propertyTitle={property.title} />
+
+      <div className={`fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-brand-border shadow-sm transition-transform duration-300 ${showStickyBar ? 'translate-y-0' : '-translate-y-full'} hidden lg:block`}>
+        <div className="max-w-7xl mx-auto px-5 py-2.5 flex items-center justify-between">
+          <div className="min-w-0 flex-1 mr-4">
+            <p className="text-sm font-bold text-brand-text truncate">{displayTitle}</p>
+            <p className="text-xs font-semibold text-brand-primary">{formatPrice(property.price)}</p>
+          </div>
+          <a href={waLink} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-2 py-2 px-4 rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.97]">
+            <MessageCircle size={16} />
+            WhatsApp
+          </a>
+        </div>
+      </div>
 
       {similar.length > 0 && (
         <div className="max-w-7xl mx-auto px-5 pb-6">
