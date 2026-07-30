@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -245,6 +245,8 @@ export default function PropertyDetailPage() {
   const [accordionState, setAccordionState] = useState({ panduan: false, disclaimer: false })
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
+  const agentCardRef = useRef(null)
+  const [showFloatingBtn, setShowFloatingBtn] = useState(true)
 
   const images = property ? parseImages(property.image_url) : []
 
@@ -352,6 +354,17 @@ export default function PropertyDetailPage() {
     fetchProperty()
     return () => { cancelled = true }
   }, [id])
+
+  useEffect(() => {
+    const el = agentCardRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowFloatingBtn(!entry.isIntersecting),
+      { threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   if (loading) return <LoadingSkeleton />
 
@@ -472,7 +485,7 @@ export default function PropertyDetailPage() {
 
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-6">
-              <div className="bg-white rounded-xl shadow-md border border-brand-border p-5">
+              <div ref={agentCardRef} className="bg-white rounded-xl shadow-md border border-brand-border p-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div
                     className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
@@ -513,7 +526,7 @@ export default function PropertyDetailPage() {
 
       <Lightbox isOpen={isLightboxOpen} images={images} currentIndex={lightboxIndex} onClose={closeLightbox} onPrev={prevImage} onNext={nextImage} propertyTitle={property.title} />
 
-      <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-30 lg:hidden">
+      <div className={`fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-30 lg:hidden transition-all duration-300 ease-in-out ${showFloatingBtn ? 'translate-y-0 opacity-100' : 'translate-y-32 opacity-0 pointer-events-none'}`}>
         <a
           href={waLink}
           target="_blank"
