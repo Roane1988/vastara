@@ -11,26 +11,26 @@ import ConfirmModal from './ConfirmModal'
 function MessageBubble({ message, isOwn, onDelete }) {
   return (
     <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 px-4 group`}>
-      <div className={`relative max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 ${
-        isOwn
-          ? 'bg-brand-primary text-white rounded-br-md'
-          : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
-      }`}>
-        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-        <div className={`flex items-center gap-2 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-          <p className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
+      <div className="relative max-w-[80%] sm:max-w-[70%]">
+        {isOwn && (
+          <button
+            type="button"
+            onClick={() => onDelete?.(message.id)}
+            className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-white border border-brand-border shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-300 hover:text-red-500 text-brand-muted transition-all"
+            title="Hapus pesan"
+          >
+            <Trash2 size={11} />
+          </button>
+        )}
+        <div className={`rounded-2xl px-4 py-2.5 ${
+          isOwn
+            ? 'bg-brand-primary text-white rounded-br-md'
+            : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
+        }`}>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
+          <p className={`text-[10px] mt-1 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
             {timeAgo(message.created_at)}
           </p>
-          {isOwn && (
-            <button
-              type="button"
-              onClick={() => onDelete?.(message.id)}
-              className="opacity-0 group-hover:opacity-100 text-[10px] text-white/50 hover:text-red-300 transition-all"
-              title="Hapus pesan"
-            >
-              <Trash2 size={12} />
-            </button>
-          )}
         </div>
       </div>
     </div>
