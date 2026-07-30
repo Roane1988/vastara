@@ -10,7 +10,6 @@ import { formatPrice } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 import { batchTranslate } from '../hooks/useGroqTranslation'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
-import PropertyMap from './PropertyMap'
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'
 
@@ -95,7 +94,6 @@ export default function ExplorePage() {
   const [sortIndex, setSortIndex] = useState(0)
   const [searchCategory, setSearchCategory] = useState('dijual')
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false)
-  const [viewMode, setViewMode] = useState('list')
 
   const [properties, setProperties] = useState([])
   const { user } = useAuth()
@@ -441,33 +439,6 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* ─── LIST / MAP TOGGLE ─── */}
-        <div className="flex items-center gap-2 mb-4">
-          <button
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${
-              viewMode === 'list'
-                ? 'bg-brand-primary text-white'
-                : 'bg-brand-bg text-brand-muted hover:bg-brand-border'
-            }`}
-          >
-            List View
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('map')}
-            className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-colors ${
-              viewMode === 'map'
-                ? 'bg-brand-primary text-white'
-                : 'bg-brand-bg text-brand-muted hover:bg-brand-border'
-            }`}
-          >
-            Map View
-          </button>
-        </div>
-
-        {viewMode === 'list' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {displayListings.map((p) => (
             <div key={p.id}>
@@ -532,9 +503,6 @@ export default function ExplorePage() {
             </div>
           ))}
         </div>
-        ) : (
-          <PropertyMap properties={displayListings} />
-        )}
       </section>
 
       {/* ─── DRAWERS ─── */}

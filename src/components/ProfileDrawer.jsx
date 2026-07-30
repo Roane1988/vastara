@@ -98,7 +98,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, image_url, latitude, longitude')
+          .select('id, title, price, image_url')
           .in('id', favIds)
         if (!cancelled) {
           if (error) {
