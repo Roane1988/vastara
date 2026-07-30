@@ -210,45 +210,6 @@ function Lightbox({ isOpen, images, currentIndex, onClose, onPrev, onNext, prope
   )
 }
 
-function AgentCard({ sellerName, sellerRole, waLink, phoneShort, sellerId }) {
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-brand-border p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-          style={{ backgroundColor: getAvatarColor(sellerId) }}
-        >
-          {getInitials(sellerName)}
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-brand-text">{sellerName}</p>
-          <p className="text-xs text-brand-muted">{sellerRole}</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
-        >
-          <Phone size={16} className="text-brand-muted" />
-          {phoneShort}
-        </a>
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.98]"
-        >
-          <MessageCircle size={16} />
-          WhatsApp
-        </a>
-      </div>
-    </div>
-  )
-}
-
 function AccordionBlock({ id, title, children, isOpen, onToggle }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-hidden">
@@ -488,6 +449,41 @@ export default function PropertyDetailPage() {
               </p>
             </div>
 
+            <div className="bg-white rounded-xl shadow-sm border border-brand-border p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                  style={{ backgroundColor: getAvatarColor(property.seller_id) }}
+                >
+                  {getInitials(sellerName)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-brand-text">{sellerName}</p>
+                  <p className="text-xs text-brand-muted">{sellerRole}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
+                >
+                  <Phone size={16} className="text-brand-muted" />
+                  {phoneShort}
+                </a>
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.98]"
+                >
+                  <MessageCircle size={16} />
+                  WhatsApp
+                </a>
+              </div>
+            </div>
+
             <div className="mt-10 pt-8 border-t border-gray-200">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Simulasi KPR</h3>
               <KprSimulator />
@@ -509,11 +505,6 @@ export default function PropertyDetailPage() {
             </AccordionBlock>
           </div>
 
-          <div className="lg:col-span-1">
-            <div className="sticky top-24 self-start">
-              <AgentCard sellerName={sellerName} sellerRole={sellerRole} waLink={waLink} phoneShort={phoneShort} sellerId={property.seller_id} />
-            </div>
-          </div>
         </div>
       </div>
 
