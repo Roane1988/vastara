@@ -103,6 +103,7 @@ export default function ExplorePage() {
   const [isSmartSearching, setIsSmartSearching] = useState(false)
   const { user, showToast } = useAuth()
   const cancelledRef = useRef(false)
+  const listingRef = useRef(null)
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 600)
@@ -173,7 +174,10 @@ export default function ExplorePage() {
 
   async function handleSmartSearch(e) {
     e.preventDefault()
-    if (!smartSearchText.trim()) return
+    if (!smartSearchText.trim()) {
+      showToast('Silakan ketik kriteria pencarian terlebih dahulu.', 'error')
+      return
+    }
     setIsSmartSearching(true)
 
     try {
@@ -222,6 +226,7 @@ export default function ExplorePage() {
 
       if (!error && results) {
         setProperties(results)
+        listingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       } else if (error) {
         throw new Error(error.message)
       }
@@ -528,7 +533,7 @@ export default function ExplorePage() {
       </section>
 
       {/* ─── FULL PROPERTY LISTING ─── */}
-      <section className="max-w-7xl mx-auto px-4 pb-24 bg-[#F8FAFC]">
+      <section ref={listingRef} className="max-w-7xl mx-auto px-4 pb-24 bg-[#F8FAFC]">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-brand-text">
             {t('explore.all_properties.title')}
