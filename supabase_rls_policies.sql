@@ -10,10 +10,10 @@
 -- ============================================================================
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- Anyone can view profiles
+-- Authenticated users can view profiles; full access only for own profile
 CREATE POLICY "profiles_select" ON profiles
   FOR SELECT
-  USING (true);
+  USING (auth.role() = 'authenticated');
 
 -- Authenticated users can insert their own profile
 CREATE POLICY "profiles_insert" ON profiles
@@ -93,10 +93,10 @@ DO $$ BEGIN
   IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'properties') THEN
     ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
 
-    -- Anyone can view properties
+    -- Anyone can view verified properties; sellers can view their own regardless of status
     CREATE POLICY "properties_select" ON properties
       FOR SELECT
-      USING (true);
+      USING (status = 'verified' OR auth.uid() = seller_id);
 
     -- Authenticated users can list properties (owner_id must match their uid)
     CREATE POLICY "properties_insert" ON properties

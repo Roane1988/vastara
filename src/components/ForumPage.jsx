@@ -33,7 +33,7 @@ export default function ForumPage() {
     try {
       const { data, error } = await supabase
         .from('forum_posts')
-        .select('*, profiles(*), forum_replies(*, profiles(*))')
+        .select('id, title, content, created_at, author_id, profiles(first_name), forum_replies(id, content, created_at, author_id, profiles(first_name))')
         .order('created_at', { ascending: false })
       if (!cancelledRef.current) {
         if (!error && data) {

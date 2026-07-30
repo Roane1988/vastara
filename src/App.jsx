@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { supabase } from './supabaseClient'
 import TopNavbar from './components/TopNavbar'
 import Footer from './components/Footer'
 import ProfileDrawer from './components/ProfileDrawer'
@@ -51,7 +50,7 @@ function AdminRoute({ isAuth, role, children, location }) {
 function AppContent() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { session, user, role, loading } = useAuth()
+  const { session, user, role, loading, signOut } = useAuth()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   const isAuth = !!session?.user
@@ -66,9 +65,13 @@ function AppContent() {
   }
 
   const handleLogout = useCallback(async () => {
-    await supabase.auth.signOut()
+    try {
+      await signOut()
+    } catch {
+      /* force-clear even if API call fails */
+    }
     navigate('/')
-  }, [navigate])
+  }, [navigate, signOut])
 
   if (loading) {
     return (
