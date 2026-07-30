@@ -122,17 +122,23 @@ END $$;
 -- ============================================================================
 ALTER TABLE direct_messages ENABLE ROW LEVEL SECURITY;
 
--- Users can read messages they sent or received
-CREATE POLICY "direct_messages_select" ON direct_messages
-  FOR SELECT
-  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+DO $$ BEGIN
+  CREATE POLICY "direct_messages_select" ON direct_messages
+    FOR SELECT
+    USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Users can send messages (sender_id must match their uid)
-CREATE POLICY "direct_messages_insert" ON direct_messages
-  FOR INSERT
-  WITH CHECK (auth.uid() = sender_id);
+DO $$ BEGIN
+  CREATE POLICY "direct_messages_insert" ON direct_messages
+    FOR INSERT
+    WITH CHECK (auth.uid() = sender_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Users can delete their own messages
-CREATE POLICY "direct_messages_delete" ON direct_messages
-  FOR DELETE
-  USING (auth.uid() = sender_id);
+DO $$ BEGIN
+  CREATE POLICY "direct_messages_delete" ON direct_messages
+    FOR DELETE
+    USING (auth.uid() = sender_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
