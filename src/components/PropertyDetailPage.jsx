@@ -139,31 +139,94 @@ function GalleryDesktop({ images, property, onOpenLightbox }) {
 }
 
 function GalleryMobile({ images, property, onOpenLightbox }) {
-  const thumbStartIndex = 1
-  const thumbImages = images.slice(thumbStartIndex, thumbStartIndex + 4)
+  const [current, setCurrent] = useState(0)
+  const touchRef = useRef({ startX: 0, startY: 0, diffX: 0, swiping: false })
+  const [swipeOffset, setSwipeOffset] = useState(0)
+  const swipingRef = useRef(false)
+
+  function goTo(index) {
+    setCurrent(Math.max(0, Math.min(index, images.length - 1)))
+    setSwipeOffset(0)
+    swipingRef.current = false
+  }
+
+  function onTouchStart(e) {
+    touchRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY, diffX: 0, swiping: false }
+  }
+
+  function onTouchMove(e) {
+    const dx = e.touches[0].clientX - touchRef.current.startX
+    const dy = Math.abs(e.touches[0].clientY - touchRef.current.startY)
+    if (dy > Math.abs(dx) * 1.5 && Math.abs(dy) > 10) return
+    swipingRef.current = true
+    setSwipeOffset(dx)
+  }
+
+  function onTouchEnd() {
+    if (!swipingRef.current) return
+    if (swipeOffset < -60 && current < images.length - 1) goTo(current + 1)
+    else if (swipeOffset > 60 && current > 0) goTo(current - 1)
+    else goTo(current)
+  }
+
+  function onMouseDown(e) {
+    touchRef.current.startX = e.clientX
+    touchRef.current.startY = e.clientY
+    touchRef.current.swiping = false
+    const onMove = (ev) => {
+      const dx = ev.clientX - touchRef.current.startX
+      const dy = Math.abs(ev.clientY - touchRef.current.startY)
+      if (dy > Math.abs(dx) * 1.5 && Math.abs(dy) > 10) { document.removeEventListener('mousemove', onMove); return }
+      swipingRef.current = true
+      setSwipeOffset(dx)
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      if (!swipingRef.current) { onOpenLightbox(current); return }
+      if (swipeOffset < -60 && current < images.length - 1) goTo(current + 1)
+      else if (swipeOffset > 60 && current > 0) goTo(current - 1)
+      else goTo(current)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
   return (
     <div className="lg:hidden">
-      <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
-        <img loading="lazy" src={images[0] || FALLBACK_IMAGE} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+      <div className="relative aspect-[4/3] overflow-hidden select-none" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown}>
+        <div className="flex h-full" style={{ transform: `translateX(calc(-${current * 100}% + ${swipeOffset}px))`, transition: swipingRef.current ? 'none' : 'transform 0.3s ease-out' }}>
+          {images.map((url, i) => (
+            <div key={i} className="min-w-full h-full shrink-0">
+              <img loading={i === 0 ? 'eager' : 'lazy'} src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" draggable={false} />
+            </div>
+          ))}
+        </div>
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {images.map((_, i) => (
+              <button key={i} type="button" onClick={() => goTo(i)} className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? 'bg-white w-3' : 'bg-white/50'}`} />
+            ))}
+          </div>
+        )}
+        <div className="absolute top-3 right-3 z-10 bg-black/40 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+          {current + 1}/{images.length}
+        </div>
       </div>
       <div className="grid grid-cols-4 gap-0.5">
-        {thumbImages.map((url, i) => {
-          const imgIndex = thumbStartIndex + i
-          const isLast = i === 3 && images.length > 5
-          return (
-            <div key={i} className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(isLast ? 0 : imgIndex)}>
-              <img loading="lazy" src={url} alt={`${property.title} ${imgIndex + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-              {isLast && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
-                  <span className="text-white text-xs font-bold">Lihat Semua</span>
-                </div>
-              )}
-            </div>
-          )
-        })}
-        {Array.from({ length: Math.max(0, 4 - thumbImages.length) }).map((_, n) => (
-          <div key={n} className="aspect-[4/3] bg-brand-border" />
+        {images.slice(0, 4).map((url, i) => (
+          <div key={i} className={`relative aspect-[4/3] overflow-hidden cursor-pointer border-b-2 transition-colors ${i === current ? 'border-brand-primary' : 'border-transparent'}`} onClick={() => goTo(i)}>
+            <img loading="lazy" src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
+          </div>
         ))}
+        {images.length > 4 && (
+          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(current)}>
+            <img loading="lazy" src={images[4]} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
+              <span className="text-white text-xs font-bold">+{images.length - 4}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
