@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle, X, Plus, MapPin } from 'lucide-react'
@@ -55,6 +55,14 @@ function SpinnerIcon() {
 }
 
 const BSD_CENTER = [-6.3006, 106.6527]
+
+function MapResizer() {
+  const map = useMap()
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 100)
+  }, [map])
+  return null
+}
 
 function DraggableMarker({ position, onPositionChange }) {
   useMapEvents({
@@ -459,6 +467,7 @@ export default function SellPropertyPage() {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
+                  <MapResizer />
                   <DraggableMarker
                     position={
                       form.latitude != null && form.longitude != null
