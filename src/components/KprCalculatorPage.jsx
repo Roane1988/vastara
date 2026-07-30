@@ -1,26 +1,10 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Calculator, ChevronLeft, MessageCircle, Bot } from 'lucide-react'
+import { formatCurrency, formatShort } from '../utils/format'
 
 const TENOR_OPTIONS = [5, 10, 15, 20, 25]
-
-function formatCurrency(value) {
-  if (value == null || isNaN(value) || !Number.isFinite(value)) return 'Rp 0'
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
-function formatShort(value) {
-  if (value == null || isNaN(value)) return 'Rp 0'
-  const num = Number(value)
-  if (num >= 1_000_000_000) return `Rp ${(num / 1_000_000_000).toFixed(1)} M`
-  if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(0)} Jt`
-  return formatCurrency(value)
-}
 
 function ArrowLeftIcon() {
   return (
@@ -118,7 +102,10 @@ export default function KprCalculatorPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-32">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            if (window.history.length > 1) navigate(-1)
+            else navigate('/')
+          }}
           className="flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-text transition-colors mb-4"
         >
           <ArrowLeftIcon />
@@ -261,9 +248,19 @@ export default function KprCalculatorPage() {
               <p className={`text-3xl sm:text-4xl font-extrabold mt-2 ${
                 principal > 0 ? 'text-blue-900' : 'text-green-800'
               }`}>
-                {principal > 0
-                  ? formatCurrency(Math.round(monthlyInstallment))
-                  : 'Lunas'}
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={Math.round(monthlyInstallment)}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {principal > 0
+                      ? formatCurrency(Math.round(monthlyInstallment))
+                      : 'Lunas'}
+                  </motion.span>
+                </AnimatePresence>
               </p>
               <p className="text-xs text-brand-muted mt-2">
                 Bunga {interestRate}% per tahun | Tenor {tenorYears} tahun
@@ -275,6 +272,18 @@ export default function KprCalculatorPage() {
                 Rincian Finansial
               </h3>
               <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-brand-muted">DP ({Math.round(dpPercentage)}%)</span>
+                    <span className="text-brand-muted">Pokok ({100 - Math.round(dpPercentage)}%)</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-brand-border rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(dpPercentage, 100)}%` }}
+                    />
+                  </div>
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-brand-muted">Harga Properti</span>
                   <span className="text-sm font-semibold text-brand-text">
