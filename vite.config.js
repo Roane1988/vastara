@@ -40,6 +40,12 @@ function getClientIP(req) {
     || 'unknown'
 }
 
+const BLOCKED_PATTERNS = [
+  /ignore\s+(all\s+)?(previous\s+)?instructions/i,
+  /you are (now|free)/i,
+  /jailbreak|do\.anything\.now/i,
+]
+
 function isValidBody(body) {
   if (!body || typeof body !== 'object') return false
   if (!Array.isArray(body.messages) || body.messages.length === 0) return false
@@ -48,6 +54,7 @@ function isValidBody(body) {
     if (!['system', 'user', 'assistant'].includes(msg.role)) return false
     if (typeof msg.content !== 'string') return false
     if (msg.content.length > 10_000) return false
+    if (BLOCKED_PATTERNS.some(p => p.test(msg.content))) return false
   }
   return true
 }

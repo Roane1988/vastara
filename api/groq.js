@@ -42,7 +42,7 @@ function getClientIP(req) {
 const BLOCKED_PATTERNS = [
   /ignore\s+(all\s+)?(previous\s+)?instructions/i,
   /you are (now|free)/i,
-  /DAN|jailbreak|do.anything.now/i,
+  /jailbreak|do\.anything\.now/i,
 ]
 
 function isValidBody(body) {

@@ -271,11 +271,15 @@ export default function SellPropertyPage() {
         body: JSON.stringify({ model: 'llama-3.3-70b-versatile', purpose: 'chat', messages: [{ role: 'user', content: prompt }] }),
       })
       const data = await response.json()
+      if (!response.ok) {
+        showToast('Gagal: ' + (data?.error?.message || `HTTP ${response.status}`), 'error')
+        return
+      }
       const content = data?.choices?.[0]?.message?.content
       if (content) {
         updateFormValue('description', content)
-      } else if (data.error) {
-        showToast('Gagal menghasilkan deskripsi: ' + (data.error.message || JSON.stringify(data.error)), 'error')
+      } else {
+        showToast('Respon AI kosong. Coba lagi.', 'error')
       }
     } catch {
       showToast('Gagal menghasilkan deskripsi. Coba lagi.', 'error')
