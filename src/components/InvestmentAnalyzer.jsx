@@ -87,12 +87,14 @@ export default function InvestmentAnalyzer({ property }) {
         model: ALLOWED_MODEL,
         purpose: 'investment',
         property: {
+          title: property?.title || '',
           price: property?.price || 0,
           property_type: property?.property_type || '',
           city: property?.city || '',
           bedrooms: property?.bedrooms || 0,
           bathrooms: property?.bathrooms || 0,
           area_sqm: property?.area_sqm || property?.sqm || 0,
+          description: property?.description_id || property?.description || '',
         },
       }
 

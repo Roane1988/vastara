@@ -44,8 +44,8 @@ const SYSTEM_PROMPTS = {
     role: 'system',
     content:
       'You are an expert real estate financial analyst in Indonesia. ' +
-      'Given the property details (price, property type, location/city, bedrooms, bathrooms, area), ' +
-      'analyze its investment potential. ' +
+      'Given the full property details (price, type, location, rooms, area, description), ' +
+      'analyze its investment potential thoroughly. ' +
       'Respond ONLY with a valid, raw JSON object containing these keys: ' +
       'estimatedRentalYield (string, e.g. "5.5% - 7%"), ' +
       'monthlyRentalEstimate (number, estimated market rent in IDR), ' +
@@ -182,7 +182,7 @@ export default defineConfig(({ mode }) => {
                 let safeMessages
                 if (purpose === 'investment') {
                   const p = parsed.property
-                  const userContent = `Price: Rp ${(p.price || 0).toLocaleString('id-ID')}\nType: ${p.property_type || '-'}\nLocation: ${p.city || '-'}\nBedrooms: ${p.bedrooms || '-'}\nBathrooms: ${p.bathrooms || '-'}\nArea: ${p.area_sqm || '-'} m²`
+                  const userContent = `Title: ${p.title || '-'}\nPrice: Rp ${(p.price || 0).toLocaleString('id-ID')}\nType: ${p.property_type || '-'}\nLocation: ${p.city || '-'}\nBedrooms: ${p.bedrooms || '-'}\nBathrooms: ${p.bathrooms || '-'}\nArea: ${p.area_sqm || '-'} m²\nDescription: ${p.description || '-'}`
                   safeMessages = [systemPrompt, { role: 'user', content: userContent }]
                 } else {
                   const clientMessages = parsed.messages.filter(m => m.role !== 'system')
