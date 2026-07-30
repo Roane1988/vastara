@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
@@ -246,6 +246,7 @@ export default function PropertyDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const agentCardRef = useRef(null)
   const [showFloatingBtn, setShowFloatingBtn] = useState(true)
+  const [similar, setSimilar] = useState([])
 
   useSEO(property ? {
     title: property.title,
@@ -359,6 +360,22 @@ export default function PropertyDetailPage() {
     fetchProperty()
     return () => { cancelled = true }
   }, [id])
+
+  useEffect(() => {
+    if (!property || property.id.startsWith('dummy-')) return
+    let cancelled = false
+    supabase
+      .from('properties')
+      .select('id, title, price, category, bedrooms, bathrooms, area_sqm, address, city, image_url')
+      .or(`category.eq.${property.category},city.ilike.%${property.city || ''}%`)
+      .neq('id', property.id)
+      .eq('status', 'verified')
+      .limit(6)
+      .then(({ data }) => {
+        if (!cancelled && data) setSimilar(data)
+      })
+    return () => { cancelled = true }
+  }, [property?.id, property?.category, property?.city])
 
   useEffect(() => {
     const el = agentCardRef.current
@@ -536,6 +553,26 @@ export default function PropertyDetailPage() {
       </div>
 
       <Lightbox isOpen={isLightboxOpen} images={images} currentIndex={lightboxIndex} onClose={closeLightbox} onPrev={prevImage} onNext={nextImage} propertyTitle={property.title} />
+
+      {similar.length > 0 && (
+        <div className="max-w-7xl mx-auto px-5 pb-6">
+          <h2 className="text-lg font-bold text-brand-text mb-4">Properti Serupa</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {similar.map((p) => (
+              <Link key={p.id} to={`/property/${p.id}`} className="group block bg-brand-surface rounded-xl overflow-hidden border border-brand-border/50 hover:shadow-md hover:border-brand-border transition-all duration-200">
+                <div className="aspect-[4/3] overflow-hidden bg-brand-border/30">
+                  <img loading="lazy" src={parseImages(p.image_url)?.[0] || FALLBACK_IMAGE} alt={p.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                </div>
+                <div className="p-2.5">
+                  <p className="text-[11px] font-semibold text-brand-text truncate">{p.title}</p>
+                  <p className="text-xs font-bold text-brand-primary mt-0.5">{formatPrice(p.price)}</p>
+                  <p className="text-[10px] text-brand-muted truncate mt-0.5">{p.bedrooms} KT &bull; {p.bathrooms} KM &bull; {p.area_sqm} m&sup2;</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className={`fixed bottom-0 left-0 right-0 w-full z-50 transition-transform duration-300 ease-in-out ${showFloatingBtn ? 'translate-y-0' : 'translate-y-[150%]'}`}>
         <div className="bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4">
