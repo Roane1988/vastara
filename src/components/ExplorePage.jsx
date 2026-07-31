@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { motion } from 'framer-motion'
 import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
@@ -87,6 +88,20 @@ const POPULAR_SEARCHES = [
   },
 ]
 
+function PropertyCardSkeleton() {
+  return (
+    <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden">
+      <div className="aspect-[4/3] bg-brand-bg animate-pulse" />
+      <div className="p-4 space-y-2.5">
+        <div className="h-5 w-2/3 bg-brand-bg rounded-md animate-pulse" />
+        <div className="h-3.5 w-full bg-brand-bg rounded-md animate-pulse" />
+        <div className="h-3.5 w-3/4 bg-brand-bg rounded-md animate-pulse" />
+        <div className="h-3.5 w-1/2 bg-brand-bg rounded-md animate-pulse mt-2 pt-2 border-t border-brand-border" />
+      </div>
+    </div>
+  )
+}
+
 export default function ExplorePage() {
   useSEO({ title: 'Cari Properti — Jual, Beli & Sewa', description: 'Temukan properti terbaik untuk dijual, disewa di HuniOne. Rumah, apartemen, villa, tanah, ruko dan lainnya.' })
   const { t, i18n } = useTranslation()
@@ -115,12 +130,12 @@ export default function ExplorePage() {
 
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [properties, setProperties] = useState([])
-  const [smartSearchText, setSmartSearchText] = useState('')
+  const [loadingProperties, setLoadingProperties] = useState(true)
   const [isSmartSearching, setIsSmartSearching] = useState(false)
   const { user, showToast } = useAuth()
   const cancelledRef = useRef(false)
   const listingRef = useRef(null)
-  const smartSearchInputRef = useRef(null)
+  const searchInputRef = useRef(null)
   const isAiSearchRef = useRef(false)
 
   useEffect(() => {
@@ -132,6 +147,7 @@ export default function ExplorePage() {
   const firstName = user?.user_metadata?.first_name || null
 
   async function fetchProperties(filters = {}) {
+    setLoadingProperties(true)
     try {
       let query = supabase
         .from('properties')
@@ -175,6 +191,7 @@ export default function ExplorePage() {
       if (cancelledRef.current) return
       console.warn('Gagal memuat properti:', err.message)
     }
+    if (!cancelledRef.current) setLoadingProperties(false)
   }
 
   useEffect(() => {
@@ -190,9 +207,8 @@ export default function ExplorePage() {
     t('explore.all_properties.sort_expensive'),
   ]
 
-  async function handleSmartSearch(e) {
-    e.preventDefault()
-    if (!smartSearchText.trim()) {
+  async function runSmartSearch(text) {
+    if (!text.trim()) {
       showToast('Silakan ketik kriteria pencarian terlebih dahulu.', 'error')
       return
     }
@@ -205,7 +221,7 @@ export default function ExplorePage() {
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           purpose: 'smart_search',
-          messages: [{ role: 'user', content: smartSearchText.trim() }],
+          messages: [{ role: 'user', content: text.trim() }],
         }),
       })
 
@@ -256,7 +272,7 @@ export default function ExplorePage() {
           .from('properties')
           .select('*')
           .eq('status', 'verified')
-          .ilike('title', `%${smartSearchText.trim()}%`)
+          .ilike('title', `%${text.trim()}%`)
           .order('created_at', { ascending: false })
         if (!error && fallback) {
           isAiSearchRef.current = true
@@ -268,16 +284,20 @@ export default function ExplorePage() {
     setIsSmartSearching(false)
   }
 
+  function handleAiSearch() {
+    runSmartSearch(searchText)
+    searchInputRef.current?.blur()
+  }
+
   function resetAllSearch() {
     isAiSearchRef.current = false
-    setSmartSearchText('')
     setSearchText('')
     setFilterType('')
     setFilterPrice('')
     setFilterBeds('')
     setProperties([])
     fetchProperties().catch(() => {})
-    smartSearchInputRef.current?.focus()
+    searchInputRef.current?.focus()
   }
 
   const toggleSave = async (id) => {
@@ -291,6 +311,13 @@ export default function ExplorePage() {
 
   const filterCount = [filterType, filterPrice, filterBeds].filter(Boolean).length
   const hasActiveSearch = searchText.trim() !== '' || filterCount > 0
+
+  const heroStats = useMemo(() => {
+    const total = properties.length
+    const cities = new Set(properties.map((p) => p.city || p.district).filter(Boolean)).size
+    const types = new Set(properties.map((p) => p.property_type).filter(Boolean)).size
+    return { total, cities, types }
+  }, [properties])
 
   const sorted = [...properties].filter((p) => {
     if (searchCategory === 'dijual' && p.category !== 'Dijual') return false
@@ -333,6 +360,7 @@ export default function ExplorePage() {
 
   const isSearching = hasActiveSearch || isAiSearchRef.current
   const isSearchEmpty = isSearching && sorted.length === 0
+  const showSkeleton = loadingProperties && !isSearching
   const displayRecommendations = sorted.length > 0 ? sorted.slice(0, 4) : (isSearching ? [] : DUMMY_PROPERTIES.slice(0, 4))
   const displayListings = sorted.length > 0 ? sorted : (isSearching ? [] : DUMMY_PROPERTIES)
 
@@ -362,33 +390,62 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* ─── HERO BANNER ─── */}
-      <div className="relative bg-gradient-to-r from-[#1E3A5F] to-[#284D7A] overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.08]">
+      <div className="relative bg-gradient-to-br from-brand-primary via-brand-primary to-[#284D7A] overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-brand-accent/20 blur-3xl" />
+        <div className="absolute -bottom-32 -left-20 w-[28rem] h-[28rem] rounded-full bg-brand-accent/10 blur-3xl" />
+        <div className="absolute top-1/3 left-1/3 w-72 h-72 rounded-full bg-white/5 blur-2xl" />
+        <div className="absolute inset-0 opacity-[0.07]">
           <img loading="lazy"
             src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1920&q=80"
             alt=""
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 pt-6 pb-10 sm:pt-10 sm:pb-14">
-          {user ? (
-            <h1 className="text-2xl font-bold text-white">
-              {t('explore.hero.welcome_with_name')}{firstName ? `, ${firstName}` : ''}
-            </h1>
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold text-white">
-                {t('explore.hero.welcome')}
+        <div className="relative max-w-7xl mx-auto px-4 pt-8 pb-12 sm:pt-12 sm:pb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          >
+            {user ? (
+              <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                {t('explore.hero.welcome_with_name')}{firstName ? `, ${firstName}` : ''}
               </h1>
-              <p className="text-white/75 text-sm mt-1">
-                {t('explore.hero.tagline')}
-              </p>
-            </>
+            ) : (
+              <>
+                <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                  {t('explore.hero.welcome')}
+                </h1>
+                <p className="text-white/75 text-sm sm:text-base mt-2 max-w-2xl">
+                  {t('explore.hero.tagline')}
+                </p>
+              </>
+            )}
+          </motion.div>
+
+          {heroStats.total > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.12, ease: 'easeOut' }}
+              className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-white/70 text-xs sm:text-sm"
+            >
+              <span><b className="text-white font-bold text-sm sm:text-base">{heroStats.total}</b> properti</span>
+              <span className="w-1 h-1 rounded-full bg-white/40" />
+              <span><b className="text-white font-bold text-sm sm:text-base">{heroStats.cities}</b> kota</span>
+              <span className="w-1 h-1 rounded-full bg-white/40" />
+              <span><b className="text-white font-bold text-sm sm:text-base">{heroStats.types}</b> tipe</span>
+            </motion.div>
           )}
 
           {/* Search Card */}
-          <div className="bg-brand-surface rounded-2xl shadow-sm p-4 mt-6">
-            <div className="flex gap-6 mb-4 border-b border-brand-border">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.2, ease: 'easeOut' }}
+            className="bg-white/95 backdrop-blur rounded-3xl shadow-xl shadow-brand-primary/15 border border-white/60 p-4 sm:p-5 mt-7"
+          >
+            <div className="flex gap-5 sm:gap-6 mb-4 border-b border-brand-border/70">
               {[
                 { key: 'dijual', tKey: 'explore.search.tab_sale' },
                 { key: 'disewa', tKey: 'explore.search.tab_rent' },
@@ -408,11 +465,12 @@ export default function ExplorePage() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center px-3 py-2 bg-white border border-brand-border rounded-xl gap-3 focus-within:border-[#4A90E2] focus-within:shadow-[0_0_0_3px_rgba(74,144,226,0.15)] transition-all">
+            <div className="flex items-center px-3.5 py-2 bg-white border border-brand-border rounded-2xl gap-2.5 focus-within:border-brand-accent focus-within:ring-4 focus-within:ring-brand-accent/10 transition-all">
               <span className="text-brand-muted shrink-0">
                 <SearchIcon />
               </span>
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
@@ -424,12 +482,12 @@ export default function ExplorePage() {
                     : t('explore.search.placeholder_new')
                 }
                 aria-label={t('explore.search.aria_label')}
-                className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none min-w-0"
               />
               {searchText.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => { setSearchText(''); smartSearchInputRef.current?.focus() }}
+                  onClick={() => { setSearchText(''); searchInputRef.current?.focus() }}
                   className="shrink-0 text-brand-muted/60 hover:text-brand-text transition-colors p-1"
                   aria-label="Hapus pencarian"
                 >
@@ -438,61 +496,50 @@ export default function ExplorePage() {
               )}
               <button
                 type="button"
+                onClick={handleAiSearch}
+                disabled={!searchText.trim() || isSmartSearching}
+                className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-brand-accent bg-brand-highlight hover:bg-brand-accent hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 rounded-xl px-3 py-2"
+                title="Cari dengan AI"
+              >
+                {isSmartSearching ? (
+                  <div className="w-3.5 h-3.5 border-2 border-brand-accent border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Sparkles size={15} />
+                )}
+                <span className="hidden sm:inline">{isSmartSearching ? 'Memproses' : 'Cari AI'}</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowFilter(true)}
-                className="relative text-brand-muted hover:text-[#4A90E2] transition-colors shrink-0"
+                className="relative text-brand-muted hover:text-brand-accent transition-colors shrink-0"
                 aria-label={t('explore.filter.title')}
               >
                 <FilterIcon />
                 {filterCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#4A90E2] text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-brand-accent text-white text-[10px] font-bold flex items-center justify-center">
                     {filterCount}
                   </span>
                 )}
               </button>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-brand-border/50">
-              <form onSubmit={handleSmartSearch} className="w-full max-w-2xl mx-auto flex items-center gap-1 md:gap-2 p-1 md:p-1.5 bg-white/95 backdrop-blur rounded-full shadow-lg border border-brand-accent/20 focus-within:ring-2 focus-within:ring-brand-accent/50 transition-all duration-300 overflow-hidden">
-                <Sparkles size={16} className="text-brand-accent shrink-0 ml-2 md:ml-3" />
-                <input
-                  ref={smartSearchInputRef}
-                  type="text"
-                  value={smartSearchText}
-                  onChange={(e) => setSmartSearchText(e.target.value)}
-                  placeholder="Cari pakai AI: rumah di BSD harga di bawah 2M..."
-                  className="flex-1 min-w-0 bg-transparent border-none ring-0 focus:outline-none focus:ring-0 text-sm md:text-base text-brand-text placeholder:text-brand-muted/50 py-2"
-                />
-                {smartSearchText.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => { setSmartSearchText(''); smartSearchInputRef.current?.focus() }}
-                    className="shrink-0 text-brand-muted/60 hover:text-brand-text transition-colors p-1"
-                  >
-                    <XCircle size={16} />
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={isSmartSearching || !smartSearchText.trim()}
-                  className="shrink-0 text-xs md:text-sm font-bold text-white bg-brand-accent hover:brightness-90 hover:scale-105 active:scale-95 transition-all duration-200 rounded-full px-3.5 py-1.5 md:px-5 md:py-2.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                >
-                  {isSmartSearching ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Sparkles size={14} />
-                  )}
-                  {isSmartSearching ? 'Memproses...' : 'Cari AI'}
-                </button>
-              </form>
-            </div>
-          </div>
+            <p className="flex items-center gap-1.5 text-[11px] text-brand-muted mt-3 pt-3 border-t border-brand-border/60">
+              <Sparkles size={11} className="text-brand-accent shrink-0" />
+              <span>Tips: coba <span className="font-medium text-brand-text">"rumah di BSD harga di bawah 2M"</span> untuk pencarian AI</span>
+            </p>
+          </motion.div>
         </div>
       </div>
 
       {/* ─── QUICK ACCESS GRID ─── */}
-      <div className="max-w-7xl mx-auto px-4 -mt-5 relative z-10">
-        <div className="bg-brand-surface rounded-2xl shadow-sm p-4">
-          <div className="grid grid-cols-4 gap-4">
+      <div className="max-w-7xl mx-auto px-4 -mt-6 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
+          className="bg-white/95 backdrop-blur rounded-2xl shadow-lg shadow-brand-primary/5 border border-brand-border p-4"
+        >
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-2">
             {QUICK_MENU.map((item) => {
               const Icon = item.icon
               return (
@@ -505,17 +552,17 @@ export default function ExplorePage() {
                   }}
                   className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform group"
                 >
-                  <div className="w-12 h-12 rounded-full bg-[#F8FAFC] flex items-center justify-center text-[#1E3A5F] shadow-sm group-hover:bg-[#4A90E2] group-hover:text-white transition-colors duration-200">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm group-hover:bg-brand-accent group-hover:text-white group-hover:-translate-y-0.5 group-hover:shadow-md transition-all duration-200">
                     <Icon size={20} />
                   </div>
-                  <span className="text-[10px] text-brand-text font-semibold text-center leading-tight">
+                  <span className="text-[11px] text-brand-text font-semibold text-center leading-tight">
                     {t(item.tKey)}
                   </span>
                 </button>
               )
             })}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* ─── TERAKHIR DILIHAT ─── */}
@@ -524,8 +571,27 @@ export default function ExplorePage() {
       </section>
 
       {/* ─── REKOMENDASI SESUAI PENCARIANMU ─── */}
-      {displayRecommendations.length > 0 && (
+      {showSkeleton ? (
       <section className="max-w-7xl mx-auto px-4 mt-8 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-6 w-44 bg-brand-bg rounded-md animate-pulse" />
+        </div>
+        <div className="flex gap-4 overflow-x-auto no-scrollbar">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="min-w-[260px] w-[260px] shrink-0">
+              <PropertyCardSkeleton />
+            </div>
+          ))}
+        </div>
+      </section>
+      ) : displayRecommendations.length > 0 && (
+      <motion.section
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="max-w-7xl mx-auto px-4 mt-8 mb-8"
+      >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-brand-text">
             {t('explore.recommendations.title')}
@@ -533,7 +599,7 @@ export default function ExplorePage() {
           <button
             type="button"
             onClick={() => navigate('/explore')}
-            className="text-sm font-semibold text-[#4A90E2] hover:text-brand-primary transition-colors"
+            className="text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors"
           >
             {t('explore.recommendations.view_all')}
           </button>
@@ -545,16 +611,16 @@ export default function ExplorePage() {
               to={`/property/${p.id}`}
               className="min-w-[260px] w-[260px] shrink-0 group"
             >
-              <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden">
-                <div className="relative aspect-[4/3]">
+              <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl group-hover:shadow-brand-primary/5">
+                <div className="relative aspect-[4/3] overflow-hidden">
                   <img loading="lazy"
                     src={getImageSrc(p.image_url)}
                     alt={p.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     onError={(e) => { e.target.src = FALLBACK_IMAGE }}
                   />
                   {p.status === 'verified' && (
-                    <span className="absolute top-2 left-2 bg-[#EAF7EF] text-[#2E8B57] border border-[#2E8B57]/20 text-[10px] font-bold px-2.5 py-1 rounded-md">
+                    <span className="absolute top-2 left-2 bg-brand-verified-bg text-brand-verified border border-brand-verified/20 text-[10px] font-bold px-2.5 py-1 rounded-md">
                       {t('explore.property_card.verified_legal')}
                     </span>
                   )}
@@ -580,7 +646,7 @@ export default function ExplorePage() {
             </Link>
           ))}
         </div>
-      </section>
+      </motion.section>
       )}
 
       {/* ─── PENCARIAN PROPERTI POPULER ─── */}
@@ -592,7 +658,7 @@ export default function ExplorePage() {
           <button
             type="button"
             onClick={() => navigate('/coming-soon')}
-            className="text-sm font-semibold text-[#4A90E2] hover:text-brand-primary transition-colors"
+            className="text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors"
           >
             {t('explore.popular_searches.shuffle')}
           </button>
@@ -612,7 +678,7 @@ export default function ExplorePage() {
                 />
               </div>
               <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center">
-                <h3 className="text-sm sm:text-base font-bold text-brand-text group-hover:text-[#4A90E2] transition-colors">
+                <h3 className="text-sm sm:text-base font-bold text-brand-text group-hover:text-brand-accent transition-colors">
                   {item.title}
                 </h3>
                 <div className="flex flex-wrap gap-1.5 mt-2">
@@ -632,7 +698,14 @@ export default function ExplorePage() {
       </section>
 
       {/* ─── FULL PROPERTY LISTING ─── */}
-      <section ref={listingRef} className="max-w-7xl mx-auto px-4 pb-24 bg-[#F8FAFC]">
+      <motion.section
+        ref={listingRef}
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="max-w-7xl mx-auto px-4 pb-24 bg-brand-bg"
+      >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-brand-text">
             {t('explore.all_properties.title')}
@@ -641,11 +714,11 @@ export default function ExplorePage() {
             <button
               type="button"
               onClick={() => setShowFilter(true)}
-              className="relative text-sm font-semibold text-[#4A90E2] hover:text-brand-primary transition-colors"
+              className="relative text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors"
             >
               {t('explore.all_properties.filter')}
               {filterCount > 0 && (
-                <span className="absolute -top-1.5 -right-2.5 w-4 h-4 rounded-full bg-[#4A90E2] text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-2.5 w-4 h-4 rounded-full bg-brand-accent text-white text-[10px] font-bold flex items-center justify-center">
                   {filterCount}
                 </span>
               )}
@@ -653,7 +726,7 @@ export default function ExplorePage() {
             <button
               type="button"
               onClick={cycleSort}
-                    className="flex items-center gap-1 text-xs text-brand-muted bg-brand-surface border border-brand-border rounded-full px-3 py-1.5 font-medium hover:bg-brand-bg transition-colors"
+              className="flex items-center gap-1 text-xs text-brand-muted bg-brand-surface border border-brand-border rounded-full px-3 py-1.5 font-medium hover:bg-brand-bg transition-colors"
             >
               {t('explore.all_properties.sort')}: {SORT_OPTIONS[sortIndex]}
               <ChevronDownIcon />
@@ -661,7 +734,15 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {isSearchEmpty ? (
+        {showSkeleton ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i}>
+                <PropertyCardSkeleton />
+              </div>
+            ))}
+          </div>
+        ) : isSearchEmpty ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center mb-4">
               <Sparkles size={32} className="text-brand-muted/40" />
@@ -685,8 +766,8 @@ export default function ExplorePage() {
             {displayListings.map((p) => (
               <div key={p.id}>
                 <Link to={`/property/${p.id}`} className="block group">
-                  <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full">
-                    <div className="relative aspect-[4/3]">
+                  <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl group-hover:shadow-brand-primary/5">
+                    <div className="relative aspect-[4/3] overflow-hidden">
                       <img loading="lazy"
                         src={getImageSrc(p.image_url)}
                         alt={p.title}
@@ -695,12 +776,12 @@ export default function ExplorePage() {
                       />
                       <div className="absolute top-3 left-3 flex gap-2">
                         {p.typeLabel && (
-                          <span className="bg-[#1E3A5F] text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                          <span className="bg-brand-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
                             {p.typeLabel}
                           </span>
                         )}
                         {p.status === 'verified' && (
-                          <span className="bg-[#EAF7EF] text-[#2E8B57] border border-[#2E8B57]/20 text-[10px] font-bold px-2.5 py-1 rounded-md">
+                          <span className="bg-brand-verified-bg text-brand-verified border border-brand-verified/20 text-[10px] font-bold px-2.5 py-1 rounded-md">
                             {t('explore.property_card.verified_legal')}
                           </span>
                         )}
@@ -710,7 +791,7 @@ export default function ExplorePage() {
                       <p className="text-xl font-extrabold text-brand-primary">
                         {p.priceDisplay || formatPrice(p.price)}
                       </p>
-                      <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-[#4A90E2] transition-colors">
+                      <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-accent transition-colors">
                         {getTranslated(p, 'title', p.title)}
                       </p>
                       <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
@@ -724,7 +805,7 @@ export default function ExplorePage() {
                           <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
                         </div>
                         {p.agent && (
-                          <span className="text-xs font-medium text-[#4A90E2]">{p.agent}</span>
+                          <span className="text-xs font-medium text-brand-accent">{p.agent}</span>
                         )}
                       </div>
                     </div>
@@ -746,7 +827,7 @@ export default function ExplorePage() {
                   <button
                     type="button"
                     onClick={() => toggleSave(p.id)}
-                    className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-[#4A90E2] transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent transition-colors"
                   >
                      <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4A90E2' : 'none'} stroke={saved.includes(p.id) ? '#4A90E2' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -758,7 +839,7 @@ export default function ExplorePage() {
             ))}
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* ─── DRAWERS ─── */}
       <MoreCategoriesDrawer
@@ -813,7 +894,7 @@ export default function ExplorePage() {
                       onClick={() => setFilterType(filterType === opt.value ? '' : opt.value)}
                       className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                         filterType === opt.value
-                          ? 'bg-[#1E3A5F] text-white'
+                          ? 'bg-brand-primary text-white'
                           : 'bg-brand-bg text-brand-muted border border-brand-border'
                       }`}
                     >
@@ -837,7 +918,7 @@ export default function ExplorePage() {
                       onClick={() => setFilterPrice(filterPrice === r.value ? '' : r.value)}
                       className={`rounded-lg py-2.5 text-sm font-medium transition-colors ${
                         filterPrice === r.value
-                          ? 'bg-[#1E3A5F] text-white'
+                          ? 'bg-brand-primary text-white'
                           : 'bg-brand-bg text-brand-muted border border-brand-border'
                       }`}
                     >
@@ -857,7 +938,7 @@ export default function ExplorePage() {
                       onClick={() => setFilterBeds(filterBeds === b ? '' : b)}
                       className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors ${
                         filterBeds === b
-                          ? 'bg-[#1E3A5F] text-white'
+                          ? 'bg-brand-primary text-white'
                           : 'bg-brand-bg text-brand-muted border border-brand-border'
                       }`}
                     >
@@ -870,7 +951,7 @@ export default function ExplorePage() {
               <button
                 type="button"
                 onClick={() => setShowFilter(false)}
-                className="w-full bg-[#1E3A5F] text-white rounded-xl py-3 font-bold text-sm mt-2 hover:bg-[#284D7A] active:scale-[0.98] transition-transform"
+                className="w-full bg-brand-primary text-white rounded-xl py-3 font-bold text-sm mt-2 hover:bg-[#284D7A] active:scale-[0.98] transition-transform"
               >
                 {t('explore.filter.apply')}
               </button>

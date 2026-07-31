@@ -35,6 +35,8 @@ const SYSTEM_PROMPTS = {
       'propertyType (string: "Rumah", "Apartemen", "Tanah", etc., or null), maxPrice (number or null), ' +
       'minPrice (number or null), bedrooms (number or null), bathrooms (number or null), ' +
       'keyword (string for general description or null). ' +
+      'Price units: "M"/"Miliar"/"Milyar" = 1,000,000,000; "Jt"/"Juta" = 1,000,000; "Ribu" = 1,000. ' +
+      'Always return maxPrice/minPrice as the full numeric value in Rupiah. ' +
       'Respond ONLY with a valid, raw JSON object. Do not include markdown formatting, backticks, or any conversational text.',
   },
   investment: {
