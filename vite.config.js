@@ -3,7 +3,13 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { LRUCache } from 'lru-cache'
 
-const ALLOWED_MODEL = 'llama-3.3-70b-versatile'
+const MODEL_CHAINS = {
+  chat: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'],
+  translation: ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
+  smart_search: ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
+  investment: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'],
+}
+const ALLOWED_MODELS = new Set(Object.values(MODEL_CHAINS).flat())
 const RATE_LIMIT_MAX = 20
 const RATE_LIMIT_WINDOW_MS = 60_000
 const MAX_MESSAGES = 20
@@ -167,7 +173,7 @@ export default defineConfig(({ mode }) => {
                   res.end(JSON.stringify({ error: { message: 'Format permintaan tidak valid.' } }))
                   return
                 }
-                if (parsed.model !== ALLOWED_MODEL) {
+                if (!ALLOWED_MODELS.has(parsed.model)) {
                   res.writeHead(403, { 'Content-Type': 'application/json' })
                   res.end(JSON.stringify({ error: { message: 'Model tidak diizinkan.' } }))
                   return
@@ -238,35 +244,52 @@ export default defineConfig(({ mode }) => {
 
                 const startTime = Date.now()
 
-                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${env.GROQ_API_KEY}`,
-                  },
-                  body: JSON.stringify({
-                    model: parsed.model,
-                    messages: safeMessages,
-                    max_tokens: purpose === 'translation' ? 2048 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 1536 : 1024,
-                    temperature: purpose === 'translation' ? 0.3 : purpose === 'smart_search' ? 0.1 : purpose === 'investment' ? 0.2 : 0.7,
-                  }),
-                })
-                const data = await response.json()
-                const duration = Date.now() - startTime
+                for (const model of MODEL_CHAINS[purpose]) {
+                  try {
+                    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${env.GROQ_API_KEY}`,
+                      },
+                      body: JSON.stringify({
+                        model,
+                        messages: safeMessages,
+                        max_tokens: purpose === 'translation' ? 1200 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 1200 : 768,
+                        temperature: purpose === 'translation' ? 0.3 : purpose === 'smart_search' ? 0.1 : purpose === 'investment' ? 0.2 : 0.7,
+                      }),
+                    })
 
-                if (data?.choices?.[0]?.message?.content) {
-                  data.choices[0].message.content = sanitizeOutput(data.choices[0].message.content)
+                    if (!response.ok) {
+                      console.warn(`Model ${model} limit reached (HTTP ${response.status}), switching to next model...`)
+                      continue
+                    }
+
+                    const data = await response.json()
+                    const duration = Date.now() - startTime
+
+                    if (data?.choices?.[0]?.message?.content) {
+                      data.choices[0].message.content = sanitizeOutput(data.choices[0].message.content)
+                    }
+
+                    appendAudit({
+                      time: Date.now(), ip, action: 'completed', purpose,
+                      msgCount: purpose === 'investment' ? 1 : clientMessages.length,
+                      totalChars: purpose === 'investment' ? 0 : clientMessages.reduce((s, m) => s + m.content.length, 0),
+                      status: response.status, duration,
+                    })
+
+                    res.writeHead(response.status, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify(data))
+                    return
+                  } catch (err) {
+                    console.warn(`Model ${model} error: ${err.message}`)
+                  }
                 }
 
-                appendAudit({
-                  time: Date.now(), ip, action: 'completed', purpose,
-                  msgCount: purpose === 'investment' ? 1 : clientMessages.length,
-                  totalChars: purpose === 'investment' ? 0 : clientMessages.reduce((s, m) => s + m.content.length, 0),
-                  status: response.status, duration,
-                })
-
-                res.writeHead(response.status, { 'Content-Type': 'application/json' })
-                res.end(JSON.stringify(data))
+                appendAudit({ time: Date.now(), ip, action: 'all_models_failed' })
+                res.writeHead(429, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ error: 'Maaf, antrean server AI kami saat ini sedang penuh. Silakan coba beberapa saat lagi ya!' }))
               } catch (err) {
                 appendAudit({ time: Date.now(), ip, action: 'error', error: err.message })
                 res.writeHead(500, { 'Content-Type': 'application/json' })

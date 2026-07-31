@@ -50,7 +50,10 @@ async function fetchTranslation(texts, signal) {
     }),
   })
 
-  if (!res.ok) throw new Error('Translation failed')
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}))
+    throw new Error(typeof errBody?.error === 'string' ? errBody.error : (errBody?.error?.message || 'Translation failed'))
+  }
   const data = await res.json()
   const content = data?.choices?.[0]?.message?.content
   if (!content) throw new Error('Empty response')

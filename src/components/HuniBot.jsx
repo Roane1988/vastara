@@ -209,7 +209,8 @@ export default function HuniBot() {
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}))
-        throw new Error(errBody?.error?.message || `HTTP ${res.status}`)
+        const friendly = typeof errBody?.error === 'string' ? errBody.error : errBody?.error?.message
+        throw new Error(friendly || `HTTP ${res.status}`)
       }
 
       const data = await res.json()

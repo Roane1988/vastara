@@ -1,12 +1,12 @@
 import { LRUCache } from 'lru-cache'
 
-const MODELS = {
-  chat: 'openai/gpt-oss-120b',
-  translation: 'openai/gpt-oss-20b',
-  smart_search: 'openai/gpt-oss-20b',
-  investment: 'openai/gpt-oss-120b',
+const MODEL_CHAINS = {
+  chat: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'],
+  translation: ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
+  smart_search: ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
+  investment: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'],
 }
-const ALLOWED_MODELS = new Set(Object.values(MODELS))
+const ALLOWED_MODELS = new Set(Object.values(MODEL_CHAINS).flat())
 const RATE_LIMIT_MAX = 20
 const RATE_LIMIT_WINDOW_MS = 60_000
 const MAX_MESSAGES = 20
@@ -230,37 +230,47 @@ export default async function handler(req, res) {
 
   const startTime = Date.now()
 
-  try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODELS[purpose],
-        messages: safeMessages,
-        max_tokens: purpose === 'translation' ? 1200 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 1200 : 768,
-        temperature: purpose === 'translation' ? 0.3 : purpose === 'smart_search' ? 0.1 : purpose === 'investment' ? 0.2 : 0.7,
-      }),
-    })
-    const data = await response.json()
-    const duration = Date.now() - startTime
+  for (const model of MODEL_CHAINS[purpose]) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: safeMessages,
+          max_tokens: purpose === 'translation' ? 1200 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 1200 : 768,
+          temperature: purpose === 'translation' ? 0.3 : purpose === 'smart_search' ? 0.1 : purpose === 'investment' ? 0.2 : 0.7,
+        }),
+      })
 
-    if (data?.choices?.[0]?.message?.content) {
-      data.choices[0].message.content = sanitizeOutput(data.choices[0].message.content)
+      if (!response.ok) {
+        console.warn(`Model ${model} limit reached (HTTP ${response.status}), switching to next model...`)
+        continue
+      }
+
+      const data = await response.json()
+      const duration = Date.now() - startTime
+
+      if (data?.choices?.[0]?.message?.content) {
+        data.choices[0].message.content = sanitizeOutput(data.choices[0].message.content)
+      }
+
+      appendAudit({
+        time: Date.now(), ip, action: 'completed', purpose,
+        msgCount: clientMessages.length,
+        totalChars: clientMessages.reduce((s, m) => s + m.content.length, 0),
+        status: response.status, duration,
+      })
+
+      return res.status(response.status).json(data)
+    } catch (err) {
+      console.warn(`Model ${model} error: ${err.message}`)
     }
-
-    appendAudit({
-      time: Date.now(), ip, action: 'completed', purpose,
-      msgCount: clientMessages.length,
-      totalChars: clientMessages.reduce((s, m) => s + m.content.length, 0),
-      status: response.status, duration,
-    })
-
-    return res.status(response.status).json(data)
-  } catch (err) {
-    appendAudit({ time: Date.now(), ip, action: 'error', error: err.message })
-    return res.status(500).json({ error: { message: 'Gagal terhubung ke server AI' } })
   }
+
+  appendAudit({ time: Date.now(), ip, action: 'all_models_failed' })
+  return res.status(429).json({ error: 'Maaf, antrean server AI kami saat ini sedang penuh. Silakan coba beberapa saat lagi ya!' })
 }

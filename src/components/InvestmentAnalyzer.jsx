@@ -308,7 +308,8 @@ export default function InvestmentAnalyzer({ property }) {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data?.error?.message || 'Gagal menganalisis properti')
+        const friendly = typeof data?.error === 'string' ? data.error : data?.error?.message
+        setError(friendly || 'Gagal menganalisis properti')
         return
       }
 

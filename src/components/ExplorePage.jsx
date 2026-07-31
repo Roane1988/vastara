@@ -240,7 +240,10 @@ export default function ExplorePage() {
         }),
       })
 
-      if (!response.ok) throw new Error('Gagal terhubung ke AI')
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(typeof errBody?.error === 'string' ? errBody.error : (errBody?.error?.message || 'Gagal terhubung ke AI'))
+      }
 
       const data = await response.json()
       const rawContent = data?.choices?.[0]?.message?.content

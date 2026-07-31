@@ -309,7 +309,8 @@ export default function SellPropertyPage() {
       })
       const data = await response.json()
       if (!response.ok) {
-        showToast('Gagal: ' + (data?.error?.message || `HTTP ${response.status}`), 'error')
+        const friendly = typeof data?.error === 'string' ? data.error : data?.error?.message
+        showToast('Gagal: ' + (friendly || `HTTP ${response.status}`), 'error')
         return
       }
       const content = data?.choices?.[0]?.message?.content
