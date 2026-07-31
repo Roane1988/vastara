@@ -23,3 +23,16 @@ export function formatShort(value) {
   if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(0)} Jt`
   return formatCurrency(value)
 }
+
+export function formatCount(value) {
+  const num = Number(value || 0)
+  if (num >= 1_000_000) {
+    const m = (num / 1_000_000).toFixed(1).replace('.0', '').replace('.', ',')
+    return `${m}jt`
+  }
+  if (num >= 1_000) {
+    const k = (num / 1_000).toFixed(1).replace('.0', '').replace('.', ',')
+    return `${k}rb`
+  }
+  return String(num)
+}
