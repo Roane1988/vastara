@@ -1,14 +1,32 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Trash2, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { ArrowLeft, ArrowLeftRight, CheckCircle2, Plus, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { formatPrice } from '../utils/format'
-import { getCompareList, removeFromCompare, clearCompare } from '../utils/compare'
+import { getCompareList, removeFromCompare, clearCompare, MAX_ITEMS } from '../utils/compare'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
+
+function CompareSkeleton() {
+  return (
+    <div className="animate-pulse space-y-3" role="status" aria-label="Loading">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="flex gap-3">
+          <div className="w-32 h-6 bg-brand-border rounded shrink-0" />
+          <div className="flex-1 h-6 bg-brand-border rounded" />
+          <div className="flex-1 h-6 bg-brand-border rounded" />
+          <div className="flex-1 h-6 bg-brand-border rounded" />
+        </div>
+      ))}
+      <span className="sr-only">Loading...</span>
+    </div>
+  )
+}
 
 export default function ComparePage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [items, setItems] = useState([])
   const [fullData, setFullData] = useState([])
   const [loading, setLoading] = useState(true)
@@ -37,16 +55,22 @@ export default function ComparePage() {
         if (match) results.push(match)
       }
 
-      if (real.length > 0) {
-        const { data } = await supabase
-          .from('properties')
-          .select('*')
-          .in('id', real.map(p => p.id))
-        if (data) results.push(...data)
+      try {
+        if (real.length > 0) {
+          const { data, error } = await supabase
+            .from('properties')
+            .select('*')
+            .in('id', real.map(p => p.id))
+          if (!error && data) results.push(...data)
+        }
+      } catch {
+        /* keep only dummy results; page still renders */
       }
 
       if (!cancelledRef.current && requestId === requestRef.current) {
         setFullData(results)
+      }
+      if (!cancelledRef.current && requestId === requestRef.current) {
         setLoading(false)
       }
     }
@@ -90,76 +114,136 @@ export default function ComparePage() {
     window.dispatchEvent(new Event('compare-updated'))
   }
 
+  function handleClearAll() {
+    clearCompare()
+    setItems([])
+    setFullData([])
+    requestRef.current += 1
+    setLoading(false)
+    window.dispatchEvent(new Event('compare-updated'))
+  }
+
+  const validPrices = fullData
+    .map(p => Number(p.price))
+    .filter(n => Number.isFinite(n) && n > 0)
+  const minPrice = validPrices.length ? Math.min(...validPrices) : null
+
+  const rows = [
+    {
+      label: t('compare.row.price'),
+      render: (p) => {
+        const value = Number(p.price)
+        const isMin = minPrice !== null && value === minPrice
+        return (
+          <span className={`font-bold ${isMin ? 'text-brand-verified' : 'text-brand-text'}`}>
+            {p.priceDisplay || formatPrice(p.price)}
+            {isMin && (
+              <span className="ml-1.5 inline-flex align-middle items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-verified-bg text-brand-verified text-[9px] font-bold uppercase tracking-wide">
+                <CheckCircle2 size={9} />
+                {t('compare.cheapest')}
+              </span>
+            )}
+          </span>
+        )
+      },
+    },
+    { label: t('compare.row.property_type'), render: (p) => p.property_type || p.category || '-' },
+    { label: t('compare.row.bedrooms'), render: (p) => (p.bedrooms ? `${p.bedrooms} KT` : '-') },
+    { label: t('compare.row.bathrooms'), render: (p) => (p.bathrooms ? `${p.bathrooms} KM` : '-') },
+    { label: t('compare.row.area'), render: (p) => (p.area_sqm || p.sqm ? `${p.area_sqm || p.sqm} m²` : '-') },
+    { label: t('compare.row.city'), render: (p) => p.city || p.location?.split(',').pop()?.trim() || '-' },
+    { label: t('compare.row.address'), render: (p) => p.address || p.location || '-' },
+    { label: t('compare.row.certificate_status'), render: (p) => p.certificate_status || '-' },
+  ]
+
   if (items.length === 0 && !loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex flex-col">
         <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-brand-border bg-brand-surface">
-          <button type="button" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text">
+          <button type="button" onClick={() => navigate(-1)} aria-label={t('compare.back')} className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-lg font-bold text-brand-text">Bandingkan Properti</h1>
+          <h1 className="text-lg font-bold text-brand-text">{t('compare.title')}</h1>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center mb-4">
-            <Trash2 size={24} className="text-brand-muted" />
+          <div className="w-16 h-16 rounded-full bg-brand-highlight flex items-center justify-center mb-4">
+            <ArrowLeftRight size={24} className="text-brand-accent" />
           </div>
-          <p className="text-sm text-brand-muted">Belum ada properti untuk dibandingkan.</p>
+          <p className="text-sm text-brand-muted mb-5">{t('compare.empty')}</p>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.97] transition-all duration-200"
+          >
+            <Plus size={16} />
+            {t('compare.empty_cta')}
+          </button>
         </div>
       </div>
     )
   }
 
-  const rows = [
-    { label: 'Harga', key: 'price', render: (p) => formatPrice(p.price || p.price) },
-    { label: 'Tipe', key: 'property_type', alt: 'category', render: (p) => p.property_type || p.category || '-' },
-    { label: 'Kamar Tidur', key: 'bedrooms', render: (p) => `${p.bedrooms || 0} KT` },
-    { label: 'Kamar Mandi', key: 'bathrooms', render: (p) => `${p.bathrooms || 0} KM` },
-    { label: 'Luas', key: 'area_sqm', alt: 'sqm', render: (p) => `${p.area_sqm || p.sqm || '-'} m²` },
-    { label: 'Kota', key: 'city', render: (p) => p.city || p.location?.split(',').pop()?.trim() || '-' },
-    { label: 'Alamat', key: 'address', render: (p) => p.address || p.location || '-' },
-    { label: 'Status Sertifikat', key: 'certificate_status', render: (p) => p.certificate_status || '-' },
-  ]
-
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-brand-border bg-brand-surface">
-        <button type="button" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text">
+        <button type="button" onClick={() => navigate(-1)} aria-label={t('compare.back')} className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-lg font-bold text-brand-text flex-1">Bandingkan Properti</h1>
+        <h1 className="text-lg font-bold text-brand-text flex-1">{t('compare.title')}</h1>
         {fullData.length > 0 && (
           <button
             type="button"
-            onClick={() => { clearCompare(); setItems([]); setFullData([]); window.dispatchEvent(new Event('compare-updated')) }}
-            className="text-xs text-red-500 hover:text-red-600 font-semibold"
+            onClick={handleClearAll}
+            className="text-xs text-brand-danger hover:text-red-600 font-semibold"
           >
-            Hapus Semua
+            {t('compare.clear_all')}
           </button>
         )}
+      </div>
+
+      <div className="px-4 py-3 bg-brand-surface border-b border-brand-border">
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-brand-muted">
+            {t('compare.count', { count: fullData.length, max: MAX_ITEMS })}
+            {fullData.length > 0 && fullData.length < 2 && (
+              <span className="block mt-0.5 text-[11px]">{t('compare.hint_few')}</span>
+            )}
+          </p>
+          {fullData.length < MAX_ITEMS && (
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-highlight text-brand-primary text-xs font-bold hover:brightness-95 active:scale-[0.97] transition-all"
+            >
+              <Plus size={13} />
+              {t('compare.add_more')}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-x-auto">
         <div className="min-w-[640px] max-w-5xl mx-auto p-4">
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
-            </div>
+            <CompareSkeleton />
           ) : (
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse" summary={t('compare.title')}>
+              <caption className="sr-only">{t('compare.title')}</caption>
               <thead>
                 <tr>
-                  <th className="w-32 p-3 text-left text-xs font-bold text-brand-muted uppercase" />
+                  <th scope="col" className="w-32 p-3 text-left text-xs font-bold text-brand-muted uppercase" />
                   {fullData.map(p => (
-                    <th key={p.id} className="p-3 text-center relative">
+                    <th key={p.id} scope="col" className="p-3 text-center relative">
                       <button
                         type="button"
                         onClick={() => handleRemove(p.id)}
-                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors"
+                        aria-label={t('compare.remove_aria')}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-brand-danger/10 text-brand-danger hover:bg-brand-danger/20 hover:text-red-600 flex items-center justify-center transition-colors"
                       >
                         <X size={12} />
                       </button>
                       <Link to={`/property/${p.id}`} className="block">
-                        <div className="h-28 rounded-xl overflow-hidden bg-gray-100 mb-2">
+                        <div className="h-28 rounded-xl overflow-hidden bg-brand-bg mb-2">
                           <img
                             src={getImageSrc(p.image_url)}
                             alt={p.title}
@@ -168,7 +252,15 @@ export default function ComparePage() {
                             loading="lazy"
                           />
                         </div>
-                        <p className="text-sm font-semibold text-brand-text leading-tight line-clamp-2">{p.title}</p>
+                        <p className="text-sm font-semibold text-brand-text leading-tight line-clamp-2">
+                          {p.title}
+                          {p.status === 'verified' && (
+                            <span className="ml-1 inline-flex align-middle items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-verified-bg text-brand-verified text-[9px] font-bold uppercase tracking-wide">
+                              <CheckCircle2 size={9} />
+                              {t('compare.verified')}
+                            </span>
+                          )}
+                        </p>
                       </Link>
                     </th>
                   ))}
@@ -176,7 +268,7 @@ export default function ComparePage() {
               </thead>
               <tbody>
                 {rows.map(r => (
-                  <tr key={r.key}>
+                  <tr key={r.label}>
                     <td className="p-3 border-t border-brand-border/50 text-xs font-bold text-brand-muted">{r.label}</td>
                     {fullData.map(p => (
                       <td key={p.id} className="p-3 border-t border-brand-border/50 text-sm text-brand-text text-center">

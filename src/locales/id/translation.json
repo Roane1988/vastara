@@ -8,6 +8,31 @@
   "common": {
     "close": "Tutup"
   },
+  "compare": {
+    "title": "Bandingkan Properti",
+    "back": "Kembali",
+    "empty": "Belum ada properti untuk dibandingkan.",
+    "empty_cta": "Jelajahi Properti",
+    "add_more": "Tambah Properti",
+    "clear_all": "Hapus Semua",
+    "count": "Membandingkan {{count}} dari {{max}} properti",
+    "hint_few": "Pilih minimal 2 properti agar perbandingan lebih bermakna.",
+    "toast_max": "Maksimal {{max}} properti dapat dibandingkan.",
+    "bar_compare": "Bandingkan",
+    "remove_aria": "Hapus dari perbandingan",
+    "verified": "Terverifikasi",
+    "cheapest": "Termurah",
+    "row": {
+      "price": "Harga",
+      "property_type": "Tipe",
+      "bedrooms": "Kamar Tidur",
+      "bathrooms": "Kamar Mandi",
+      "area": "Luas",
+      "city": "Kota",
+      "address": "Alamat",
+      "certificate_status": "Status Sertifikat"
+    }
+  },
   "hamburger": {
     "menu": "Menu",
     "login": "Masuk",

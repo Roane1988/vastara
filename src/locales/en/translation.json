@@ -8,6 +8,31 @@
   "common": {
     "close": "Close"
   },
+  "compare": {
+    "title": "Compare Properties",
+    "back": "Back",
+    "empty": "No properties to compare yet.",
+    "empty_cta": "Explore Properties",
+    "add_more": "Add Property",
+    "clear_all": "Clear All",
+    "count": "Comparing {{count}} of {{max}} properties",
+    "hint_few": "Add at least 2 properties for a more meaningful comparison.",
+    "toast_max": "You can compare up to {{max}} properties.",
+    "bar_compare": "Compare",
+    "remove_aria": "Remove from comparison",
+    "verified": "Verified",
+    "cheapest": "Cheapest",
+    "row": {
+      "price": "Price",
+      "property_type": "Type",
+      "bedrooms": "Bedrooms",
+      "bathrooms": "Bathrooms",
+      "area": "Area",
+      "city": "City",
+      "address": "Address",
+      "certificate_status": "Certificate Status"
+    }
+  },
   "hamburger": {
     "menu": "Menu",
     "login": "Login",

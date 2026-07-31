@@ -14,7 +14,7 @@ import { batchTranslate } from '../hooks/useGroqTranslation'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
 import CompareBar from './CompareBar'
-import { addToCompare, removeFromCompare, getCompareList } from '../utils/compare'
+import { addToCompare, removeFromCompare, getCompareList, MAX_ITEMS } from '../utils/compare'
 import { getFinancialProfile } from '../utils/financialProfile'
 
 
@@ -122,6 +122,9 @@ export default function ExplorePage() {
       setCompareSet(prev => { const s = new Set(prev); s.delete(p.id); return s })
     } else {
       const updated = addToCompare(p)
+      if (!updated.some(x => x.id === p.id)) {
+        showToast(t('compare.toast_max', { max: MAX_ITEMS }), 'error')
+      }
       setCompareSet(new Set(updated.map(x => x.id)))
     }
     window.dispatchEvent(new Event('compare-updated'))

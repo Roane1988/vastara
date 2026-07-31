@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'vastara_compare'
-const MAX_ITEMS = 3
+export const MAX_ITEMS = 3
 
 export function getCompareList() {
   try {
