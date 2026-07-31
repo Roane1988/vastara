@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, X, Send, ChevronDown } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useLocation } from 'react-router-dom'
 
 const RATE_LIMIT_MS = 2000
 
@@ -58,6 +59,7 @@ function TypingIndicator() {
 
 export default function HuniBot() {
   const { user } = useAuth()
+  const location = useLocation()
   const firstName = user?.user_metadata?.first_name || null
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
@@ -198,6 +200,8 @@ export default function HuniBot() {
     setIsOpen(prev => !prev)
   }, [])
 
+  const isKprPage = location.pathname === '/kpr'
+
   return (
     <>
       <AnimatePresence>
@@ -314,6 +318,16 @@ export default function HuniBot() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {!isOpen && (
+        <button
+          type="button"
+          onClick={toggleOpen}
+          className={`fixed bottom-6 right-6 z-50 w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-primary/90 transition-colors flex items-center justify-center ${isKprPage ? 'hidden' : ''}`}
+        >
+          <Bot className="w-6 h-6" />
+        </button>
+      )}
     </>
   )
 }

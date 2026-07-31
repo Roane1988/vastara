@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
-import { Bot } from 'lucide-react'
 import HamburgerMenu from './HamburgerMenu'
 
 function GlobeIcon() {
@@ -141,19 +139,6 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
               </svg>
               {t('navbar.sell_property')}
             </button>
-
-            <motion.button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event('open-hunibot'))}
-              whileHover={{ scale: 1.15, rotate: -8 }}
-              whileTap={{ scale: 0.75, rotate: 15 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-              className="p-2 rounded-xl text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
-              aria-label="HuniBot"
-              title="HuniBot"
-            >
-              <Bot size={20} />
-            </motion.button>
 
             <button
               type="button"
