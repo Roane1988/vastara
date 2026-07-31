@@ -88,6 +88,11 @@ export default function HuniBot() {
   const cancelledRef = useRef(false)
   const lastSendRef = useRef(0)
   const profileRef = useRef(undefined)
+  const messagesRef = useRef([])
+
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   useEffect(() => {
     return () => { cancelledRef.current = true }
@@ -190,7 +195,7 @@ export default function HuniBot() {
       const conversation = [
         SYSTEM_MESSAGE,
         ...profileMessage,
-        ...messages.map(m => ({
+        ...messagesRef.current.map(m => ({
           role: m.role === 'user' ? 'user' : 'assistant',
           content: m.text,
         })),
@@ -220,7 +225,7 @@ export default function HuniBot() {
       if (!cancelledRef.current) {
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'bot', text: botText }])
       }
-    } catch (error) {
+    } catch {
       if (!cancelledRef.current) {
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'bot', text: 'Maaf, terjadi kesalahan. Silakan coba lagi nanti.' }])
       }
@@ -229,10 +234,21 @@ export default function HuniBot() {
         setIsLoading(false)
       }
     }
-  }, [input, isLoading, messages])
+  }, [input, isLoading])
 
   const handleQuickReply = useCallback((text) => {
     handleSend(text)
+  }, [handleSend])
+
+  useEffect(() => {
+    const handler = (e) => {
+      const q = e.detail?.question
+      if (!q) return
+      setIsOpen(true)
+      setTimeout(() => handleSend(q), 150)
+    }
+    window.addEventListener('open-hunibot-question', handler)
+    return () => window.removeEventListener('open-hunibot-question', handler)
   }, [handleSend])
 
   const handleKeyDown = useCallback((e) => {

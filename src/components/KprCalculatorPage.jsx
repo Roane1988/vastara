@@ -6,6 +6,7 @@ import { formatCurrency, formatShort } from '../utils/format'
 import useSEO from '../hooks/useSEO'
 import FinancialProfileForm from './FinancialProfileForm'
 import { getFinancialProfile, computeAffordability, maxAffordablePrice } from '../utils/financialProfile'
+import InfoTooltip from './InfoTooltip'
 
 const TENOR_OPTIONS = [5, 10, 15, 20, 25]
 
@@ -149,6 +150,14 @@ export default function KprCalculatorPage() {
     }))
   }
 
+  const handleExplainClick = () => {
+    window.dispatchEvent(new CustomEvent('open-hunibot-question', {
+      detail: {
+        question: 'Jelaskan secara sederhana apa itu KPR, DP, suku bunga, tenor, dan tabel amortisasi untuk pemula.',
+      }
+    }))
+  }
+
   const waNumber = '6281234567890'
   const waMessage = encodeURIComponent(
     `Halo, saya ingin konsultasi KPR dengan detail:\n\n` +
@@ -185,6 +194,23 @@ export default function KprCalculatorPage() {
           </p>
         </div>
 
+        <div className="mb-6 rounded-2xl border border-brand-accent/20 bg-brand-accent/5 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-brand-text">Belum paham istilah KPR?</p>
+            <p className="text-xs text-brand-muted mt-0.5">
+              DP, suku bunga, tenor, hingga tabel amortisasi — HuniBot jelaskan dengan bahasa yang sederhana.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleExplainClick}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 active:scale-[0.97] transition-all shrink-0"
+          >
+            <Bot size={16} />
+            Tanya HuniBot
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-6">
@@ -196,8 +222,9 @@ export default function KprCalculatorPage() {
 
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-brand-text mb-1.5">
+                <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
                   Harga Properti
+                  <InfoTooltip text="Harga jual properti yang ingin kamu beli. Contoh: 800000000 untuk Rp800 juta." />
                 </label>
                 <input
                   type="number"
@@ -214,8 +241,9 @@ export default function KprCalculatorPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-brand-text mb-1.5">
+                <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
                   Uang Muka (DP)
+                  <InfoTooltip text="Uang muka yang dibayar di awal pembelian. Contoh: rumah Rp1 miliar dengan DP 20% berarti Rp200 juta. Sisanya (pokok) dibiayai bank." />
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -262,8 +290,9 @@ export default function KprCalculatorPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-brand-text mb-1.5">
+                <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
                   Suku Bunga (% per tahun)
+                  <InfoTooltip text="Biaya pinjaman tahunan yang ditetapkan bank. Semakin tinggi, cicilan semakin besar. Saat ini kisaran KPR umumnya 5-8% per tahun." />
                 </label>
                 <div className="relative">
                   <input
@@ -282,8 +311,9 @@ export default function KprCalculatorPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-brand-text mb-1.5">
+                <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
                   Jangka Waktu (Tenor)
+                  <InfoTooltip text="Lama waktu pelunasan pinjaman. Tenor lebih panjang = cicilan lebih kecil, tetapi total bunga yang dibayar lebih besar." />
                 </label>
                 <select
                   value={tenorYears}
@@ -330,6 +360,9 @@ export default function KprCalculatorPage() {
               </p>
               <p className="text-xs text-brand-muted mt-2">
                 Bunga {interestRate}% per tahun | Tenor {tenorYears} tahun
+              </p>
+              <p className="text-xs text-brand-muted mt-3 max-w-md mx-auto leading-relaxed">
+                Ini perkiraan jumlah yang harus kamu bayar ke bank setiap bulan selama {tenorYears} tahun (pokok + bunga). Angka ini dapat berubah mengikuti kebijakan suku bunga bank.
               </p>
             </div>
 
@@ -449,6 +482,7 @@ export default function KprCalculatorPage() {
                 >
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold text-brand-text">Tabel Amortisasi</h3>
+                    <InfoTooltip text="Rincian penurunan utangmu setiap tahun: berapa bagian untuk bunga dan berapa bagian untuk melunasi pokok pinjaman." />
                     <span className="text-xs text-brand-muted font-normal">
                       ({amortizationSchedule.length} tahun)
                     </span>
@@ -510,6 +544,7 @@ export default function KprCalculatorPage() {
                 <div className="flex items-center gap-2">
                   <Plus size={16} className="text-brand-muted" />
                   <h3 className="text-base font-bold text-brand-text">Estimasi Biaya Lainnya</h3>
+                  <InfoTooltip text="Biaya tambahan di luar harga rumah dan DP, seperti pajak BPHTB, PPN, notaris, dan provisi bank. Umumnya perlu disiapkan di awal." />
                 </div>
                 <ChevronDown
                   size={18}

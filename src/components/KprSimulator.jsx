@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Calculator, Check, AlertTriangle, Wallet, ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getFinancialProfile, computeAffordability } from '../utils/financialProfile'
+import InfoTooltip from './InfoTooltip'
 
 const TENOR_OPTIONS = [5, 10, 15, 20, 25]
 
@@ -83,8 +84,9 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
 
       <div className="space-y-5">
         <div>
-          <label className="block text-sm font-semibold text-brand-text mb-1.5">
+          <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
             Harga Properti
+            <InfoTooltip text="Harga jual properti yang ingin kamu beli. Contoh: 800000000 untuk Rp800 juta." />
           </label>
           <input
             type="number"
@@ -101,8 +103,9 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-brand-text mb-1.5">
+          <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
             Uang Muka (DP)
+            <InfoTooltip text="Uang muka yang dibayar di awal pembelian. Contoh: rumah Rp1 miliar dengan DP 20% berarti Rp200 juta. Sisanya (pokok) dibiayai bank." />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -149,8 +152,9 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-brand-text mb-1.5">
+          <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
             Suku Bunga (% per tahun)
+            <InfoTooltip text="Biaya pinjaman tahunan yang ditetapkan bank. Semakin tinggi, cicilan semakin besar. Saat ini kisaran KPR umumnya 5-8% per tahun." />
           </label>
           <div className="relative">
             <input
@@ -169,8 +173,9 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-brand-text mb-1.5">
+          <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
             Lama Pinjaman
+            <InfoTooltip text="Lama waktu pelunasan pinjaman. Tenor lebih panjang = cicilan lebih kecil, tetapi total bunga yang dibayar lebih besar." />
           </label>
           <select
             value={tenorYears}
@@ -216,6 +221,9 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
             </span>
           </span>
         </div>
+        <p className="text-xs text-brand-muted mt-3 leading-relaxed">
+          Ini perkiraan jumlah yang harus kamu bayar ke bank setiap bulan selama {tenorYears} tahun (pokok + bunga). Angka ini dapat berubah mengikuti kebijakan suku bunga bank.
+        </p>
       </div>
 
       {affordability && (
