@@ -53,20 +53,28 @@ export default function ComparePage() {
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-    getFinancialProfile()
-      .then(({ profile }) => {
-        if (cancelled) return
-        if (!profile) {
-          setFinState('none')
-          return
-        }
-        const aff = computeAffordability(profile)
-        setAffordability(aff)
-        setFinState(aff && aff.maxInstallment > 0 ? 'ready' : 'none')
-      })
-      .catch(() => { if (!cancelled) setFinState('none') })
-    return () => { cancelled = true }
+    let alive = true
+    const loadFinancial = () => {
+      setFinState('loading')
+      getFinancialProfile()
+        .then(({ profile }) => {
+          if (!alive) return
+          if (!profile) {
+            setFinState('none')
+            return
+          }
+          const aff = computeAffordability(profile)
+          setAffordability(aff)
+          setFinState(aff && aff.maxInstallment > 0 ? 'ready' : 'none')
+        })
+        .catch(() => { if (alive) setFinState('none') })
+    }
+    loadFinancial()
+    window.addEventListener('financial-profile-saved', loadFinancial)
+    return () => {
+      alive = false
+      window.removeEventListener('financial-profile-saved', loadFinancial)
+    }
   }, [user?.id])
 
   const buyingPower = useMemo(() => {

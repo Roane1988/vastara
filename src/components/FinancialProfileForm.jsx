@@ -153,6 +153,7 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
       }
       setSaved(true)
       onSaved?.(data)
+      window.dispatchEvent(new Event('financial-profile-saved'))
     } catch (e) {
       setError(e.message || 'Terjadi kesalahan. Coba lagi.')
     } finally {

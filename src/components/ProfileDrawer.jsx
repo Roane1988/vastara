@@ -67,6 +67,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const [currentEmail, setCurrentEmail] = useState('')
   const [role, setRole] = useState('')
   const [dirty, setDirty] = useState(false)
+  const [financeOpenKey, setFinanceOpenKey] = useState(0)
 
   const [pwCurrent, setPwCurrent] = useState('')
   const [pwNew, setPwNew] = useState('')
@@ -125,6 +126,12 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     const timer = setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 3000)
     return () => clearTimeout(timer)
   }, [notification.show])
+
+  useEffect(() => {
+    const openFinance = () => setFinanceOpenKey(k => k + 1)
+    window.addEventListener('open-financial-profile', openFinance)
+    return () => window.removeEventListener('open-financial-profile', openFinance)
+  }, [])
 
   const initial = (name || userName || 'U').charAt(0).toUpperCase()
   const roleLabel = ROLE_LABELS[role] || 'Pembeli'
@@ -421,7 +428,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           </div>
         </Collapsible>
 
-        <Collapsible title={t('profileDrawer.section_finance')} icon={<Wallet size={16} />}>
+        <Collapsible key={financeOpenKey} title={t('profileDrawer.section_finance')} icon={<Wallet size={16} />} defaultOpen={financeOpenKey > 0}>
           <div className="px-4 pb-4">
             <FinancialProfileForm showTitle={false} />
           </div>
