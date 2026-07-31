@@ -1,9 +1,23 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Wallet, Info, Check, Loader2, LogIn, TrendingUp, AlertCircle } from 'lucide-react'
+import {
+  Wallet,
+  Info,
+  Check,
+  Loader2,
+  LogIn,
+  TrendingUp,
+  AlertCircle,
+  Home,
+  Gauge,
+  Lightbulb,
+  Wand2,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   getFinancialProfile,
   saveFinancialProfile,
+  computeAffordability,
+  maxAffordablePrice,
   PURCHASE_GOAL_OPTIONS,
   formatRupiah,
 } from '../utils/financialProfile'
@@ -13,8 +27,26 @@ const inputClass =
 
 const labelClass = 'block text-[11px] font-semibold text-brand-muted mb-1.5'
 
+const helperClass = 'text-[10px] text-brand-muted/80 mt-1.5 flex items-start gap-1'
+
+const INCOME_PRESETS = [
+  { value: 5000000, label: 'Rp 5 jt' },
+  { value: 10000000, label: 'Rp 10 jt' },
+  { value: 15000000, label: 'Rp 15 jt' },
+  { value: 20000000, label: 'Rp 20 jt' },
+]
+
+const BUYING_POWER_ASSUMPTION = { interestRate: 5.5, tenorYears: 15, dpPercentage: 20 }
+
 function isFilled(value) {
   return String(value == null ? '' : value).trim() !== ''
+}
+
+function dsrStyle(dsr) {
+  if (dsr == null) return { color: 'text-brand-muted', bar: 'bg-brand-muted', message: '' }
+  if (dsr <= 30) return { color: 'text-emerald-600', bar: 'bg-emerald-500', message: 'Sehat — cicilan masih di bawah 30% pendapatan' }
+  if (dsr <= 40) return { color: 'text-amber-600', bar: 'bg-amber-500', message: 'Masih wajar, tapi mendekati batas yang diterima bank' }
+  return { color: 'text-red-600', bar: 'bg-red-500', message: 'Di atas 40% — bank umumnya menolak. Pertimbangkan menurunkan cicilan' }
 }
 
 export default function FinancialProfileForm({ onSaved, showTitle = true }) {
@@ -59,8 +91,33 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
     const income = Number(values.monthlyIncome) || 0
     const commitments = Number(values.monthlyCommitments) || 0
     const takeHome = Math.max(0, income - commitments)
-    return { takeHome, max: takeHome * 0.3 }
+    return { income, commitments, takeHome, max: takeHome * 0.3 }
   }, [values.monthlyIncome, values.monthlyCommitments])
+
+  const affordability = useMemo(() => computeAffordability({
+    monthly_income: suggestion.income,
+    monthly_commitments: suggestion.commitments,
+    monthly_budget: Number(values.monthlyBudget) || 0,
+  }), [suggestion.income, suggestion.commitments, values.monthlyBudget])
+
+  const buyingPower = useMemo(() => {
+    const maxInstallment = affordability?.maxInstallment || 0
+    if (maxInstallment <= 0) return null
+    return maxAffordablePrice(
+      maxInstallment,
+      BUYING_POWER_ASSUMPTION.interestRate,
+      BUYING_POWER_ASSUMPTION.tenorYears,
+      BUYING_POWER_ASSUMPTION.dpPercentage
+    )
+  }, [affordability])
+
+  const dsr = useMemo(() => {
+    if (suggestion.income <= 0) return null
+    return Math.round((suggestion.commitments / suggestion.income) * 100)
+  }, [suggestion.income, suggestion.commitments])
+
+  const commitmentsOverIncome = suggestion.income > 0 && suggestion.commitments > suggestion.income
+  const budgetOverTakeHome = suggestion.takeHome > 0 && (Number(values.monthlyBudget) || 0) > suggestion.takeHome
 
   const filledCount = useMemo(() => {
     let n = 0
@@ -165,17 +222,21 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        {isComplete && (
+        {isComplete ? (
           <p className="text-[11px] text-emerald-600 mt-1.5 flex items-center gap-1">
             <Check size={12} />
             Profil lengkap — analisis AI siap dipersonalisasi
+          </p>
+        ) : (
+          <p className="text-[10px] text-brand-muted mt-1.5">
+            Lengkapi 4 data ini agar simulasi KPR &amp; analisis AI dipersonalisasi untuk kamu.
           </p>
         )}
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className={labelClass}>Pendapatan bulanan</label>
+          <label className={labelClass}>Pendapatan bulanan (bersih)</label>
           <input
             type="number"
             min="0"
@@ -187,6 +248,22 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
           {values.monthlyIncome && (
             <p className="text-xs text-brand-muted mt-1">{formatRupiah(Number(values.monthlyIncome))}</p>
           )}
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {INCOME_PRESETS.map(p => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setField('monthlyIncome', String(p.value))}
+                className="px-2.5 py-1 rounded-full border border-brand-border text-[10px] font-semibold text-brand-muted hover:border-emerald-300 hover:text-emerald-700 transition-colors"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <p className={helperClass}>
+            <Lightbulb size={11} className="shrink-0 mt-0.5 text-emerald-500" />
+            Dipakai menghitung pendapatan bersih &amp; batas cicilan aman (30%). Pakai angka setelah potongan.
+          </p>
         </div>
 
         <div>
@@ -202,6 +279,16 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
           <p className="text-xs text-brand-muted mt-1">
             Cicilan mobil, kartu kredit, pinjaman lain, dsb.
           </p>
+          {commitmentsOverIncome && (
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5 flex items-center gap-1">
+              <AlertCircle size={11} className="shrink-0" />
+              Komitmen melebihi pendapatan — batas cicilan aman kamu jadi Rp 0.
+            </p>
+          )}
+          <p className={helperClass}>
+            <Lightbulb size={11} className="shrink-0 mt-0.5 text-emerald-500" />
+            Makin besar komitmen, makin kecil batas cicilan yang aman untuk kamu.
+          </p>
         </div>
 
         <div>
@@ -215,16 +302,36 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
             className={inputClass}
           />
           {suggestion.takeHome > 0 && (
-            <p className="text-xs text-brand-muted mt-1">
-              Saran maksimal (30% dari gaji bersih):{' '}
-              <span className="font-semibold text-emerald-600">{formatRupiah(suggestion.max)}</span>
+            <div className="flex items-center justify-between gap-2 mt-1">
+              <p className="text-xs text-brand-muted">
+                Saran maksimal (30% dari gaji bersih):{' '}
+                <span className="font-semibold text-emerald-600">{formatRupiah(suggestion.max)}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => setField('monthlyBudget', String(Math.round(suggestion.max)))}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors shrink-0"
+              >
+                <Wand2 size={10} />
+                Pakai saran
+              </button>
+            </div>
+          )}
+          {budgetOverTakeHome && (
+            <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 mt-1.5 flex items-center gap-1">
+              <AlertCircle size={11} className="shrink-0" />
+              Budget melebihi pendapatan bersih kamu — periksa kembali.
             </p>
           )}
+          <p className={helperClass}>
+            <Lightbulb size={11} className="shrink-0 mt-0.5 text-emerald-500" />
+            Target cicilan inilah yang dipakai simulasi KPR &amp; analisis AI.
+          </p>
         </div>
 
         {(suggestion.takeHome > 0 || isFilled(values.monthlyBudget)) && (
-          <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-4">
-            <div className="flex items-center gap-1.5 mb-2">
+          <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-4 space-y-3">
+            <div className="flex items-center gap-1.5">
               <TrendingUp size={13} className="text-emerald-600" />
               <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Ringkasan Kemampuan</p>
             </div>
@@ -238,14 +345,49 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
                 <p className="text-sm font-bold text-emerald-600">{formatRupiah(suggestion.max)}</p>
               </div>
             </div>
+            {dsr != null && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-semibold text-brand-muted flex items-center gap-1">
+                    <Gauge size={11} />
+                    Rasio cicilan (DSR)
+                  </p>
+                  <p className={`text-[11px] font-bold ${dsrStyle(dsr).color}`}>{dsr}%</p>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/80 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${dsrStyle(dsr).bar}`}
+                    style={{ width: `${Math.min(dsr, 100)}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-brand-muted mt-1">{dsrStyle(dsr).message}</p>
+              </div>
+            )}
             {budgetStatus && (
-              <div className={`mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold ${budgetStatus === 'ok' ? 'text-emerald-700' : 'text-amber-700'}`}>
+              <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${budgetStatus === 'ok' ? 'text-emerald-700' : 'text-amber-700'}`}>
                 {budgetStatus === 'ok' ? <Check size={12} /> : <AlertCircle size={12} />}
                 {budgetStatus === 'ok'
                   ? 'Budget kamu masih dalam batas saran ideal'
                   : 'Budget melebihi saran 30% — pertimbangkan untuk menurunkan target'}
               </div>
             )}
+          </div>
+        )}
+
+        {buyingPower != null && (
+          <div className="rounded-xl border border-emerald-200 bg-white p-4">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Home size={13} className="text-emerald-600" />
+              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Perkiraan Daya Beli</p>
+            </div>
+            <p className="text-lg font-extrabold text-brand-text">{formatRupiah(buyingPower)}</p>
+            <p className="text-[10px] text-brand-muted mt-1">
+              Estimasi max harga properti (KPR {BUYING_POWER_ASSUMPTION.tenorYears} thn · {BUYING_POWER_ASSUMPTION.interestRate}% · DP {BUYING_POWER_ASSUMPTION.dpPercentage}%)
+            </p>
+            <p className="text-[10px] text-brand-muted/80 mt-1 flex items-start gap-1">
+              <Info size={11} className="shrink-0 mt-0.5" />
+              Angka inilah yang dipakai analisis AI untuk menilai apakah sebuah properti terjangkau.
+            </p>
           </div>
         )}
 
@@ -271,6 +413,10 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
               )
             })}
           </div>
+          <p className={helperClass}>
+            <Lightbulb size={11} className="shrink-0 mt-0.5 text-emerald-500" />
+            Dipakai AI untuk menyesuaikan rekomendasi: rumah pertama, investasi sewa, atau ditempati sendiri.
+          </p>
         </div>
 
         {error && (
