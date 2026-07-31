@@ -1,5 +1,7 @@
 import { supabase } from '../supabaseClient'
 
+export const BUYING_POWER_ASSUMPTION = { interestRate: 5.5, tenorYears: 15, dpPercentage: 20 }
+
 const PURCHASE_GOAL_OPTIONS = [
   { value: 'rumah_pertama', label: 'Rumah pertama' },
   { value: 'huni', label: 'Huni sendiri' },
@@ -86,6 +88,19 @@ export function maxAffordablePrice(maxInstallment, interestRatePercent, tenorYea
   }
   const dpRatio = Math.max(0, Math.min(1, (dpPercentage || 0) / 100))
   return dpRatio >= 1 ? principal : principal / (1 - dpRatio)
+}
+
+export function estimateMonthlyInstallment(price, interestRatePercent, tenorYears, dpPercentage) {
+  const priceNum = Math.max(0, Number(price) || 0)
+  const dpRatio = Math.min(100, Math.max(0, Number(dpPercentage) || 0)) / 100
+  const principal = priceNum * (1 - dpRatio)
+  if (principal <= 0) return 0
+  const monthlyRate = (interestRatePercent || 0) / 100 / 12
+  const numMonths = tenorYears * 12
+  if (monthlyRate === 0) return numMonths > 0 ? principal / numMonths : 0
+  const factor = Math.pow(1 + monthlyRate, numMonths)
+  if (!Number.isFinite(factor) || factor <= 1) return numMonths > 0 ? principal / numMonths : 0
+  return (principal * monthlyRate * factor) / (factor - 1)
 }
 
 export { PURCHASE_GOAL_OPTIONS, PURCHASE_GOAL_LABELS, formatRupiah }

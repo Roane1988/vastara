@@ -1,12 +1,23 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, ArrowLeftRight, CheckCircle2, Plus, X } from 'lucide-react'
+import { ArrowLeft, ArrowLeftRight, CheckCircle2, Info, Plus, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { formatPrice } from '../utils/format'
 import { getCompareList, removeFromCompare, clearCompare, MAX_ITEMS } from '../utils/compare'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
+import {
+  getFinancialProfile,
+  computeAffordability,
+  maxAffordablePrice,
+  estimateMonthlyInstallment,
+  BUYING_POWER_ASSUMPTION,
+  formatRupiah,
+} from '../utils/financialProfile'
+
+const isRent = (p) => p.typeLabel === 'Disewa'
 
 function CompareSkeleton() {
   return (
@@ -27,9 +38,12 @@ function CompareSkeleton() {
 export default function ComparePage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { user } = useAuth()
   const [items, setItems] = useState([])
   const [fullData, setFullData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [finState, setFinState] = useState('loading')
+  const [affordability, setAffordability] = useState(null)
   const cancelledRef = useRef(false)
   const requestRef = useRef(0)
   const renderedIdsRef = useRef([])
@@ -37,6 +51,38 @@ export default function ComparePage() {
   useEffect(() => {
     return () => { cancelledRef.current = true }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    getFinancialProfile()
+      .then(({ profile }) => {
+        if (cancelled) return
+        if (!profile) {
+          setFinState('none')
+          return
+        }
+        const aff = computeAffordability(profile)
+        setAffordability(aff)
+        setFinState(aff && aff.maxInstallment > 0 ? 'ready' : 'none')
+      })
+      .catch(() => { if (!cancelled) setFinState('none') })
+    return () => { cancelled = true }
+  }, [])
+
+  const buyingPower = useMemo(() => {
+    if (!affordability?.maxInstallment) return 0
+    return maxAffordablePrice(
+      affordability.maxInstallment,
+      BUYING_POWER_ASSUMPTION.interestRate,
+      BUYING_POWER_ASSUMPTION.tenorYears,
+      BUYING_POWER_ASSUMPTION.dpPercentage
+    )
+  }, [affordability])
+
+  const openFinancialProfile = () => {
+    if (!user) { navigate('/login'); return }
+    window.dispatchEvent(new Event('open-financial-profile'))
+  }
 
   useEffect(() => {
     renderedIdsRef.current = fullData.map(p => p.id)
@@ -147,6 +193,19 @@ export default function ComparePage() {
         )
       },
     },
+    {
+      label: t('compare.row.installment'),
+      render: (p) => {
+        if (isRent(p) || !Number(p.price)) return '-'
+        const inst = estimateMonthlyInstallment(Number(p.price), BUYING_POWER_ASSUMPTION.interestRate, BUYING_POWER_ASSUMPTION.tenorYears, BUYING_POWER_ASSUMPTION.dpPercentage)
+        const over = finState === 'ready' && affordability.maxInstallment > 0 && inst > affordability.maxInstallment
+        return (
+          <span className={over ? 'text-brand-danger font-semibold' : 'text-brand-text'}>
+            {formatRupiah(inst)}
+          </span>
+        )
+      },
+    },
     { label: t('compare.row.property_type'), render: (p) => p.property_type || p.category || '-' },
     { label: t('compare.row.bedrooms'), render: (p) => (p.bedrooms ? `${p.bedrooms} KT` : '-') },
     { label: t('compare.row.bathrooms'), render: (p) => (p.bathrooms ? `${p.bathrooms} KM` : '-') },
@@ -222,6 +281,48 @@ export default function ComparePage() {
         </div>
       </div>
 
+      {finState === 'none' && fullData.length > 0 && (
+        <div className="px-4 pt-3">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 rounded-xl border border-brand-border bg-brand-highlight/60 px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-brand-text">
+              <Info size={15} className="shrink-0 text-brand-accent" />
+              <span>{t('compare.afford_cta_text')}</span>
+            </div>
+            <button
+              type="button"
+              onClick={openFinancialProfile}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary text-white text-xs font-bold hover:brightness-90 active:scale-[0.97] transition-all"
+            >
+              {t('compare.afford_cta')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {finState === 'ready' && fullData.length > 0 && (
+        <div className="px-4 pt-3">
+          <div className="max-w-5xl mx-auto rounded-xl bg-brand-verified-bg/60 border border-brand-verified/20 px-4 py-3 text-xs text-brand-text">
+            <div className="flex items-center gap-1.5 font-bold text-brand-verified mb-1">
+              <CheckCircle2 size={14} />
+              {t('compare.afford_title')}
+            </div>
+            <p>
+              {t('compare.afford_body', {
+                power: formatRupiah(buyingPower),
+                maxInstallment: formatRupiah(affordability.maxInstallment),
+              })}
+            </p>
+            <p className="text-[10px] text-brand-muted mt-1">
+              {t('compare.afford_note', {
+                tenor: BUYING_POWER_ASSUMPTION.tenorYears,
+                rate: BUYING_POWER_ASSUMPTION.interestRate,
+                dp: BUYING_POWER_ASSUMPTION.dpPercentage,
+              })}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-x-auto">
         <div className="min-w-[640px] max-w-5xl mx-auto p-4">
           {loading ? (
@@ -261,6 +362,16 @@ export default function ComparePage() {
                             </span>
                           )}
                         </p>
+                        {finState === 'ready' && !isRent(p) && Number(p.price) > 0 && buyingPower > 0 && (
+                          <span className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            Number(p.price) <= buyingPower
+                              ? 'bg-brand-verified-bg text-brand-verified'
+                              : 'bg-brand-danger/10 text-brand-danger'
+                          }`}>
+                            <CheckCircle2 size={10} />
+                            {Number(p.price) <= buyingPower ? t('compare.afford_in_range') : t('compare.afford_over')}
+                          </span>
+                        )}
                       </Link>
                     </th>
                   ))}

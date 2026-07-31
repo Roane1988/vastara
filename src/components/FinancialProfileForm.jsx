@@ -20,6 +20,7 @@ import {
   maxAffordablePrice,
   PURCHASE_GOAL_OPTIONS,
   formatRupiah,
+  BUYING_POWER_ASSUMPTION,
 } from '../utils/financialProfile'
 
 const inputClass =
@@ -35,8 +36,6 @@ const INCOME_PRESETS = [
   { value: 15000000, label: 'Rp 15 jt' },
   { value: 20000000, label: 'Rp 20 jt' },
 ]
-
-const BUYING_POWER_ASSUMPTION = { interestRate: 5.5, tenorYears: 15, dpPercentage: 20 }
 
 function isFilled(value) {
   return String(value == null ? '' : value).trim() !== ''

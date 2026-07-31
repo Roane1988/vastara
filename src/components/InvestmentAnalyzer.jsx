@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { formatCurrency } from '../utils/format'
-import { getFinancialProfile, computeAffordability, maxAffordablePrice } from '../utils/financialProfile'
+import { getFinancialProfile, computeAffordability, maxAffordablePrice, BUYING_POWER_ASSUMPTION } from '../utils/financialProfile'
 
 const ALLOWED_MODEL = 'openai/gpt-oss-120b'
 
@@ -33,7 +33,6 @@ const INTENT_OPTIONS = [
   { value: 'occupy', label: 'Ditempati' },
 ]
 const INTENT_LABELS = INTENT_OPTIONS.reduce((acc, o) => { acc[o.value] = o.label; return acc }, {})
-const BUYING_POWER_ASSUMPTION = { interestRate: 5.5, tenorYears: 15, dpPercentage: 20 }
 const SCORE_META = { emerald: '#10b981', amber: '#f59e0b', rose: '#ef4444' }
 
 function scoreColor(score) {
