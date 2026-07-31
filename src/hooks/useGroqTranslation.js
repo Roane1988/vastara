@@ -118,28 +118,31 @@ export function useGroqTranslation(propertyId, fields) {
   const [translated, setTranslated] = useState(null)
   const [loading, setLoading] = useState(false)
   const mountedRef = useRef(true)
+  const fieldsRef = useRef(fields)
 
   useEffect(() => {
     return () => { mountedRef.current = false }
   }, [])
 
+  useEffect(() => {
+    fieldsRef.current = fields
+  }, [fields])
+
   const hasFields = fields && Object.keys(fields).length > 0
+  const active = lang === 'en' && hasFields && propertyId
 
   useEffect(() => {
-    if (lang !== 'en' || !hasFields) {
-      setTranslated(null)
-      setLoading(false)
-      return
-    }
+    if (!active) return
 
-    const cached = getFromCache(propertyId, fields)
+    const currentFields = fieldsRef.current
+    const cached = getFromCache(propertyId, currentFields)
     if (cached) {
       setTranslated(cached)
       setLoading(false)
       return
     }
 
-    const key = cacheKey(propertyId, fields)
+    const key = cacheKey(propertyId, currentFields)
     let cancelled = false
 
     setLoading(true)
@@ -148,7 +151,7 @@ export function useGroqTranslation(propertyId, fields) {
       inflight.get(key)
         .then((result) => {
           if (!cancelled && mountedRef.current) {
-            const merged = { ...fields, ...result }
+            const merged = { ...currentFields, ...result }
             setTranslated(merged)
             setLoading(false)
           }
@@ -159,10 +162,10 @@ export function useGroqTranslation(propertyId, fields) {
       return () => { cancelled = true }
     }
 
-    const promise = fetchTranslation(fields)
+    const promise = fetchTranslation(currentFields)
       .then((result) => {
-        const merged = { ...fields, ...result }
-        setCache(propertyId, fields, merged)
+        const merged = { ...currentFields, ...result }
+        setCache(propertyId, currentFields, merged)
         if (!cancelled && mountedRef.current) {
           setTranslated(merged)
           setLoading(false)
@@ -177,12 +180,15 @@ export function useGroqTranslation(propertyId, fields) {
     promise.finally(() => { if (inflight.get(key) === promise) inflight.delete(key) })
 
     return () => { cancelled = true }
-  }, [lang, propertyId, hasFields])
+  }, [lang, propertyId, active])
+
+  const effectiveTranslated = active ? translated : null
+  const effectiveLoading = active ? loading : false
 
   const getText = useCallback((field, fallback) => {
     if (lang !== 'en') return fallback
-    return translated?.[field] ?? fallback
-  }, [lang, translated])
+    return effectiveTranslated?.[field] ?? fallback
+  }, [lang, effectiveTranslated])
 
-  return { translated, loading, getText }
+  return { translated: effectiveTranslated, loading: effectiveLoading, getText }
 }

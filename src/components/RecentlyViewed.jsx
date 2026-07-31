@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Clock } from 'lucide-react'
 import { getRecentlyViewed } from '../utils/recentlyViewed'
@@ -6,11 +6,7 @@ import { formatPrice } from '../utils/format'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 
 export default function RecentlyViewed() {
-  const [items, setItems] = useState([])
-
-  useEffect(() => {
-    setItems(getRecentlyViewed())
-  }, [])
+  const [items] = useState(() => getRecentlyViewed())
 
   if (items.length === 0) return null
 
@@ -41,7 +37,7 @@ export default function RecentlyViewed() {
               <p className="text-[10px] text-brand-muted mt-0.5">
                 {p.bedrooms} KT &middot; {p.bathrooms} KM &middot; {p.area_sqm} m&sup2;
               </p>
-              <p className="text-[11px] font-bold text-brand-primary mt-0.5">{formatPrice(p.price)}</p>
+              <p className="text-[11px] font-bold text-brand-primary mt-0.5">{p.priceDisplay || (p.category === 'Disewa' && p.price ? `${formatPrice(p.price)} /bulan` : formatPrice(p.price))}</p>
             </div>
           </Link>
         ))}

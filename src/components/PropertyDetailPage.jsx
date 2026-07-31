@@ -102,7 +102,7 @@ function LoadingSkeleton() {
 function GalleryDesktop({ images, property, onOpenLightbox }) {
   const heroImage = images[0] || FALLBACK_IMAGE
 
-  if (images.length >= 4) {
+  if (images.length >= 5) {
     const remaining = images.slice(0, 5)
     return (
       <div className="hidden lg:grid lg:grid-cols-4 lg:grid-rows-2 lg:gap-2 lg:h-[420px] lg:rounded-2xl lg:overflow-hidden">
@@ -112,6 +112,18 @@ function GalleryDesktop({ images, property, onOpenLightbox }) {
         {remaining.slice(1, 5).map((url, i) => (
           <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(i + 1)}>
             <img loading="lazy" src={url} alt={`${property.title} ${i + 2}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (images.length === 4) {
+    return (
+      <div className="hidden lg:grid lg:grid-cols-4 lg:gap-2 lg:h-[360px] lg:rounded-2xl lg:overflow-hidden">
+        {images.map((url, i) => (
+          <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(i)}>
+            <img loading="lazy" src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
           </div>
         ))}
       </div>
@@ -142,12 +154,13 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
   const [current, setCurrent] = useState(0)
   const touchRef = useRef({ startX: 0, startY: 0, diffX: 0, swiping: false })
   const [swipeOffset, setSwipeOffset] = useState(0)
-  const swipingRef = useRef(false)
+
+  const galleryImages = images.length > 0 ? images : [FALLBACK_IMAGE]
+  const totalCount = images.length
 
   function goTo(index) {
-    setCurrent(Math.max(0, Math.min(index, images.length - 1)))
+    setCurrent(Math.max(0, Math.min(index, galleryImages.length - 1)))
     setSwipeOffset(0)
-    swipingRef.current = false
   }
 
   function onTouchStart(e) {
@@ -158,15 +171,16 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
     const dx = e.touches[0].clientX - touchRef.current.startX
     const dy = Math.abs(e.touches[0].clientY - touchRef.current.startY)
     if (dy > Math.abs(dx) * 1.5 && Math.abs(dy) > 10) return
-    swipingRef.current = true
+    touchRef.current.swiping = true
     setSwipeOffset(dx)
   }
 
   function onTouchEnd() {
-    if (!swipingRef.current) return
-    if (swipeOffset < -60 && current < images.length - 1) goTo(current + 1)
+    if (!touchRef.current.swiping) return
+    if (swipeOffset < -60 && current < galleryImages.length - 1) goTo(current + 1)
     else if (swipeOffset > 60 && current > 0) goTo(current - 1)
     else goTo(current)
+    touchRef.current.swiping = false
   }
 
   function onMouseDown(e) {
@@ -177,14 +191,14 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
       const dx = ev.clientX - touchRef.current.startX
       const dy = Math.abs(ev.clientY - touchRef.current.startY)
       if (dy > Math.abs(dx) * 1.5 && Math.abs(dy) > 10) { document.removeEventListener('mousemove', onMove); return }
-      swipingRef.current = true
+      touchRef.current.swiping = true
       setSwipeOffset(dx)
     }
     const onUp = () => {
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
-      if (!swipingRef.current) { onOpenLightbox(current); return }
-      if (swipeOffset < -60 && current < images.length - 1) goTo(current + 1)
+      if (!touchRef.current.swiping) { onOpenLightbox(current); return }
+      if (swipeOffset < -60 && current < galleryImages.length - 1) goTo(current + 1)
       else if (swipeOffset > 60 && current > 0) goTo(current - 1)
       else goTo(current)
     }
@@ -195,39 +209,43 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
   return (
     <div className="lg:hidden">
       <div className="relative aspect-[4/3] overflow-hidden select-none" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown}>
-        <div className="flex h-full" style={{ transform: `translateX(calc(-${current * 100}% + ${swipeOffset}px))`, transition: swipingRef.current ? 'none' : 'transform 0.3s ease-out' }}>
-          {images.map((url, i) => (
+        <div className="flex h-full" style={{ transform: `translateX(calc(-${current * 100}% + ${swipeOffset}px))`, transition: swipeOffset !== 0 ? 'none' : 'transform 0.3s ease-out' }}>
+          {galleryImages.map((url, i) => (
             <div key={i} className="min-w-full h-full shrink-0">
               <img loading={i === 0 ? 'eager' : 'lazy'} src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" draggable={false} />
             </div>
           ))}
         </div>
-        {images.length > 1 && (
+        {totalCount > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-            {images.map((_, i) => (
+            {galleryImages.map((_, i) => (
               <button key={i} type="button" onClick={() => goTo(i)} className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? 'bg-white w-3' : 'bg-white/50'}`} />
             ))}
           </div>
         )}
-        <div className="absolute top-3 right-3 z-10 bg-black/40 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-          {current + 1}/{images.length}
-        </div>
-      </div>
-      <div className="grid grid-cols-4 gap-0.5">
-        {images.slice(0, 4).map((url, i) => (
-          <div key={i} className={`relative aspect-[4/3] overflow-hidden cursor-pointer border-b-2 transition-colors ${i === current ? 'border-brand-primary' : 'border-transparent'}`} onClick={() => goTo(i)}>
-            <img loading="lazy" src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
-          </div>
-        ))}
-        {images.length > 4 && (
-          <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(current)}>
-            <img loading="lazy" src={images[4]} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
-              <span className="text-white text-xs font-bold">+{images.length - 4}</span>
-            </div>
+        {totalCount > 0 && (
+          <div className="absolute top-3 right-3 z-10 bg-black/40 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            {current + 1}/{totalCount}
           </div>
         )}
       </div>
+      {totalCount > 0 && (
+        <div className="grid grid-cols-4 gap-0.5">
+          {galleryImages.slice(0, 4).map((url, i) => (
+            <div key={i} className={`relative aspect-[4/3] overflow-hidden cursor-pointer border-b-2 transition-colors ${i === current ? 'border-brand-primary' : 'border-transparent'}`} onClick={() => goTo(i)}>
+              <img loading="lazy" src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
+            </div>
+          ))}
+          {totalCount > 4 && (
+            <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(current)}>
+              <img loading="lazy" src={galleryImages[4]} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
+                <span className="text-white text-xs font-bold">+{totalCount - 4}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -331,25 +349,37 @@ export default function PropertyDetailPage() {
     property_type: property.property_type || '',
   } : {}
 
-  const { getText, loading: transLoading } = useGroqTranslation(property?.id || id, transFields)
+  const { getText, loading: transLoading } = useGroqTranslation(
+    property?.id && !property.id.startsWith('dummy-') ? property.id : null,
+    transFields
+  )
 
   const displayTitle = getText('title', property?.title || '')
   const displayAddress = getText('address', property?.address || property?.location || 'Indonesia')
-  const displayType = getText('property_type', property?.property_type || '')
 
   const description = lang === 'en' && property?.description_en
     ? property.description_en
-    : (property?.description_id || `${displayTitle} — ${property?.bedrooms} bedrooms, ${property?.bathrooms} bathrooms, ${property?.area_sqm || property?.sqm || '-'} m².`)
+    : (property?.description_id || (
+        lang === 'en'
+          ? `${displayTitle} — ${property?.bedrooms ?? '-'} bedrooms, ${property?.bathrooms ?? '-'} bathrooms, ${property?.area_sqm || property?.sqm || '-'} m².`
+          : `${displayTitle} — ${property?.bedrooms ?? '-'} kamar, ${property?.bathrooms ?? '-'} kamar mandi, ${property?.area_sqm || property?.sqm || '-'} m².`
+      ))
 
   function handleShare() {
+    const shareData = {
+      title: property?.title,
+      text: `${displayTitle} - ${displayPrice}`,
+      url: window.location.href,
+    }
     if (navigator.share) {
-      navigator.share({ title: property?.title, text: `${displayTitle} - ${formatPrice(property?.price)}`, url: window.location.href })
-    } else {
-      navigator.clipboard.writeText(window.location.href)
+      navigator.share(shareData).catch(() => {})
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href).catch(() => {})
     }
   }
 
   const openLightbox = (index) => {
+    if (images.length === 0) return
     setLightboxIndex(index)
     setIsLightboxOpen(true)
   }
@@ -359,15 +389,17 @@ export default function PropertyDetailPage() {
   }
 
   const prevImage = () => {
+    if (images.length === 0) return
     setLightboxIndex((i) => (i - 1 + images.length) % images.length)
   }
 
   const nextImage = () => {
+    if (images.length === 0) return
     setLightboxIndex((i) => (i + 1) % images.length)
   }
 
   useEffect(() => {
-    if (!isLightboxOpen) return
+    if (!isLightboxOpen || images.length === 0) return
     const handleKey = (e) => {
       if (e.key === 'Escape') setIsLightboxOpen(false)
       if (e.key === 'ArrowLeft') setLightboxIndex((i) => (i - 1 + images.length) % images.length)
@@ -445,18 +477,24 @@ export default function PropertyDetailPage() {
   }, [id])
 
   useEffect(() => {
-    if (!property || property.id.startsWith('dummy-')) return
+    const propId = property?.id
+    const propCategory = property?.category
+    const propCity = property?.city
+    if (!propId || propId.startsWith('dummy-')) return
     let cancelled = false
-    supabase
+    const orFilters = []
+    if (propCategory) orFilters.push(`category.eq.${propCategory}`)
+    if (propCity) orFilters.push(`city.ilike.%${propCity}%`)
+    let query = supabase
       .from('properties')
       .select('id, title, price, category, bedrooms, bathrooms, area_sqm, address, city, image_url')
-      .or(`category.eq.${property.category},city.ilike.%${property.city || ''}%`)
-      .neq('id', property.id)
+      .neq('id', propId)
       .eq('status', 'verified')
       .limit(6)
-      .then(({ data }) => {
-        if (!cancelled && data) setSimilar(data)
-      })
+    if (orFilters.length > 0) query = query.or(orFilters.join(','))
+    query.then(({ data }) => {
+      if (!cancelled && data) setSimilar(data)
+    }).catch(() => {})
     return () => { cancelled = true }
   }, [property?.id, property?.category, property?.city])
 
@@ -490,13 +528,16 @@ export default function PropertyDetailPage() {
     return <NotFoundPage message={error} onBack={() => navigate(-1)} />
   }
 
-  const waNumber = property.seller_whatsapp || property.agent_whatsapp || '6281234567890'
+  const hasWhatsapp = Boolean(property.seller_whatsapp || property.agent_whatsapp)
+  const waNumber = hasWhatsapp ? (property.seller_whatsapp || property.agent_whatsapp) : null
+  const isRent = property.typeLabel === 'Disewa' || property.category === 'Disewa'
+  const displayPrice = property.priceDisplay || (isRent && property.price ? `${formatPrice(property.price)} /bulan` : formatPrice(property.price))
   const waMessage = encodeURIComponent(
     lang === 'en'
       ? `Hello, I am interested in ${displayTitle}`
       : `Halo, saya tertarik dengan properti ${displayTitle}`
   )
-  const waLink = `https://wa.me/${waNumber}?text=${waMessage}`
+  const waLink = waNumber ? `https://wa.me/${waNumber}?text=${waMessage}` : null
 
   const sellerName = property.profiles?.first_name || 'Agen Properti'
   const sellerRole = property.profiles?.role === 'agent' ? 'Agen Properti'
@@ -504,7 +545,7 @@ export default function PropertyDetailPage() {
     : property.profiles?.role === 'owner' ? 'Pemilik Langsung'
     : 'Agen Properti'
 
-  const phoneShort = `+${waNumber.slice(0, 4)}...${waNumber.slice(-3)}`
+  const phoneShort = waNumber ? `+${waNumber.slice(0, 4)}...${waNumber.slice(-3)}` : null
 
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
@@ -527,17 +568,19 @@ export default function PropertyDetailPage() {
           <Share2 size={18} />
         </button>
 
-        <div className="lg:hidden px-4 pt-3">
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-bold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all"
-          >
-            <MessageCircle size={18} />
-            Hubungi Pengiklan Segera
-          </a>
-        </div>
+        {waLink && (
+          <div className="lg:hidden px-4 pt-3">
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-bold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all"
+            >
+              <MessageCircle size={18} />
+              Hubungi Pengiklan Segera
+            </a>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 w-full max-w-7xl mx-auto px-5 pt-5 pb-32">
@@ -558,9 +601,9 @@ export default function PropertyDetailPage() {
 
             <div>
               <p className="text-2xl font-extrabold text-brand-primary">
-                {formatPrice(property.price)}
+                {displayPrice}
               </p>
-              {property.area_sqm > 0 && (
+              {property.area_sqm > 0 && property.price > 0 && (
                 <p className="text-sm text-brand-muted mt-0.5">
                   {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;
                 </p>
@@ -655,15 +698,17 @@ export default function PropertyDetailPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-3">
-                  <a
-                    href={waLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
-                  >
-                    <Phone size={16} className="text-brand-muted" />
-                    {phoneShort}
-                  </a>
+                  {waLink && (
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
+                    >
+                      <Phone size={16} className="text-brand-muted" />
+                      {phoneShort}
+                    </a>
+                  )}
                   <button
                     type="button"
                     onClick={() => setShowScheduleVisit(true)}
@@ -672,15 +717,17 @@ export default function PropertyDetailPage() {
                     <Calendar size={16} className="text-brand-muted" />
                     Jadwal Survei
                   </button>
-                  <a
-                    href={waLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.98]"
-                  >
-                    <MessageCircle size={16} />
-                    WhatsApp
-                  </a>
+                  {waLink && (
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.98]"
+                    >
+                      <MessageCircle size={16} />
+                      WhatsApp
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -694,12 +741,14 @@ export default function PropertyDetailPage() {
         <div className="max-w-7xl mx-auto px-5 py-2.5 flex items-center justify-between">
           <div className="min-w-0 flex-1 mr-4">
             <p className="text-sm font-bold text-brand-text truncate">{displayTitle}</p>
-            <p className="text-xs font-semibold text-brand-primary">{formatPrice(property.price)}</p>
+            <p className="text-xs font-semibold text-brand-primary">{displayPrice}</p>
           </div>
-          <a href={waLink} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-2 py-2 px-4 rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.97]">
-            <MessageCircle size={16} />
-            WhatsApp
-          </a>
+          {waLink && (
+            <a href={waLink} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-2 py-2 px-4 rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.97]">
+              <MessageCircle size={16} />
+              WhatsApp
+            </a>
+          )}
         </div>
       </div>
 
@@ -714,7 +763,7 @@ export default function PropertyDetailPage() {
                 </div>
                 <div className="p-2.5">
                   <p className="text-[11px] font-semibold text-brand-text truncate">{p.title}</p>
-                  <p className="text-xs font-bold text-brand-primary mt-0.5">{formatPrice(p.price)}</p>
+                  <p className="text-xs font-bold text-brand-primary mt-0.5">{p.priceDisplay || (p.category === 'Disewa' && p.price ? `${formatPrice(p.price)} /bulan` : formatPrice(p.price))}</p>
                   <p className="text-[10px] text-brand-muted truncate mt-0.5">{p.bedrooms} KT &bull; {p.bathrooms} KM &bull; {p.area_sqm} m&sup2;</p>
                 </div>
               </Link>
@@ -727,19 +776,21 @@ export default function PropertyDetailPage() {
         <ScheduleVisit property={property} onClose={() => setShowScheduleVisit(false)} />
       )}
 
-      <div className={`fixed bottom-0 left-0 right-0 w-full z-50 transition-transform duration-300 ease-in-out ${showFloatingBtn ? 'translate-y-0' : 'translate-y-[150%]'}`}>
-        <div className="bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4">
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:brightness-90 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-sm"
-          >
-            <WhatsAppIcon />
-            Hubungi Agent via WhatsApp
-          </a>
+      {waLink && (
+        <div className={`fixed bottom-0 left-0 right-0 w-full z-50 lg:hidden transition-transform duration-300 ease-in-out ${showFloatingBtn ? 'translate-y-0' : 'translate-y-[150%]'}`}>
+          <div className="bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4">
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:brightness-90 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-sm"
+            >
+              <WhatsAppIcon />
+              Hubungi Agent via WhatsApp
+            </a>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

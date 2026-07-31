@@ -659,7 +659,7 @@ export default function ExplorePage() {
                 </div>
                 <div className="p-3">
                   <p className="text-base font-extrabold text-brand-primary">
-                    {formatPrice(p.price)}
+                    {p.priceDisplay || (p.category === 'Disewa' && p.price ? `${formatPrice(p.price)} /bulan` : formatPrice(p.price))}
                   </p>
                   <p className="text-sm font-semibold text-brand-text mt-0.5 truncate">
                     {getTranslated(p, 'title', p.title)}
