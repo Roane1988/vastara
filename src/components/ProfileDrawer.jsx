@@ -206,7 +206,6 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           first_name: name,
           email: email.trim(),
           whatsapp,
-          updated_at: new Date().toISOString(),
         })
         .eq('id', user.id)
 
