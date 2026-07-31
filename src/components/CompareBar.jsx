@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X, ArrowLeftRight } from 'lucide-react'
 import { getCompareList, removeFromCompare } from '../utils/compare'
-import { formatPrice } from '../utils/format'
+import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 
 export default function CompareBar() {
   const [items, setItems] = useState([])
@@ -33,9 +33,12 @@ export default function CompareBar() {
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {items.map(p => (
             <div key={p.id} className="flex items-center gap-1.5 bg-brand-bg rounded-lg px-2.5 py-1.5 border border-brand-border/50">
-              {p.image_url && (
-                <img src={p.image_url} alt="" className="w-6 h-6 rounded object-cover" />
-              )}
+              <img
+                src={getImageSrc(p.image_url)}
+                alt=""
+                onError={(e) => { e.target.src = FALLBACK_IMAGE; e.target.onerror = null }}
+                className="w-6 h-6 rounded object-cover"
+              />
               <span className="text-xs text-brand-text truncate max-w-[80px]">{p.title}</span>
               <button
                 type="button"

@@ -1,24 +1,32 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Trash2, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { formatPrice } from '../utils/format'
 import { getCompareList, removeFromCompare, clearCompare } from '../utils/compare'
-import { getImageSrc } from '../utils/images'
+import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 
 export default function ComparePage() {
   const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [fullData, setFullData] = useState([])
   const [loading, setLoading] = useState(true)
+  const cancelledRef = useRef(false)
+  const requestRef = useRef(0)
+  const renderedIdsRef = useRef([])
 
   useEffect(() => {
-    const ids = getCompareList()
-    setItems(ids)
-    if (ids.length === 0) { setLoading(false); return }
+    return () => { cancelledRef.current = true }
+  }, [])
 
-    async function fetchData() {
+  useEffect(() => {
+    renderedIdsRef.current = fullData.map(p => p.id)
+  }, [fullData])
+
+  useEffect(() => {
+    async function load(ids) {
+      const requestId = ++requestRef.current
       const dummies = ids.filter(p => p.id.startsWith('dummy-'))
       const real = ids.filter(p => !p.id.startsWith('dummy-'))
 
@@ -37,22 +45,49 @@ export default function ComparePage() {
         if (data) results.push(...data)
       }
 
-      setFullData(results)
-      setLoading(false)
+      if (!cancelledRef.current && requestId === requestRef.current) {
+        setFullData(results)
+        setLoading(false)
+      }
     }
-    fetchData()
+
+    function sync() {
+      const ids = Array.isArray(getCompareList()) ? getCompareList() : []
+      setItems(ids)
+
+      if (ids.length === 0) {
+        requestRef.current += 1
+        setFullData([])
+        setLoading(false)
+        return
+      }
+
+      const wanted = new Set(ids.map(p => p.id))
+      const rendered = renderedIdsRef.current
+      const isMismatch = rendered.length !== wanted.size || rendered.some(id => !wanted.has(id))
+      if (!isMismatch) return
+
+      setLoading(true)
+      load(ids)
+    }
+
+    sync()
+    window.addEventListener('compare-updated', sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      cancelledRef.current = true
+      window.removeEventListener('compare-updated', sync)
+      window.removeEventListener('storage', sync)
+    }
   }, [])
 
   function handleRemove(id) {
     removeFromCompare(id)
     const updated = getCompareList()
     setItems(updated)
+    renderedIdsRef.current = renderedIdsRef.current.filter(rid => rid !== id)
+    setFullData(prev => prev.filter(p => p.id !== id))
     window.dispatchEvent(new Event('compare-updated'))
-    if (updated.length === 0) {
-      setFullData([])
-    } else {
-      setFullData(prev => prev.filter(p => p.id !== id))
-    }
   }
 
   if (items.length === 0 && !loading) {
@@ -125,7 +160,13 @@ export default function ComparePage() {
                       </button>
                       <Link to={`/property/${p.id}`} className="block">
                         <div className="h-28 rounded-xl overflow-hidden bg-gray-100 mb-2">
-                          <img src={getImageSrc(p.image_url)} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
+                          <img
+                            src={getImageSrc(p.image_url)}
+                            alt={p.title}
+                            onError={(e) => { e.target.src = FALLBACK_IMAGE; e.target.onerror = null }}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
                         </div>
                         <p className="text-sm font-semibold text-brand-text leading-tight line-clamp-2">{p.title}</p>
                       </Link>
