@@ -173,8 +173,9 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   ), [name, email, whatsapp, baseline])
 
   const requestClose = useCallback(() => {
-    if (dirty && !window.confirm(t('profileDrawer.unsaved_warning'))) return
+    if (dirty && !window.confirm(t('profileDrawer.unsaved_warning'))) return false
     onClose()
+    return true
   }, [dirty, onClose, t])
 
   const handleNavigate = (path) => {
