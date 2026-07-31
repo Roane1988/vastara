@@ -24,7 +24,7 @@ export default function SlideOver({
   onClose,
   title,
   width = 'max-w-md',
-  zIndex = 'z-[100]',
+  zIndex = 100,
   headerExtras,
   footer,
   children,
