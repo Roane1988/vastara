@@ -322,5 +322,17 @@
       "belum": "Not Yet Certified",
       "lainnya": "Other"
     }
+  },
+  "recently": {
+    "title": "Recently Viewed",
+    "count": "{{count}} properties",
+    "empty": "Properties you view will appear here. Start exploring your first listing!",
+    "viewed": "Viewed",
+    "remove_aria": "Remove from recently viewed",
+    "scroll_left": "Scroll left",
+    "scroll_right": "Scroll right",
+    "clear": "Clear",
+    "compare": "Compare",
+    "in_compare": "In compare"
   }
 }

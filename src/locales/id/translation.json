@@ -322,5 +322,17 @@
       "belum": "Belum Bersertifikat",
       "lainnya": "Lainnya"
     }
+  },
+  "recently": {
+    "title": "Terakhir Dilihat",
+    "count": "{{count}} properti",
+    "empty": "Properti yang kamu lihat akan muncul di sini. Yuk jelajahi listing huni pertama kamu!",
+    "viewed": "Dilihat",
+    "remove_aria": "Hapus dari terakhir dilihat",
+    "scroll_left": "Geser ke kiri",
+    "scroll_right": "Geser ke kanan",
+    "clear": "Bersihkan",
+    "compare": "Bandingkan",
+    "in_compare": "Sudah dibandingkan"
   }
 }
