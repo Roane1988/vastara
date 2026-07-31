@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Wallet, Info, Check, Loader2, LogIn } from 'lucide-react'
+import { Wallet, Info, Check, Loader2, LogIn, TrendingUp, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   getFinancialProfile,
@@ -12,6 +12,10 @@ const inputClass =
   'w-full px-3.5 py-2.5 rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all'
 
 const labelClass = 'block text-[11px] font-semibold text-brand-muted mb-1.5'
+
+function isFilled(value) {
+  return String(value == null ? '' : value).trim() !== ''
+}
 
 export default function FinancialProfileForm({ onSaved, showTitle = true }) {
   const navigate = useNavigate()
@@ -57,6 +61,23 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
     const takeHome = Math.max(0, income - commitments)
     return { takeHome, max: takeHome * 0.3 }
   }, [values.monthlyIncome, values.monthlyCommitments])
+
+  const filledCount = useMemo(() => {
+    let n = 0
+    if (isFilled(values.monthlyIncome)) n += 1
+    if (isFilled(values.monthlyCommitments)) n += 1
+    if (isFilled(values.monthlyBudget)) n += 1
+    n += 1
+    return n
+  }, [values.monthlyIncome, values.monthlyCommitments, values.monthlyBudget])
+
+  const progressPct = Math.min(100, Math.round((filledCount / 4) * 100))
+  const isComplete = filledCount >= 4
+
+  const budgetStatus = useMemo(() => {
+    if (!isFilled(values.monthlyBudget)) return null
+    return Number(values.monthlyBudget) <= suggestion.max ? 'ok' : 'over'
+  }, [values.monthlyBudget, suggestion.max])
 
   function setField(field, value) {
     setValues(prev => ({ ...prev, [field]: value }))
@@ -131,6 +152,27 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
         </div>
       )}
 
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-[11px] font-semibold text-brand-muted">Kelengkapan data</p>
+          <p className={`text-[11px] font-bold ${isComplete ? 'text-emerald-600' : 'text-brand-muted'}`}>
+            {filledCount}/4 terisi
+          </p>
+        </div>
+        <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        {isComplete && (
+          <p className="text-[11px] text-emerald-600 mt-1.5 flex items-center gap-1">
+            <Check size={12} />
+            Profil lengkap — analisis AI siap dipersonalisasi
+          </p>
+        )}
+      </div>
+
       <div className="space-y-4">
         <div>
           <label className={labelClass}>Pendapatan bulanan</label>
@@ -180,17 +222,55 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
           )}
         </div>
 
+        {(suggestion.takeHome > 0 || isFilled(values.monthlyBudget)) && (
+          <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <TrendingUp size={13} className="text-emerald-600" />
+              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Ringkasan Kemampuan</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] text-brand-muted">Pendapatan bersih / bln</p>
+                <p className="text-sm font-bold text-brand-text">{formatRupiah(suggestion.takeHome)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-brand-muted">Saran cicilan maks (30%)</p>
+                <p className="text-sm font-bold text-emerald-600">{formatRupiah(suggestion.max)}</p>
+              </div>
+            </div>
+            {budgetStatus && (
+              <div className={`mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold ${budgetStatus === 'ok' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {budgetStatus === 'ok' ? <Check size={12} /> : <AlertCircle size={12} />}
+                {budgetStatus === 'ok'
+                  ? 'Budget kamu masih dalam batas saran ideal'
+                  : 'Budget melebihi saran 30% — pertimbangkan untuk menurunkan target'}
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
           <label className={labelClass}>Tujuan pembelian</label>
-          <select
-            value={values.purchaseGoal}
-            onChange={(e) => setField('purchaseGoal', e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all appearance-none"
-          >
-            {PURCHASE_GOAL_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+          <div className="grid grid-cols-2 gap-2">
+            {PURCHASE_GOAL_OPTIONS.map(o => {
+              const active = values.purchaseGoal === o.value
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setField('purchaseGoal', o.value)}
+                  className={`px-3 py-2.5 rounded-xl border text-xs font-semibold text-left transition-all ${
+                    active
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-700 ring-2 ring-emerald-500/20'
+                      : 'bg-brand-bg border-brand-border text-brand-muted hover:border-emerald-300 hover:text-brand-text'
+                  }`}
+                >
+                  {active && <Check size={12} className="inline -mt-0.5 mr-1" />}
+                  {o.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {error && (

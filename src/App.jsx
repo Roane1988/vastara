@@ -1,4 +1,4 @@
-import { useState, useCallback, lazy, Suspense } from 'react'
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -47,6 +47,12 @@ function AppContent() {
   const location = useLocation()
   const { session, user, role, loading, signOut } = useAuth()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+  useEffect(() => {
+    const openProfile = () => setIsProfileOpen(true)
+    window.addEventListener('open-financial-profile', openProfile)
+    return () => window.removeEventListener('open-financial-profile', openProfile)
+  }, [])
 
   const isAuth = !!session?.user
   const userName = user?.user_metadata?.first_name || ''

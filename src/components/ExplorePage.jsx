@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
@@ -15,6 +15,7 @@ import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
 import CompareBar from './CompareBar'
 import { addToCompare, removeFromCompare, getCompareList } from '../utils/compare'
+import { getFinancialProfile } from '../utils/financialProfile'
 
 
 function SearchIcon() {
@@ -134,7 +135,23 @@ export default function ExplorePage() {
   const cancelledRef = useRef(false)
   const listingRef = useRef(null)
   const searchInputRef = useRef(null)
-  const isAiSearchRef = useRef(false)
+  const [isAiSearch, setIsAiSearch] = useState(false)
+  const [showFinBanner, setShowFinBanner] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    if (localStorage.getItem('vastara_fin_profile_banner_dismissed') === '1') return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { profile } = await getFinancialProfile()
+        if (!cancelled && !profile) setShowFinBanner(true)
+      } catch {
+        /* keep banner hidden on error */
+      }
+    })()
+    return () => { cancelled = true }
+  }, [user])
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 600)
@@ -257,13 +274,13 @@ export default function ExplorePage() {
       if (cancelledRef.current) return
 
       if (!error && results) {
-        isAiSearchRef.current = true
+        setIsAiSearch(true)
         setProperties(results)
         listingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       } else if (error) {
         throw new Error(error.message)
       }
-    } catch (err) {
+    } catch {
       if (cancelledRef.current) return
       try {
         const { data: fallback, error } = await supabase
@@ -273,7 +290,7 @@ export default function ExplorePage() {
           .ilike('title', `%${text.trim()}%`)
           .order('created_at', { ascending: false })
         if (!error && fallback) {
-          isAiSearchRef.current = true
+          setIsAiSearch(true)
           setProperties(fallback)
         }
       } catch { /* silent */ }
@@ -288,7 +305,7 @@ export default function ExplorePage() {
   }
 
   function resetAllSearch() {
-    isAiSearchRef.current = false
+    setIsAiSearch(false)
     setSearchText('')
     setFilterType('')
     setFilterPrice('')
@@ -317,12 +334,13 @@ export default function ExplorePage() {
     return { total, cities, types }
   }, [properties])
 
+  const newWeekCutoff = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000)[0]
+
   const sorted = [...properties].filter((p) => {
     if (searchCategory === 'dijual' && p.category !== 'Dijual') return false
     if (searchCategory === 'disewa' && p.category !== 'Disewa') return false
     if (searchCategory === 'baru') {
-      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-      if (new Date(p.created_at).getTime() <= weekAgo) return false
+      if (new Date(p.created_at).getTime() <= newWeekCutoff) return false
     }
 
     if (searchText.trim()) {
@@ -356,25 +374,28 @@ export default function ExplorePage() {
     return 0
   })
 
-  const isSearching = hasActiveSearch || isAiSearchRef.current
+  const isSearching = hasActiveSearch || isAiSearch
   const isSearchEmpty = isSearching && sorted.length === 0
   const showSkeleton = loadingProperties && !isSearching
-  const displayRecommendations = sorted.length > 0 ? sorted.slice(0, 4) : (isSearching ? [] : DUMMY_PROPERTIES.slice(0, 4))
-  const displayListings = sorted.length > 0 ? sorted : (isSearching ? [] : DUMMY_PROPERTIES)
+  const displayRecommendations = useMemo(
+    () => (sorted.length > 0 ? sorted.slice(0, 4) : (isSearching ? [] : DUMMY_PROPERTIES.slice(0, 4))),
+    [sorted, isSearching]
+  )
+  const displayListings = useMemo(
+    () => (sorted.length > 0 ? sorted : (isSearching ? [] : DUMMY_PROPERTIES)),
+    [sorted, isSearching]
+  )
 
-  const translationRef = useRef({})
+  const [translations, setTranslations] = useState({})
   const lang = i18n.language
 
   useEffect(() => {
-    if (lang !== 'en') {
-      translationRef.current = {}
-      return
-    }
+    if (lang !== 'en') return
     const allProps = [...new Map([...displayListings, ...displayRecommendations].map((p) => [p.id, p])).values()]
     const controller = new AbortController()
     batchTranslate(allProps, controller.signal)
       .then((result) => {
-        if (result) translationRef.current = { ...translationRef.current, ...result }
+        if (result) setTranslations(prev => ({ ...prev, [lang]: { ...(prev[lang] || {}), ...result } }))
       })
       .catch(() => {})
     return () => controller.abort()
@@ -382,8 +403,8 @@ export default function ExplorePage() {
 
   const getTranslated = useCallback((prop, field, fallback) => {
     if (lang !== 'en') return fallback
-    return translationRef.current[prop.id]?.[field] ?? fallback
-  }, [lang])
+    return translations[lang]?.[prop.id]?.[field] ?? fallback
+  }, [lang, translations])
 
   return (
     <div className="min-h-screen bg-brand-bg">
@@ -694,6 +715,43 @@ export default function ExplorePage() {
           ))}
         </div>
       </section>
+
+      {showFinBanner && user && (
+        <div className="max-w-7xl mx-auto px-4 mb-8">
+          <div className="relative flex items-center gap-3 sm:gap-4 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl px-4 sm:px-6 py-4 shadow-lg shadow-emerald-600/15 overflow-hidden">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Wallet size={20} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-sm sm:text-base leading-tight">
+                Simulasi &amp; rekomendasi AI jadi lebih akurat, {firstName || 'kamu'}
+              </p>
+              <p className="text-emerald-50/85 text-xs sm:text-sm mt-0.5 truncate">
+                Isi profil keuangan — cek kemampuan cicilan KPR sesuai budget kamu.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/kpr')}
+              className="hidden sm:inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-emerald-700 text-sm font-bold hover:bg-emerald-50 transition-colors"
+            >
+              Isi profil keuangan
+              <ArrowLeftRight size={14} className="rotate-90" />
+            </button>
+            <button
+              type="button"
+              aria-label="Tutup pengingat"
+              onClick={() => {
+                localStorage.setItem('vastara_fin_profile_banner_dismissed', '1')
+                setShowFinBanner(false)
+              }}
+              className="shrink-0 w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+            >
+              <X size={14} className="text-white" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ─── FULL PROPERTY LISTING ─── */}
       <motion.section

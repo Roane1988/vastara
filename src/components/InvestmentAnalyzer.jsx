@@ -17,6 +17,7 @@ import {
   ArrowUpRight,
   Shield,
   Database,
+  User,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { formatCurrency } from '../utils/format'
@@ -260,7 +261,7 @@ export default function InvestmentAnalyzer({ property }) {
 
       const parsed = JSON.parse(cleanJson(rawContent))
       if (cancelledRef.current) return
-      setAnalysis(parsed)
+      setAnalysis({ ...parsed, personalized: !!profile })
       cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     } catch (err) {
       if (!cancelledRef.current) {
@@ -457,9 +458,27 @@ export default function InvestmentAnalyzer({ property }) {
             className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-emerald-50 via-teal-50/60 to-white border border-emerald-100"
           >
             <Sparkles size={72} className="absolute -top-4 -right-4 text-emerald-100" />
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Sparkles size={13} className="text-emerald-600" />
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Kesimpulan Analis</p>
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={13} className="text-emerald-600" />
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Kesimpulan Analis</p>
+              </div>
+              {analysis.personalized ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600/10 text-emerald-700 border border-emerald-600/20 text-[10px] font-bold whitespace-nowrap">
+                  <User size={10} />
+                  Dipersonalisasi
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-financial-profile'))}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/70 text-brand-muted border border-brand-border text-[10px] font-semibold hover:border-emerald-300 hover:text-emerald-700 transition-colors whitespace-nowrap"
+                  title="Analisis ini belum memakai profil keuangan kamu"
+                >
+                  <User size={10} />
+                  Analisis generik
+                </button>
+              )}
             </div>
             <p className="text-sm text-emerald-900 leading-relaxed relative">{analysis.verdict || '-'}</p>
           </motion.div>
