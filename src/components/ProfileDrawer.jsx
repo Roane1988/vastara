@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -70,7 +70,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const [currentEmail, setCurrentEmail] = useState('')
   const [savedProperties, setSavedProperties] = useState([])
   const [role, setRole] = useState('')
-  const [baseline, setBaseline] = useState({ name: userName || '', email: '', whatsapp: '' })
+  const [dirty, setDirty] = useState(false)
 
   const [pwCurrent, setPwCurrent] = useState('')
   const [pwNew, setPwNew] = useState('')
@@ -146,7 +146,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           setEmail(loadedEmail)
           setWhatsapp(loadedWhatsapp)
           setCurrentEmail(loadedEmail)
-          setBaseline({ name: loadedName, email: loadedEmail, whatsapp: loadedWhatsapp })
+          setDirty(false)
         }
       } catch {
         if (!cancelled) notify('Gagal memuat profil. Coba lagi.', 'error')
@@ -168,16 +168,11 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const emailInvalid = email.trim() !== '' && !EMAIL_RE.test(email.trim())
   const isSaveDisabled = saving || !name.trim() || !email.trim() || emailInvalid || (isEmailChanged && !currentPassword.trim())
 
-  const dirty = useMemo(() => (
-    name.trim() !== baseline.name || email.trim() !== baseline.email || whatsapp.trim() !== baseline.whatsapp
-  ), [name, email, whatsapp, baseline])
-
   const requestClose = useCallback(() => {
     if (dirty && !window.confirm(t('profileDrawer.unsaved_warning'))) return false
     onClose()
     return true
   }, [dirty, onClose, t])
-
   const handleNavigate = (path) => {
     if (!requestClose()) return
     navigate(path)
@@ -240,7 +235,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
       setCurrentPassword('')
       setCurrentEmail(email.trim())
-      setBaseline({ name: name.trim(), email: email.trim(), whatsapp })
+      setDirty(false)
       notify(t('profileDrawer.save_success'), 'success')
     } catch (err) {
       notify(err.message || 'Terjadi kesalahan saat menyimpan profil', 'error')
@@ -349,7 +344,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); setDirty(true) }}
                 placeholder={t('profileDrawer.name_placeholder')}
                 autoComplete="name"
                 className={inputClass}
@@ -360,7 +355,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setDirty(true) }}
                 placeholder={t('profileDrawer.email_placeholder')}
                 autoComplete="email"
                 className={inputClass}
@@ -377,7 +372,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
               <input
                 type="tel"
                 value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
+                onChange={(e) => { setWhatsapp(e.target.value); setDirty(true) }}
                 placeholder={t('profileDrawer.whatsapp_placeholder')}
                 autoComplete="tel"
                 className={inputClass}
