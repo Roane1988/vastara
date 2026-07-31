@@ -70,7 +70,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const [currentEmail, setCurrentEmail] = useState('')
   const [savedProperties, setSavedProperties] = useState([])
   const [role, setRole] = useState('')
-  const [baseline, setBaseline] = useState({ name: '', email: '', whatsapp: '' })
+  const [baseline, setBaseline] = useState({ name: userName || '', email: '', whatsapp: '' })
 
   const [pwCurrent, setPwCurrent] = useState('')
   const [pwNew, setPwNew] = useState('')
