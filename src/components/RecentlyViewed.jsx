@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Clock } from 'lucide-react'
 import { getRecentlyViewed } from '../utils/recentlyViewed'
 import { formatPrice } from '../utils/format'
-import { getImageSrc } from '../utils/images'
+import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 
 export default function RecentlyViewed() {
   const [items, setItems] = useState([])
@@ -29,7 +29,7 @@ export default function RecentlyViewed() {
           >
             <div className="h-20 bg-gray-100">
               {p.image_url ? (
-                <img src={getImageSrc(p.image_url)} alt={p.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80' }} />
+                <img src={getImageSrc(p.image_url)} alt={p.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.target.src = FALLBACK_IMAGE }} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-brand-muted/40 text-xs">
                   No Image

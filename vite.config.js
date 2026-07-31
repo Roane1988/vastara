@@ -268,5 +268,18 @@ export default defineConfig(({ mode }) => {
         },
       },
     ],
+    build: {
+      rolldownOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/react-router')) return 'vendor-react'
+            if (id.includes('node_modules/react-dom')) return 'vendor-react'
+            if (id.includes('node_modules/react/')) return 'vendor-react'
+            if (id.includes('node_modules/@supabase')) return 'vendor-supabase'
+            if (id.includes('node_modules/i18next')) return 'vendor-i18n'
+          },
+        },
+      },
+    },
   }
 })

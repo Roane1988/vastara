@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
-import { getImageSrc } from '../utils/images'
+import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { formatPrice } from '../utils/format'
 
 function XIcon() {
@@ -137,7 +137,7 @@ function SavedDrawer({ onBack }) {
               >
                 <div className="w-14 h-14 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
                   {p.image_url ? (
-                    <img src={getImageSrc(p.image_url)} alt="" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80' }} className="w-full h-full object-cover" />
+                    <img src={getImageSrc(p.image_url)} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
                   )}
