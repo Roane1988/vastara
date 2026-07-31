@@ -18,12 +18,37 @@ import {
   Shield,
   Database,
   User,
+  Check,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { formatCurrency } from '../utils/format'
-import { getFinancialProfile } from '../utils/financialProfile'
+import { getFinancialProfile, computeAffordability, maxAffordablePrice } from '../utils/financialProfile'
 
 const ALLOWED_MODEL = 'llama-3.3-70b-versatile'
+
+const HORIZON_OPTIONS = [5, 10, 15]
+const INTENT_OPTIONS = [
+  { value: 'rent', label: 'Disewakan' },
+  { value: 'resale', label: 'Jual kembali' },
+  { value: 'occupy', label: 'Ditempati' },
+]
+const INTENT_LABELS = INTENT_OPTIONS.reduce((acc, o) => { acc[o.value] = o.label; return acc }, {})
+const BUYING_POWER_ASSUMPTION = { interestRate: 5.5, tenorYears: 15, dpPercentage: 20 }
+const SCORE_META = { emerald: '#10b981', amber: '#f59e0b', rose: '#ef4444' }
+
+function scoreColor(score) {
+  if (score == null) return SCORE_META.emerald
+  if (score >= 75) return SCORE_META.emerald
+  if (score >= 50) return SCORE_META.amber
+  return SCORE_META.rose
+}
+
+const SCORE_LABELS = [
+  { key: 'affordability', label: 'Harga terjangkau' },
+  { key: 'yield', label: 'Cocok target yield' },
+  { key: 'appreciation', label: 'Potensi apresiasi' },
+  { key: 'risk', label: 'Risiko terkendali' },
+]
 
 function cleanJson(raw) {
   return raw.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
@@ -173,12 +198,41 @@ export default function InvestmentAnalyzer({ property }) {
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [targetYield, setTargetYield] = useState(6)
+  const [horizonYears, setHorizonYears] = useState(10)
+  const [intent, setIntent] = useState('rent')
+  const [affordability, setAffordability] = useState(null)
   const cancelledRef = useRef(false)
   const cardRef = useRef(null)
 
   useEffect(() => {
     return () => { cancelledRef.current = true }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    getFinancialProfile()
+      .then(({ profile }) => {
+        if (!cancelled) setAffordability(computeAffordability(profile))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  const buyingPower = useMemo(() => {
+    if (!affordability?.maxInstallment) return null
+    return maxAffordablePrice(
+      affordability.maxInstallment,
+      BUYING_POWER_ASSUMPTION.interestRate,
+      BUYING_POWER_ASSUMPTION.tenorYears,
+      BUYING_POWER_ASSUMPTION.dpPercentage
+    )
+  }, [affordability])
+
+  const buyingPowerPct = useMemo(() => {
+    if (!buyingPower || buyingPower <= 0 || !property?.price) return null
+    return Math.min(100, Math.round((property.price / buyingPower) * 100))
+  }, [buyingPower, property])
 
   const avgYield = useMemo(() => extractYieldValue(analysis?.estimatedRentalYield), [analysis])
   const scoreMeta = useMemo(() => getScoreMeta(avgYield), [avgYield])
@@ -236,6 +290,11 @@ export default function InvestmentAnalyzer({ property }) {
               purchaseGoal: profile.purchase_goal || '',
             }
           : null,
+        investmentGoals: {
+          targetYield,
+          horizonYears,
+          intent,
+        },
       }
 
       const res = await fetch('/api/groq', {
@@ -299,6 +358,75 @@ export default function InvestmentAnalyzer({ property }) {
             <RefreshCw size={16} />
           </button>
         )}
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-brand-border bg-white p-4">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <p className="text-xs font-bold text-brand-text">Preferensi Analisis</p>
+          <p className="text-[10px] text-brand-muted">Hasil dinilai terhadap preferensi ini</p>
+        </div>
+
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] font-semibold text-brand-muted">Target rendemen sewa</p>
+            <span className="text-xs font-bold text-emerald-600">{targetYield}%</span>
+          </div>
+          <input
+            type="range"
+            min="3"
+            max="12"
+            step="0.5"
+            value={targetYield}
+            onChange={(e) => setTargetYield(Number(e.target.value))}
+            className="w-full h-2 rounded-full appearance-none cursor-pointer bg-brand-border accent-emerald-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-600 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-emerald-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-brand-muted mt-1">
+            <span>3%</span>
+            <span>12%</span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-x-6 gap-y-3">
+          <div>
+            <p className="text-[11px] font-semibold text-brand-muted mb-1.5">Horizon</p>
+            <div className="flex gap-1.5">
+              {HORIZON_OPTIONS.map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  onClick={() => setHorizonYears(y)}
+                  className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all ${
+                    horizonYears === y
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-700 ring-2 ring-emerald-500/20'
+                      : 'bg-brand-bg border-brand-border text-brand-muted hover:border-emerald-300 hover:text-brand-text'
+                  }`}
+                >
+                  {y} thn
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-semibold text-brand-muted mb-1.5">Rencana</p>
+            <div className="flex gap-1.5">
+              {INTENT_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setIntent(o.value)}
+                  className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all ${
+                    intent === o.value
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-700 ring-2 ring-emerald-500/20'
+                      : 'bg-brand-bg border-brand-border text-brand-muted hover:border-emerald-300 hover:text-brand-text'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -412,6 +540,38 @@ export default function InvestmentAnalyzer({ property }) {
             </div>
           </motion.div>
 
+          {buyingPower != null && property?.price > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.12 }}
+            >
+              <SectionLabel icon={<Wallet size={13} />}>Daya Beli Kamu</SectionLabel>
+              <div className="rounded-2xl bg-white border border-brand-border p-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
+                  <p className="text-sm font-bold text-brand-text">Harga properti ini</p>
+                  <p className="text-sm font-extrabold text-brand-text">{formatCurrency(property.price)}</p>
+                </div>
+                <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
+                  <p className="text-[11px] text-brand-muted">Estimasi daya beli (KPR {BUYING_POWER_ASSUMPTION.tenorYears} thn · {BUYING_POWER_ASSUMPTION.interestRate}% · DP {BUYING_POWER_ASSUMPTION.dpPercentage}%)</p>
+                  <p className={`text-[11px] font-bold ${buyingPowerPct > 100 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(buyingPower)}</p>
+                </div>
+                <div className="h-2 rounded-full bg-brand-bg overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${buyingPowerPct > 100 ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                    style={{ width: `${Math.min(buyingPowerPct, 100)}%` }}
+                  />
+                </div>
+                <p className={`text-[11px] mt-2 flex items-center gap-1 ${buyingPowerPct > 100 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                  {buyingPowerPct > 100 ? <AlertTriangle size={11} /> : <Check size={11} />}
+                  {buyingPowerPct > 100
+                    ? `Properti ini di sekitar ${buyingPowerPct}% dari daya beli kamu — cicilan akan melebihi batas ideal.`
+                    : `Masih dalam jangkauan daya beli kamu (${buyingPowerPct}% dari batas maksimum).`}
+                </p>
+              </div>
+            </motion.div>
+          )}
+
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -450,6 +610,48 @@ export default function InvestmentAnalyzer({ property }) {
               />
             </div>
           </motion.div>
+
+          {analysis.goalFitScores?.overall != null && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.12 }}
+            >
+              <SectionLabel icon={<Target size={13} />}>Kecocokan dengan Preferensi Kamu</SectionLabel>
+              <div className="rounded-2xl bg-white border border-brand-border p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-bold text-brand-text">Skor keseluruhan</p>
+                  <span className="text-lg font-extrabold" style={{ color: scoreColor(analysis.goalFitScores.overall) }}>
+                    {analysis.goalFitScores.overall}/100
+                  </span>
+                </div>
+                <div className="space-y-2.5">
+                  {SCORE_LABELS.map(({ key, label }) => {
+                    const val = analysis.goalFitScores[key]
+                    if (val == null) return null
+                    return (
+                      <div key={key}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] text-brand-muted">{label}</span>
+                          <span className="text-[11px] font-bold text-brand-text">{val}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${val}%`, backgroundColor: scoreColor(val) }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-[10px] text-brand-muted/70 mt-3 flex items-start gap-1">
+                  <Info size={11} className="shrink-0 mt-0.5" />
+                  Dinilai terhadap: target yield {targetYield}% · horizon {horizonYears} thn · {INTENT_LABELS[intent]}
+                </p>
+              </div>
+            </motion.div>
+          )}
 
           <motion.div
             initial={{ opacity: 0, y: 10 }}
