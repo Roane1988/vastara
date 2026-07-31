@@ -1,43 +1,13 @@
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { ArrowUp, Send, ShieldCheck, BadgeCheck, Headset, Apple, Play, MessageCircle, Mail, Bot, Loader2, CheckCircle2 } from 'lucide-react'
+import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
 
-const navGroups = [
-  {
-    title: 'Jelajahi',
-    links: [
-      { label: 'Beli Rumah', to: '/explore' },
-      { label: 'Jual Rumah', to: '/sell' },
-      { label: 'Properti Baru', to: '/explore' },
-      { label: 'Cari Agen', to: '/coming-soon' },
-    ],
-  },
-  {
-    title: 'Perusahaan',
-    links: [
-      { label: 'Tentang Kami', to: '/coming-soon' },
-      { label: 'Blog', to: '/coming-soon' },
-      { label: 'Karier', to: '/coming-soon' },
-      { label: 'Hubungi Kami', to: '/coming-soon' },
-    ],
-  },
-  {
-    title: 'Bantuan',
-    links: [
-      { label: 'FAQ', to: '/coming-soon' },
-      { label: 'Pusat Bantuan', to: '/coming-soon' },
-      { label: 'Lapor Masalah', to: '/coming-soon' },
-      { label: 'Hubungi Kami', to: '/coming-soon' },
-    ],
-  },
-  {
-    title: 'Legal',
-    links: [
-      { label: 'Kebijakan Privasi', to: '/coming-soon' },
-      { label: 'Syarat Penggunaan', to: '/coming-soon' },
-      { label: 'Cookie Policy', to: '/coming-soon' },
-      { label: 'Disclaimer', to: '/coming-soon' },
-    ],
-  },
-]
+const WA_NUMBER = '6281234567890'
+const CONTACT_EMAIL = 'halo@hunione.com'
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const socialLinks = [
   {
@@ -45,7 +15,7 @@ const socialLinks = [
     href: 'https://www.instagram.com/myhunione/?utm_source=ig_web_button_share_sheet',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 016.38 2.525c.636-.247 1.363-.416 2.427-.465C8.76 2.013 9.095 2 12.315 2zm0 1.802c-2.41 0-2.695.013-3.707.06-.908.044-1.393.195-1.723.322a2.877 2.877 0 00-1.067.694 2.877 2.877 0 00-.694 1.067c-.127.33-.278.815-.322 1.722-.047 1.013-.06 1.297-.06 3.708v.63c0 2.41.013 2.695.06 3.707.044.908.195 1.393.322 1.723.173.43.398.81.694 1.067a2.877 2.877 0 001.067.694c.33.127.815.278 1.722.322 1.013.047 1.297.06 3.708.06h.63c2.41 0 2.695-.013 3.707-.06.908-.044 1.393-.195 1.723-.322a2.877 2.877 0 001.067-.694 2.877 2.877 0 00.694-1.067c.127-.33.278-.815.322-1.722.047-1.013.06-1.297.06-3.708v-.63c0-2.41-.013-2.695-.06-3.707-.044-.908-.195-1.393-.322-1.723a2.877 2.877 0 00-.694-1.067 2.877 2.877 0 00-1.067-.694c-.33-.127-.815-.278-1.722-.322-1.013-.047-1.297-.06-3.707-.06h-.63zm0 1.216c1.573 0 1.954.013 2.642.047.987.045 1.51.203 1.86.341.466.186.801.41 1.154.763.353.353.577.688.763 1.154.138.35.296.873.341 1.86.034.688.047 1.07.047 2.642s-.013 1.954-.047 2.642c-.045.987-.203 1.51-.341 1.86-.186.466-.41.801-.763 1.154-.353.353-.688.577-1.154.763-.35.138-.873.296-1.86.341-.663.031-1.018.042-2.642.042s-1.979-.01-2.642-.042c-.987-.045-1.51-.203-1.86-.341a2.898 2.898 0 01-1.154-.763 2.898 2.898 0 01-.763-1.154c-.138-.35-.296-.873-.341-1.86-.031-.663-.042-1.018-.042-2.642s.01-1.979.042-2.642c.045-.987.203-1.51.341-1.86.186-.466.41-.801.763-1.154a2.898 2.898 0 011.154-.763c.35-.138.873-.296 1.86-.341.688-.034 1.07-.047 2.642-.047z" />
+        <path d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 016.38 2.525c.636-.247 1.363-.416 2.427-.465C8.76 2.013 9.095 2 12.315 2zm0 1.802c-2.41 0-2.695.013-3.707.06-.908.044-1.393.195-1.723.322a2.877 2.877 0 00-1.067.694 2.877 2.877 0 00-.694 1.067c-.127.33-.278.815-.322 1.722-.047 1.013-.06 1.297-.06 3.708v.63c0 2.41.013 2.695.06 3.707.044.908.195 1.393.322 1.723.173.43.398.81.694 1.067a2.877 2.877 0 001.067.694c.33.127.815.278 1.722.322 1.013.047 1.297.06 3.708.06h.63c2.41 0 2.695-.013 3.707-.06.908-.044 1.393-.195 1.723-.322a2.877 2.877 0 001.067-.694 2.877 2.877 0 00.694-1.067c.127-.33.278-.815.322-1.722.047-1.013.06-1.297.06-3.708v-.63c0-2.41-.013-2.695-.06-3.707-.044-.908-.195-1.393-.322-1.723a2.877 2.877 0 00-.694-1.067 2.877 2.877 0 00-1.067-.694c-.33-.127-.815-.278-1.722-.322-1.013-.047-1.297-.06-3.707-.06h-.63zm0 1.216c1.573 0 1.954.013 2.642.047.987.045 1.51.203 1.86.341.466.186.801.41 1.154.763.353.353.577.688.763 1.154.138.35.296.873.341 1.86.034.688.047 1.07.047 2.642s-.013 1.954-.047 2.642c-.045.987-.203 1.51-.341 1.86-.186.466-.41.801-.763 1.154-.353.353-.688.577-1.154.763-.35.138-.873.296-1.86.341-.663.031-1.018.042-2.642.042s-1.979-.01-2.642-.042c-.987-.045-1.51-.203-1.86-.341a2.898 2.898 0 01-1.154-.763 2.898 2.898 0 01-.763-1.154c-.138-.35-.296-.873-.341-1.86-.031-.663-.042-1.018-.042-2.642s.01-1.979.042-2.642c.045-.987.203-1.51.341-1.86.186-.466.41-.801.763-1.154.353-.353.688-.577 1.154-.763.35-.138.873-.296 1.86-.341.663-.031 1.018-.042 2.642-.042s1.979.01 2.642.042c.987.045 1.51.203 1.86.341a2.898 2.898 0 011.154.763c.353.353.577.688.763 1.154.138.35.296.873.341 1.86.031.663.042 1.018.042 2.642s-.01 1.979-.042 2.642c-.045.987-.203 1.51-.341 1.86-.186.466-.41.801-.763 1.154-.353.353-.688.577-1.154.763-.35.138-.873.296-1.86.341-.663.031-1.018.042-2.642.042z" />
       </svg>
     ),
   },
@@ -79,18 +49,169 @@ const socialLinks = [
 ]
 
 export default function Footer() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { showToast } = useAuth()
+
+  const [email, setEmail] = useState('')
+  const [subscribing, setSubscribing] = useState(false)
+  const [subscribed, setSubscribed] = useState(false)
+  const [showScroll, setShowScroll] = useState(false)
+  const [stats, setStats] = useState({ properties: null, users: null, posts: null })
+
+  useEffect(() => {
+    const onScroll = () => setShowScroll(window.scrollY > 400)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchStats = async () => {
+      try {
+        const [prop, users, posts] = await Promise.all([
+          supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('forum_posts').select('*', { count: 'exact', head: true }),
+        ])
+        if (!cancelled) setStats({ properties: prop.count, users: users.count, posts: posts.count })
+      } catch {
+        if (!cancelled) setStats({ properties: 0, users: 0, posts: 0 })
+      }
+    }
+    fetchStats()
+    return () => { cancelled = true }
+  }, [])
+
+  const handleSubscribe = (e) => {
+    e.preventDefault()
+    if (subscribed) return
+    if (!email.trim() || !EMAIL_RE.test(email.trim())) {
+      showToast(t('footer.newsletter_required'), 'error')
+      return
+    }
+    setSubscribing(true)
+    window.setTimeout(() => {
+      setSubscribing(false)
+      setSubscribed(true)
+      setEmail('')
+      showToast(t('footer.newsletter_success'), 'success')
+    }, 700)
+  }
+
+  const openHuniBot = (question) => {
+    window.dispatchEvent(new CustomEvent('open-hunibot-question', { detail: { question } }))
+  }
+
+  const openHuniBotGeneric = () => {
+    window.dispatchEvent(new Event('open-hunibot'))
+  }
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const formatStat = (n) => (n == null ? '–' : n.toLocaleString('id-ID'))
+
+  const navGroups = [
+    {
+      title: t('footer.group_explore'),
+      links: [
+        { label: t('footer.link_buy_house'), to: '/explore' },
+        { label: t('footer.link_rent_property'), to: '/explore' },
+        { label: t('footer.link_compare'), to: '/compare' },
+        { label: t('footer.link_forum'), to: '/forum' },
+      ],
+    },
+    {
+      title: t('footer.group_sell'),
+      links: [
+        { label: t('footer.link_sell_house'), to: '/sell-role' },
+        { label: t('footer.link_my_listings'), to: '/my-listings' },
+        { label: t('footer.link_kpr'), to: '/kpr' },
+      ],
+    },
+    {
+      title: t('footer.group_help'),
+      links: [
+        { label: t('footer.link_support'), to: '/forum' },
+        { label: t('footer.link_faq'), to: '/forum' },
+        { label: t('footer.link_report_issue'), action: () => openHuniBot(t('footer.report_question')) },
+      ],
+    },
+  ]
+
+  const trustItems = [
+    { icon: ShieldCheck, label: t('footer.trust_secure') },
+    { icon: BadgeCheck, label: t('footer.trust_verified') },
+    { icon: Headset, label: t('footer.trust_support') },
+  ]
+
+  const waHref = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(t('footer.wa_message'))}`
+
   return (
     <footer className="bg-brand-primary">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:pt-16 lg:pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 lg:pt-16 pb-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-1">
             <Link to="/" className="inline-block">
               <img src="/huniOne.svg" alt="HuniOne" className="h-20 md:h-24 w-auto object-contain" />
             </Link>
             <p className="mt-4 text-slate-400 text-sm leading-relaxed">
-              Hunione adalah platform digital yang membantu masyarakat membeli dan menjual rumah dengan lebih mudah, aman, dan terpercaya.
+              {t('footer.desc')}
             </p>
+
+            <div className="mt-6">
+              {subscribed ? (
+                <div className="flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2.5">
+                  <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                  <p className="text-xs text-emerald-300">{t('footer.newsletter_done')}</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSubscribe}>
+                  <label className="block text-white text-xs font-semibold uppercase tracking-wider mb-2">
+                    {t('footer.newsletter_title')}
+                  </label>
+                  <p className="text-slate-400 text-xs leading-relaxed mb-2.5">
+                    {t('footer.newsletter_desc')}
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={t('footer.newsletter_placeholder')}
+                      className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-white/10 border border-white/15 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent/50 focus:border-brand-accent transition-all"
+                    />
+                    <button
+                      type="submit"
+                      disabled={subscribing}
+                      className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-brand-accent text-white text-sm font-semibold hover:bg-brand-accent/90 active:scale-[0.97] transition-all disabled:opacity-60"
+                    >
+                      {subscribing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                      <span className="hidden sm:inline">{t('footer.newsletter_button')}</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            <div className="mt-6 grid grid-cols-3 gap-2">
+              <div className="rounded-xl bg-white/5 border border-white/10 p-2.5 text-center">
+                <p className="text-white text-sm font-bold">{formatStat(stats.properties)}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{t('footer.stat_property')}</p>
+              </div>
+              <div className="rounded-xl bg-white/5 border border-white/10 p-2.5 text-center">
+                <p className="text-white text-sm font-bold">{formatStat(stats.users)}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{t('footer.stat_user')}</p>
+              </div>
+              <div className="rounded-xl bg-white/5 border border-white/10 p-2.5 text-center">
+                <p className="text-white text-sm font-bold">{formatStat(stats.posts)}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{t('footer.stat_forum')}</p>
+              </div>
+            </div>
           </div>
+
           {navGroups.map((group) => (
             <div key={group.title}>
               <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">
@@ -99,23 +220,100 @@ export default function Footer() {
               <ul className="space-y-3">
                 {group.links.map((item) => (
                   <li key={item.label}>
-                    <Link
-                      to={item.to}
-                      className="text-slate-400 hover:text-white transition-colors duration-200 text-sm"
-                    >
-                      {item.label}
-                    </Link>
+                    {item.to ? (
+                      <Link
+                        to={item.to}
+                        className="text-slate-400 hover:text-white transition-colors duration-200 text-sm"
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={item.action}
+                        className="text-slate-400 hover:text-white transition-colors duration-200 text-sm text-left"
+                      >
+                        {item.label}
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
             </div>
           ))}
+
+          <div>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">
+              {t('footer.group_contact')}
+            </h3>
+            <div className="space-y-3">
+              <a
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 active:scale-[0.97] transition-all"
+              >
+                <MessageCircle size={15} />
+                {t('footer.wa_button')}
+              </a>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors duration-200 text-sm"
+              >
+                <Mail size={15} className="shrink-0" />
+                {CONTACT_EMAIL}
+              </a>
+              <button
+                type="button"
+                onClick={openHuniBotGeneric}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white text-sm font-semibold hover:bg-white/15 active:scale-[0.97] transition-all"
+              >
+                <Bot size={15} />
+                {t('footer.link_ask_hunibot')}
+              </button>
+              <p className="text-slate-500 text-xs leading-relaxed pt-1">
+                {t('footer.contact_note')}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="mt-12 pt-8 border-t border-slate-700/50">
+
+        <div className="mt-12 rounded-2xl bg-white/5 border border-white/10 p-5 sm:p-6">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-8">
+              {trustItems.map((item) => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <item.icon size={17} className="text-brand-accent" />
+                  <span className="text-slate-300 text-xs sm:text-sm font-medium">{item.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/coming-soon')}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs font-semibold hover:bg-black/50 active:scale-[0.97] transition-all"
+              >
+                <Apple size={16} />
+                {t('footer.app_ios')}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/coming-soon')}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs font-semibold hover:bg-black/50 active:scale-[0.97] transition-all"
+              >
+                <Play size={16} />
+                {t('footer.app_android')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-slate-700/50">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div>
               <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-3">
-                Follow Us
+                {t('footer.follow_us')}
               </p>
               <div className="flex items-center gap-4">
                 {socialLinks.map((social) => (
@@ -124,7 +322,7 @@ export default function Footer() {
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-slate-500 hover:text-white transition-colors duration-200"
+                    className="text-slate-500 hover:text-white transition-colors duration-200 hover:scale-110 active:scale-95"
                     aria-label={social.label}
                   >
                     {social.icon}
@@ -138,6 +336,17 @@ export default function Footer() {
           </div>
         </div>
       </div>
+
+      {showScroll && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label={t('footer.scroll_top')}
+          className="fixed bottom-6 left-6 z-50 w-11 h-11 rounded-full bg-brand-accent text-white shadow-lg hover:bg-brand-accent/90 active:scale-95 transition-all flex items-center justify-center"
+        >
+          <ArrowUp size={20} />
+        </button>
+      )}
     </footer>
   )
 }
