@@ -1,8 +1,32 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
-const cache = new Map()
+const STORAGE_KEY = 'vastara_translation_cache_v1'
+const MAX_CACHE_ENTRIES = 300
+
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return new Map()
+    return new Map(Object.entries(JSON.parse(raw)))
+  } catch {
+    return new Map()
+  }
+}
+
+const cache = loadCache()
 const inflight = new Map()
+
+function persistCache() {
+  try {
+    if (cache.size > MAX_CACHE_ENTRIES) {
+      const entries = [...cache.entries()]
+      cache.clear()
+      for (const [k, v] of entries.slice(-MAX_CACHE_ENTRIES)) cache.set(k, v)
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(cache)))
+  } catch { /* storage penuh / tidak tersedia — abaikan */ }
+}
 
 function normalizeKey(obj) {
   return Object.keys(obj).sort().map((k) => `${k}:${String(obj[k]).slice(0, 80)}`).join('|')
@@ -18,7 +42,7 @@ async function fetchTranslation(texts, signal) {
     signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-20b',
       purpose: 'translation',
       messages: [
         { role: 'user', content: JSON.stringify(texts) },
@@ -44,6 +68,7 @@ function getFromCache(propertyId, fields) {
 function setCache(propertyId, fields, result) {
   const key = cacheKey(propertyId, fields)
   cache.set(key, result)
+  persistCache()
 }
 
 function batchNeeded(properties) {

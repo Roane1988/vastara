@@ -1,6 +1,12 @@
 import { LRUCache } from 'lru-cache'
 
-const ALLOWED_MODEL = 'llama-3.3-70b-versatile'
+const MODELS = {
+  chat: 'openai/gpt-oss-120b',
+  translation: 'openai/gpt-oss-20b',
+  smart_search: 'openai/gpt-oss-20b',
+  investment: 'openai/gpt-oss-120b',
+}
+const ALLOWED_MODELS = new Set(Object.values(MODELS))
 const RATE_LIMIT_MAX = 20
 const RATE_LIMIT_WINDOW_MS = 60_000
 const MAX_MESSAGES = 20
@@ -137,7 +143,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: { message: 'Format permintaan tidak valid.' } })
   }
 
-  if (req.body.model !== ALLOWED_MODEL) {
+  if (!ALLOWED_MODELS.has(req.body.model)) {
     return res.status(403).json({ error: { message: 'Model tidak diizinkan.' } })
   }
 
@@ -168,6 +174,7 @@ export default async function handler(req, res) {
   let clientMessages
   if (purpose === 'investment') {
     const p = req.body.property
+    const description = String(p.description || '').slice(0, 300)
     const lines = [
       `Title: ${p.title || '-'}`,
       `Price: Rp ${(p.price || 0).toLocaleString('id-ID')}`,
@@ -181,13 +188,13 @@ export default async function handler(req, res) {
       `Area: ${p.area_sqm || '-'} m²`,
       `Certificate: ${p.certificate_status || '-'}`,
       `Listed: ${p.created_at ? String(p.created_at).slice(0, 10) : '-'}`,
-      `Description: ${p.description || '-'}`,
+      `Description: ${description || '-'}`,
     ]
     if (Array.isArray(p.comparables) && p.comparables.length > 0) {
       lines.push('Market comparables:')
-      p.comparables.forEach((c, i) => {
+      p.comparables.slice(0, 5).forEach((c, i) => {
         lines.push(
-          `${i + 1}. ${c.title || '-'} — Rp ${(c.price || 0).toLocaleString('id-ID')}, ${c.category || '-'}, ${c.property_type || '-'}, ${c.city || '-'}, ${c.district || '-'}, ${c.bedrooms || '-'} KT/${c.bathrooms || '-'} KM, ${c.area_sqm || '-'} m², ${c.certificate_status || '-'}`
+          `${i + 1}. ${String(c.title || '-').slice(0, 60)} — Rp ${(c.price || 0).toLocaleString('id-ID')}, ${c.property_type || '-'}, ${c.city || '-'}, ${c.district || '-'}, ${c.bedrooms || '-'} KT/${c.bathrooms || '-'} KM, ${c.area_sqm || '-'} m²`
         )
       })
     }
@@ -209,7 +216,9 @@ export default async function handler(req, res) {
     safeMessages = [systemPrompt, { role: 'user', content: lines.join('\n') }]
     clientMessages = []
   } else {
-    clientMessages = req.body.messages.filter(m => m.role !== 'system')
+    clientMessages = req.body.messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ ...m, content: String(m.content || '').slice(0, 500) }))
     const profileContext = req.body.messages.find(
       m => m.role === 'system' && typeof m.content === 'string' && m.content.startsWith(PROFILE_CONTEXT_PREFIX)
     )
@@ -229,9 +238,9 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: req.body.model,
+        model: MODELS[purpose],
         messages: safeMessages,
-        max_tokens: purpose === 'translation' ? 2048 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 1536 : 1024,
+        max_tokens: purpose === 'translation' ? 1200 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 1200 : 768,
         temperature: purpose === 'translation' ? 0.3 : purpose === 'smart_search' ? 0.1 : purpose === 'investment' ? 0.2 : 0.7,
       }),
     })

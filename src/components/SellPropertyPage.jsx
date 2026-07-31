@@ -305,7 +305,7 @@ export default function SellPropertyPage() {
       const response = await fetch('/api/groq', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', purpose: 'chat', messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({ model: 'openai/gpt-oss-120b', purpose: 'chat', messages: [{ role: 'user', content: prompt }] }),
       })
       const data = await response.json()
       if (!response.ok) {

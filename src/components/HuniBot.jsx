@@ -183,21 +183,23 @@ export default function HuniBot() {
         ? [{ role: 'system', content: `HUNIONE_PROFILE: ${profileContext}` }]
         : []
 
+      const history = messagesRef.current.slice(-10).map(m => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: String(m.text).slice(0, 400),
+      }))
+
       const conversation = [
         SYSTEM_MESSAGE,
         ...profileMessage,
-        ...messagesRef.current.map(m => ({
-          role: m.role === 'user' ? 'user' : 'assistant',
-          content: m.text,
-        })),
-        { role: 'user', content: text },
+        ...history,
+        { role: 'user', content: String(text).slice(0, 400) },
       ]
 
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-120b',
           purpose: 'chat',
           messages: conversation,
         }),

@@ -24,7 +24,7 @@ import { supabase } from '../supabaseClient'
 import { formatCurrency } from '../utils/format'
 import { getFinancialProfile, computeAffordability, maxAffordablePrice } from '../utils/financialProfile'
 
-const ALLOWED_MODEL = 'llama-3.3-70b-versatile'
+const ALLOWED_MODEL = 'openai/gpt-oss-120b'
 
 const HORIZON_OPTIONS = [5, 10, 15]
 const INTENT_OPTIONS = [
@@ -186,7 +186,7 @@ async function fetchComparables(property) {
       .lte('price', property.price * (1 + range))
     if (property.category) query = query.eq('category', property.category)
     if (property.city) query = query.ilike('city', `%${property.city}%`)
-    const { data, error } = await query.limit(8)
+    const { data, error } = await query.limit(5)
     if (error) return []
     return data || []
   } catch {
@@ -279,7 +279,7 @@ export default function InvestmentAnalyzer({ property }) {
           area_sqm: property?.area_sqm || property?.sqm || 0,
           certificate_status: property?.certificate_status || '',
           created_at: property?.created_at || '',
-          description: property?.description_id || property?.description || '',
+          description: (property?.description_id || property?.description || '').slice(0, 300),
           comparables,
         },
         financialProfile: profile
