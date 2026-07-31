@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calculator, MessageCircle, Bot, ChevronDown, Plus } from 'lucide-react'
+import { Calculator, MessageCircle, Bot, ChevronDown, Plus, Wallet, Check, AlertTriangle } from 'lucide-react'
 import { formatCurrency, formatShort } from '../utils/format'
 import useSEO from '../hooks/useSEO'
+import FinancialProfileForm from './FinancialProfileForm'
+import { getFinancialProfile, computeAffordability, maxAffordablePrice } from '../utils/financialProfile'
 
 const TENOR_OPTIONS = [5, 10, 15, 20, 25]
 
@@ -101,6 +103,21 @@ export default function KprCalculatorPage() {
 
   const [showAmortisasi, setShowAmortisasi] = useState(false)
   const [showBiayaLain, setShowBiayaLain] = useState(false)
+
+  const [financialProfile, setFinancialProfile] = useState(null)
+  const affordability = useMemo(() => computeAffordability(financialProfile), [financialProfile])
+  const affordablePrice = useMemo(() => {
+    if (!affordability?.maxInstallment) return 0
+    return maxAffordablePrice(affordability.maxInstallment, interestRate, tenorYears, dpPercentage)
+  }, [affordability, interestRate, tenorYears, dpPercentage])
+
+  useEffect(() => {
+    let cancelled = false
+    getFinancialProfile().then(({ profile }) => {
+      if (!cancelled) setFinancialProfile(profile)
+    })
+    return () => { cancelled = true }
+  }, [])
 
   const handleDpPercentageChange = (value) => {
     const pct = Math.min(100, Math.max(0, Number(value) || 0))
@@ -283,6 +300,8 @@ export default function KprCalculatorPage() {
             </div>
           </div>
 
+          <FinancialProfileForm onSaved={(data) => setFinancialProfile(data)} />
+
           <div className="space-y-6">
             <div className={`rounded-2xl p-6 sm:p-7 text-center border ${
               principal > 0
@@ -367,6 +386,59 @@ export default function KprCalculatorPage() {
                 </div>
               </div>
             </div>
+
+            {affordability && (
+              <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-5 sm:p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <Wallet size={18} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-brand-text leading-tight">Kemampuan Finansial</h3>
+                    <p className="text-[10px] text-brand-muted">Berdasarkan profil keuangan Anda</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-brand-muted">Gaji bersih</span>
+                    <span className="font-semibold text-brand-text">{formatShort(affordability.takeHome)}</span>
+                  </div>
+                  <div className="border-t border-brand-border/50" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-brand-muted">Cicilan berjalan</span>
+                    <span className="font-semibold text-brand-text">{formatShort(affordability.commitments)}</span>
+                  </div>
+                  <div className="border-t border-brand-border/50" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-brand-muted">Batas ideal cicilan (30%)</span>
+                    <span className="font-semibold text-emerald-600">{formatShort(affordability.maxInstallment)}</span>
+                  </div>
+                  <div className="border-t border-brand-border/50" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-brand-muted">Estimasi harga properti terjangkau</span>
+                    <span className="font-bold text-brand-primary">{formatShort(affordablePrice)}</span>
+                  </div>
+                </div>
+
+                <div className={`mt-4 px-4 py-3 rounded-xl text-sm flex items-start gap-2 ${
+                  monthlyInstallment <= affordability.maxInstallment
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                    : 'bg-amber-50 border border-amber-200 text-amber-800'
+                }`}>
+                  {monthlyInstallment <= affordability.maxInstallment ? (
+                    <Check size={16} className="shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                  )}
+                  <span>
+                    {monthlyInstallment <= affordability.maxInstallment
+                      ? `Cicilan simulasi ini ${formatShort(Math.round(monthlyInstallment))}/bln masih dalam batas ideal Anda (${formatShort(affordability.maxInstallment)}/bln).`
+                      : `Cicilan simulasi ini ${formatShort(Math.round(monthlyInstallment))}/bln melebihi batas ideal Anda (${formatShort(affordability.maxInstallment)}/bln). Pertimbangkan menaikkan DP, memperpanjang tenor, atau mencari properti lebih terjangkau.`}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {principal > 0 && (
               <div className="bg-white rounded-2xl shadow-sm border border-brand-border overflow-hidden">

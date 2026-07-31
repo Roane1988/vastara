@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react'
-import { Calculator } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Calculator, Check, AlertTriangle, Wallet, ArrowRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { getFinancialProfile, computeAffordability } from '../utils/financialProfile'
 
 const TENOR_OPTIONS = [5, 10, 15, 20, 25]
 
@@ -14,11 +16,23 @@ function formatCurrency(value) {
 }
 
 export default function KprSimulator({ initialPrice = 900000000 }) {
+  const navigate = useNavigate()
   const [propertyPrice, setPropertyPrice] = useState(initialPrice)
   const [dpPercentage, setDpPercentage] = useState(20)
   const [dpAmountText, setDpAmountText] = useState('')
   const [interestRate, setInterestRate] = useState(5.5)
   const [tenorYears, setTenorYears] = useState(15)
+
+  const [financialProfile, setFinancialProfile] = useState(null)
+  const affordability = useMemo(() => computeAffordability(financialProfile), [financialProfile])
+
+  useEffect(() => {
+    let cancelled = false
+    getFinancialProfile().then(({ profile }) => {
+      if (!cancelled) setFinancialProfile(profile)
+    })
+    return () => { cancelled = true }
+  }, [])
 
   const dpAmount = useMemo(
     () => Math.round(propertyPrice * dpPercentage / 100),
@@ -203,6 +217,37 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
           </span>
         </div>
       </div>
+
+      {affordability && (
+        <div className={`mt-4 px-4 py-3 rounded-xl text-sm flex items-start gap-2 ${
+          monthlyInstallment <= affordability.maxInstallment
+            ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+            : 'bg-amber-50 border border-amber-200 text-amber-800'
+        }`}>
+          {monthlyInstallment <= affordability.maxInstallment ? (
+            <Check size={16} className="shrink-0 mt-0.5" />
+          ) : (
+            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+          )}
+          <span>
+            {monthlyInstallment <= affordability.maxInstallment
+              ? `Cicilan ini ${formatCurrency(Math.round(monthlyInstallment))}/bln masih dalam batas ideal Anda (${formatCurrency(Math.round(affordability.maxInstallment))}/bln).`
+              : `Cicilan ini ${formatCurrency(Math.round(monthlyInstallment))}/bln melebihi batas ideal Anda (${formatCurrency(Math.round(affordability.maxInstallment))}/bln). Pertimbangkan DP lebih besar atau tenor lebih panjang.`}
+          </span>
+        </div>
+      )}
+
+      {!affordability && (
+        <button
+          type="button"
+          onClick={() => navigate('/kpr')}
+          className="mt-4 w-full px-4 py-3 rounded-xl border border-brand-border text-sm text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors flex items-center justify-center gap-2"
+        >
+          <Wallet size={15} />
+          Cek kemampuan finansial dengan Profil Keuangan
+          <ArrowRight size={14} />
+        </button>
+      )}
     </div>
   )
 }

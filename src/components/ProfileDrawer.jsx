@@ -6,6 +6,7 @@ import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc } from '../utils/images'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
+import FinancialProfileForm from './FinancialProfileForm'
 
 function XIcon() {
   return (
@@ -339,6 +340,10 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
                     />
                   </div>
                 </div>
+              </section>
+
+              <section>
+                <FinancialProfileForm showTitle={false} />
               </section>
 
               <section>

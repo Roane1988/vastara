@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, X, Send, ChevronDown } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLocation } from 'react-router-dom'
+import { getFinancialProfile, computeAffordability, PURCHASE_GOAL_LABELS } from '../utils/financialProfile'
 
 const RATE_LIMIT_MS = 2000
 
@@ -40,6 +41,21 @@ function formatTime(ts) {
   return d.toLocaleDateString('id-ID', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
+function formatProfileContext(profile) {
+  if (!profile) return null
+  const income = Number(profile.monthly_income) || 0
+  const commitments = Number(profile.monthly_commitments) || 0
+  const budget = Number(profile.monthly_budget) || 0
+  const goal = PURCHASE_GOAL_LABELS[profile.purchase_goal] || profile.purchase_goal
+  const parts = []
+  if (income) parts.push(`pendapatan bulanan Rp ${income.toLocaleString('id-ID')}`)
+  if (commitments) parts.push(`cicilan berjalan Rp ${commitments.toLocaleString('id-ID')}/bln`)
+  if (budget) parts.push(`budget cicilan rumah Rp ${budget.toLocaleString('id-ID')}/bln`)
+  if (goal) parts.push(`tujuan pembelian: ${goal}`)
+  if (parts.length === 0) return null
+  return parts.join('; ')
+}
+
 function TypingIndicator() {
   return (
     <div className="flex items-start gap-2">
@@ -71,9 +87,17 @@ export default function HuniBot() {
   const textareaRef = useRef(null)
   const cancelledRef = useRef(false)
   const lastSendRef = useRef(0)
+  const profileRef = useRef(undefined)
 
   useEffect(() => {
     return () => { cancelledRef.current = true }
+  }, [])
+
+  const ensureProfile = useCallback(async () => {
+    if (profileRef.current !== undefined) return profileRef.current
+    const { profile } = await getFinancialProfile()
+    profileRef.current = profile
+    return profile
   }, [])
 
   useEffect(() => {
@@ -83,20 +107,36 @@ export default function HuniBot() {
   }, [])
 
   useEffect(() => {
-    const handler = (e) => {
+    if (!isOpen) return
+    ensureProfile()
+  }, [isOpen, ensureProfile])
+
+  useEffect(() => {
+    const handler = async (e) => {
       const d = e.detail
       setIsOpen(true)
-      const greeting =
+      const profile = await ensureProfile()
+      const affordability = computeAffordability(profile)
+      const lines = [
         `Halo! Saya melihat simulasi KPR kamu untuk properti senilai ` +
         `${formatCurrency(d.propertyPrice)} dengan estimasi cicilan ` +
         `${formatCurrency(d.monthlyInstallment)}/bulan ` +
-        `(Tenor ${d.tenorYears} tahun). ` +
-        `Ada yang ingin kamu diskusikan mengenai perhitungan ini atau tips keuangan lainnya?`
-      setMessages([{ id: Date.now().toString(), role: 'bot', text: greeting }])
+        `(Tenor ${d.tenorYears} tahun).`,
+      ]
+      if (affordability && affordability.maxInstallment > 0) {
+        const fits = d.monthlyInstallment <= affordability.maxInstallment
+        lines.push(
+          `Berdasarkan profil keuangan kamu, batas ideal cicilan sekitar ` +
+          `${formatCurrency(Math.round(affordability.maxInstallment))}/bulan — ` +
+          `simulasi ini ${fits ? 'masih dalam batas ideal' : 'melebihi batas ideal'}.`
+        )
+      }
+      lines.push('Ada yang ingin kamu diskusikan mengenai perhitungan ini atau tips keuangan lainnya?')
+      setMessages([{ id: Date.now().toString(), role: 'bot', text: lines.join(' ') }])
     }
     window.addEventListener('open-hunibot-with-context', handler)
     return () => window.removeEventListener('open-hunibot-with-context', handler)
-  }, [])
+  }, [ensureProfile])
 
   const scrollToBottom = useCallback((behavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior })
@@ -142,8 +182,14 @@ export default function HuniBot() {
     setIsLoading(true)
 
     try {
+      const profileContext = formatProfileContext(profileRef.current)
+      const profileMessage = profileContext
+        ? [{ role: 'system', content: `HUNIONE_PROFILE: ${profileContext}` }]
+        : []
+
       const conversation = [
         SYSTEM_MESSAGE,
+        ...profileMessage,
         ...messages.map(m => ({
           role: m.role === 'user' ? 'user' : 'assistant',
           content: m.text,
