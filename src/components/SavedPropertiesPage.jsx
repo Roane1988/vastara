@@ -27,8 +27,9 @@ function StatusBadge({ status }) {
   const colors = {
     Tersedia: 'bg-emerald-50 text-emerald-600 border-emerald-100',
     'Sedang Nego': 'bg-brand-accent/10 text-brand-accent border-brand-accent/20',
+    'Dalam Survei': 'bg-indigo-50 text-indigo-600 border-indigo-100',
   }
-  const label = status === 'verified' ? 'Tersedia' : 'Sedang Nego'
+  const label = status === 'verified' ? 'Tersedia' : status === 'in_review' ? 'Dalam Survei' : 'Sedang Nego'
   return (
     <span className={`inline-block px-2.5 py-1 text-[11px] font-semibold rounded-full border ${colors[label] || 'bg-brand-bg text-brand-muted border-brand-border'}`}>
       {label}

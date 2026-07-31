@@ -18,11 +18,26 @@ const TABS = [
 const FILTERS = [
   { key: 'all', label: 'Semua' },
   { key: 'pending', label: 'Pending' },
+  { key: 'in_review', label: 'Survei' },
   { key: 'verified', label: 'Terverifikasi' },
   { key: 'rejected', label: 'Ditolak' },
 ]
 
 const PAGE_SIZE = 10
+
+function statusBadgeClass(status) {
+  if (status === 'verified') return 'bg-emerald-50 text-emerald-700'
+  if (status === 'in_review') return 'bg-indigo-50 text-indigo-700'
+  if (status === 'rejected') return 'bg-red-50 text-red-700'
+  return 'bg-amber-50 text-amber-700'
+}
+
+function statusLabel(status) {
+  if (status === 'verified') return 'Verified'
+  if (status === 'in_review') return 'Survei'
+  if (status === 'rejected') return 'Ditolak'
+  return 'Pending'
+}
 
 function ArrowLeftIcon() {
   return (
@@ -72,9 +87,7 @@ function PropertyPreviewModal({ property, onClose }) {
             </div>
             <div className="p-3 rounded-xl bg-brand-bg border border-brand-border">
               <p className="text-xs text-brand-muted">Status</p>
-              <span className={`inline-block mt-0.5 text-xs font-bold px-2.5 py-1 rounded-full ${
-                property.status === 'verified' ? 'bg-emerald-50 text-emerald-700' : property.status === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
-              }`}>{property.status}</span>
+              <span className={`inline-block mt-0.5 text-xs font-bold px-2.5 py-1 rounded-full ${statusBadgeClass(property.status)}`}>{statusLabel(property.status)}</span>
             </div>
             <div className="p-3 rounded-xl bg-brand-bg border border-brand-border">
               <p className="text-xs text-brand-muted">Tipe</p>
@@ -235,6 +248,25 @@ export default function AdminDashboardPage() {
         setProperties((prev) => prev.map((p) => p.id === id ? { ...p, status: 'verified' } : p))
         showToast('Properti berhasil diverifikasi', 'success')
         insertAuditLog('verify_property', 'property', id, { property_title: target?.title || '', property_price: target?.price || null })
+      }
+    } catch (err) {
+      if (!cancelledRef.current) showToast(err.message || 'Gagal', 'error')
+    }
+    if (!cancelledRef.current) setVerifyLoading(null)
+  }
+
+  async function handleStartReview(id) {
+    setVerifyLoading(id)
+    try {
+      const { error } = await supabase.from('properties').update({ status: 'in_review' }).eq('id', id)
+      if (cancelledRef.current) return
+      if (error) {
+        showToast(error.message, 'error')
+      } else {
+        const target = properties.find((p) => p.id === id)
+        setProperties((prev) => prev.map((p) => p.id === id ? { ...p, status: 'in_review' } : p))
+        showToast('Properti masuk antrian survei', 'success')
+        insertAuditLog('start_review', 'property', id, { property_title: target?.title || '', property_price: target?.price || null })
       }
     } catch (err) {
       if (!cancelledRef.current) showToast(err.message || 'Gagal', 'error')
@@ -479,21 +511,25 @@ export default function AdminDashboardPage() {
                                 </div>
                               </td>
                               <td className="px-3 py-4 whitespace-nowrap hidden md:table-cell">
-                                <span className={`inline-block text-[10px] font-bold px-2 py-1 rounded-full ${
-                                  p.status === 'verified' ? 'bg-emerald-50 text-emerald-700' : p.status === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
-                                }`}>
-                                  {p.status === 'pending' ? 'Pending' : p.status === 'verified' ? 'Verified' : 'Ditolak'}
+                                <span className={`inline-block text-[10px] font-bold px-2 py-1 rounded-full ${statusBadgeClass(p.status)}`}>
+                                  {statusLabel(p.status)}
                                 </span>
                               </td>
                               <td className="px-3 py-4 whitespace-nowrap text-right">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {p.status === 'pending' && (
+                                  {(p.status === 'pending' || p.status === 'in_review') && (
                                     <>
                                       <button type="button" onClick={() => handleVerify(p.id)} disabled={verifyLoading === p.id}
                                         className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] transition-all disabled:opacity-50 flex items-center gap-1">
                                         {verifyLoading === p.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
                                         Setujui
                                       </button>
+                                      {p.status === 'pending' && (
+                                        <button type="button" onClick={() => handleStartReview(p.id)} disabled={verifyLoading === p.id}
+                                          className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 active:scale-[0.97] transition-all">
+                                          Survei
+                                        </button>
+                                      )}
                                       <button type="button" onClick={() => { setRejectTarget(p.id); setRejectReason('') }}
                                         className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 active:scale-[0.97] transition-all">
                                         Tolak

@@ -25,15 +25,55 @@ function StatusBadge({ status }) {
     )
   }
   const isPending = status === 'pending'
+  const isReview = status === 'in_review'
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full border ${
       isPending
         ? 'bg-amber-50 text-amber-700 border-amber-200'
-        : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+        : isReview
+          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+          : 'bg-emerald-50 text-emerald-600 border-emerald-100'
     }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${isPending ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-      {isPending ? 'Menunggu Verifikasi' : 'Terverifikasi'}
+      <span className={`w-1.5 h-1.5 rounded-full ${isPending ? 'bg-amber-500' : isReview ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
+      {isPending ? 'Menunggu Verifikasi' : isReview ? 'Sedang Survei' : 'Terverifikasi'}
     </span>
+  )
+}
+
+const PROGRESS_STAGES = [
+  { key: 'pending', label: 'Menunggu Verifikasi' },
+  { key: 'in_review', label: 'Survei Lokasi' },
+  { key: 'verified', label: 'Tayang' },
+]
+
+function StatusTimeline({ status }) {
+  const currentIndex = PROGRESS_STAGES.findIndex((s) => s.key === status)
+  const hint = status === 'pending'
+    ? 'Iklan akan tayang setelah diverifikasi admin.'
+    : status === 'in_review'
+      ? 'Tim survei HuniOne akan menghubungi Anda untuk peninjauan lokasi.'
+      : status === 'verified'
+        ? 'Iklan Anda tayang dan dilihat pembeli.'
+        : ''
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-1.5">
+        {PROGRESS_STAGES.map((stage, i) => {
+          const done = i <= currentIndex
+          return (
+            <div key={stage.key} className="flex items-center flex-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${done ? 'bg-brand-accent' : 'bg-brand-border'}`} />
+                <span className={`text-[10px] truncate ${done ? 'text-brand-accent font-semibold' : 'text-brand-muted'}`}>{stage.label}</span>
+              </div>
+              {i < PROGRESS_STAGES.length - 1 && <div className={`flex-1 h-px mx-1 ${i < currentIndex ? 'bg-brand-accent' : 'bg-brand-border'}`} />}
+            </div>
+          )
+        })}
+      </div>
+      {hint && <p className="text-[10px] text-brand-muted mt-1.5">{hint}</p>}
+    </div>
   )
 }
 
@@ -189,6 +229,7 @@ export default function MyListingsPage() {
                     <span className="text-brand-border">&bull;</span>
                     <span>{p.area_sqm} m&sup2;</span>
                   </div>
+                  {p.status !== 'sold' && <StatusTimeline status={p.status} />}
                   {p.status !== 'sold' && (
                     <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                       <button
