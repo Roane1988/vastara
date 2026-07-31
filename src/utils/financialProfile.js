@@ -2,6 +2,8 @@ import { supabase } from '../supabaseClient'
 
 export const BUYING_POWER_ASSUMPTION = { interestRate: 5.5, tenorYears: 15, dpPercentage: 20 }
 
+export const TENOR_OPTIONS = [5, 10, 15, 20, 25]
+
 const PURCHASE_GOAL_OPTIONS = [
   { value: 'rumah_pertama', label: 'Rumah pertama' },
   { value: 'huni', label: 'Huni sendiri' },

@@ -1,28 +1,29 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Calculator, Check, AlertTriangle, Wallet, ArrowRight, TrendingDown } from 'lucide-react'
+import { Calculator, Check, AlertTriangle, Wallet, ArrowRight, TrendingDown, TrendingUp, MessageCircle, Bot } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { getFinancialProfile, computeAffordability } from '../utils/financialProfile'
+import { useTranslation } from 'react-i18next'
+import {
+  getFinancialProfile,
+  computeAffordability,
+  estimateMonthlyInstallment,
+  BUYING_POWER_ASSUMPTION,
+  TENOR_OPTIONS,
+} from '../utils/financialProfile'
+import { formatCurrency } from '../utils/format'
 import InfoTooltip from './InfoTooltip'
+import CountUp from './CountUp'
 
-const TENOR_OPTIONS = [5, 10, 15, 20, 25]
-
-function formatCurrency(value) {
-  if (value == null || isNaN(value) || !Number.isFinite(value)) return 'Rp 0'
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+const DP_PRESETS = [10, 20, 30, 50]
+const TENOR_PRESETS = [10, 15, 20, 25]
 
 export default function KprSimulator({ initialPrice = 900000000 }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [propertyPrice, setPropertyPrice] = useState(initialPrice)
-  const [dpPercentage, setDpPercentage] = useState(20)
+  const [dpPercentage, setDpPercentage] = useState(BUYING_POWER_ASSUMPTION.dpPercentage)
   const [dpAmountText, setDpAmountText] = useState('')
-  const [interestRate, setInterestRate] = useState(5.5)
-  const [tenorYears, setTenorYears] = useState(15)
+  const [interestRate, setInterestRate] = useState(BUYING_POWER_ASSUMPTION.interestRate)
+  const [tenorYears, setTenorYears] = useState(BUYING_POWER_ASSUMPTION.tenorYears)
 
   const [financialProfile, setFinancialProfile] = useState(null)
   const affordability = useMemo(() => computeAffordability(financialProfile), [financialProfile])
@@ -45,17 +46,25 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
     [propertyPrice, dpAmount]
   )
 
-  const monthlyInstallment = useMemo(() => {
-    if (principal <= 0) return 0
-    const monthlyRate = (interestRate / 100) / 12
-    const numMonths = tenorYears * 12
-    if (monthlyRate === 0) {
-      return numMonths > 0 ? principal / numMonths : 0
-    }
-    const factor = Math.pow(1 + monthlyRate, numMonths)
-    if (!Number.isFinite(factor)) return principal / numMonths
-    return (principal * monthlyRate * factor) / (factor - 1)
-  }, [principal, interestRate, tenorYears])
+  const monthlyInstallment = useMemo(
+    () => estimateMonthlyInstallment(propertyPrice, interestRate, tenorYears, dpPercentage),
+    [propertyPrice, interestRate, tenorYears, dpPercentage]
+  )
+
+  const totalPayment = useMemo(
+    () => monthlyInstallment * tenorYears * 12,
+    [monthlyInstallment, tenorYears]
+  )
+
+  const totalInterest = useMemo(
+    () => Math.max(0, totalPayment - principal),
+    [totalPayment, principal]
+  )
+
+  const minIncome = useMemo(
+    () => (monthlyInstallment > 0 ? monthlyInstallment / 0.3 : 0),
+    [monthlyInstallment]
+  )
 
   const handleDpPercentageChange = (value) => {
     const pct = Math.min(100, Math.max(0, Number(value) || 0))
@@ -79,20 +88,46 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
       ? Math.min(100, (monthlyInstallment / affordability.maxInstallment) * 100)
       : 0
 
+  const handleExplainClick = () => {
+    window.dispatchEvent(new CustomEvent('open-hunibot-question', {
+      detail: {
+        question: t('kpr.hunibot_question', {
+          price: formatCurrency(propertyPrice),
+          dp: formatCurrency(dpAmount),
+          rate: interestRate,
+          tenor: tenorYears,
+          installment: formatCurrency(Math.round(monthlyInstallment)),
+        }),
+      }
+    }))
+  }
+
+  const waLink = `https://wa.me/6281234567890?text=${encodeURIComponent(
+    t('kpr.wa_message', {
+      price: formatCurrency(propertyPrice),
+      dp: formatCurrency(dpAmount),
+      dpPct: Math.round(dpPercentage),
+      principal: formatCurrency(principal),
+      rate: interestRate,
+      tenor: tenorYears,
+      installment: formatCurrency(Math.round(monthlyInstallment)),
+    })
+  )}`
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-5 sm:p-6">
       <div className="flex items-center gap-2 mb-6">
         <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
           <Calculator size={18} className="text-blue-600" />
         </div>
-        <h2 className="text-lg font-bold text-brand-text">Simulasi KPR</h2>
+        <h2 className="text-lg font-bold text-brand-text">{t('kpr.title')}</h2>
       </div>
 
       <div className="space-y-5">
         <div>
           <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
-            Harga Properti
-            <InfoTooltip text="Harga jual properti yang ingin kamu beli. Contoh: 800000000 untuk Rp800 juta." />
+            {t('kpr.price_label')}
+            <InfoTooltip text={t('kpr.price_tooltip')} />
           </label>
           <input
             type="number"
@@ -110,8 +145,8 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
 
         <div>
           <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
-            Uang Muka (DP)
-            <InfoTooltip text="Uang muka yang dibayar di awal pembelian. Contoh: rumah Rp1 miliar dengan DP 20% berarti Rp200 juta. Sisanya (pokok) dibiayai bank." />
+            {t('kpr.dp_label')}
+            <InfoTooltip text={t('kpr.dp_tooltip')} />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -139,28 +174,44 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
               />
             </div>
           </div>
-          <p className="text-xs text-brand-muted mt-1 mb-3">
+          <p className="text-xs text-brand-muted mt-1">
             {formatCurrency(dpAmount)}
           </p>
+          <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-3">
+            {DP_PRESETS.map((pct) => (
+              <button
+                key={pct}
+                type="button"
+                onClick={() => handleDpPercentageChange(pct)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all active:scale-[0.98] ${
+                  Math.round(dpPercentage) === pct
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-brand-muted border-brand-border hover:border-blue-400 hover:text-blue-600'
+                }`}
+              >
+                {t('kpr.dp_preset', { pct })}
+              </button>
+            ))}
+          </div>
           <input
             type="range"
             min="0"
-            max="50"
+            max="100"
             step="1"
-            value={Math.min(dpPercentage, 50)}
+            value={Math.min(dpPercentage, 100)}
             onChange={(e) => handleDpPercentageChange(e.target.value)}
             className="w-full h-2 rounded-full appearance-none cursor-pointer bg-brand-border accent-blue-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
           />
           <div className="flex justify-between text-xs text-brand-muted mt-1.5">
             <span>0%</span>
-            <span>50%</span>
+            <span>100%</span>
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
-            Suku Bunga (% per tahun)
-            <InfoTooltip text="Biaya pinjaman tahunan yang ditetapkan bank. Semakin tinggi, cicilan semakin besar. Saat ini kisaran KPR umumnya 5-8% per tahun." />
+            {t('kpr.interest_label')}
+            <InfoTooltip text={t('kpr.interest_tooltip')} />
           </label>
           <div className="relative">
             <input
@@ -180,8 +231,8 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
 
         <div>
           <label className="block text-sm font-semibold text-brand-text mb-1.5 flex items-center">
-            Lama Pinjaman
-            <InfoTooltip text="Lama waktu pelunasan pinjaman. Tenor lebih panjang = cicilan lebih kecil, tetapi total bunga yang dibayar lebih besar." />
+            {t('kpr.tenor_label')}
+            <InfoTooltip text={t('kpr.tenor_tooltip')} />
           </label>
           <select
             value={tenorYears}
@@ -190,10 +241,26 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
           >
             {TENOR_OPTIONS.map((y) => (
               <option key={y} value={y}>
-                {y} Tahun
+                {t('kpr.year_option', { years: y })}
               </option>
             ))}
           </select>
+          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            {TENOR_PRESETS.map((years) => (
+              <button
+                key={years}
+                type="button"
+                onClick={() => setTenorYears(years)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all active:scale-[0.98] ${
+                  tenorYears === years
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-brand-muted border-brand-border hover:border-blue-400 hover:text-blue-600'
+                }`}
+              >
+                {t('kpr.tenor_preset', { years })}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -203,33 +270,72 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
           : 'bg-green-50 border-green-100'
       }`}>
         <p className="text-sm font-medium text-brand-muted">
-          Estimasi Cicilan per Bulan
+          {t('kpr.monthly_est')}
         </p>
         <p className={`text-2xl sm:text-3xl font-extrabold mt-1 ${
           principal > 0 ? 'text-blue-900' : 'text-green-800'
         }`}>
           {principal > 0
-            ? formatCurrency(Math.round(monthlyInstallment))
-            : 'Lunas'}
+            ? <CountUp value={monthlyInstallment} />
+            : t('kpr.lunas')}
         </p>
         <div className="flex items-center justify-center gap-4 mt-3 text-xs text-brand-muted">
           <span>
-            Pokok:{' '}
+            {t('kpr.principal')}:{' '}
             <span className="font-semibold text-brand-text">
               {formatCurrency(principal)}
             </span>
           </span>
           <span className="text-brand-border">|</span>
           <span>
-            Tenor:{' '}
+            {t('kpr.tenor')}:{' '}
             <span className="font-semibold text-brand-text">
-              {tenorYears} Thn
+              {t('kpr.year_short', { years: tenorYears })}
             </span>
           </span>
         </div>
         <p className="text-xs text-brand-muted mt-3 leading-relaxed">
-          Ini perkiraan jumlah yang harus kamu bayar ke bank setiap bulan selama {tenorYears} tahun (pokok + bunga). Angka ini dapat berubah mengikuti kebijakan suku bunga bank.
+          {t('kpr.monthly_note', { tenor: tenorYears })}
         </p>
+      </div>
+
+      <div className="mt-4 bg-white rounded-2xl border border-brand-border p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <Wallet size={18} className="text-emerald-600" />
+          </div>
+          <h3 className="text-base font-bold text-brand-text">{t('kpr.summary_title')}</h3>
+          <InfoTooltip text={t('kpr.summary_tooltip')} />
+        </div>
+        <div className="space-y-3 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-brand-muted">{t('kpr.summary_dp')}</span>
+            <span className="font-semibold text-brand-text">{formatCurrency(dpAmount)}</span>
+          </div>
+          <div className="border-t border-brand-border/50" />
+          <div className="flex items-center justify-between">
+            <span className="text-brand-muted">{t('kpr.summary_principal')}</span>
+            <span className="font-semibold text-brand-text">{formatCurrency(principal)}</span>
+          </div>
+          <div className="border-t border-brand-border/50" />
+          <div className="flex items-center justify-between">
+            <span className="text-brand-muted">{t('kpr.summary_interest', { tenor: tenorYears })}</span>
+            <span className="font-semibold text-orange-600">{formatCurrency(totalInterest)}</span>
+          </div>
+          <div className="border-t border-brand-border/50" />
+          <div className="flex items-center justify-between">
+            <span className="text-brand-muted">{t('kpr.summary_total')}</span>
+            <span className="font-bold text-brand-text">{formatCurrency(totalPayment)}</span>
+          </div>
+        </div>
+        <div className="mt-4 rounded-xl bg-amber-50/60 border border-amber-200 p-3 flex items-start gap-2.5">
+          <TrendingUp size={16} className="text-amber-600 mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-amber-800">{t('kpr.min_income')}</p>
+            <p className="text-[11px] text-amber-700/80 mt-0.5">{t('kpr.min_income_note')}</p>
+            <p className="text-lg font-extrabold text-amber-800 mt-1">{formatCurrency(Math.round(minIncome))}</p>
+          </div>
+        </div>
       </div>
 
       {affordability && (
@@ -247,12 +353,12 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className={`text-sm font-bold ${withinLimit ? 'text-emerald-800' : 'text-rose-800'}`}>
-                  {withinLimit ? 'Cicilan masih dalam batas ideal' : 'Cicilan melebihi batas ideal'}
+                  {withinLimit ? t('kpr.within_limit') : t('kpr.over_limit')}
                 </p>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   withinLimit ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                 }`}>
-                  {withinLimit ? 'Aman' : 'Perlu penyesuaian'}
+                  {withinLimit ? t('kpr.safe') : t('kpr.adjust')}
                 </span>
               </div>
 
@@ -260,12 +366,12 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
                 <p className="text-xl font-extrabold text-brand-text leading-none">
                   {formatCurrency(Math.round(monthlyInstallment))}
                 </p>
-                <p className="text-[11px] text-brand-muted">/bulan</p>
+                <p className="text-[11px] text-brand-muted">{t('kpr.per_month')}</p>
               </div>
               <p className="text-[11px] text-brand-muted mt-1">
-                Batas ideal kamu:{' '}
+                {t('kpr.ideal_limit')}{' '}
                 <span className="font-semibold text-brand-text">
-                  {formatCurrency(Math.round(affordability.maxInstallment))}/bln
+                  {formatCurrency(Math.round(affordability.maxInstallment))}{t('kpr.per_bln')}
                 </span>
               </p>
 
@@ -281,7 +387,7 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
               {withinLimit && affordability.maxInstallment > 0 && (
                 <p className="text-[11px] text-emerald-700 mt-2 flex items-center gap-1">
                   <TrendingDown size={11} />
-                  Sisa ruang aman ±{formatCurrency(Math.round(affordability.maxInstallment - monthlyInstallment))}/bln
+                  {t('kpr.safe_margin', { value: formatCurrency(Math.round(affordability.maxInstallment - monthlyInstallment)) })}
                 </p>
               )}
             </div>
@@ -294,22 +400,42 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
                 onClick={() => setDpPercentage((prev) => Math.min(100, Math.round(prev + 10)))}
                 className="inline-flex items-center px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-700 text-[11px] font-semibold hover:bg-rose-50 active:scale-[0.98] transition-all"
               >
-                Naikkan DP
+                {t('kpr.raise_dp')}
               </button>
               <button
                 type="button"
                 onClick={() => setTenorYears(25)}
                 className="inline-flex items-center px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-700 text-[11px] font-semibold hover:bg-rose-50 active:scale-[0.98] transition-all"
               >
-                Perpanjang tenor
+                {t('kpr.extend_tenor')}
               </button>
               <span className="inline-flex items-center px-2.5 py-1.5 rounded-lg bg-white border border-brand-border text-brand-muted text-[11px] font-semibold">
-                atau cari properti lebih terjangkau
+                {t('kpr.cheaper_alt')}
               </span>
             </div>
           )}
         </div>
       )}
+
+      <div className="mt-4 flex flex-col gap-3">
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 active:scale-[0.97] transition-all duration-200 shadow-sm"
+        >
+          <MessageCircle size={16} />
+          {t('kpr.wa_share')}
+        </a>
+        <button
+          type="button"
+          onClick={handleExplainClick}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.97] transition-all duration-200 shadow-sm"
+        >
+          <Bot size={16} />
+          {t('kpr.ask_hunibot')}
+        </button>
+      </div>
 
       {!affordability && (
         <button
@@ -318,7 +444,7 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
           className="mt-4 w-full px-4 py-3 rounded-xl border border-brand-border text-sm text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors flex items-center justify-center gap-2"
         >
           <Wallet size={15} />
-          Cek kemampuan finansial dengan Profil Keuangan
+          {t('kpr.check_finance')}
           <ArrowRight size={14} />
         </button>
       )}

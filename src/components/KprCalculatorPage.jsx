@@ -5,10 +5,8 @@ import { Calculator, MessageCircle, Bot, ChevronDown, Plus, Wallet, Check, Alert
 import { formatCurrency, formatShort } from '../utils/format'
 import useSEO from '../hooks/useSEO'
 import FinancialProfileForm from './FinancialProfileForm'
-import { getFinancialProfile, computeAffordability, maxAffordablePrice } from '../utils/financialProfile'
+import { getFinancialProfile, computeAffordability, maxAffordablePrice, TENOR_OPTIONS } from '../utils/financialProfile'
 import InfoTooltip from './InfoTooltip'
-
-const TENOR_OPTIONS = [5, 10, 15, 20, 25]
 
 function ArrowLeftIcon() {
   return (
@@ -282,15 +280,15 @@ export default function KprCalculatorPage() {
                 <input
                   type="range"
                   min="0"
-                  max="80"
+                  max="100"
                   step="1"
-                  value={Math.min(dpPercentage, 80)}
+                  value={Math.min(dpPercentage, 100)}
                   onChange={(e) => handleDpPercentageChange(e.target.value)}
                   className="w-full h-2 rounded-full appearance-none cursor-pointer bg-brand-border accent-blue-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-brand-muted mt-1.5">
                   <span>0%</span>
-                  <span>80%</span>
+                  <span>100%</span>
                 </div>
               </div>
 
