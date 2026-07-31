@@ -43,14 +43,19 @@ const SYSTEM_PROMPTS = {
     role: 'system',
     content:
       'You are an expert real estate financial analyst in Indonesia. ' +
-      'Given the full property details (price, type, location, rooms, area, description), ' +
-      'analyze its investment potential thoroughly. ' +
+      'Given the full property details (price, category, type, location, rooms, area, certificate, description) ' +
+      'and optional market comparables, analyze its investment potential thoroughly. ' +
       'Respond ONLY with a valid, raw JSON object containing these keys: ' +
       'estimatedRentalYield (string, e.g. "5.5% - 7%"), ' +
       'monthlyRentalEstimate (number, estimated market rent in IDR), ' +
       'targetMarket (string, e.g. "Keluarga muda / Profesional"), ' +
       'appreciationPotential (string, e.g. "Tinggi karena dekat area komersial"), ' +
+      'pricePerSqm (number, price per m² in IDR), ' +
+      'breakEvenYears (number, years to pay back the price via rental income), ' +
+      'riskLevel (string: "Rendah", "Sedang", or "Tinggi"), ' +
+      'comparableCount (number, how many comparables were used, 0 if none), ' +
       'and verdict (string, short 2-3 sentence financial assessment in Indonesian). ' +
+      'When comparables are provided, base monthlyRentalEstimate, estimatedRentalYield and pricePerSqm on the actual comparable data, not generic assumptions. ' +
       'Do not include markdown formatting, backticks, or conversational text.',
   },
 }
@@ -159,8 +164,30 @@ export default async function handler(req, res) {
   let clientMessages
   if (purpose === 'investment') {
     const p = req.body.property
-    const userContent = `Title: ${p.title || '-'}\nPrice: Rp ${(p.price || 0).toLocaleString('id-ID')}\nType: ${p.property_type || '-'}\nLocation: ${p.city || '-'}\nBedrooms: ${p.bedrooms || '-'}\nBathrooms: ${p.bathrooms || '-'}\nArea: ${p.area_sqm || '-'} m²\nDescription: ${p.description || '-'}`
-    safeMessages = [systemPrompt, { role: 'user', content: userContent }]
+    const lines = [
+      `Title: ${p.title || '-'}`,
+      `Price: Rp ${(p.price || 0).toLocaleString('id-ID')}`,
+      `Category: ${p.category || '-'}`,
+      `Type: ${p.property_type || '-'}`,
+      `City: ${p.city || '-'}`,
+      `District: ${p.district || '-'}`,
+      `Address: ${p.address || '-'}`,
+      `Bedrooms: ${p.bedrooms || '-'}`,
+      `Bathrooms: ${p.bathrooms || '-'}`,
+      `Area: ${p.area_sqm || '-'} m²`,
+      `Certificate: ${p.certificate_status || '-'}`,
+      `Listed: ${p.created_at ? String(p.created_at).slice(0, 10) : '-'}`,
+      `Description: ${p.description || '-'}`,
+    ]
+    if (Array.isArray(p.comparables) && p.comparables.length > 0) {
+      lines.push('Market comparables:')
+      p.comparables.forEach((c, i) => {
+        lines.push(
+          `${i + 1}. ${c.title || '-'} — Rp ${(c.price || 0).toLocaleString('id-ID')}, ${c.category || '-'}, ${c.property_type || '-'}, ${c.city || '-'}, ${c.district || '-'}, ${c.bedrooms || '-'} KT/${c.bathrooms || '-'} KM, ${c.area_sqm || '-'} m², ${c.certificate_status || '-'}`
+        )
+      })
+    }
+    safeMessages = [systemPrompt, { role: 'user', content: lines.join('\n') }]
     clientMessages = []
   } else {
     clientMessages = req.body.messages.filter(m => m.role !== 'system')
@@ -180,7 +207,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: req.body.model,
         messages: safeMessages,
-        max_tokens: purpose === 'translation' ? 2048 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 1024 : 1024,
+        max_tokens: purpose === 'translation' ? 2048 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 1536 : 1024,
         temperature: purpose === 'translation' ? 0.3 : purpose === 'smart_search' ? 0.1 : purpose === 'investment' ? 0.2 : 0.7,
       }),
     })
