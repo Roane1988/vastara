@@ -1,12 +1,12 @@
 import { useState, useCallback, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import TopNavbar from './components/TopNavbar'
 import Footer from './components/Footer'
-import ProfileDrawer from './components/ProfileDrawer'
-import HuniBot from './components/HuniBot'
+
+const ProfileDrawer = lazy(() => import('./components/ProfileDrawer'))
+const HuniBot = lazy(() => import('./components/HuniBot'))
 
 const ExplorePage = lazy(() => import('./components/ExplorePage'))
 const MinimalistLogin = lazy(() => import('./components/MinimalistLogin'))
@@ -30,14 +30,6 @@ function PageLoader() {
     </div>
   )
 }
-
-const pageTransition = {
-  initial: { opacity: 0, scale: 0.97, y: 8 },
-  animate: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.97, y: -8 },
-}
-
-const transitionConfig = { duration: 0.4, ease: [0.22, 1, 0.36, 1] }
 
 function ProtectedRoute({ isAuth, children, location }) {
   if (!isAuth) return <Navigate to="/login" state={{ from: location.pathname }} replace />
@@ -80,33 +72,33 @@ function AppContent() {
     <ErrorBoundary>
       <div className="min-h-screen bg-brand-bg text-brand-text">
         <TopNavbar isAuth={isAuth} userName={userName} onProfileOpen={() => setIsProfileOpen(true)} onLogout={handleLogout} />
-        <AnimatePresence mode="wait">
-          <motion.div key={location.pathname} className="pt-14" variants={pageTransition} initial="initial" animate="animate" exit="exit" transition={transitionConfig}>
-            <Suspense fallback={<PageLoader />}>
-              <Routes location={location} key={location.pathname}>
-                <Route path="/" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
-                <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
-                <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
-                <Route path="/sell-role" element={<ProtectedRoute isAuth={isAuth} location={location}><RoleSelectionPage /></ProtectedRoute>} />
-                <Route path="/sell" element={<ProtectedRoute isAuth={isAuth} location={location}><SellPropertyPage /></ProtectedRoute>} />
-                <Route path="/my-listings" element={<ProtectedRoute isAuth={isAuth} location={location}><MyListingsPage /></ProtectedRoute>} />
-                <Route path="/chat" element={<ProtectedRoute isAuth={isAuth} location={location}><ChatHubPage onNavigate={onNavigate} /></ProtectedRoute>} />
-                <Route path="/forum" element={<ForumPage />} />
-                <Route path="/forum/:id" element={<ForumDetailPage />} />
-                <Route path="/property/:id" element={<PropertyDetailPage />} />
-                <Route path="/admin" element={<AdminRoute isAuth={isAuth} role={role} location={location}><AdminDashboardPage /></AdminRoute>} />
-                <Route path="/coming-soon" element={<ComingSoonPage />} />
-                <Route path="/kpr" element={<KprCalculatorPage />} />
-                <Route path="/compare" element={<ComparePage />} />
-                <Route path="/404" element={<NotFoundPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Suspense>
-          </motion.div>
-        </AnimatePresence>
+        <div key={location.pathname} className="pt-14 animate-page-in">
+          <Suspense fallback={<PageLoader />}>
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
+              <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
+              <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
+              <Route path="/sell-role" element={<ProtectedRoute isAuth={isAuth} location={location}><RoleSelectionPage /></ProtectedRoute>} />
+              <Route path="/sell" element={<ProtectedRoute isAuth={isAuth} location={location}><SellPropertyPage /></ProtectedRoute>} />
+              <Route path="/my-listings" element={<ProtectedRoute isAuth={isAuth} location={location}><MyListingsPage /></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute isAuth={isAuth} location={location}><ChatHubPage onNavigate={onNavigate} /></ProtectedRoute>} />
+              <Route path="/forum" element={<ForumPage />} />
+              <Route path="/forum/:id" element={<ForumDetailPage />} />
+              <Route path="/property/:id" element={<PropertyDetailPage />} />
+              <Route path="/admin" element={<AdminRoute isAuth={isAuth} role={role} location={location}><AdminDashboardPage /></AdminRoute>} />
+              <Route path="/coming-soon" element={<ComingSoonPage />} />
+              <Route path="/kpr" element={<KprCalculatorPage />} />
+              <Route path="/compare" element={<ComparePage />} />
+              <Route path="/404" element={<NotFoundPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </div>
         <Footer />
-        <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userName={userName} />
-        <HuniBot />
+        <Suspense fallback={null}>
+          <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userName={userName} />
+          <HuniBot />
+        </Suspense>
       </div>
     </ErrorBoundary>
   )

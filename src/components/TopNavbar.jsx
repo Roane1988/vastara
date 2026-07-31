@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import HamburgerMenu from './HamburgerMenu'
+
+const HamburgerMenu = lazy(() => import('./HamburgerMenu'))
 
 function GlobeIcon() {
   return (
@@ -156,14 +157,16 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
         </div>
       </header>
 
-      <HamburgerMenu
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        isAuth={isAuth}
-        userName={userName}
-        onProfileOpen={onProfileOpen}
-        onLogout={onLogout}
-      />
+      <Suspense fallback={null}>
+        <HamburgerMenu
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          isAuth={isAuth}
+          userName={userName}
+          onProfileOpen={onProfileOpen}
+          onLogout={onLogout}
+        />
+      </Suspense>
     </>
   )
 }
