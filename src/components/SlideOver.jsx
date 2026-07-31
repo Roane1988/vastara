@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 
 function XIcon() {
   return (
@@ -32,6 +33,7 @@ export default function SlideOver({
 }) {
   const panelRef = useRef(null)
   const { t } = useTranslation()
+  const reduced = usePrefersReducedMotion()
 
   useEffect(() => {
     if (!isOpen) return
@@ -78,7 +80,7 @@ export default function SlideOver({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: reduced ? 0 : 0.2 }}
             onClick={onClose}
             aria-hidden="true"
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
@@ -94,7 +96,7 @@ export default function SlideOver({
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            transition={reduced ? { duration: 0 } : { type: 'spring', damping: 28, stiffness: 300 }}
             className={`fixed inset-y-0 right-0 w-full ${width} bg-brand-surface flex flex-col shadow-xl border-l border-brand-border outline-none`}
             style={{ zIndex }}
           >

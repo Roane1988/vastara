@@ -42,8 +42,17 @@ export default function SavedPropertiesList({ showAddress = false, emptyText, em
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-6 h-6 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-2" role="status" aria-label="Loading">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
+            <div className="w-12 h-12 rounded-lg bg-brand-border shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 bg-brand-border rounded w-3/4" />
+              <div className="h-2.5 bg-brand-border rounded w-1/3" />
+            </div>
+          </div>
+        ))}
+        <span className="sr-only">Loading...</span>
       </div>
     )
   }

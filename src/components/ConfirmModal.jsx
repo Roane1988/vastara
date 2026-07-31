@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trash2, X, AlertTriangle } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 
 export default function ConfirmModal({
   isOpen,
@@ -15,6 +15,7 @@ export default function ConfirmModal({
   icon: Icon = Trash2,
   children,
   confirmDisabled = false,
+  zIndex = 50,
 }) {
   useEffect(() => {
     if (!isOpen) return
@@ -26,7 +27,7 @@ export default function ConfirmModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-5" style={{ zIndex }}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

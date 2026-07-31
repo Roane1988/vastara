@@ -11,21 +11,32 @@
   "hamburger": {
     "menu": "Menu",
     "login": "Masuk",
+    "register": "Daftar",
     "admin_label": "Admin",
     "buyer_label": "Pembeli",
     "general": "Umum",
     "main_menu": "Menu Utama",
+    "tools": "Alat",
     "settings": "Pengaturan",
     "saved": "Properti Tersimpan",
     "saved_title": "Properti Tersimpan",
     "saved_empty": "Belum ada properti disimpan",
     "explore": "Eksplor",
     "chat": "Chat",
+    "forum": "Forum",
+    "my_listings": "Iklan Saya",
     "admin": "Dashboard",
+    "kpr": "Kalkulator KPR",
+    "compare": "Bandingkan",
+    "language": "Bahasa",
     "log_out": "Keluar",
     "logging_out": "Keluar...",
     "back": "Kembali",
-    "sell_property": "Jual Properti"
+    "sell_property": "Jual Properti",
+    "logout_title": "Keluar dari Akun?",
+    "logout_desc": "Anda akan keluar dari sesi ini. Yakin ingin melanjutkan?",
+    "logout_confirm": "Ya, Keluar",
+    "logout_cancel": "Batal"
   },
   "explore": {
     "hero": {

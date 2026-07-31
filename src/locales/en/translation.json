@@ -11,21 +11,32 @@
   "hamburger": {
     "menu": "Menu",
     "login": "Login",
+    "register": "Register",
     "admin_label": "Admin",
     "buyer_label": "Buyer",
     "general": "General",
     "main_menu": "Main Menu",
+    "tools": "Tools",
     "settings": "Settings",
     "saved": "Saved Properties",
     "saved_title": "Saved Properties",
     "saved_empty": "No saved properties yet",
     "explore": "Explore",
     "chat": "Chat",
+    "forum": "Forum",
+    "my_listings": "My Listings",
     "admin": "Dashboard",
+    "kpr": "KPR Calculator",
+    "compare": "Compare",
+    "language": "Language",
     "log_out": "Log Out",
     "logging_out": "Logging out...",
     "back": "Back",
-    "sell_property": "Sell Property"
+    "sell_property": "Sell Property",
+    "logout_title": "Log Out?",
+    "logout_desc": "You will be signed out of this session. Continue?",
+    "logout_confirm": "Yes, Log Out",
+    "logout_cancel": "Cancel"
   },
   "explore": {
     "hero": {
