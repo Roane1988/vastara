@@ -1,16 +1,30 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { CheckCircle, X, Plus, Sparkles } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../utils/format'
-import { getImageSrc } from '../utils/images'
 import useSEO from '../hooks/useSEO'
 
 const DRAFT_KEY = 'hunione_sell_draft'
 const MAX_IMAGES = 10
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
+
+const EMPTY_FORM = {
+  title: '',
+  category: 'Dijual',
+  jenis_properti: '',
+  estimasi_harga: '',
+  bedrooms: '',
+  bathrooms: '',
+  sqm: '',
+  status_sertifikat: '',
+  description: '',
+  address: '',
+  city: '',
+  kecamatan: '',
+  whatsapp: '',
+}
 
 function loadDraft() {
   try {
@@ -135,7 +149,6 @@ function PreviewCard({ form, image }) {
 
 export default function SellPropertyPage() {
   useSEO({ title: 'Iklankan Properti — Jual atau Sewakan', description: 'Pasang iklan properti Anda di HuniOne. Proses cepat, mudah, dan menjangkau ribuan pembeli potensial.' })
-  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const { showToast, loading: authLoading } = useAuth()
@@ -150,24 +163,18 @@ export default function SellPropertyPage() {
   ], [])
 
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState({
-    title: '',
-    category: 'Dijual',
-    jenis_properti: '',
-    estimasi_harga: '',
-    bedrooms: '',
-    bathrooms: '',
-    sqm: '',
-    status_sertifikat: '',
-    description: '',
-    address: '',
-    city: '',
-    kecamatan: '',
-    whatsapp: '',
-  })
   const editId = new URLSearchParams(location.search).get('edit')
-  const [editLoading, setEditLoading] = useState(false)
-  const [imageFiles, setImageFiles] = useState([])
+
+  const [form, setForm] = useState(() => {
+    if (editId) return EMPTY_FORM
+    const draft = loadDraft()
+    return draft?.form || EMPTY_FORM
+  })
+  const [imageFiles, setImageFiles] = useState(() => {
+    if (editId) return []
+    const draft = loadDraft()
+    return draft?.imageNames?.map((n) => new File([], n)) || []
+  })
   const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -184,15 +191,7 @@ export default function SellPropertyPage() {
   const [generatingDesc, setGeneratingDesc] = useState(false)
 
   useEffect(() => {
-    if (!editId) {
-      const draft = loadDraft()
-      if (draft) {
-        setForm(draft.form)
-        setImageFiles(draft.imageNames.map((n) => new File([], n)) || [])
-      }
-      return
-    }
-    setEditLoading(true)
+    if (!editId) return
     supabase.from('properties').select('*').eq('id', editId).single().then(({ data, error }) => {
       if (!error && data) {
         setForm({
@@ -211,7 +210,6 @@ export default function SellPropertyPage() {
           whatsapp: data.seller_whatsapp || '',
         })
       }
-      setEditLoading(false)
     })
   }, [editId])
 
@@ -225,7 +223,7 @@ export default function SellPropertyPage() {
   useEffect(() => {
     const urls = imageFiles.filter((f) => f.size > 0).map((f) => URL.createObjectURL(f))
     return () => urls.forEach((u) => URL.revokeObjectURL(u))
-  }, [imageFiles.length])
+  }, [imageFiles])
 
   const updateForm = useCallback((field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
