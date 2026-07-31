@@ -1,9 +1,25 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import {
+  User,
+  LogOut,
+  Loader2,
+  Save,
+  Info,
+  Heart,
+  LayoutDashboard,
+  Home,
+  AlertCircle,
+  Check,
+  ChevronDown,
+  Lock,
+  Wallet,
+} from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
+import { formatPrice } from '../utils/format'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import FinancialProfileForm from './FinancialProfileForm'
 import SlideOver from './SlideOver'
@@ -13,51 +29,29 @@ const inputClass =
 
 const labelClass = 'text-[10px] font-bold text-brand-muted mb-1 block uppercase tracking-wide'
 
-function UserIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  )
-}
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function LogOutIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  )
-}
+const ROLE_LABELS = { admin: 'Admin Internal', agent: 'Agen', developer: 'Developer' }
 
-function SpinnerIcon() {
-  return (
-    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
-  )
-}
+function Collapsible({ title, icon, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen)
 
-function SaveIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-      <polyline points="17 21 17 13 7 13 7 21" />
-      <polyline points="7 3 7 8 15 8" />
-    </svg>
-  )
-}
-
-function InfoIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="16" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12.01" y2="8" />
-    </svg>
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className="w-full flex items-center gap-2.5 py-3.5 px-4 text-left hover:bg-brand-bg/50 transition-colors"
+      >
+        <span className="text-brand-muted shrink-0">{icon}</span>
+        <span className="flex-1 font-semibold text-brand-text text-sm">{title}</span>
+        <ChevronDown size={16} className={`text-brand-muted shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      <div className={`grid transition-all duration-300 ease-in-out ${open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+        <div className="overflow-hidden">{children}</div>
+      </div>
+    </div>
   )
 }
 
@@ -76,6 +70,13 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const [currentEmail, setCurrentEmail] = useState('')
   const [savedProperties, setSavedProperties] = useState([])
   const [role, setRole] = useState('')
+  const [baseline, setBaseline] = useState({ name: '', email: '', whatsapp: '' })
+
+  const [pwCurrent, setPwCurrent] = useState('')
+  const [pwNew, setPwNew] = useState('')
+  const [pwConfirm, setPwConfirm] = useState('')
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwError, setPwError] = useState('')
 
   const notify = useCallback((message, type) => {
     setNotification({ show: true, message, type })
@@ -120,28 +121,32 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     ;(async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
-        if (!cancelled && user) {
-          const authEmail = user.email || ''
-          setEmail(authEmail)
-          setCurrentEmail(authEmail)
+        if (cancelled || !user) return
 
-          if (user.user_metadata?.first_name) {
-            setName(user.user_metadata.first_name)
-          }
-          setWhatsapp(user.user_metadata?.whatsapp || '')
+        const authEmail = user.email || ''
+        let loadedName = user.user_metadata?.first_name || ''
+        let loadedEmail = authEmail
+        let loadedWhatsapp = user.user_metadata?.whatsapp || ''
 
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name, email, whatsapp, role')
-            .eq('id', user.id)
-            .single()
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, email, whatsapp, role')
+          .eq('id', user.id)
+          .single()
 
-          if (!cancelled && profile) {
-            if (profile.first_name) setName(profile.first_name)
-            if (profile.email) setEmail(profile.email)
-            if (profile.whatsapp) setWhatsapp(profile.whatsapp)
-            if (profile.role) setRole(profile.role)
-          }
+        if (!cancelled && profile) {
+          if (profile.first_name) loadedName = profile.first_name
+          if (profile.email) loadedEmail = profile.email
+          if (profile.whatsapp) loadedWhatsapp = profile.whatsapp
+          if (profile.role) setRole(profile.role)
+        }
+
+        if (!cancelled) {
+          setName(loadedName)
+          setEmail(loadedEmail)
+          setWhatsapp(loadedWhatsapp)
+          setCurrentEmail(loadedEmail)
+          setBaseline({ name: loadedName, email: loadedEmail, whatsapp: loadedWhatsapp })
         }
       } catch {
         if (!cancelled) notify('Gagal memuat profil. Coba lagi.', 'error')
@@ -156,12 +161,30 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     return () => clearTimeout(timer)
   }, [notification.show])
 
+  const initial = (name || userName || 'U').charAt(0).toUpperCase()
+  const roleLabel = ROLE_LABELS[role] || 'Pembeli'
+
   const isEmailChanged = currentEmail !== '' && email.trim() !== currentEmail
-  const isSaveDisabled = saving || !name.trim() || !email.trim() || (isEmailChanged && !currentPassword.trim())
+  const emailInvalid = email.trim() !== '' && !EMAIL_RE.test(email.trim())
+  const isSaveDisabled = saving || !name.trim() || !email.trim() || emailInvalid || (isEmailChanged && !currentPassword.trim())
+
+  const dirty = useMemo(() => (
+    name.trim() !== baseline.name || email.trim() !== baseline.email || whatsapp.trim() !== baseline.whatsapp
+  ), [name, email, whatsapp, baseline])
+
+  const requestClose = useCallback(() => {
+    if (dirty && !window.confirm(t('profileDrawer.unsaved_warning'))) return
+    onClose()
+  }, [dirty, onClose, t])
+
+  const handleNavigate = (path) => {
+    if (!requestClose()) return
+    navigate(path)
+  }
 
   async function handleSave() {
     if (saving) return
-    if (!name.trim() || !email.trim()) return
+    if (!name.trim() || !email.trim() || emailInvalid) return
     if (isEmailChanged && !currentPassword.trim()) {
       notify(t('profileDrawer.password_required'), 'error')
       return
@@ -216,6 +239,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
       setCurrentPassword('')
       setCurrentEmail(email.trim())
+      setBaseline({ name: name.trim(), email: email.trim(), whatsapp })
       notify(t('profileDrawer.save_success'), 'success')
     } catch (err) {
       notify(err.message || 'Terjadi kesalahan saat menyimpan profil', 'error')
@@ -224,7 +248,53 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     }
   }
 
+  async function handleChangePassword() {
+    if (pwSaving) return
+    if (!pwCurrent || !pwNew) {
+      setPwError(t('profileDrawer.pw_fill_all'))
+      return
+    }
+    if (pwNew.length < 8) {
+      setPwError(t('profileDrawer.pw_too_short'))
+      return
+    }
+    if (pwNew !== pwConfirm) {
+      setPwError(t('profileDrawer.pw_mismatch'))
+      return
+    }
+
+    setPwSaving(true)
+    setPwError('')
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentEmail,
+        password: pwCurrent,
+      })
+      if (signInError) {
+        setPwError(t('profileDrawer.pw_wrong_current'))
+        return
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: pwNew })
+      if (updateError) {
+        setPwError(updateError.message)
+        return
+      }
+
+      setPwCurrent('')
+      setPwNew('')
+      setPwConfirm('')
+      notify(t('profileDrawer.pw_success'), 'success')
+    } catch (err) {
+      setPwError(err.message || t('profileDrawer.pw_generic_error'))
+    } finally {
+      setPwSaving(false)
+    }
+  }
+
   async function handleLogout() {
+    if (!requestClose()) return
     setLoggingOut(true)
     try {
       await supabase.auth.signOut()
@@ -233,42 +303,11 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
       setLoggingOut(false)
       return
     }
-    onClose()
     navigate('/')
   }
 
   return (
-    <SlideOver
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t('profileDrawer.title')}
-      footer={(
-        <div className="space-y-3">
-          {isEmailChanged && (
-            <div>
-              <label className={labelClass}>{t('profileDrawer.password_hint')}</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder={t('profileDrawer.password_placeholder')}
-                className={inputClass}
-              />
-              <p className="text-[10px] text-brand-muted mt-1">{t('profileDrawer.password_required_hint')}</p>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaveDisabled}
-            className="w-full py-3.5 rounded-lg font-bold text-white bg-brand-primary hover:brightness-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {saving ? <SpinnerIcon /> : <SaveIcon />}
-            {saving ? t('profileDrawer.saving') : t('profileDrawer.save_changes')}
-          </button>
-        </div>
-      )}
-    >
+    <SlideOver isOpen={isOpen} onClose={requestClose} title={t('profileDrawer.title')}>
       {notification.show && (
         <div className={`rounded-lg px-4 py-3 shadow-sm text-sm font-medium flex items-center gap-2 ${
           notification.type === 'success'
@@ -278,155 +317,231 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
               : 'bg-red-50 text-red-700 border border-red-200'
         }`}>
           {notification.type === 'success' ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+            <Check size={16} />
           ) : notification.type === 'info' ? (
-            <InfoIcon />
+            <Info size={16} />
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="15" y1="9" x2="9" y2="15" />
-              <line x1="9" y1="9" x2="15" y2="15" />
-            </svg>
+            <AlertCircle size={16} />
           )}
           {notification.message}
         </div>
       )}
 
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-          <UserIcon />
-          <h3 className="font-semibold text-brand-text">{t('profileDrawer.section_title')}</h3>
-          {role === 'admin' && (
-            <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EDF4FD] text-[#1E3A5F] border border-[#1E3A5F]/20">
-              Admin Internal
-            </span>
-          )}
+      <div className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br from-brand-primary/10 to-brand-accent/10 border border-brand-border">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center text-white text-base font-bold shrink-0">
+          {initial}
         </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className={labelClass}>{t('profileDrawer.name_label')}</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('profileDrawer.name_placeholder')}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>{t('profileDrawer.email_label')}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('profileDrawer.email_placeholder')}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>{t('profileDrawer.whatsapp_label')}</label>
-            <input
-              type="text"
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder={t('profileDrawer.whatsapp_placeholder')}
-              className={inputClass}
-            />
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-brand-text truncate">{name || 'Pengguna'}</p>
+          <p className="text-[11px] text-brand-muted truncate">{email}</p>
+          <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/70 text-[#1E3A5F] border border-[#1E3A5F]/15">
+            {roleLabel}
+          </span>
         </div>
-      </section>
+      </div>
 
-      <section>
-        <FinancialProfileForm showTitle={false} />
-      </section>
-
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#4A90E2" stroke="#4A90E2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
-          <h3 className="font-semibold text-brand-text">{t('profileDrawer.saved_title')}</h3>
-        </div>
-        {savedProperties.length === 0 ? (
-          <p className="text-sm text-brand-muted text-center py-6">{t('profileDrawer.no_saved')}</p>
-        ) : (
-          <div className="space-y-2">
-            {savedProperties.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => { onClose(); navigate(`/property/${p.id}`) }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors text-left"
-              >
-                <div className="w-12 h-12 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
-                  {p.image_url ? (
-                    <img src={getImageSrc(p.image_url)} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-brand-text truncate">{p.title}</p>
-                  <p className="text-xs text-brand-muted mt-0.5">
-                    {p.priceDisplay
-                      ? p.priceDisplay
-                      : p.price != null
-                        ? `Rp ${Number(p.price).toLocaleString('id-ID')}`
-                        : ''}
-                  </p>
-                </div>
-              </button>
-            ))}
+      <div className="rounded-2xl border border-brand-border divide-y divide-brand-border overflow-hidden">
+        <Collapsible title={t('profileDrawer.section_account')} icon={<User size={16} />} defaultOpen>
+          <div className="px-4 pb-4 space-y-4">
+            <div>
+              <label className={labelClass}>{t('profileDrawer.name_label')}</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('profileDrawer.name_placeholder')}
+                autoComplete="name"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>{t('profileDrawer.email_label')}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('profileDrawer.email_placeholder')}
+                autoComplete="email"
+                className={inputClass}
+              />
+              {emailInvalid && (
+                <p className="text-[11px] text-red-600 mt-1.5 flex items-center gap-1">
+                  <AlertCircle size={11} className="shrink-0" />
+                  {t('profileDrawer.email_invalid')}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>{t('profileDrawer.whatsapp_label')}</label>
+              <input
+                type="tel"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder={t('profileDrawer.whatsapp_placeholder')}
+                autoComplete="tel"
+                className={inputClass}
+              />
+              <p className="text-[10px] text-brand-muted mt-1.5">{t('profileDrawer.whatsapp_hint')}</p>
+            </div>
+            {isEmailChanged && (
+              <div>
+                <label className={labelClass}>{t('profileDrawer.password_hint')}</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder={t('profileDrawer.password_placeholder')}
+                  autoComplete="current-password"
+                  className={inputClass}
+                />
+                <p className="text-[10px] text-brand-muted mt-1.5">{t('profileDrawer.password_required_hint')}</p>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaveDisabled}
+              className="w-full py-3 rounded-lg font-bold text-white bg-brand-primary hover:brightness-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {saving ? t('profileDrawer.saving') : t('profileDrawer.save_changes')}
+            </button>
           </div>
-        )}
-      </section>
+        </Collapsible>
 
-      {role === 'admin' && (
-        <section>
+        <Collapsible title={t('profileDrawer.section_password')} icon={<Lock size={16} />}>
+          <div className="px-4 pb-4 space-y-4">
+            <div>
+              <label className={labelClass}>{t('profileDrawer.pw_current')}</label>
+              <input
+                type="password"
+                value={pwCurrent}
+                onChange={(e) => setPwCurrent(e.target.value)}
+                autoComplete="current-password"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>{t('profileDrawer.pw_new')}</label>
+              <input
+                type="password"
+                value={pwNew}
+                onChange={(e) => setPwNew(e.target.value)}
+                autoComplete="new-password"
+                className={inputClass}
+              />
+              <p className="text-[10px] text-brand-muted mt-1.5">{t('profileDrawer.pw_new_hint')}</p>
+            </div>
+            <div>
+              <label className={labelClass}>{t('profileDrawer.pw_confirm')}</label>
+              <input
+                type="password"
+                value={pwConfirm}
+                onChange={(e) => setPwConfirm(e.target.value)}
+                autoComplete="new-password"
+                className={inputClass}
+              />
+            </div>
+            {pwError && (
+              <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 flex items-center gap-1">
+                <AlertCircle size={11} className="shrink-0" />
+                {pwError}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleChangePassword}
+              disabled={pwSaving}
+              className="w-full py-3 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {pwSaving ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
+              {pwSaving ? t('profileDrawer.pw_saving') : t('profileDrawer.pw_submit')}
+            </button>
+          </div>
+        </Collapsible>
+
+        <Collapsible title={t('profileDrawer.section_finance')} icon={<Wallet size={16} />}>
+          <div className="px-4 pb-4">
+            <FinancialProfileForm showTitle={false} />
+          </div>
+        </Collapsible>
+
+        <Collapsible title={t('profileDrawer.section_saved')} icon={<Heart size={16} />}>
+          <div className="px-4 pb-4">
+            {savedProperties.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-brand-muted mb-3">{t('profileDrawer.no_saved')}</p>
+                <button
+                  type="button"
+                  onClick={() => handleNavigate('/')}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold hover:brightness-90 transition-all"
+                >
+                  <Home size={13} />
+                  {t('profileDrawer.saved_empty_cta')}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {savedProperties.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleNavigate(`/property/${p.id}`)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-brand-bg transition-colors text-left"
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
+                      {p.image_url ? (
+                        <img src={getImageSrc(p.image_url)} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-brand-text truncate">{p.title}</p>
+                      <p className="text-xs text-brand-muted mt-0.5">
+                        {p.priceDisplay ? p.priceDisplay : formatPrice(p.price)}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </Collapsible>
+      </div>
+
+      <div className="rounded-2xl border border-brand-border divide-y divide-brand-border overflow-hidden">
+        <p className="px-4 pt-3 pb-1 text-[10px] font-bold text-brand-muted uppercase tracking-wider">
+          {t('profileDrawer.menu_title')}
+        </p>
+        {role === 'admin' && (
           <button
             type="button"
-            onClick={() => { onClose(); navigate('/admin') }}
-            className="w-full flex items-center gap-3 py-3 px-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] rounded-xl transition-colors"
+            onClick={() => handleNavigate('/admin')}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary">
-              <rect x="3" y="3" width="7" height="7" />
-              <rect x="14" y="3" width="7" height="7" />
-              <rect x="14" y="14" width="7" height="7" />
-              <rect x="3" y="14" width="7" height="7" />
-            </svg>
+            <LayoutDashboard size={18} className="text-brand-primary shrink-0" />
             Dashboard Admin
           </button>
-        </section>
-      )}
-
-      <section>
+        )}
         <button
           type="button"
-          onClick={() => { onClose(); navigate('/my-listings') }}
-          className="w-full flex items-center gap-3 py-3 px-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] rounded-xl transition-colors"
+          onClick={() => handleNavigate('/my-listings')}
+          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-primary">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
+          <Home size={18} className="text-brand-primary shrink-0" />
           Iklan Saya
         </button>
-      </section>
-
-      <section>
         <button
           type="button"
           disabled={loggingOut}
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
         >
-          {loggingOut ? <SpinnerIcon /> : <LogOutIcon />}
+          {loggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
           {loggingOut ? t('profileDrawer.logging_out') : t('profileDrawer.log_out')}
         </button>
-      </section>
+      </div>
     </SlideOver>
   )
 }
