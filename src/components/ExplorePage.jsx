@@ -96,6 +96,7 @@ export default function ExplorePage() {
   const [filterPrice, setFilterPrice] = useState('')
   const [filterType, setFilterType] = useState('')
   const [filterBeds, setFilterBeds] = useState('')
+  const [searchText, setSearchText] = useState('')
   const [sortIndex, setSortIndex] = useState(0)
   const [searchCategory, setSearchCategory] = useState('dijual')
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false)
@@ -267,9 +268,13 @@ export default function ExplorePage() {
     setIsSmartSearching(false)
   }
 
-  function resetSmartSearch() {
+  function resetAllSearch() {
     isAiSearchRef.current = false
     setSmartSearchText('')
+    setSearchText('')
+    setFilterType('')
+    setFilterPrice('')
+    setFilterBeds('')
     setProperties([])
     fetchProperties().catch(() => {})
     smartSearchInputRef.current?.focus()
@@ -284,13 +289,41 @@ export default function ExplorePage() {
     setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
   }
 
+  const filterCount = [filterType, filterPrice, filterBeds].filter(Boolean).length
+  const hasActiveSearch = searchText.trim() !== '' || filterCount > 0
+
   const sorted = [...properties].filter((p) => {
-    if (searchCategory === 'dijual') return p.category === 'Dijual'
-    if (searchCategory === 'disewa') return p.category === 'Disewa'
+    if (searchCategory === 'dijual' && p.category !== 'Dijual') return false
+    if (searchCategory === 'disewa' && p.category !== 'Disewa') return false
     if (searchCategory === 'baru') {
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-      return new Date(p.created_at).getTime() > weekAgo
+      if (new Date(p.created_at).getTime() <= weekAgo) return false
     }
+
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase()
+      const haystack = [p.title, p.address, p.location, p.city, p.district, p.description_id]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (!haystack.includes(q)) return false
+    }
+
+    if (filterType && p.property_type !== filterType) return false
+
+    if (filterBeds) {
+      const beds = Number(p.bedrooms) || 0
+      const match = filterBeds === '5+' ? beds >= 5 : beds === parseInt(filterBeds, 10)
+      if (!match) return false
+    }
+
+    if (filterPrice) {
+      const price = Number(p.price) || 0
+      if (filterPrice === '0-1M' && price >= 1_000_000_000) return false
+      if (filterPrice === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false
+      if (filterPrice === '3M+' && price <= 3_000_000_000) return false
+    }
+
     return true
   }).sort((a, b) => {
     if (sortIndex === 1) return (Number(a.price) || 0) - (Number(b.price) || 0)
@@ -298,10 +331,10 @@ export default function ExplorePage() {
     return 0
   })
 
-  const hasAiSearchResults = isAiSearchRef.current && sorted.length > 0
-  const isAiSearchEmpty = isAiSearchRef.current && sorted.length === 0
-  const displayRecommendations = sorted.length > 0 ? sorted.slice(0, 4) : DUMMY_PROPERTIES.slice(0, 4)
-  const displayListings = sorted.length > 0 ? sorted : (isAiSearchRef.current ? [] : DUMMY_PROPERTIES)
+  const isSearching = hasActiveSearch || isAiSearchRef.current
+  const isSearchEmpty = isSearching && sorted.length === 0
+  const displayRecommendations = sorted.length > 0 ? sorted.slice(0, 4) : (isSearching ? [] : DUMMY_PROPERTIES.slice(0, 4))
+  const displayListings = sorted.length > 0 ? sorted : (isSearching ? [] : DUMMY_PROPERTIES)
 
   const translationRef = useRef({})
   const lang = i18n.language
@@ -381,6 +414,8 @@ export default function ExplorePage() {
               </span>
               <input
                 type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
                 placeholder={
                   searchCategory === 'dijual'
                     ? t('explore.search.placeholder_sale')
@@ -391,12 +426,28 @@ export default function ExplorePage() {
                 aria-label={t('explore.search.aria_label')}
                 className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
               />
+              {searchText.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchText(''); smartSearchInputRef.current?.focus() }}
+                  className="shrink-0 text-brand-muted/60 hover:text-brand-text transition-colors p-1"
+                  aria-label="Hapus pencarian"
+                >
+                  <XCircle size={16} />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowFilter(true)}
-                className="text-brand-muted hover:text-[#4A90E2] transition-colors shrink-0"
+                className="relative text-brand-muted hover:text-[#4A90E2] transition-colors shrink-0"
+                aria-label={t('explore.filter.title')}
               >
                 <FilterIcon />
+                {filterCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#4A90E2] text-white text-[10px] font-bold flex items-center justify-center">
+                    {filterCount}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -473,6 +524,7 @@ export default function ExplorePage() {
       </section>
 
       {/* ─── REKOMENDASI SESUAI PENCARIANMU ─── */}
+      {displayRecommendations.length > 0 && (
       <section className="max-w-7xl mx-auto px-4 mt-8 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-brand-text">
@@ -529,6 +581,7 @@ export default function ExplorePage() {
           ))}
         </div>
       </section>
+      )}
 
       {/* ─── PENCARIAN PROPERTI POPULER ─── */}
       <section className="max-w-7xl mx-auto px-4 mb-8">
@@ -588,9 +641,14 @@ export default function ExplorePage() {
             <button
               type="button"
               onClick={() => setShowFilter(true)}
-              className="text-sm font-semibold text-[#4A90E2] hover:text-brand-primary transition-colors"
+              className="relative text-sm font-semibold text-[#4A90E2] hover:text-brand-primary transition-colors"
             >
               {t('explore.all_properties.filter')}
+              {filterCount > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 w-4 h-4 rounded-full bg-[#4A90E2] text-white text-[10px] font-bold flex items-center justify-center">
+                  {filterCount}
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -603,7 +661,7 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {isAiSearchEmpty ? (
+        {isSearchEmpty ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center mb-4">
               <Sparkles size={32} className="text-brand-muted/40" />
@@ -612,11 +670,11 @@ export default function ExplorePage() {
               Properti dengan kriteria tersebut belum ditemukan
             </p>
             <p className="text-sm text-brand-muted mb-6 max-w-xs">
-              Coba ubah kata kunci pencarian atau gunakan kata yang lebih umum.
+              Coba ubah kata kunci pencarian, filter, atau gunakan kata yang lebih umum.
             </p>
             <button
               type="button"
-              onClick={resetSmartSearch}
+              onClick={resetAllSearch}
               className="px-6 py-3 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all duration-200"
             >
               Reset Pencarian
@@ -727,7 +785,6 @@ export default function ExplorePage() {
                     setFilterPrice('')
                     setFilterType('')
                     setFilterBeds('')
-                    fetchProperties()
                   }}
                   className="text-sm text-brand-muted hover:text-brand-text transition-colors"
                 >
@@ -812,10 +869,7 @@ export default function ExplorePage() {
 
               <button
                 type="button"
-                onClick={() => {
-                  fetchProperties({ type: filterType, beds: filterBeds, price: filterPrice })
-                  setShowFilter(false)
-                }}
+                onClick={() => setShowFilter(false)}
                 className="w-full bg-[#1E3A5F] text-white rounded-xl py-3 font-bold text-sm mt-2 hover:bg-[#284D7A] active:scale-[0.98] transition-transform"
               >
                 {t('explore.filter.apply')}
