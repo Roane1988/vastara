@@ -2,7 +2,30 @@
   "navbar": {
     "sell_property": "Jual Properti",
     "language": "Bahasa",
-    "login": "Masuk"
+    "login": "Masuk",
+    "open_menu": "Buka Menu"
+  },
+  "common": {
+    "close": "Tutup"
+  },
+  "hamburger": {
+    "menu": "Menu",
+    "login": "Masuk",
+    "admin_label": "Admin",
+    "buyer_label": "Pembeli",
+    "general": "Umum",
+    "main_menu": "Menu Utama",
+    "settings": "Pengaturan",
+    "saved": "Properti Tersimpan",
+    "saved_title": "Properti Tersimpan",
+    "saved_empty": "Belum ada properti disimpan",
+    "explore": "Eksplor",
+    "chat": "Chat",
+    "admin": "Dashboard",
+    "log_out": "Keluar",
+    "logging_out": "Keluar...",
+    "back": "Kembali",
+    "sell_property": "Jual Properti"
   },
   "explore": {
     "hero": {

@@ -1,46 +1,19 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
-import { supabase } from '../supabaseClient'
-import { getFavorites } from '../utils/favorites'
-import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
-import { formatPrice } from '../utils/format'
-
-function XIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  )
-}
-
-function ArrowLeftIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="19" y1="12" x2="5" y2="12" />
-      <polyline points="12 19 5 12 12 5" />
-    </svg>
-  )
-}
-
-function LogOutIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  )
-}
-
-function BookmarkIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-    </svg>
-  )
-}
+import { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { motion } from 'framer-motion'
+import {
+  ArrowLeft,
+  Bookmark,
+  LayoutGrid,
+  LogOut,
+  MessageCircle,
+  Plus,
+  Search,
+} from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import SlideOver from './SlideOver'
+import SavedPropertiesList from './SavedPropertiesList'
 
 function MenuItem({ icon, label, onClick, active, destructive }) {
   return (
@@ -62,41 +35,7 @@ function MenuItem({ icon, label, onClick, active, destructive }) {
 }
 
 function SavedDrawer({ onBack }) {
-  const navigate = useNavigate()
-  const [properties, setProperties] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    const favIds = getFavorites()
-    if (favIds.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (!cancelled) setLoading(false)
-      return
-    }
-    async function fetchProperties() {
-      if (!cancelled) setLoading(true)
-      try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .in('id', favIds)
-        if (!cancelled) {
-          if (error) {
-            setProperties([])
-          } else if (data) {
-            setProperties(data)
-          }
-          setLoading(false)
-        }
-      } catch {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    fetchProperties()
-    return () => { cancelled = true }
-  }, [])
-
+  const { t } = useTranslation()
   return (
     <motion.div
       initial={{ x: '100%' }}
@@ -109,51 +48,15 @@ function SavedDrawer({ onBack }) {
         <button
           type="button"
           onClick={onBack}
+          aria-label={t('hamburger.back')}
           className="p-1 -ml-1 rounded-lg text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
         >
-          <ArrowLeftIcon />
+          <ArrowLeft size={20} />
         </button>
-        <span className="text-sm font-semibold text-brand-text">Properti Disimpan</span>
+        <span className="text-sm font-semibold text-brand-text">{t('hamburger.saved_title')}</span>
       </div>
-
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : properties.length === 0 ? (
-          <p className="text-sm text-brand-muted text-center py-12">Belum ada properti disimpan</p>
-        ) : (
-          <div className="space-y-3">
-            {properties.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => {
-                  onBack()
-                  navigate(`/property/${p.id}`)
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-brand-bg transition-colors text-left"
-              >
-                <div className="w-14 h-14 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
-                  {p.image_url ? (
-                    <img src={getImageSrc(p.image_url)} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-brand-text truncate">{p.title}</p>
-                  <p className="text-xs text-brand-muted mt-0.5">{formatPrice(p.price)}</p>
-                  {(p.address || p.location) && (
-                    <p className="text-[11px] text-brand-muted mt-0.5 truncate">{p.address || p.location}</p>
-                  )}
-                </div>
-                <BookmarkIcon />
-              </button>
-            ))}
-          </div>
-        )}
+        <SavedPropertiesList emptyText={t('hamburger.saved_empty')} showAddress />
       </div>
     </motion.div>
   )
@@ -161,28 +64,13 @@ function SavedDrawer({ onBack }) {
 
 export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onProfileOpen, onLogout }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const { t } = useTranslation()
+  const { role } = useAuth()
   const [loggingOut, setLoggingOut] = useState(false)
   const [savedOpen, setSavedOpen] = useState(false)
-  const [role, setRole] = useState('')
 
-  useEffect(() => {
-    if (!isOpen || !isAuth) return
-    let cancelled = false
-    ;(async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!cancelled && user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-          if (!cancelled && profile?.role) setRole(profile.role)
-        }
-      } catch { /* ignore */ }
-    })()
-    return () => { cancelled = true }
-  }, [isOpen, isAuth])
+  const initial = userName?.charAt(0)?.toUpperCase() || 'U'
 
   const handleNavigate = (path) => {
     onClose()
@@ -196,167 +84,119 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
 
   const handleLogout = async () => {
     setLoggingOut(true)
-    onLogout?.()
-    onClose()
+    try {
+      await onLogout?.()
+    } finally {
+      onClose()
+    }
   }
 
-  const initial = userName?.charAt(0)?.toUpperCase() || 'U'
+  const exploreActive = pathname === '/' || pathname === '/explore'
+  const chatActive = pathname === '/chat'
+  const adminActive = pathname === '/admin'
+
+  const menuContent = (
+    <div className="px-4 py-5 space-y-6">
+      {isAuth ? (
+        <button
+          type="button"
+          onClick={handleProfile}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-bg border border-brand-border cursor-pointer transition-colors hover:bg-gray-100 active:bg-gray-200 text-left"
+        >
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0">
+            {initial}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-brand-text truncate">{userName}</p>
+            <p className={`text-xs font-semibold ${role === 'admin' ? 'text-brand-accent' : 'text-brand-muted'}`}>
+              {role === 'admin' ? t('hamburger.admin_label') : t('hamburger.buyer_label')}
+            </p>
+          </div>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => handleNavigate('/login')}
+          className="w-full py-3 rounded-xl bg-brand-primary hover:brightness-90 active:scale-[0.97] text-white text-sm font-bold transition-all duration-200 shadow-sm"
+        >
+          {t('hamburger.login')}
+        </button>
+      )}
+
+      <div>
+        <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">{t('hamburger.general')}</p>
+        <div className="space-y-0.5">
+          <MenuItem
+            icon={<Bookmark size={18} />}
+            label={t('hamburger.saved')}
+            onClick={() => setSavedOpen(true)}
+          />
+        </div>
+      </div>
+
+      <div className="border-t border-brand-border pt-4">
+        <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">{t('hamburger.main_menu')}</p>
+        <div className="space-y-0.5">
+          <MenuItem
+            icon={<Search size={18} />}
+            label={t('hamburger.explore')}
+            active={exploreActive}
+            onClick={() => handleNavigate('/')}
+          />
+          <MenuItem
+            icon={<MessageCircle size={18} />}
+            label={t('hamburger.chat')}
+            active={chatActive}
+            onClick={() => handleNavigate('/chat')}
+          />
+          {role === 'admin' && (
+            <MenuItem
+              icon={<LayoutGrid size={18} />}
+              label={t('hamburger.admin')}
+              active={adminActive}
+              onClick={() => handleNavigate('/admin')}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="border-t border-brand-border pt-4">
+        <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">{t('hamburger.settings')}</p>
+        <div className="space-y-0.5">
+          {isAuth && (
+            <MenuItem
+              icon={<LogOut size={18} />}
+              label={loggingOut ? t('hamburger.logging_out') : t('hamburger.log_out')}
+              destructive
+              onClick={handleLogout}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  )
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
-          />
-
-          <motion.aside
-            key="drawer"
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 w-full max-w-sm z-[70] bg-brand-surface flex flex-col shadow-xl border-l border-brand-border"
+    <SlideOver
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t('hamburger.menu')}
+      footer={
+        <div className="sm:hidden">
+          <button
+            type="button"
+            onClick={() => handleNavigate(isAuth ? '/sell' : '/login')}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-primary hover:brightness-90 active:scale-[0.97] text-white text-sm font-bold transition-all duration-200 shadow-sm"
           >
-            <div className="flex items-center justify-between px-5 h-14 border-b border-brand-border">
-              <span className="text-sm font-semibold text-brand-muted uppercase tracking-wider">Menu</span>
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 rounded-lg text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
-              >
-                <XIcon />
-              </button>
-            </div>
-
-            <div className="relative flex-1 overflow-hidden">
-              {savedOpen ? (
-                <SavedDrawer onBack={() => setSavedOpen(false)} />
-              ) : (
-                <div className="absolute inset-0 overflow-y-auto px-4 py-5 space-y-6">
-                  {isAuth ? (
-                    <button
-                      type="button"
-                      onClick={handleProfile}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-bg border border-brand-border cursor-pointer transition-colors hover:bg-gray-100 active:bg-gray-200 text-left"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0">
-                        {initial}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-brand-text truncate">{userName}</p>
-                        <p className={`text-xs font-semibold ${role === 'admin' ? 'text-brand-accent' : 'text-brand-muted'}`}>
-                          {role === 'admin' ? 'Admin Internal' : 'Pembeli'}
-                        </p>
-                      </div>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleNavigate('/login')}
-                      className="w-full py-3 rounded-xl bg-brand-primary hover:brightness-90 active:scale-[0.97] text-white text-sm font-bold transition-all duration-200 shadow-sm"
-                    >
-                      Login / Register
-                    </button>
-                  )}
-
-                  <div>
-                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">Umum</p>
-                    <div className="space-y-0.5">
-                      <MenuItem
-                        icon={
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                          </svg>
-                        }
-                        label="Tersimpan"
-                        onClick={() => setSavedOpen(true)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="border-t border-brand-border pt-4">
-                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">Menu Utama</p>
-                    <div className="space-y-0.5">
-                      <MenuItem
-                        icon={
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="11" cy="11" r="8" />
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                          </svg>
-                        }
-                        label="Eksplor"
-                        active
-                        onClick={() => handleNavigate('/')}
-                      />
-                      <MenuItem
-                        icon={
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                          </svg>
-                        }
-                        label="Chat"
-                        onClick={() => handleNavigate('/chat')}
-                      />
-                      {role === 'admin' && (
-                        <MenuItem
-                          icon={
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="3" y="3" width="7" height="7" />
-                              <rect x="14" y="3" width="7" height="7" />
-                              <rect x="14" y="14" width="7" height="7" />
-                              <rect x="3" y="14" width="7" height="7" />
-                            </svg>
-                          }
-                          label="Dashboard Admin"
-                          onClick={() => handleNavigate('/admin')}
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="border-t border-brand-border pt-4">
-                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wider px-4 mb-2">Pengaturan</p>
-                    <div className="space-y-0.5">
-                      {isAuth && (
-                        <MenuItem
-                          icon={<LogOutIcon />}
-                          label={loggingOut ? 'Logging out...' : 'Log Out'}
-                          destructive
-                          onClick={handleLogout}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="px-5 py-4 border-t border-brand-border">
-              <button
-                type="button"
-                onClick={() => {
-                  onClose()
-                  navigate('/sell')
-                }}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-primary hover:brightness-90 active:scale-[0.97] text-white text-sm font-bold transition-all duration-200 shadow-sm sm:hidden"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                Jual Properti
-              </button>
-            </div>
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
+            <Plus size={16} />
+            {t('hamburger.sell_property')}
+          </button>
+        </div>
+      }
+    >
+      <div className="relative h-full">
+        {savedOpen ? <SavedDrawer onBack={() => setSavedOpen(false)} /> : menuContent}
+      </div>
+    </SlideOver>
   )
 }

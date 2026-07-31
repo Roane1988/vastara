@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 function XIcon() {
   return (
@@ -30,11 +31,14 @@ export default function SlideOver({
   children,
 }) {
   const panelRef = useRef(null)
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (!isOpen) return
     const previousFocus = document.activeElement
+    const previousOverflow = document.body.style.overflow
     panelRef.current?.focus()
+    document.body.style.overflow = 'hidden'
 
     function handleKeyDown(e) {
       if (e.key === 'Escape') {
@@ -60,6 +64,7 @@ export default function SlideOver({
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
       if (previousFocus instanceof HTMLElement) previousFocus.focus()
     }
   }, [isOpen, onClose])
@@ -100,7 +105,7 @@ export default function SlideOver({
                 <button
                   type="button"
                   onClick={onClose}
-                  aria-label="Tutup"
+                  aria-label={t('common.close')}
                   className="p-1 text-brand-muted hover:text-brand-text transition-colors"
                 >
                   <XIcon />

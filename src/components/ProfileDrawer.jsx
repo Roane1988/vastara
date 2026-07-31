@@ -17,12 +17,9 @@ import {
   Wallet,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
-import { getFavorites } from '../utils/favorites'
-import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
-import { formatPrice } from '../utils/format'
-import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import FinancialProfileForm from './FinancialProfileForm'
 import SlideOver from './SlideOver'
+import SavedPropertiesList from './SavedPropertiesList'
 
 const inputClass =
   'w-full border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted'
@@ -68,7 +65,6 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   const [currentEmail, setCurrentEmail] = useState('')
-  const [savedProperties, setSavedProperties] = useState([])
   const [role, setRole] = useState('')
   const [dirty, setDirty] = useState(false)
 
@@ -81,37 +77,6 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const notify = useCallback((message, type) => {
     setNotification({ show: true, message, type })
   }, [])
-
-  useEffect(() => {
-    if (!isOpen) return
-    let cancelled = false
-    const favIds = getFavorites()
-    if (favIds.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSavedProperties([])
-      return
-    }
-    ;(async () => {
-      try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('id, title, price, image_url')
-          .in('id', favIds)
-        if (!cancelled) {
-          if (error) {
-            setSavedProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
-          } else if (data) {
-            setSavedProperties(data)
-          } else {
-            setSavedProperties([])
-          }
-        }
-      } catch {
-        if (!cancelled) setSavedProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
-      }
-    })()
-    return () => { cancelled = true }
-  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -464,44 +429,12 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
         <Collapsible title={t('profileDrawer.section_saved')} icon={<Heart size={16} />}>
           <div className="px-4 pb-4">
-            {savedProperties.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-brand-muted mb-3">{t('profileDrawer.no_saved')}</p>
-                <button
-                  type="button"
-                  onClick={() => handleNavigate('/')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold hover:brightness-90 transition-all"
-                >
-                  <Home size={13} />
-                  {t('profileDrawer.saved_empty_cta')}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {savedProperties.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => handleNavigate(`/property/${p.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-brand-bg transition-colors text-left"
-                  >
-                    <div className="w-12 h-12 rounded-lg bg-brand-bg flex-shrink-0 overflow-hidden">
-                      {p.image_url ? (
-                        <img src={getImageSrc(p.image_url)} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-brand-muted">img</div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-brand-text truncate">{p.title}</p>
-                      <p className="text-xs text-brand-muted mt-0.5">
-                        {p.priceDisplay ? p.priceDisplay : formatPrice(p.price)}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+            <SavedPropertiesList
+              emptyText={t('profileDrawer.no_saved')}
+              emptyCtaLabel={t('profileDrawer.saved_empty_cta')}
+              onEmptyCta={() => handleNavigate('/')}
+              onItemClick={handleNavigate}
+            />
           </div>
         </Collapsible>
       </div>

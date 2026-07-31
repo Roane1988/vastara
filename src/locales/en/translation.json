@@ -2,7 +2,30 @@
   "navbar": {
     "sell_property": "Sell Property",
     "language": "Language",
-    "login": "Login"
+    "login": "Login",
+    "open_menu": "Open Menu"
+  },
+  "common": {
+    "close": "Close"
+  },
+  "hamburger": {
+    "menu": "Menu",
+    "login": "Login",
+    "admin_label": "Admin",
+    "buyer_label": "Buyer",
+    "general": "General",
+    "main_menu": "Main Menu",
+    "settings": "Settings",
+    "saved": "Saved Properties",
+    "saved_title": "Saved Properties",
+    "saved_empty": "No saved properties yet",
+    "explore": "Explore",
+    "chat": "Chat",
+    "admin": "Dashboard",
+    "log_out": "Log Out",
+    "logging_out": "Logging out...",
+    "back": "Back",
+    "sell_property": "Sell Property"
   },
   "explore": {
     "hero": {

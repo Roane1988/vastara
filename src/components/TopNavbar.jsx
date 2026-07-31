@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../context/AuthContext'
 
 const HamburgerMenu = lazy(() => import('./HamburgerMenu'))
 
@@ -37,6 +38,7 @@ const LANGUAGES = [
 
 export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout }) {
   const { t, i18n } = useTranslation()
+  const { role } = useAuth()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const langRef = useRef(null)
@@ -116,19 +118,21 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => navigate('/admin')}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors text-sm font-medium"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-              </svg>
-              Dashboard
-            </button>
+            {role === 'admin' && (
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors text-sm font-medium"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                </svg>
+                Dashboard
+              </button>
+            )}
             <button
               type="button"
               onClick={() => navigate('/sell')}
@@ -145,7 +149,7 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
               type="button"
               onClick={() => setDrawerOpen(true)}
               className="p-2 rounded-xl text-brand-muted hover:bg-brand-bg transition-colors"
-              aria-label={t('navbar.language')}
+              aria-label={t('navbar.open_menu')}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="3" y1="6" x2="21" y2="6" />
