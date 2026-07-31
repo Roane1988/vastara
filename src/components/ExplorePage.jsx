@@ -250,7 +250,14 @@ export default function ExplorePage() {
       if (!rawContent) throw new Error('AI tidak mengembalikan data')
 
       const cleaned = rawContent.replace(/```json/g, '').replace(/```/g, '').trim()
-      const parsed = JSON.parse(cleaned)
+      let parsed
+      try {
+        parsed = JSON.parse(cleaned)
+      } catch {
+        if (cancelledRef.current) return
+        showToast('Maaf, AI gagal merangkai format data dengan utuh karena antrean panjang. Silakan coba pencarian sekali lagi.', 'error')
+        return
+      }
 
       if (cancelledRef.current) return
 

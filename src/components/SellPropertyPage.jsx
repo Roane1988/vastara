@@ -315,7 +315,8 @@ export default function SellPropertyPage() {
       }
       const content = data?.choices?.[0]?.message?.content
       if (content) {
-        updateFormValue('description', content)
+        const clean = String(content).replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '').trim()
+        updateFormValue('description', clean || content)
       } else {
         showToast('Respon AI kosong. Coba lagi.', 'error')
       }
