@@ -57,6 +57,7 @@ const SYSTEM_PROMPTS = {
       'comparableCount (number, how many comparables were used, 0 if none), ' +
       'and verdict (string, short 2-3 sentence financial assessment in Indonesian). ' +
       'When comparables are provided, base monthlyRentalEstimate, estimatedRentalYield and pricePerSqm on the actual comparable data, not generic assumptions. ' +
+      'When a buyer financial profile (income, commitments, budget, purchase goal) is provided, factor it into the verdict: note whether the price fits the buyer\'s budget/affordability and whether the property suits their purchase goal; otherwise keep the assessment generic. ' +
       'Do not include markdown formatting, backticks, or conversational text.',
   },
 }
@@ -187,6 +188,14 @@ export default async function handler(req, res) {
           `${i + 1}. ${c.title || '-'} — Rp ${(c.price || 0).toLocaleString('id-ID')}, ${c.category || '-'}, ${c.property_type || '-'}, ${c.city || '-'}, ${c.district || '-'}, ${c.bedrooms || '-'} KT/${c.bathrooms || '-'} KM, ${c.area_sqm || '-'} m², ${c.certificate_status || '-'}`
         )
       })
+    }
+    const f = req.body.financialProfile
+    if (f && typeof f === 'object') {
+      lines.push('Buyer financial profile:')
+      lines.push(`- Monthly income: Rp ${(f.monthlyIncome || 0).toLocaleString('id-ID')}`)
+      lines.push(`- Monthly commitments: Rp ${(f.monthlyCommitments || 0).toLocaleString('id-ID')}`)
+      lines.push(`- Monthly budget for installment: Rp ${(f.monthlyBudget || 0).toLocaleString('id-ID')}`)
+      lines.push(`- Purchase goal: ${f.purchaseGoal || '-'}`)
     }
     safeMessages = [systemPrompt, { role: 'user', content: lines.join('\n') }]
     clientMessages = []

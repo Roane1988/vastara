@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { formatCurrency } from '../utils/format'
+import { getFinancialProfile } from '../utils/financialProfile'
 
 const ALLOWED_MODEL = 'llama-3.3-70b-versatile'
 
@@ -201,7 +202,10 @@ export default function InvestmentAnalyzer({ property }) {
     setAnalysis(null)
 
     try {
-      const comparables = await fetchComparables(property)
+      const [comparables, { profile }] = await Promise.all([
+        fetchComparables(property),
+        getFinancialProfile().catch(() => ({ profile: null })),
+      ])
       if (cancelledRef.current) return
 
       const payload = {
@@ -223,6 +227,14 @@ export default function InvestmentAnalyzer({ property }) {
           description: property?.description_id || property?.description || '',
           comparables,
         },
+        financialProfile: profile
+          ? {
+              monthlyIncome: profile.monthly_income || 0,
+              monthlyCommitments: profile.monthly_commitments || 0,
+              monthlyBudget: profile.monthly_budget || 0,
+              purchaseGoal: profile.purchase_goal || '',
+            }
+          : null,
       }
 
       const res = await fetch('/api/groq', {
