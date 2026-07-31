@@ -257,8 +257,9 @@ export default defineConfig(({ mode }) => {
                       body: JSON.stringify({
                         model,
                         messages: safeMessages,
-                        max_tokens: purpose === 'translation' ? 1200 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 1200 : 768,
+                        max_tokens: purpose === 'translation' ? 1200 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 3000 : 768,
                         temperature: purpose === 'translation' ? 0.3 : purpose === 'smart_search' ? 0.1 : purpose === 'investment' ? 0.2 : 0.7,
+                        ...(purpose === 'investment' ? { response_format: { type: 'json_object' } } : {}),
                       }),
                     })
 

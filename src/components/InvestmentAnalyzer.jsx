@@ -319,7 +319,14 @@ export default function InvestmentAnalyzer({ property }) {
         return
       }
 
-      const parsed = JSON.parse(cleanJson(rawContent))
+      let parsed
+      try {
+        parsed = JSON.parse(cleanJson(rawContent))
+      } catch {
+        if (cancelledRef.current) return
+        setError('Maaf, AI gagal merangkai format data dengan utuh karena antrean panjang. Silakan klik tombol analisis sekali lagi.')
+        return
+      }
       if (cancelledRef.current) return
       setAnalysis({ ...parsed, personalized: !!profile })
       cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
