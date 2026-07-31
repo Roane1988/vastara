@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { LRUCache } from 'lru-cache'
+import { createClient } from '@supabase/supabase-js'
 
 const MODEL_CHAINS = {
   chat: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'],
@@ -17,59 +18,55 @@ const MAX_SESSION_MESSAGES = 50
 const SESSION_WINDOW_MS = 3_600_000
 const AUDIT_LOG_MAX = 1000
 const PROFILE_CONTEXT_PREFIX = 'HUNIONE_PROFILE:'
+const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
+const CACHE_VERSION = 1
 
 const SYSTEM_PROMPTS = {
   chat: {
     role: 'system',
     content:
-      'Kamu adalah HuniBot, asisten virtual platform properti HuniOne. ' +
-      'Jawablah setiap pertanyaan pengguna dengan ramah, profesional, sangat ringkas, ' +
-      'padat, dan langsung ke intinya (maksimal 2-3 paragraf pendek). ' +
-      'Tugasmu HANYA menjawab pertanyaan seputar properti, KPR, investasi real estate, ' +
-      'dan hukum jual-beli tanah di Indonesia. Jika user bertanya di luar topik tersebut, ' +
-      'tolak dengan halus dan arahkan kembali ke topik properti.',
+      'Kamu HuniBot, asisten virtual properti HuniOne. ' +
+      'Jawab ringkas, padat, ramah dalam Bahasa Indonesia, maksimal 2-3 paragraf pendek. ' +
+      'Hanya melayani topik properti, KPR, investasi real estate, dan hukum jual-beli tanah di Indonesia; ' +
+      'di luar itu tolak halus lalu arahkan kembali ke topik properti.',
   },
   translation: {
     role: 'system',
     content:
-      'You are a professional Indonesian-to-English translator for a property platform. ' +
-      'Translate the following Indonesian property fields to English. ' +
-      'Keep it natural and accurate for real estate context. ' +
-      'Return ONLY a valid JSON object with the same keys. No explanation, no markdown.',
+      'You are an id-to-en property translator. ' +
+      'Translate Indonesian property fields to natural, accurate real estate English. ' +
+      'Reply with ONLY a valid JSON object preserving the same keys. No explanation, no markdown.',
   },
   smart_search: {
     role: 'system',
     content:
-      'You are an AI that extracts property search parameters from natural language. ' +
-      'Extract the following fields: city (string or null), category (string: "Dijual" or "Disewa" or null), ' +
-      'propertyType (string: "Rumah", "Apartemen", "Tanah", etc., or null), maxPrice (number or null), ' +
-      'minPrice (number or null), bedrooms (number or null), bathrooms (number or null), ' +
-      'keyword (string for general description or null). ' +
-      'Price units: "M"/"Miliar"/"Milyar" = 1,000,000,000; "Jt"/"Juta" = 1,000,000; "Ribu" = 1,000. ' +
-      'Always return maxPrice/minPrice as the full numeric value in Rupiah. ' +
-      'Respond ONLY with a valid, raw JSON object. Do not include markdown formatting, backticks, or any conversational text.',
+      'Extract property search parameters from Indonesian natural language into a raw JSON object: ' +
+      'city, category ("Dijual" or "Disewa"), propertyType, maxPrice, minPrice, bedrooms, bathrooms, keyword — ' +
+      'each a string, number, or null. ' +
+      'Prices: "M"/"Miliar" = 1,000,000,000; "Jt"/"Juta" = 1,000,000; "Ribu" = 1,000; always output full Rupiah numbers. ' +
+      'Reply ONLY with valid raw JSON, no markdown, no backticks, no extra text.',
   },
   investment: {
     role: 'system',
     content:
-      'You are an expert real estate financial analyst in Indonesia. ' +
-      'Given the full property details (price, category, type, location, rooms, area, certificate, description) ' +
-      'and optional market comparables, analyze its investment potential thoroughly. ' +
-      'Respond ONLY with a valid, raw JSON object containing these keys: ' +
+      'Expert real estate financial analyst (Indonesia). ' +
+      'Input: property essentials, optional market comparables, optional buyer financial profile, optional investment preferences. ' +
+      'Reply ONLY with a valid raw JSON object (no markdown, no backticks) with exactly these keys: ' +
       'estimatedRentalYield (string, e.g. "5.5% - 7%"), ' +
-      'monthlyRentalEstimate (number, estimated market rent in IDR), ' +
-      'targetMarket (string, e.g. "Keluarga muda / Profesional"), ' +
-      'appreciationPotential (string, e.g. "Tinggi karena dekat area komersial"), ' +
-      'pricePerSqm (number, price per m² in IDR), ' +
-      'breakEvenYears (number, years to pay back the price via rental income), ' +
-      'riskLevel (string: "Rendah", "Sedang", or "Tinggi"), ' +
-      'comparableCount (number, how many comparables were used, 0 if none), ' +
-      'goalFitScores (object with keys: affordability, yield, appreciation, risk, overall; each an integer 0-100 where HIGHER is a better fit for this specific buyer; risk=100 means the risk is very low/well-controlled and aligns with the buyer\'s horizon; base these on the buyer financial profile and investment preferences), ' +
-      'and verdict (string, short 2-3 sentence financial assessment in Indonesian, tailored to the specific buyer). ' +
-      'When comparables are provided, base monthlyRentalEstimate, estimatedRentalYield and pricePerSqm on the actual comparable data, not generic assumptions. ' +
-      'When a buyer financial profile (income, commitments, budget, purchase goal) is provided, factor it into the verdict: note whether the price fits the buyer\'s budget/affordability and whether the property suits their purchase goal; otherwise keep the assessment generic. ' +
-      'When investment preferences (targetYield %, horizonYears, intent) are provided, grade the property against them: state in the verdict whether the estimatedRentalYield meets the buyer target yield and whether the break-even timeline fits the horizon; use intent ("rent" = prioritize rental yield, "resale" = prioritize appreciation/appreciationPotential, "occupy" = prioritize affordability and suitability to live in). Keep goalFitScores consistent with the verdict and with the financial profile. ' +
-      'Do not include markdown formatting, backticks, or conversational text.',
+      'monthlyRentalEstimate (number, IDR rent/month), ' +
+      'targetMarket (string), ' +
+      'appreciationPotential (string), ' +
+      'pricePerSqm (number, IDR/m²), ' +
+      'breakEvenYears (number, years to recoup price from rent), ' +
+      'riskLevel ("Rendah" | "Sedang" | "Tinggi"), ' +
+      'comparableCount (number, 0 if none), ' +
+      'goalFitScores (object: affordability, yield, appreciation, risk, overall; each int 0-100, higher = better fit for this buyer; risk=100 means risk well-controlled within buyer horizon), ' +
+      'verdict (string, 2-3 Indonesian sentences). ' +
+      'Rules: anchor monthlyRentalEstimate, estimatedRentalYield, pricePerSqm on comparables when provided. ' +
+      'With a financial profile, judge price vs budget and purchase goal. ' +
+      'With preferences (targetYield %, horizonYears, intent): grade yield vs target and break-even vs horizon; ' +
+      'intent "rent" prioritizes yield, "resale" prioritizes appreciation, "occupy" prioritizes affordability/livability. ' +
+      'Keep goalFitScores consistent with the verdict.',
   },
 }
 
@@ -80,6 +77,29 @@ const auditLog = []
 function appendAudit(entry) {
   auditLog.push(entry)
   if (auditLog.length > AUDIT_LOG_MAX) auditLog.shift()
+}
+
+function createCacheClient(env) {
+  const url = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+  const key = env.SUPABASE_SERVICE_ROLE_KEY || env.VITE_SUPABASE_ANON_KEY
+  return url && key ? createClient(url, key) : null
+}
+
+function hashString(str) {
+  let h = 0
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0
+  }
+  return String(h >>> 0)
+}
+
+function computeCacheFingerprint(body) {
+  const f = body.financialProfile || {}
+  const g = body.investmentGoals || {}
+  return `${CACHE_VERSION}:${hashString(JSON.stringify([
+    f.monthlyIncome, f.monthlyCommitments, f.monthlyBudget, f.purchaseGoal,
+    g.targetYield, g.horizonYears, g.intent,
+  ]))}`
 }
 
 function getClientIP(req) {
@@ -139,6 +159,7 @@ function isValidBody(body) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  const cacheClient = createCacheClient(env)
 
   return {
     plugins: [
@@ -196,31 +217,54 @@ export default defineConfig(({ mode }) => {
                 const purpose = ['translation', 'smart_search', 'investment'].includes(parsed.purpose) ? parsed.purpose : 'chat'
                 const systemPrompt = SYSTEM_PROMPTS[purpose]
 
+                const cacheProperty = purpose === 'investment' ? parsed.property : null
+                const cacheFingerprint = cacheProperty ? computeCacheFingerprint(parsed) : ''
+
+                if (cacheProperty?.id && cacheClient) {
+                  try {
+                    const { data: cached } = await cacheClient
+                      .from('property_ai_analysis')
+                      .select('analysis_data, created_at')
+                      .eq('property_id', cacheProperty.id)
+                      .maybeSingle()
+                    if (cached?.analysis_data && cached.analysis_data.fp === cacheFingerprint) {
+                      const ageMs = Date.now() - new Date(cached.created_at).getTime()
+                      if (ageMs < CACHE_TTL_MS && cached.analysis_data.response?.choices?.[0]?.message?.content) {
+                        appendAudit({ time: Date.now(), ip, action: 'cache_hit', purpose })
+                        res.writeHead(200, { 'Content-Type': 'application/json' })
+                        res.end(JSON.stringify(cached.analysis_data.response))
+                        return
+                      }
+                    }
+                  } catch (err) {
+                    console.warn('Cache read failed:', err.message)
+                  }
+                }
+
                 let safeMessages
                 let clientMessages
                 if (purpose === 'investment') {
-                  const p = parsed.property
-                  const lines = [
-                    `Title: ${p.title || '-'}`,
-                    `Price: Rp ${(p.price || 0).toLocaleString('id-ID')}`,
-                    `Category: ${p.category || '-'}`,
-                    `Type: ${p.property_type || '-'}`,
-                    `City: ${p.city || '-'}`,
-                    `District: ${p.district || '-'}`,
-                    `Address: ${p.address || '-'}`,
-                    `Bedrooms: ${p.bedrooms || '-'}`,
-                    `Bathrooms: ${p.bathrooms || '-'}`,
-                    `Area: ${p.area_sqm || '-'} m²`,
-                    `Certificate: ${p.certificate_status || '-'}`,
-                    `Listed: ${p.created_at ? String(p.created_at).slice(0, 10) : '-'}`,
-                    `Description: ${p.description || '-'}`,
-                  ]
+                  const p = cacheProperty
+                  const lines = []
+                  if (p.price) lines.push(`Price: Rp ${p.price.toLocaleString('id-ID')}`)
+                  if (p.city) lines.push(`City: ${p.city}`)
+                  if (p.property_type) lines.push(`Type: ${p.property_type}`)
+                  if (p.bedrooms) lines.push(`Bedrooms: ${p.bedrooms}`)
+                  if (p.bathrooms) lines.push(`Bathrooms: ${p.bathrooms}`)
+                  if (p.area_sqm) lines.push(`Area: ${p.area_sqm} m²`)
+                  if (p.address) lines.push(`Address: ${p.address}`)
                   if (Array.isArray(p.comparables) && p.comparables.length > 0) {
                     lines.push('Market comparables:')
-                    p.comparables.forEach((c, i) => {
-                      lines.push(
-                        `${i + 1}. ${c.title || '-'} — Rp ${(c.price || 0).toLocaleString('id-ID')}, ${c.category || '-'}, ${c.property_type || '-'}, ${c.city || '-'}, ${c.district || '-'}, ${c.bedrooms || '-'} KT/${c.bathrooms || '-'} KM, ${c.area_sqm || '-'} m², ${c.certificate_status || '-'}`
-                      )
+                    p.comparables.slice(0, 5).forEach((c, i) => {
+                      const parts = []
+                      if (c.price) parts.push(`Rp ${c.price.toLocaleString('id-ID')}`)
+                      if (c.property_type) parts.push(c.property_type)
+                      if (c.city) parts.push(c.city)
+                      if (c.district) parts.push(c.district)
+                      if (c.bedrooms) parts.push(`${c.bedrooms} KT`)
+                      if (c.bathrooms) parts.push(`${c.bathrooms} KM`)
+                      if (c.area_sqm) parts.push(`${c.area_sqm} m²`)
+                      if (parts.length) lines.push(`${i + 1}. ${parts.join(', ')}`)
                     })
                   }
                   const f = parsed.financialProfile
@@ -230,6 +274,13 @@ export default defineConfig(({ mode }) => {
                     lines.push(`- Monthly commitments: Rp ${(f.monthlyCommitments || 0).toLocaleString('id-ID')}`)
                     lines.push(`- Monthly budget for installment: Rp ${(f.monthlyBudget || 0).toLocaleString('id-ID')}`)
                     lines.push(`- Purchase goal: ${f.purchaseGoal || '-'}`)
+                  }
+                  const g = parsed.investmentGoals
+                  if (g && typeof g === 'object') {
+                    lines.push('Investment preferences:')
+                    lines.push(`- Target rental yield: ${g.targetYield != null ? `${g.targetYield}%` : '-'}`)
+                    lines.push(`- Investment horizon: ${g.horizonYears || '-'} years`)
+                    lines.push(`- Intent: ${g.intent || '-'}`)
                   }
                   safeMessages = [systemPrompt, { role: 'user', content: lines.join('\n') }]
                   clientMessages = []
@@ -281,6 +332,19 @@ export default defineConfig(({ mode }) => {
                       totalChars: purpose === 'investment' ? 0 : clientMessages.reduce((s, m) => s + m.content.length, 0),
                       status: response.status, duration,
                     })
+
+                    if (cacheProperty?.id && cacheClient) {
+                      try {
+                        await cacheClient
+                          .from('property_ai_analysis')
+                          .upsert(
+                            { property_id: cacheProperty.id, analysis_data: { fp: cacheFingerprint, response: data }, created_at: new Date().toISOString() },
+                            { onConflict: 'property_id' }
+                          )
+                      } catch (err) {
+                        console.warn('Cache write failed:', err.message)
+                      }
+                    }
 
                     res.writeHead(response.status, { 'Content-Type': 'application/json' })
                     res.end(JSON.stringify(data))
