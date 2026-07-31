@@ -96,12 +96,15 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 - `address`, `city`, `district`, `certificate_status`
 - `bedrooms`, `bathrooms`, `area_sqm` (bukan `sqm`)
 - `image_url` (text — single URL or JSON.stringify([...]))
-- `seller_whatsapp`, `status` ('pending'/'verified'/'rejected'), `created_at`
+- `seller_whatsapp`, `status` ('pending'/'in_review'/'verified'/'rejected'/'sold'), `created_at`
+- **TIDAK ada kolom** `agent_id`, `is_verified`, `gmaps_link` — mekanisme status murni via kolom `status`; penjual via `seller_id`.
 - **Column naming**: `address` (bukan `location`), `area_sqm` (bukan `sqm`), `seller_whatsapp` (bukan `agent_whatsapp`), `description_id` (bukan `description`)
 
 ### Table `profiles`
-- `id` (uuid PK, references auth.users), `first_name`, `email`, `whatsapp`, `role`, `created_at`, `updated_at`
+- `id` (uuid PK, references auth.users), `first_name`, `email`, `whatsapp`, `role`, `created_at`
 - Role values: `pembeli`, `owner`, `agent`, `developer`, `admin`
+- **TIDAK ada kolom `updated_at`** (sudah dibuktikan bugfix: update payload tidak boleh menyertakan `updated_at`).
+- Catatan: **tidak ada tabel `agents` terpisah** — "agen" = baris `profiles` dengan `role` = agent/developer/admin.
 
 ### Table `saved_properties`
 - `id` (uuid PK), `user_id` (FK → profiles), `property_id` (FK → properties), `created_at`
@@ -126,6 +129,19 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 - `id` (uuid PK), `user_id` (FK → profiles), `target_id` (uuid — post or reply ID), `target_type` (text — 'post' or 'reply'), `created_at`
 - Unique constraint on `(user_id, target_id, target_type)`
 - RLS: select all, insert/delete only owner
+
+### Table `site_visits`
+- `id` (uuid PK), `property_id` (FK → properties), `buyer_id` (FK → profiles), `scheduled_date` (date), `scheduled_time` (time), `notes` (text, default ''), `status` (text, check: 'pending'/'confirmed'/'cancelled'/'completed'), `created_at`
+- RLS: user hanya bisa select/insert milik sendiri, dan update hanya ke status 'cancelled'.
+
+### Table `user_financial_profiles`
+- `id` (uuid PK), `user_id` (uuid, FK → **auth.users**, unique), `monthly_income`, `monthly_commitments`, `monthly_budget` (numeric), `purchase_goal` (check: 'rumah_pertama'/'huni'/'investasi'/'sewa'/'belum_tahu'), `created_at`, `updated_at`
+- RLS: hanya pemilik.
+
+### Table `property_ai_analysis`
+- `id` (uuid PK), `property_id` (uuid, unique FK → properties, on delete cascade), `analysis_data` (jsonb), `created_at`
+- RLS: select/insert/update untuk semua (cache publik).
+- Dipakai oleh InvestmentAnalyzer untuk cache hasil analisis AI per properti (30 hari + fingerprint preferensi investor).
 
 ### Storage `PROPERTIES_IMAGE`
 - Bucket public, file path: `{userId}-{timestamp}-{sanitizedFileName}`

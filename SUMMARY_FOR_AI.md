@@ -144,7 +144,9 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 
 ### Table: `profiles`
 - `id` (UUID, PK, references `auth.users`)
-- `first_name`, `email`, `whatsapp`, `role`
+- `first_name`, `email`, `whatsapp`, `role`, `created_at`
+- **Tidak ada kolom `updated_at`** (dibuktikan bugfix: update payload tidak boleh menyertakan `updated_at`).
+- **Tidak ada tabel `agents` terpisah** — "agen" = baris `profiles` dengan `role` = agent/developer/admin.
 - RLS: select all, insert/update/delete hanya owner.
 
 ### Table: `forum_posts`
@@ -178,12 +180,13 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - `category` ('Dijual')
 - `title`, `property_type`, `price` (bigint)
 - `description_id`, `description_en` (TEXT — untuk EN description, disimpan statis dari hasil Groq translation atau input manual)
-- `address`
+- `address`, `city`, `district`, `certificate_status`
 - `bedrooms`, `bathrooms`, `area_sqm` (int, **bukan** `sqm`)
 - `image_url` (TEXT — bisa single URL string legacy atau `JSON.stringify([url1, url2, ...])` untuk multi-image. Parsing via `utils/images.js:parseImages()`)
 - `seller_whatsapp`
-- `status` ('verified' / 'pending')
+- `status` ('pending' / 'in_review' / 'verified' / 'rejected' / 'sold') — `in_review` = antrian survei tim admin
 - `created_at`
+- **Tidak ada kolom** `agent_id`, `is_verified`, `gmaps_link`.
 - RLS: select all, insert/update/delete hanya seller.
 
 ### Table: `audit_logs`
@@ -209,6 +212,43 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - Migration: `supabase/migrations/20260727_create_direct_messages.sql`.
 - Realtime: harus di-enable manual di Supabase Dashboard → Database → Replication → toggle INSERT on `direct_messages`.
 - Dipakai oleh: `ChatHubPage` — fetch contacts, fetch messages, send message, realtime subscription.
+
+### Table: `saved_properties`
+- `id` (UUID, PK)
+- `user_id` (UUID, FK → `profiles.id`), `property_id` (UUID, FK → `properties.id`)
+- `created_at`
+- Unique constraint on `(user_id, property_id)`
+- RLS: select/insert/delete hanya owner.
+- Migration: `supabase/migrations/20260730_create_saved_properties.sql`.
+- Dipakai oleh: `utils/favorites.js` (`initFavorites` / `toggleFavorite` — sinkron localStorage + Supabase).
+
+### Table: `site_visits`
+- `id` (UUID, PK)
+- `property_id` (UUID, FK → `properties.id`), `buyer_id` (UUID, FK → `profiles.id`)
+- `scheduled_date` (DATE), `scheduled_time` (TIME)
+- `notes` (TEXT, default ''), `status` (TEXT, CHECK: 'pending'/'confirmed'/'cancelled'/'completed')
+- `created_at`
+- RLS: user hanya bisa select/insert milik sendiri; update hanya ke status 'cancelled'.
+- Migration: `supabase/migrations/20260731_create_site_visits.sql`.
+
+### Table: `user_financial_profiles`
+- `id` (UUID, PK)
+- `user_id` (UUID, FK → **auth.users**, unique) — **bukan** `profiles.id`
+- `monthly_income`, `monthly_commitments`, `monthly_budget` (NUMERIC)
+- `purchase_goal` (TEXT, CHECK: 'rumah_pertama'/'huni'/'investasi'/'sewa'/'belum_tahu')
+- `created_at`, `updated_at`
+- RLS: hanya pemilik.
+- Migration: `supabase/migrations/20260731_create_user_financial_profiles.sql`.
+- Dipakai oleh: `FinancialProfileForm`, `KprSimulator`, `InvestmentAnalyzer`, `HuniBot`.
+
+### Table: `property_ai_analysis`
+- `id` (UUID, PK)
+- `property_id` (UUID, unique FK → `properties.id` on delete cascade)
+- `analysis_data` (JSONB)
+- `created_at`
+- RLS: select/insert/update untuk semua (cache publik).
+- Migration: `supabase/migrations/20260731_create_property_ai_analysis.sql`.
+- Dipakai oleh: `InvestmentAnalyzer` — cache hasil analisis AI per properti (30 hari + fingerprint preferensi investor).
 
 ### Storage: `PROPERTIES_IMAGE` (bucket)
 - Untuk upload gambar properti dari `SellPropertyPage.jsx`.

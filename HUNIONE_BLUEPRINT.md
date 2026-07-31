@@ -106,9 +106,9 @@ Env yang dibutuhkan (client): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Env
 
 ### Tabel
 
-**`profiles`** — `id` (PK, ref auth.users), `first_name`, `email`, `whatsapp`, `role`, `created_at`, `updated_at`. Role: `pembeli | owner | agent | developer | admin`. RLS: select semua, insert/update/delete hanya pemilik; **update tidak boleh set role jadi `admin`** (kecuali admin) — dijaga `WITH CHECK (role IS DISTINCT FROM 'admin')`.
+**`profiles`** — `id` (PK, ref auth.users), `first_name`, `email`, `whatsapp`, `role`, `created_at`. **Tidak ada kolom `updated_at`** (sudah dibuktikan bugfix: update payload tidak boleh menyertakan `updated_at`). Role: `pembeli | owner | agent | developer | admin`. **Tidak ada tabel `agents` terpisah** — "agen" = baris `profiles` dengan role agent/developer/admin (dipakai `ChatHubPage` & `AdminAnalyticsCards`). RLS: select semua, insert/update/delete hanya pemilik; **update tidak boleh set role jadi `admin`** (kecuali admin) — dijaga `WITH CHECK (role IS DISTINCT FROM 'admin')`.
 
-**`properties`** — `id`, `seller_id` (FK profiles), `category` ('Dijual'/'Disewa'), `title`, `property_type`, `price` (bigint), `description_id`, `description_en`, `address`, `city`, `district`, `certificate_status`, `bedrooms`, `bathrooms`, `area_sqm` (**bukan** `sqm`), `image_url` (TEXT — single URL **atau** `JSON.stringify([...])`), `seller_whatsapp` (**bukan** `agent_whatsapp`), `status` ('pending'/'verified'/'rejected'), `created_at`. RLS: publik hanya lihat `verified`; seller lihat punya sendiri (termasuk pending); admin lihat semua; insert/update/delete hanya seller sendiri; admin boleh update semua.
+**`properties`** — `id`, `seller_id` (FK profiles), `category` ('Dijual'/'Disewa'), `title`, `property_type`, `price` (bigint), `description_id`, `description_en`, `address`, `city`, `district`, `certificate_status`, `bedrooms`, `bathrooms`, `area_sqm` (**bukan** `sqm`), `image_url` (TEXT — single URL **atau** `JSON.stringify([...])`), `seller_whatsapp` (**bukan** `agent_whatsapp`), `status` ('pending'/'in_review'/'verified'/'rejected'/'sold'), `created_at`. **TIDAK ada kolom `agent_id`, `is_verified`, `gmaps_link`** — status murni via kolom `status`; `in_review` = antrian survei tim admin. RLS: publik hanya lihat `verified`; seller lihat punya sendiri (termasuk pending); admin lihat semua; insert/update/delete hanya seller sendiri; admin boleh update semua.
 
 **`saved_properties`** — `id`, `user_id` (FK profiles), `property_id` (FK properties), `created_at`; unique `(user_id, property_id)`. RLS: hanya pemilik.
 
@@ -124,7 +124,9 @@ Env yang dibutuhkan (client): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Env
 
 **`site_visits`** — `id`, `property_id`, `buyer_id`, `scheduled_date`, `scheduled_time`, `notes`, `status` ('pending'/'confirmed'/'cancelled'/'completed'), `created_at`. (Fitur booking survei — dipakai ScheduleVisit.)
 
-**`user_financial_profiles`** — `id`, `user_id` (unique), `monthly_income`, `monthly_commitments`, `monthly_budget` (numeric), `purchase_goal` (enum: `rumah_pertama/huni/investasi/sewa/belum_tahu`), `created_at`, `updated_at`. RLS: hanya pemilik.
+**`user_financial_profiles`** — `id`, `user_id` (unique, FK → **auth.users**, bukan profiles), `monthly_income`, `monthly_commitments`, `monthly_budget` (numeric), `purchase_goal` (enum: `rumah_pertama/huni/investasi/sewa/belum_tahu`), `created_at`, `updated_at`. RLS: hanya pemilik.
+
+**`property_ai_analysis`** — `id`, `property_id` (unique FK → properties, on delete cascade), `analysis_data` (jsonb), `created_at`. RLS: select/insert/update untuk semua (cache publik). Dipakai InvestmentAnalyzer (cache 30 hari + fingerprint preferensi investor).
 
 ### Storage bucket `PROPERTIES_IMAGE`
 Upload gambar properti (SellPropertyPage). Path: `{userId}-{timestamp}-{sanitizedFileName}`. Public URL via `getPublicUrl()`. Multi-image disimpan sebagai `JSON.stringify(urls)`. Butuh RLS: INSERT authenticated, SELECT public.
