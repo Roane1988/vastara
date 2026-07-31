@@ -107,6 +107,11 @@ export default function KprCalculatorPage() {
 
   const [financialProfile, setFinancialProfile] = useState(null)
   const affordability = useMemo(() => computeAffordability(financialProfile), [financialProfile])
+  const withinLimit = affordability ? monthlyInstallment <= affordability.maxInstallment : true
+  const limitPct =
+    affordability && affordability.maxInstallment > 0
+      ? Math.min(100, (monthlyInstallment / affordability.maxInstallment) * 100)
+      : 0
   const affordablePrice = useMemo(() => {
     if (!affordability?.maxInstallment) return 0
     return maxAffordablePrice(affordability.maxInstallment, interestRate, tenorYears, dpPercentage)
@@ -454,21 +459,59 @@ export default function KprCalculatorPage() {
                   </div>
                 </div>
 
-                <div className={`mt-4 px-4 py-3 rounded-xl text-sm flex items-start gap-2 ${
-                  monthlyInstallment <= affordability.maxInstallment
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                    : 'bg-amber-50 border border-amber-200 text-amber-800'
+                <div className={`mt-4 rounded-2xl border p-4 transition-all ${
+                  withinLimit
+                    ? 'bg-gradient-to-br from-emerald-50 to-teal-50/50 border-emerald-200'
+                    : 'bg-gradient-to-br from-rose-50 to-amber-50/40 border-rose-200'
                 }`}>
-                  {monthlyInstallment <= affordability.maxInstallment ? (
-                    <Check size={16} className="shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-                  )}
-                  <span>
-                    {monthlyInstallment <= affordability.maxInstallment
-                      ? `Cicilan simulasi ini ${formatShort(Math.round(monthlyInstallment))}/bln masih dalam batas ideal Anda (${formatShort(affordability.maxInstallment)}/bln).`
-                      : `Cicilan simulasi ini ${formatShort(Math.round(monthlyInstallment))}/bln melebihi batas ideal Anda (${formatShort(affordability.maxInstallment)}/bln). Pertimbangkan menaikkan DP, memperpanjang tenor, atau mencari properti lebih terjangkau.`}
-                  </span>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                      withinLimit ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+                    }`}>
+                      {withinLimit ? <Check size={18} /> : <AlertTriangle size={18} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <p className={`text-sm font-bold ${withinLimit ? 'text-emerald-800' : 'text-rose-800'}`}>
+                          {withinLimit ? 'Cicilan masih dalam batas ideal' : 'Cicilan melebihi batas ideal'}
+                        </p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          withinLimit ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        }`}>
+                          {withinLimit ? 'Aman' : 'Perlu penyesuaian'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-baseline gap-1 mt-2">
+                        <p className="text-xl font-extrabold text-brand-text leading-none">
+                          {formatShort(Math.round(monthlyInstallment))}
+                        </p>
+                        <p className="text-[11px] text-brand-muted">/bulan</p>
+                      </div>
+                      <p className="text-[11px] text-brand-muted mt-1">
+                        Batas ideal kamu:{' '}
+                        <span className="font-semibold text-brand-text">
+                          {formatShort(affordability.maxInstallment)}/bln
+                        </span>
+                      </p>
+
+                      <div className="mt-2.5 h-1.5 rounded-full bg-white border border-brand-border/50 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            withinLimit ? 'bg-emerald-500' : 'bg-rose-500'
+                          }`}
+                          style={{ width: `${limitPct}%` }}
+                        />
+                      </div>
+
+                      {withinLimit && affordability.maxInstallment > 0 && (
+                        <p className="text-[11px] text-emerald-700 mt-2 flex items-center gap-1">
+                          <Check size={11} />
+                          Sisa ruang aman ±{formatShort(Math.round(affordability.maxInstallment - monthlyInstallment))}/bln
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
