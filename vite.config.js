@@ -64,9 +64,11 @@ const SYSTEM_PROMPTS = {
       'breakEvenYears (number, years to pay back the price via rental income), ' +
       'riskLevel (string: "Rendah", "Sedang", or "Tinggi"), ' +
       'comparableCount (number, how many comparables were used, 0 if none), ' +
-      'and verdict (string, short 2-3 sentence financial assessment in Indonesian). ' +
+      'goalFitScores (object with keys: affordability, yield, appreciation, risk, overall; each an integer 0-100 where HIGHER is a better fit for this specific buyer; risk=100 means the risk is very low/well-controlled and aligns with the buyer\'s horizon; base these on the buyer financial profile and investment preferences), ' +
+      'and verdict (string, short 2-3 sentence financial assessment in Indonesian, tailored to the specific buyer). ' +
       'When comparables are provided, base monthlyRentalEstimate, estimatedRentalYield and pricePerSqm on the actual comparable data, not generic assumptions. ' +
       'When a buyer financial profile (income, commitments, budget, purchase goal) is provided, factor it into the verdict: note whether the price fits the buyer\'s budget/affordability and whether the property suits their purchase goal; otherwise keep the assessment generic. ' +
+      'When investment preferences (targetYield %, horizonYears, intent) are provided, grade the property against them: state in the verdict whether the estimatedRentalYield meets the buyer target yield and whether the break-even timeline fits the horizon; use intent ("rent" = prioritize rental yield, "resale" = prioritize appreciation/appreciationPotential, "occupy" = prioritize affordability and suitability to live in). Keep goalFitScores consistent with the verdict and with the financial profile. ' +
       'Do not include markdown formatting, backticks, or conversational text.',
   },
 }
