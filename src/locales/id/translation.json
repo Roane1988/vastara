@@ -45,7 +45,8 @@
     "scroll_top": "Kembali ke atas"
   },
   "common": {
-    "close": "Tutup"
+    "close": "Tutup",
+    "back": "Kembali"
   },
   "compare": {
     "title": "Bandingkan Properti",
@@ -480,5 +481,34 @@
     "wa_share": "Bagikan via WhatsApp",
     "wa_message": "Halo, saya ingin konsultasi KPR dengan detail:\n\nHarga Properti: {{price}}\nUang Muka (DP): {{dp}} ({{dpPct}}%)\nPokok Pinjaman: {{principal}}\nBunga: {{rate}}% per tahun\nTenor: {{tenor}} tahun\nEstimasi Cicilan: {{installment}}/bulan",
     "hunibot_question": "Jelaskan secara sederhana simulasi KPR saya ini: harga {{price}}, DP {{dp}}, bunga {{rate}}% per tahun, tenor {{tenor}} tahun, estimasi cicilan {{installment}} per bulan. Apakah masuk akal?"
+  },
+  "agentApply": {
+    "title": "Daftar Menjadi Agen",
+    "subtitle": "Bergabung bersama HuniOne untuk menjangkau lebih banyak klien, kelola listing properti, dan kembangkan bisnis properti Anda.",
+    "step1": "Isi formulir pendaftaran",
+    "step2": "Review oleh tim HuniOne",
+    "step3": "Mulai jual properti",
+    "full_name": "Nama Lengkap",
+    "full_name_placeholder": "Nama sesuai identitas",
+    "email": "Email",
+    "whatsapp": "Nomor WhatsApp",
+    "agency": "Nama Kantor / Agensi",
+    "agency_placeholder": "Contoh: PT Properti Nusantara (opsional)",
+    "experience": "Pengalaman di bidang properti",
+    "experience_placeholder": "Pilih lama pengalaman",
+    "years": "tahun",
+    "region": "Wilayah kerja",
+    "region_placeholder": "Contoh: BSD, Tangerang Selatan",
+    "portfolio": "Portofolio / Pengalaman",
+    "portfolio_placeholder": "Ceritakan pencapaian atau proyek yang pernah Anda tangani (opsional)",
+    "agreement": "Saya menyetujui Syarat & Ketentuan serta Perjanjian Kerjasama (MoU) Agen HuniOne, termasuk aturan komisi, ketentuan listing, dan kode etik agen.",
+    "review_note": "Pengajuan akan direview oleh tim HuniOne maksimal 3 hari kerja. Status pengajuan dapat dilihat setelah akun Anda disetujui.",
+    "error_required": "Nama, email, dan WhatsApp wajib diisi.",
+    "error_agreement": "Anda harus menyetujui Syarat & Ketentuan terlebih dahulu.",
+    "submit": "Kirim Pengajuan",
+    "submitting": "Mengirim...",
+    "success_title": "Pengajuan Terkirim!",
+    "success_desc": "Terima kasih sudah mendaftar sebagai agen HuniOne. Tim kami akan mereview pengajuan Anda dan menghubungi Anda melalui WhatsApp atau email.",
+    "back_home": "Kembali ke Beranda"
   }
 }

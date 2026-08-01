@@ -48,7 +48,7 @@ function ChevronDownIcon() {
 const QUICK_MENU = [
   { icon: Search, tKey: 'explore.quick_menu.find_property', action: 'search' },
   { icon: Megaphone, tKey: 'explore.quick_menu.advertise', path: '/sell-role' },
-  { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/coming-soon' },
+  { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/agent-apply' },
   { icon: Calculator, tKey: 'explore.quick_menu.mortgage', path: '/kpr' },
   { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/coming-soon' },
   { icon: MessageCircle, tKey: 'explore.quick_menu.forum', path: '/forum' },

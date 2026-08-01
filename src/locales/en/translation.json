@@ -45,7 +45,8 @@
     "scroll_top": "Back to top"
   },
   "common": {
-    "close": "Close"
+    "close": "Close",
+    "back": "Back"
   },
   "compare": {
     "title": "Compare Properties",
@@ -480,5 +481,34 @@
     "wa_share": "Share via WhatsApp",
     "wa_message": "Hello, I would like to consult about a KPR loan with these details:\n\nProperty Price: {{price}}\nDown Payment (DP): {{dp}} ({{dpPct}}%)\nLoan Principal: {{principal}}\nInterest: {{rate}}% per year\nTenor: {{tenor}} years\nEstimated Installment: {{installment}}/month",
     "hunibot_question": "Explain in simple terms this KPR simulation of mine: price {{price}}, DP {{dp}}, interest {{rate}}% per year, tenor {{tenor}} years, estimated installment {{installment}} per month. Does it make sense?"
+  },
+  "agentApply": {
+    "title": "Register as an Agent",
+    "subtitle": "Join HuniOne to reach more clients, manage property listings, and grow your property business.",
+    "step1": "Fill out the application form",
+    "step2": "Review by the HuniOne team",
+    "step3": "Start selling properties",
+    "full_name": "Full Name",
+    "full_name_placeholder": "Name as per your ID",
+    "email": "Email",
+    "whatsapp": "WhatsApp Number",
+    "agency": "Office / Agency Name",
+    "agency_placeholder": "e.g. PT Properti Nusantara (optional)",
+    "experience": "Experience in property",
+    "experience_placeholder": "Select years of experience",
+    "years": "years",
+    "region": "Working area",
+    "region_placeholder": "e.g. BSD, South Tangerang",
+    "portfolio": "Portfolio / Experience",
+    "portfolio_placeholder": "Tell us about achievements or projects you have handled (optional)",
+    "agreement": "I agree to HuniOne's Agent Terms & Conditions and Cooperation Agreement (MoU), including commission rules, listing terms, and the agent code of conduct.",
+    "review_note": "Your application will be reviewed by the HuniOne team within 3 working days. You can check the status after your account is approved.",
+    "error_required": "Name, email, and WhatsApp are required.",
+    "error_agreement": "You must agree to the Terms & Conditions first.",
+    "submit": "Submit Application",
+    "submitting": "Submitting...",
+    "success_title": "Application Submitted!",
+    "success_desc": "Thank you for registering as a HuniOne agent. Our team will review your application and contact you via WhatsApp or email.",
+    "back_home": "Back to Home"
   }
 }

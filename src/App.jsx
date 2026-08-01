@@ -11,6 +11,7 @@ const HuniBot = lazy(() => import('./components/HuniBot'))
 const ExplorePage = lazy(() => import('./components/ExplorePage'))
 const MinimalistLogin = lazy(() => import('./components/MinimalistLogin'))
 const RoleSelectionPage = lazy(() => import('./components/RoleSelectionPage'))
+const AgentApplicationPage = lazy(() => import('./components/AgentApplicationPage'))
 const SellPropertyPage = lazy(() => import('./components/SellPropertyPage'))
 const MyListingsPage = lazy(() => import('./components/MyListingsPage'))
 const ChatHubPage = lazy(() => import('./components/ChatHubPage'))
@@ -85,6 +86,7 @@ function AppContent() {
               <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
               <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
               <Route path="/sell-role" element={<ProtectedRoute isAuth={isAuth} location={location}><RoleSelectionPage /></ProtectedRoute>} />
+              <Route path="/agent-apply" element={<AgentApplicationPage />} />
               <Route path="/sell" element={<ProtectedRoute isAuth={isAuth} location={location}><SellPropertyPage /></ProtectedRoute>} />
               <Route path="/my-listings" element={<ProtectedRoute isAuth={isAuth} location={location}><MyListingsPage /></ProtectedRoute>} />
               <Route path="/chat" element={<ProtectedRoute isAuth={isAuth} location={location}><ChatHubPage onNavigate={onNavigate} /></ProtectedRoute>} />
