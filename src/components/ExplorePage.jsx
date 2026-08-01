@@ -46,7 +46,7 @@ function ChevronDownIcon() {
 }
 
 const QUICK_MENU = [
-  { icon: Search, tKey: 'explore.quick_menu.find_property', path: '/coming-soon' },
+  { icon: Search, tKey: 'explore.quick_menu.find_property', action: 'search' },
   { icon: Megaphone, tKey: 'explore.quick_menu.advertise', path: '/sell-role' },
   { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/coming-soon' },
   { icon: Calculator, tKey: 'explore.quick_menu.mortgage', path: '/kpr' },
@@ -138,6 +138,7 @@ export default function ExplorePage() {
   const cancelledRef = useRef(false)
   const listingRef = useRef(null)
   const searchInputRef = useRef(null)
+  const searchCardRef = useRef(null)
   const [isAiSearch, setIsAiSearch] = useState(false)
   const [showFinBanner, setShowFinBanner] = useState(false)
 
@@ -317,6 +318,11 @@ export default function ExplorePage() {
     searchInputRef.current?.blur()
   }
 
+  function scrollToSearch() {
+    searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setTimeout(() => searchInputRef.current?.focus(), 500)
+  }
+
   function resetAllSearch() {
     setIsAiSearch(false)
     setSearchText('')
@@ -472,6 +478,7 @@ export default function ExplorePage() {
 
           {/* Search Card */}
           <motion.div
+            ref={searchCardRef}
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.2, ease: 'easeOut' }}
@@ -580,6 +587,7 @@ export default function ExplorePage() {
                   type="button"
                   onClick={() => {
                     if (item.drawer) return setIsMoreDrawerOpen(true)
+                    if (item.action === 'search') return scrollToSearch()
                     if (item.path) navigate(item.path)
                   }}
                   className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform group"
