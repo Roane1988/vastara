@@ -23,6 +23,7 @@ import {
 import { supabase } from '../supabaseClient'
 import { formatCurrency } from '../utils/format'
 import { getFinancialProfile, computeAffordability, maxAffordablePrice, BUYING_POWER_ASSUMPTION } from '../utils/financialProfile'
+import { getAuthHeaders } from '../utils/groqClient'
 
 const ALLOWED_MODEL = 'openai/gpt-oss-120b'
 
@@ -293,7 +294,7 @@ export default function InvestmentAnalyzer({ property }) {
 
       const res = await fetch('/api/groq', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(payload),
       })
 

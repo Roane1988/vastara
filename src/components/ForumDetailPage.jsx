@@ -12,6 +12,7 @@ import { timeAgo } from '../utils/time'
 import { formatCount } from '../utils/format'
 import ConfirmModal from './ConfirmModal'
 import Markdown from './Markdown'
+import { getAuthHeaders } from '../utils/groqClient'
 
 const REACTIONS = ['👍', '❤️', '🔥', '💡']
 
@@ -190,7 +191,7 @@ export default function ForumDetailPage() {
         setPost(data)
         if (!viewedRef.current && data.id) {
           viewedRef.current = true
-          supabase.from('forum_posts').update({ views: (data.views || 0) + 1 }).eq('id', data.id).then(() => {})
+          supabase.rpc('increment_forum_views', { p_post_id: data.id }).then(() => {})
         }
         fetchRelated(data)
       }
@@ -487,7 +488,7 @@ export default function ForumDetailPage() {
       const prompt = `Ringkas diskusi forum properti berikut dalam 4-5 poin penting berbahasa Indonesia (padat, tanpa basa-basi).\n\nJudul: ${post.title}\nKonten: ${post.content}\n\nBalasan:\n${excerpt || '- (belum ada balasan)'}`
       const res = await fetch('/api/groq', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ purpose: 'chat', messages: [{ role: 'user', content: prompt }] }),
       })
       const data = await res.json()

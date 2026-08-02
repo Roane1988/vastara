@@ -10,6 +10,8 @@ const MODEL_CHAINS = {
 const ALLOWED_MODELS = new Set(Object.values(MODEL_CHAINS).flat())
 const RATE_LIMIT_MAX = 20
 const RATE_LIMIT_WINDOW_MS = 60_000
+const INVESTMENT_LIMIT_MAX = 8
+const INVESTMENT_LIMIT_WINDOW_MS = 3_600_000
 const MAX_MESSAGES = 20
 const MAX_SESSION_MESSAGES = 50
 const SESSION_WINDOW_MS = 3_600_000
@@ -69,6 +71,7 @@ const SYSTEM_PROMPTS = {
 
 const rateLimiter = new LRUCache({ max: 500, ttl: RATE_LIMIT_WINDOW_MS })
 const sessionLimiter = new LRUCache({ max: 5000, ttl: SESSION_WINDOW_MS })
+const investmentLimiter = new LRUCache({ max: 5000, ttl: INVESTMENT_LIMIT_WINDOW_MS })
 const auditLog = []
 
 function appendAudit(entry) {
@@ -81,6 +84,19 @@ const supabaseCache = (() => {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
   return url && key ? createClient(url, key) : null
 })()
+
+async function resolveUser(req) {
+  const authHeader = req.headers.authorization || req.headers['x-authorization'] || ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  if (!token || !supabaseCache) return null
+  try {
+    const { data, error } = await supabaseCache.auth.getUser(token)
+    if (error || !data?.user) return null
+    return data.user
+  } catch {
+    return null
+  }
+}
 
 function hashString(str) {
   let h = 0
@@ -174,22 +190,34 @@ export default async function handler(req, res) {
   }
 
   const ip = getClientIP(req)
+  const authUser = await resolveUser(req)
+  const rateKey = authUser ? `u:${authUser.id}` : `ip:${ip}`
 
-  const requestCount = (rateLimiter.get(ip) || 0) + 1
-  rateLimiter.set(ip, requestCount)
+  const requestCount = (rateLimiter.get(rateKey) || 0) + 1
+  rateLimiter.set(rateKey, requestCount)
   if (requestCount > RATE_LIMIT_MAX) {
-    appendAudit({ time: Date.now(), ip, action: 'rate_limited' })
+    appendAudit({ time: Date.now(), ip, userId: authUser?.id || null, action: 'rate_limited' })
     return res.status(429).json({ error: { message: 'Terlalu banyak permintaan. Silakan coba lagi nanti.' } })
   }
 
   const purpose = ['translation', 'smart_search', 'investment'].includes(req.body.purpose) ? req.body.purpose : 'chat'
 
-  if (purpose !== 'investment') {
-    const sessionKey = ip
-    const sessionCount = (sessionLimiter.get(sessionKey) || 0) + req.body.messages.length
-    sessionLimiter.set(sessionKey, sessionCount)
+  if (purpose === 'investment') {
+    if (!authUser) {
+      appendAudit({ time: Date.now(), ip, action: 'investment_unauthorized' })
+      return res.status(401).json({ error: { message: 'Silakan masuk terlebih dahulu untuk menganalisis investasi.' } })
+    }
+    const invCount = (investmentLimiter.get(rateKey) || 0) + 1
+    investmentLimiter.set(rateKey, invCount)
+    if (invCount > INVESTMENT_LIMIT_MAX) {
+      appendAudit({ time: Date.now(), ip, userId: authUser.id, action: 'investment_limited' })
+      return res.status(429).json({ error: { message: 'Batas analisis investasi tercapai. Coba lagi nanti.' } })
+    }
+  } else {
+    const sessionCount = (sessionLimiter.get(rateKey) || 0) + req.body.messages.length
+    sessionLimiter.set(rateKey, sessionCount)
     if (sessionCount > MAX_SESSION_MESSAGES) {
-      appendAudit({ time: Date.now(), ip, action: 'session_limited' })
+      appendAudit({ time: Date.now(), ip, userId: authUser?.id || null, action: 'session_limited' })
       return res.status(429).json({ error: { message: 'Sesi chat mencapai batas. Mulai percakapan baru.' } })
     }
   }
@@ -209,7 +237,7 @@ export default async function handler(req, res) {
       if (cached?.analysis_data && cached.analysis_data.fp === cacheFingerprint) {
         const ageMs = Date.now() - new Date(cached.created_at).getTime()
         if (ageMs < CACHE_TTL_MS && cached.analysis_data.response?.choices?.[0]?.message?.content) {
-          appendAudit({ time: Date.now(), ip, action: 'cache_hit', purpose })
+          appendAudit({ time: Date.now(), ip, userId: authUser?.id || null, action: 'cache_hit', purpose })
           return res.status(200).json(cached.analysis_data.response)
         }
       }
@@ -306,7 +334,7 @@ export default async function handler(req, res) {
       }
 
       appendAudit({
-        time: Date.now(), ip, action: 'completed', purpose,
+        time: Date.now(), ip, userId: authUser?.id || null, action: 'completed', purpose,
         msgCount: clientMessages.length,
         totalChars: clientMessages.reduce((s, m) => s + m.content.length, 0),
         status: response.status, duration,
@@ -329,6 +357,6 @@ export default async function handler(req, res) {
     }
   }
 
-  appendAudit({ time: Date.now(), ip, action: 'all_models_failed' })
+  appendAudit({ time: Date.now(), ip, userId: authUser?.id || null, action: 'all_models_failed' })
   return res.status(429).json({ error: 'Maaf, antrean server AI kami saat ini sedang penuh. Silakan coba beberapa saat lagi ya!' })
 }

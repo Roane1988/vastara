@@ -5,6 +5,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../utils/format'
 import useSEO from '../hooks/useSEO'
+import { getAuthHeaders } from '../utils/groqClient'
 
 const DRAFT_KEY = 'hunione_sell_draft'
 const MAX_IMAGES = 10
@@ -365,12 +366,12 @@ export default function SellPropertyPage() {
       const [idRes, enRes] = await Promise.all([
         fetch('/api/groq', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({ model: 'openai/gpt-oss-120b', purpose: 'chat', messages: [{ role: 'user', content: prompts.id }] }),
         }),
         fetch('/api/groq', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({ model: 'openai/gpt-oss-120b', purpose: 'chat', messages: [{ role: 'user', content: prompts.en }] }),
         }),
       ])
@@ -417,11 +418,22 @@ export default function SellPropertyPage() {
       if (realFiles.length > 0) {
         try {
           const uploads = realFiles.map(async (file, idx) => {
+            if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+              throw new Error('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.')
+            }
+            if (file.size > 5 * 1024 * 1024) {
+              throw new Error('Ukuran file maksimal 5MB per gambar.')
+            }
             const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+            const ext = (file.name.split('.').pop() || '').toLowerCase()
+            const allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'avif']
+            if (!allowedExt.includes(ext)) {
+              throw new Error('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.')
+            }
             const fileName = `${user.id}-${Date.now()}-${idx}-${safeName}`
             const { error: uploadErr } = await supabase.storage
               .from('PROPERTIES_IMAGE')
-              .upload(fileName, file)
+              .upload(fileName, file, { contentType: file.type, upsert: false })
             if (uploadErr) throw new Error(uploadErr.message)
             const { data: { publicUrl } } = supabase.storage
               .from('PROPERTIES_IMAGE')

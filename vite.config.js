@@ -13,6 +13,8 @@ const MODEL_CHAINS = {
 const ALLOWED_MODELS = new Set(Object.values(MODEL_CHAINS).flat())
 const RATE_LIMIT_MAX = 20
 const RATE_LIMIT_WINDOW_MS = 60_000
+const INVESTMENT_LIMIT_MAX = 8
+const INVESTMENT_LIMIT_WINDOW_MS = 3_600_000
 const MAX_MESSAGES = 20
 const MAX_SESSION_MESSAGES = 50
 const SESSION_WINDOW_MS = 3_600_000
@@ -72,6 +74,7 @@ const SYSTEM_PROMPTS = {
 
 const rateLimiter = new LRUCache({ max: 500, ttl: RATE_LIMIT_WINDOW_MS })
 const sessionLimiter = new LRUCache({ max: 5000, ttl: SESSION_WINDOW_MS })
+const investmentLimiter = new LRUCache({ max: 5000, ttl: INVESTMENT_LIMIT_WINDOW_MS })
 const auditLog = []
 
 function appendAudit(entry) {
@@ -83,6 +86,19 @@ function createCacheClient(env) {
   const url = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   const key = env.SUPABASE_SERVICE_ROLE_KEY || env.VITE_SUPABASE_ANON_KEY
   return url && key ? createClient(url, key) : null
+}
+
+async function resolveUser(req, cacheClient) {
+  const authHeader = req.headers.authorization || req.headers['x-authorization'] || ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  if (!token || !cacheClient) return null
+  try {
+    const { data, error } = await cacheClient.auth.getUser(token)
+    if (error || !data?.user) return null
+    return data.user
+  } catch {
+    return null
+  }
 }
 
 function hashString(str) {
@@ -193,6 +209,7 @@ export default defineConfig(({ mode }) => {
             }
 
             let body = ''
+            let authUser = null
             req.on('data', (chunk) => { body += chunk })
             req.on('end', async () => {
               try {
@@ -208,19 +225,36 @@ export default defineConfig(({ mode }) => {
                   return
                 }
 
-                if (parsed.purpose !== 'investment') {
-                  const sessionKey = ip
-                  const sessionCount = (sessionLimiter.get(sessionKey) || 0) + parsed.messages.length
-                  sessionLimiter.set(sessionKey, sessionCount)
+                authUser = await resolveUser(req, cacheClient)
+                const rateKey = authUser ? `u:${authUser.id}` : `ip:${ip}`
+                const purpose = ['translation', 'smart_search', 'investment'].includes(parsed.purpose) ? parsed.purpose : 'chat'
+
+                if (purpose === 'investment') {
+                  if (!authUser) {
+                    appendAudit({ time: Date.now(), ip, action: 'investment_unauthorized' })
+                    res.writeHead(401, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify({ error: { message: 'Silakan masuk terlebih dahulu untuk menganalisis investasi.' } }))
+                    return
+                  }
+                  const invCount = (investmentLimiter.get(rateKey) || 0) + 1
+                  investmentLimiter.set(rateKey, invCount)
+                  if (invCount > INVESTMENT_LIMIT_MAX) {
+                    appendAudit({ time: Date.now(), ip, userId: authUser.id, action: 'investment_limited' })
+                    res.writeHead(429, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify({ error: { message: 'Batas analisis investasi tercapai. Coba lagi nanti.' } }))
+                    return
+                  }
+                } else {
+                  const sessionCount = (sessionLimiter.get(rateKey) || 0) + parsed.messages.length
+                  sessionLimiter.set(rateKey, sessionCount)
                   if (sessionCount > MAX_SESSION_MESSAGES) {
-                    appendAudit({ time: Date.now(), ip, action: 'session_limited' })
+                    appendAudit({ time: Date.now(), ip, userId: authUser?.id || null, action: 'session_limited' })
                     res.writeHead(429, { 'Content-Type': 'application/json' })
                     res.end(JSON.stringify({ error: { message: 'Sesi chat mencapai batas. Mulai percakapan baru.' } }))
                     return
                   }
                 }
 
-                const purpose = ['translation', 'smart_search', 'investment'].includes(parsed.purpose) ? parsed.purpose : 'chat'
                 const systemPrompt = SYSTEM_PROMPTS[purpose]
 
                 const cacheProperty = purpose === 'investment' ? parsed.property : null
@@ -236,7 +270,7 @@ export default defineConfig(({ mode }) => {
                     if (cached?.analysis_data && cached.analysis_data.fp === cacheFingerprint) {
                       const ageMs = Date.now() - new Date(cached.created_at).getTime()
                       if (ageMs < CACHE_TTL_MS && cached.analysis_data.response?.choices?.[0]?.message?.content) {
-                        appendAudit({ time: Date.now(), ip, action: 'cache_hit', purpose })
+                        appendAudit({ time: Date.now(), ip, userId: authUser?.id || null, action: 'cache_hit', purpose })
                         res.writeHead(200, { 'Content-Type': 'application/json' })
                         res.end(JSON.stringify(cached.analysis_data.response))
                         return
@@ -341,12 +375,10 @@ export default defineConfig(({ mode }) => {
 
                     if (cacheProperty?.id && cacheClient) {
                       try {
-                        await cacheClient
-                          .from('property_ai_analysis')
-                          .upsert(
-                            { property_id: cacheProperty.id, analysis_data: { fp: cacheFingerprint, response: data }, created_at: new Date().toISOString() },
-                            { onConflict: 'property_id' }
-                          )
+                        await cacheClient.rpc('set_property_ai_analysis', {
+                          p_property_id: cacheProperty.id,
+                          p_analysis_data: { fp: cacheFingerprint, response: data },
+                        })
                       } catch (err) {
                         console.warn('Cache write failed:', err.message)
                       }
@@ -360,11 +392,11 @@ export default defineConfig(({ mode }) => {
                   }
                 }
 
-                appendAudit({ time: Date.now(), ip, action: 'all_models_failed' })
+                appendAudit({ time: Date.now(), ip, userId: authUser?.id || null, action: 'all_models_failed' })
                 res.writeHead(429, { 'Content-Type': 'application/json' })
                 res.end(JSON.stringify({ error: 'Maaf, antrean server AI kami saat ini sedang penuh. Silakan coba beberapa saat lagi ya!' }))
               } catch (err) {
-                appendAudit({ time: Date.now(), ip, action: 'error', error: err.message })
+                appendAudit({ time: Date.now(), ip, userId: authUser?.id || null, action: 'error', error: err.message })
                 res.writeHead(500, { 'Content-Type': 'application/json' })
                 res.end(JSON.stringify({ error: { message: 'Gagal terhubung ke server AI' } }))
               }

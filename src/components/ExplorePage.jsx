@@ -16,6 +16,7 @@ import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
 import CompareBar from './CompareBar'
 import { getFinancialProfile } from '../utils/financialProfile'
+import { getAuthHeaders } from '../utils/groqClient'
 
 const NEW_WEEK_CUTOFF = Date.now() - 7 * 24 * 60 * 60 * 1000
 
@@ -165,7 +166,7 @@ export default function ExplorePage() {
     try {
       const response = await fetch('/api/groq', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           model: 'openai/gpt-oss-20b',
           purpose: 'smart_search',

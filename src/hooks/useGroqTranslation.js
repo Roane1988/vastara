@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getAuthHeaders } from '../utils/groqClient'
 
 const STORAGE_KEY = 'vastara_translation_cache_v1'
 const MAX_CACHE_ENTRIES = 300
@@ -40,7 +41,7 @@ async function fetchTranslation(texts, signal) {
   const res = await fetch('/api/groq', {
     method: 'POST',
     signal,
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({
       model: 'openai/gpt-oss-20b',
       purpose: 'translation',

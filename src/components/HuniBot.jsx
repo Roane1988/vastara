@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLocation } from 'react-router-dom'
 import { getFinancialProfile, computeAffordability, PURCHASE_GOAL_LABELS } from '../utils/financialProfile'
 import { formatCurrency } from '../utils/format'
+import { getAuthHeaders } from '../utils/groqClient'
 
 const RATE_LIMIT_MS = 2000
 
@@ -197,7 +198,7 @@ export default function HuniBot() {
 
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           model: 'openai/gpt-oss-120b',
           purpose: 'chat',
