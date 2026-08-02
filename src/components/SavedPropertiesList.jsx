@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
-import { formatPrice } from '../utils/format'
+import { formatPriceDisplay } from '../utils/format'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
 export default function SavedPropertiesList({ showAddress = false, emptyText, emptyCtaLabel, onEmptyCta, onItemClick }) {
@@ -93,7 +93,7 @@ export default function SavedPropertiesList({ showAddress = false, emptyText, em
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-brand-text truncate">{p.title}</p>
             <p className="text-xs text-brand-muted mt-0.5">
-              {p.priceDisplay ? p.priceDisplay : formatPrice(p.price)}
+              {formatPriceDisplay(p)}
             </p>
             {showAddress && (p.address || p.location) && (
               <p className="text-[11px] text-brand-muted mt-0.5 truncate">{p.address || p.location}</p>

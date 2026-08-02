@@ -24,6 +24,13 @@ export function formatShort(value) {
   return formatCurrency(value)
 }
 
+export function formatPriceDisplay(property) {
+  if (property?.priceDisplay) return property.priceDisplay
+  const isRent = property?.category === 'Disewa' || property?.typeLabel === 'Disewa'
+  if (isRent && property?.price) return `${formatPrice(property.price)} /bulan`
+  return formatPrice(property?.price)
+}
+
 export function formatCount(value) {
   const num = Number(value || 0)
   if (num >= 1_000_000) {

@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight, Calendar, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatPriceDisplay } from '../utils/format'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { parseImages, FALLBACK_IMAGE } from '../utils/images'
 import { useGroqTranslation } from '../hooks/useGroqTranslation'
@@ -530,8 +530,7 @@ export default function PropertyDetailPage() {
 
   const hasWhatsapp = Boolean(property.seller_whatsapp || property.agent_whatsapp)
   const waNumber = hasWhatsapp ? (property.seller_whatsapp || property.agent_whatsapp) : null
-  const isRent = property.typeLabel === 'Disewa' || property.category === 'Disewa'
-  const displayPrice = property.priceDisplay || (isRent && property.price ? `${formatPrice(property.price)} /bulan` : formatPrice(property.price))
+  const displayPrice = formatPriceDisplay(property)
   const waMessage = encodeURIComponent(
     lang === 'en'
       ? `Hello, I am interested in ${displayTitle}`
@@ -763,7 +762,7 @@ export default function PropertyDetailPage() {
                 </div>
                 <div className="p-2.5">
                   <p className="text-[11px] font-semibold text-brand-text truncate">{p.title}</p>
-                  <p className="text-xs font-bold text-brand-primary mt-0.5">{p.priceDisplay || (p.category === 'Disewa' && p.price ? `${formatPrice(p.price)} /bulan` : formatPrice(p.price))}</p>
+                  <p className="text-xs font-bold text-brand-primary mt-0.5">{formatPriceDisplay(p)}</p>
                   <p className="text-[10px] text-brand-muted truncate mt-0.5">{p.bedrooms} KT &bull; {p.bathrooms} KM &bull; {p.area_sqm} m&sup2;</p>
                 </div>
               </Link>

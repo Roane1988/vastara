@@ -2,48 +2,22 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
-import { formatPrice } from '../utils/format'
+import { formatPriceDisplay } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
+import { useCompare } from '../hooks/useCompare'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
 import CompareBar from './CompareBar'
-import { addToCompare, removeFromCompare, getCompareList, MAX_ITEMS } from '../utils/compare'
 import { getFinancialProfile } from '../utils/financialProfile'
 
-
-function SearchIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  )
-}
-
-function FilterIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" y1="6" x2="20" y2="6" />
-      <line x1="8" y1="12" x2="20" y2="12" />
-      <line x1="12" y1="18" x2="20" y2="18" />
-    </svg>
-  )
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  )
-}
+const NEW_WEEK_CUTOFF = Date.now() - 7 * 24 * 60 * 60 * 1000
 
 const QUICK_MENU = [
   { icon: Search, tKey: 'explore.quick_menu.find_property', action: 'search' },
@@ -105,6 +79,7 @@ export default function ExplorePage() {
   useSEO({ title: 'Cari Properti — Jual, Beli & Sewa', description: 'Temukan properti terbaik untuk dijual, disewa di HuniOne. Rumah, apartemen, villa, tanah, ruko dan lainnya.' })
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { user, showToast } = useAuth()
   const [saved, setSaved] = useState(getFavorites())
   const [showFilter, setShowFilter] = useState(false)
   const [filterPrice, setFilterPrice] = useState('')
@@ -114,33 +89,16 @@ export default function ExplorePage() {
   const [sortIndex, setSortIndex] = useState(0)
   const [searchCategory, setSearchCategory] = useState('dijual')
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false)
-  const [compareSet, setCompareSet] = useState(new Set(getCompareList().map(p => p.id)))
-
-  function toggleCompare(p) {
-    if (compareSet.has(p.id)) {
-      removeFromCompare(p.id)
-      setCompareSet(prev => { const s = new Set(prev); s.delete(p.id); return s })
-    } else {
-      const updated = addToCompare(p)
-      if (!updated.some(x => x.id === p.id)) {
-        showToast(t('compare.toast_max', { max: MAX_ITEMS }), 'error')
-      }
-      setCompareSet(new Set(updated.map(x => x.id)))
-    }
-    window.dispatchEvent(new Event('compare-updated'))
-  }
-
-  const [showBackToTop, setShowBackToTop] = useState(false)
   const [properties, setProperties] = useState([])
   const [loadingProperties, setLoadingProperties] = useState(true)
   const [isSmartSearching, setIsSmartSearching] = useState(false)
-  const { user, showToast } = useAuth()
   const cancelledRef = useRef(false)
   const listingRef = useRef(null)
   const searchInputRef = useRef(null)
   const searchCardRef = useRef(null)
   const [isAiSearch, setIsAiSearch] = useState(false)
   const [showFinBanner, setShowFinBanner] = useState(false)
+  const { compareSet, toggleCompare } = useCompare(showToast)
 
   useEffect(() => {
     if (!user) return
@@ -157,47 +115,16 @@ export default function ExplorePage() {
     return () => { cancelled = true }
   }, [user])
 
-  useEffect(() => {
-    const onScroll = () => setShowBackToTop(window.scrollY > 600)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
   const firstName = user?.user_metadata?.first_name || null
 
-  async function fetchProperties(filters = {}) {
+  async function fetchProperties() {
     setLoadingProperties(true)
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('properties')
         .select('*')
         .eq('status', 'verified')
-
-      if (filters.type) {
-        query = query.eq('property_type', filters.type)
-      }
-
-      if (filters.beds) {
-        if (filters.beds === '5+') {
-          query = query.gte('bedrooms', 5)
-        } else {
-          query = query.eq('bedrooms', parseInt(filters.beds))
-        }
-      }
-
-      if (filters.price) {
-        if (filters.price === '0-1M') {
-          query = query.lt('price', 1_000_000_000)
-        } else if (filters.price === '1-3M') {
-          query = query.gte('price', 1_000_000_000).lte('price', 3_000_000_000)
-        } else if (filters.price === '3M+') {
-          query = query.gt('price', 3_000_000_000)
-        }
-      }
-
-      query = query.order('created_at', { ascending: false })
-
-      const { data, error } = await query
+        .order('created_at', { ascending: false })
 
       if (cancelledRef.current) return
 
@@ -310,7 +237,7 @@ export default function ExplorePage() {
       } catch { /* silent */ }
       showToast('Gagal memproses pencarian AI. Menampilkan hasil pencarian biasa.', 'error')
     }
-    setIsSmartSearching(false)
+    if (!cancelledRef.current) setIsSmartSearching(false)
   }
 
   function handleAiSearch() {
@@ -353,45 +280,45 @@ export default function ExplorePage() {
     return { total, cities, types }
   }, [properties])
 
-  const newWeekCutoff = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000)[0]
+  const sorted = useMemo(() => {
+    return [...properties].filter((p) => {
+      if (searchCategory === 'dijual' && p.category !== 'Dijual') return false
+      if (searchCategory === 'disewa' && p.category !== 'Disewa') return false
+      if (searchCategory === 'baru') {
+        if (new Date(p.created_at).getTime() <= NEW_WEEK_CUTOFF) return false
+      }
 
-  const sorted = [...properties].filter((p) => {
-    if (searchCategory === 'dijual' && p.category !== 'Dijual') return false
-    if (searchCategory === 'disewa' && p.category !== 'Disewa') return false
-    if (searchCategory === 'baru') {
-      if (new Date(p.created_at).getTime() <= newWeekCutoff) return false
-    }
+      if (searchText.trim()) {
+        const q = searchText.trim().toLowerCase()
+        const haystack = [p.title, p.address, p.location, p.city, p.district, p.description_id]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
 
-    if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase()
-      const haystack = [p.title, p.address, p.location, p.city, p.district, p.description_id]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      if (!haystack.includes(q)) return false
-    }
+      if (filterType && p.property_type !== filterType) return false
 
-    if (filterType && p.property_type !== filterType) return false
+      if (filterBeds) {
+        const beds = Number(p.bedrooms) || 0
+        const match = filterBeds === '5+' ? beds >= 5 : beds === parseInt(filterBeds, 10)
+        if (!match) return false
+      }
 
-    if (filterBeds) {
-      const beds = Number(p.bedrooms) || 0
-      const match = filterBeds === '5+' ? beds >= 5 : beds === parseInt(filterBeds, 10)
-      if (!match) return false
-    }
+      if (filterPrice) {
+        const price = Number(p.price) || 0
+        if (filterPrice === '0-1M' && price >= 1_000_000_000) return false
+        if (filterPrice === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false
+        if (filterPrice === '3M+' && price <= 3_000_000_000) return false
+      }
 
-    if (filterPrice) {
-      const price = Number(p.price) || 0
-      if (filterPrice === '0-1M' && price >= 1_000_000_000) return false
-      if (filterPrice === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false
-      if (filterPrice === '3M+' && price <= 3_000_000_000) return false
-    }
-
-    return true
-  }).sort((a, b) => {
-    if (sortIndex === 1) return (Number(a.price) || 0) - (Number(b.price) || 0)
-    if (sortIndex === 2) return (Number(b.price) || 0) - (Number(a.price) || 0)
-    return 0
-  })
+      return true
+    }).sort((a, b) => {
+      if (sortIndex === 1) return (Number(a.price) || 0) - (Number(b.price) || 0)
+      if (sortIndex === 2) return (Number(b.price) || 0) - (Number(a.price) || 0)
+      return 0
+    })
+  }, [properties, searchCategory, searchText, filterType, filterBeds, filterPrice, sortIndex])
 
   const isSearching = hasActiveSearch || isAiSearch
   const isSearchEmpty = isSearching && sorted.length === 0
@@ -506,7 +433,7 @@ export default function ExplorePage() {
             </div>
             <div className="flex items-center px-3.5 py-2 bg-white border border-brand-border rounded-2xl gap-2.5 focus-within:border-brand-accent focus-within:ring-4 focus-within:ring-brand-accent/10 transition-all">
               <span className="text-brand-muted shrink-0">
-                <SearchIcon />
+                <Search size={18} />
               </span>
               <input
                 ref={searchInputRef}
@@ -553,7 +480,7 @@ export default function ExplorePage() {
                 className="relative text-brand-muted hover:text-brand-accent transition-colors shrink-0"
                 aria-label={t('explore.filter.title')}
               >
-                <FilterIcon />
+                <Filter size={18} />
                 {filterCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-brand-accent text-white text-[10px] font-bold flex items-center justify-center">
                     {filterCount}
@@ -667,7 +594,7 @@ export default function ExplorePage() {
                 </div>
                 <div className="p-3">
                   <p className="text-base font-extrabold text-brand-primary">
-                    {p.priceDisplay || (p.category === 'Disewa' && p.price ? `${formatPrice(p.price)} /bulan` : formatPrice(p.price))}
+                    {formatPriceDisplay(p)}
                   </p>
                   <p className="text-sm font-semibold text-brand-text mt-0.5 truncate">
                     {getTranslated(p, 'title', p.title)}
@@ -806,7 +733,7 @@ export default function ExplorePage() {
               className="flex items-center gap-1 text-xs text-brand-muted bg-brand-surface border border-brand-border rounded-full px-3 py-1.5 font-medium hover:bg-brand-bg transition-colors"
             >
               {t('explore.all_properties.sort')}: {SORT_OPTIONS[sortIndex]}
-              <ChevronDownIcon />
+              <ChevronDown size={14} />
             </button>
           </div>
         </div>
@@ -866,7 +793,7 @@ export default function ExplorePage() {
                     </div>
                     <div className="p-4">
                       <p className="text-xl font-extrabold text-brand-primary">
-                        {p.priceDisplay || formatPrice(p.price)}
+                        {formatPriceDisplay(p)}
                       </p>
                       <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-accent transition-colors">
                         {getTranslated(p, 'title', p.title)}
@@ -906,9 +833,7 @@ export default function ExplorePage() {
                     onClick={() => toggleSave(p.id)}
                     className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent transition-colors"
                   >
-                     <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.includes(p.id) ? '#4A90E2' : 'none'} stroke={saved.includes(p.id) ? '#4A90E2' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
+                     <Heart size={16} className={saved.includes(p.id) ? 'fill-[#4A90E2] text-[#4A90E2]' : 'text-current'} />
                     {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
                   </button>
                 </div>
@@ -953,9 +878,7 @@ export default function ExplorePage() {
                   onClick={() => setShowFilter(false)}
                   className="text-brand-muted hover:text-brand-text transition-colors"
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <X size={20} />
                 </button>
               </div>
             </div>
@@ -1038,15 +961,6 @@ export default function ExplorePage() {
       )}
 
       <CompareBar />
-
-      {showBackToTop && (
-        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-24 right-5 z-40 w-11 h-11 rounded-full bg-brand-primary text-white shadow-lg flex items-center justify-center hover:brightness-90 active:scale-90 transition-all">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="18 15 12 9 6 15" />
-          </svg>
-        </button>
-      )}
     </div>
   )
 }

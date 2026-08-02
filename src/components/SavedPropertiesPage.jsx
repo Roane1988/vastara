@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { getFavorites, toggleFavorite } from '../utils/favorites'
 import { getImageSrc } from '../utils/images'
-import { formatPrice } from '../utils/format'
+import { formatPriceDisplay } from '../utils/format'
 
 const FILTERS = ['Semua', 'Tersedia', 'Sedang Nego']
 
@@ -160,7 +160,7 @@ export default function SavedPropertiesPage({ onBack }) {
               <div className="p-4">
                 <div className="flex items-center justify-between mb-1.5">
                   <StatusBadge status={p.status} />
-                  <span className="text-sm font-bold text-brand-text">{p.priceDisplay || (p.category === 'Disewa' && p.price ? `${formatPrice(p.price)} /bulan` : formatPrice(p.price))}</span>
+                  <span className="text-sm font-bold text-brand-text">{formatPriceDisplay(p)}</span>
                 </div>
                 <h3 className="text-base font-semibold text-brand-text mb-2">{p.title}</h3>
                 <div className="flex items-center gap-1.5 text-sm text-brand-muted">

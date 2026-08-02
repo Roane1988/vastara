@@ -3,35 +3,26 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Clock, X, Eye, ChevronLeft, ChevronRight, ArrowLeftRight, Trash2 } from 'lucide-react'
 import { getRecentlyViewed, removeRecentlyViewed, clearRecentlyViewed, CHANGE_EVENT } from '../utils/recentlyViewed'
-import { getCompareList, addToCompare, removeFromCompare, MAX_ITEMS } from '../utils/compare'
-import { formatPrice } from '../utils/format'
+import { useCompare } from '../hooks/useCompare'
+import { formatPriceDisplay } from '../utils/format'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { timeAgo } from '../utils/time'
 import { useAuth } from '../context/AuthContext'
-
-function PriceLabel({ p }) {
-  return p.priceDisplay || (p.category === 'Disewa' && p.price ? `${formatPrice(p.price)} /bulan` : formatPrice(p.price))
-}
 
 export default function RecentlyViewed() {
   const { t } = useTranslation()
   const { showToast } = useAuth()
   const [items, setItems] = useState(() => getRecentlyViewed())
-  const [compareSet, setCompareSet] = useState(() => new Set(getCompareList().map(p => p.id)))
+  const { compareSet, toggleCompare } = useCompare(showToast)
   const scrollerRef = useRef(null)
 
   useEffect(() => {
     function sync() { setItems(getRecentlyViewed()) }
-    function syncCompare() { setCompareSet(new Set(getCompareList().map(p => p.id))) }
     window.addEventListener(CHANGE_EVENT, sync)
     window.addEventListener('storage', sync)
-    window.addEventListener('compare-updated', syncCompare)
-    window.addEventListener('storage', syncCompare)
     return () => {
       window.removeEventListener(CHANGE_EVENT, sync)
       window.removeEventListener('storage', sync)
-      window.removeEventListener('compare-updated', syncCompare)
-      window.removeEventListener('storage', syncCompare)
     }
   }, [])
 
@@ -41,20 +32,6 @@ export default function RecentlyViewed() {
 
   function handleClear() {
     clearRecentlyViewed()
-  }
-
-  function handleToggleCompare(p) {
-    if (compareSet.has(p.id)) {
-      removeFromCompare(p.id)
-      setCompareSet(prev => { const s = new Set(prev); s.delete(p.id); return s })
-    } else {
-      const updated = addToCompare(p)
-      if (!updated.some(x => x.id === p.id)) {
-        showToast(t('compare.toast_max', { max: MAX_ITEMS }), 'error')
-      }
-      setCompareSet(new Set(updated.map(x => x.id)))
-    }
-    window.dispatchEvent(new Event('compare-updated'))
   }
 
   function scrollBy(direction) {
@@ -142,7 +119,7 @@ export default function RecentlyViewed() {
                       {p.bedrooms} KT &middot; {p.bathrooms} KM &middot; {p.area_sqm} m&sup2;
                     </p>
                     <p className="text-[11px] font-bold text-brand-primary mt-0.5 truncate">
-                      <PriceLabel p={p} />
+                      {formatPriceDisplay(p)}
                     </p>
                   </div>
                 </Link>
@@ -156,7 +133,7 @@ export default function RecentlyViewed() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleToggleCompare(p)}
+                  onClick={() => toggleCompare(p)}
                   className={`w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold transition-colors border-t cursor-pointer ${
                     inCompare
                       ? 'bg-brand-accent/10 text-brand-accent border-brand-accent/20'

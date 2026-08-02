@@ -1,6 +1,6 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komunitas, bandingkan properti, pendaftaran agen publik, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 2 Agustus 2026.
 
 ## Tech Stack
 - **React 19 + Vite 8** — JavaScript (JSX)
@@ -15,17 +15,20 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 ## Routes
 | Path | Component | Auth | Notes |
 |---|---|---|---|
-| `/` atau `/explore` | ExplorePage | Tidak | filter by status='verified', back-to-top button, lazy loading images |
+| `/` atau `/explore` | ExplorePage | Tidak | filter by status='verified', back-to-top button, lazy loading images, **Cari Properti** scroll & fokus ke kotak pencarian, quick menu "Cari Agen" → `/agent-apply` |
 | `/login` | MinimalistLogin | Tidak | |
+| `/sell-role` | RoleSelectionPage | Ya | onboarding pilih peran sebelum iklan properti |
+| `/agent-apply` | AgentApplicationPage | Tidak (publik) | form pendaftaran agen eksternal → insert `agent_applications` |
 | `/sell` | SellPropertyPage (3-step) | Ya | + edit via `?edit=ID`, beforeunload guard, draft autosave |
 | `/my-listings` | MyListingsPage | Ya | Edit & Tandai Terjual buttons |
 | `/saved` | SavedPropertiesPage | Ya | sync from DB via `saved_properties` table |
 | `/chat` | ChatHubPage (realtime DM) | Tidak (login prompt) | ArrowLeft lucide icon |
-| `/forum` | ForumPage | Tidak | |
-| `/forum/:id` | ForumDetailPage | Tidak | |
+| `/forum` | ForumPage | Tidak | hero stats, category pills, sort tabs, search + filter tag via `?tag=` |
+| `/forum/:id` | ForumDetailPage | Tidak | views counter, reactions, poll, best answer, AI summarize, related threads, share |
 | `/property/:id` | PropertyDetailPage | Tidak | Properti Serupa, KPR simulator, lightbox gallery |
-| `/admin` | AdminDashboardPage | Ya (admin only) | preview modal, soft reject, bulk verify, pagination, realtime |
+| `/admin` | AdminDashboardPage | Ya (admin only) | **4-tab** (Overview/Users/Audit/**Agen**), preview modal, soft reject, bulk verify, pagination, realtime |
 | `/kpr` | KprCalculatorPage | Tidak | amortization table, biaya tambahan |
+| `/compare` | ComparePage | Tidak | bandingkan max 3 properti + affordability dari financial profile |
 | `*` | NotFoundPage | Tidak | wildcard route, bukan redirect |
 | `/coming-soon` | ComingSoonPage | Tidak | |
 
@@ -47,6 +50,10 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 - Back-to-top button (muncul setelah scroll > 600px, smooth scroll)
 - Lazy loading images (`loading="lazy"`)
 - Dynamic EN translation via `batchTranslate()`
+- **Quick menu "Cari Properti"**: `scrollIntoView` ke kotak pencarian lalu auto-focus input (bukan redirect lagi)
+- **Quick menu "Cari Agen"**: navigasi ke `/agent-apply`
+- **RecentlyViewed** (`<RecentlyViewed />`): kartu horizontal properti yang terakhir dilihat
+- **CompareBar** (`<CompareBar />`): floating bar bottom saat ada item di keranjang banding
 
 ### 3. PropertyDetailPage
 - **Gallery**: Desktop (Airbnb-style grid) / Mobile (hero + thumb grid) + Lightbox (fullscreen, keyboard nav)
@@ -60,6 +67,7 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 ### 4. KPR Calculator
 - **KprSimulator.jsx** (reusable): annuity formula, DP slider 0-50%
 - **KprCalculatorPage.jsx** (full page): 2-column, DP 0-80%, amortization table (yearly), biaya tambahan (BPHTB 5%, PPN 11%, Notaris 1%, Provisi 1%), WhatsApp integration
+- **Enhancements (Aug 2026)**: ringkasan finansial (DP, pokok, total bunga, total bayar), **minimum income** (cicilan / 0.3), **CountUp** animasi angka (`CountUp.jsx` via rAF easeOutCubic), **DP presets** (10/20/30/50%) + **tenor presets** (10/15/20/25 th), slider DP diperbaiki, tombol **HuniBot** (custom event `open-hunibot-question` dengan konteks harga/DP/bunga/tenor), tombol **WhatsApp** share, integrasi `financialProfile` (batas ideal dari `maxInstallment`, progress bar, saran naik DP/perpanjang tenor saat cicilan melebihi batas), i18n
 
 ### 5. HuniBot (AI Chatbot)
 - Floating chat widget via Groq API
@@ -73,20 +81,64 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 - ArrowLeft icon dari lucide-react (bukan custom SVG)
 
 ### 7. Admin Dashboard
-- **3-tab**: Overview (analytics + pending table), Users (role management via dropdown), Audit (log trail)
-- **AdminDashboardPage enhancements**: preview modal (gallery, inline property info), reject modal (required reason → `audit_log`), soft delete (status='rejected' + restore button), filter tabs (Semua/Pending/Terverifikasi/Ditolak), bulk verify (checkboxes), pagination (10/page), thumbnails di table, search input, realtime subscription (INSERT/UPDATE on properties)
+- **4-tab**: Overview (analytics + pending table), Users (role management via dropdown), Audit (log trail), **Agen** (review pendaftaran agent eksternal)
+- **AdminDashboardPage enhancements**: preview modal (gallery, inline property info), reject modal (required reason → `audit_logs`), soft delete (status='rejected' + restore button), filter tabs (Semua/Pending/Terverifikasi/Ditolak), bulk verify (checkboxes), pagination (10/page), thumbnails di table, search input, realtime subscription (INSERT/UPDATE on properties)
+- **AdminAgentApplications**: daftar pendaftaran calon agen (`agent_applications`) dengan filter Pending/Disetujui/Ditolak/Semua, tombol **Setujui** (→ status approved + trigger update role profil ke 'agent') dan **Tolak** (wajib alasan → `reject_reason`, ConfirmModal + textarea), catat `audit_logs` (`approve_agent`/`reject_agent`, target_type `agent_application`)
 - **ConfirmModal**: props `danger`, `icon`, `children`, `confirmDisabled`
 - **AdminAnalyticsCards**: 4 metric cards
 - **AdminAuditLog**: 100 recent entries
 
-### 8. Forum
-- **ForumPage**: post cards dengan avatar inisial + warna hash, compose form dengan **category selector** (Umum/KPR/Legalitas/Tips Properti/Rekomendasi), **search bar** + **filter by category**, **edit post inline**, **delete** dengan ConfirmModal loading state, dynamic **category badges** (warna berbeda per kategori)
-- **ForumDetailPage**: post detail + **like/upvote system** (toggle via `forum_likes` table, polymorphic target_type `post`/`reply`), **edit post** inline, **edit reply** inline, **quote reply** (`<!--replyto:authorName|snippet-->`), realtime subscription ke INSERT `forum_replies`, **auto-scroll** ke reply baru, **cancel confirmation** saat batalkan balasan, **success toast** setelah reply/kirim
+### 8. Forum (enhanced Aug 2026)
+- **ForumPage**:
+  - **Hero card** gradient (badge Sparkles, judul, subtitle) + **stats** diskusi/replies/members (fetch count paralel)
+  - **Category pills** horizontal dengan counter per kategori (filter aktif = pill terisi), search bar, sort tabs (**Terbaru / Populer / Belum Dijawab** — skor = replies + reactions), pagination "Load More" (10/batch)
+  - **Badges** per post: **Disematkan** (pin, admin toggle), **Terjawab** (solved_reply_id), **HOT** (Flame bila replies+reactions ≥ 5), Poll badge, category badge
+  - **Tags**: input `#tag` saat compose → kolom `tags text[]`; filter by tag (via `?tag=` URL param), tag chip bisa diklik
+  - **Poll**: compose form bisa tambah poll (pertanyaan + 2-4 opsi), disimpan di kolom `poll jsonb`
+  - **Markdown**: komposer punya tab Write/Preview; konten & preview dirender via `<Markdown />` (heading, list, bold/italic, code, link, quote, `#tag` clickable)
+  - **Share** via WhatsApp popup (`window.open` ke `wa.me`), **edit inline**, **delete** + **cancel compose confirm**, skeleton loading cards
+- **ForumDetailPage**:
+  - **Views counter**: increment `forum_posts.views` sekali per buka (guard `viewedRef`)
+  - **Reactions multi-emoji** (👍❤️🔥💡) di post & reply via tabel `forum_reactions` (unique user+target), toggle / ganti emoji, realtime `*` event
+  - **Poll render**: bar persentase, vote sekali per user (`forum_poll_votes` upsert on conflict `post_id,user_id`), badge "suara Anda"
+  - **Best answer**: OP bisa tandai balasan sebagai solusi (`solved_reply_id`) — balasan dapat border emerald + badge "Jawaban Terbaik"
+  - **AI Summarize**: tombol "Ringkas" → POST ke `/api/groq` (purpose chat) merangkum judul+konten+replies jadi poin
+  - **Related threads**: 3 post se-kategori (exclude current), klik → navigasi
+  - **Share** via WhatsApp, **quote reply**, **edit post/reply inline**, realtime INSERT `forum_replies` + `forum_reactions`, auto-scroll, success toast, cancel confirm
+- **Markdown.jsx** + **utils/markdown.js**: parser markdown ringan tanpa library (blocks: h1-h3, quote, ul/ol, paragraph; inline: bold/italic/code/link/`#tag`; `isSafeUrl` hanya izinkan http(s) & path relatif)
 
-### 9. Favorites (Saved Properties)
+### 9. Compare Properti
+- **utils/compare.js**: localStorage key `vastara_compare`, **MAX_ITEMS = 3**, `getCompareList/addToCompare/removeFromCompare/isInCompare/clearCompare`, event `compare-updated`
+- **CompareBar** (bottom fixed bar): muncul saat ada item, thumbnail + title + remove per item, counter `n/3`, tombol "Bandingkan" → `/compare`
+- **ComparePage** (`/compare`):
+  - Table perbandingan (gambar, harga + badge **Termurah**, cicilan KPR estimasi, tipe, KT/KM, luas, kota, alamat, sertifikat)
+  - **Personalization affordability**: baca `user_financial_profiles` → `computeAffordability` (take-home × 30% atau budget) → **buying power** (`maxAffordablePrice`) → badge **"Dalam Jangkauan"/"Di Atas Budget"** per properti, cicilan merah bila > `maxInstallment`, banner summary (buying power + cicilan maksimal)
+  - **Empty financial profile**: banner CTA "Isi profil finansial" → dispatch `open-financial-profile` (auto-buka ProfileDrawer, auto-refresh via event `financial-profile-saved`)
+  - Skeleton loading, request race-guard (`requestRef`), sync live via `compare-updated` + `storage` events
+
+### 10. Recently Viewed
+- **utils/recentlyViewed.js**: localStorage key `vastara_recently_viewed`, max 10, event `recently-viewed-changed`
+- **RecentlyViewed** (di ExplorePage): kartu horizontal `w-40` dengan **hapus per-item** (X), **hapus semua** (Trash2), **scroll kiri/kanan** (desktop), **label waktu** "Dilihat {timeAgo}", **tombol compare** per kartu (toggle + toast max), live sync via `storage` + `recently-viewed-changed`, i18n
+- `PropertyDetailPage` memanggil `addRecentlyViewed(property)` saat properti dimuat
+
+### 11. Pendaftaran Agen Publik
+- **AgentApplicationPage** (`/agent-apply`, publik tanpa login): form full_name, email, whatsapp (wajib), agency, experience (<1/1-3/3-5/5+ tahun), region, portfolio, **checkbox persetujuan** (wajib), info review 3-langkah. Submit → insert `agent_applications` (status default 'pending'), tampil success state. `useSEO` title/description.
+- **AdminAgentApplications** di dashboard admin tab **Agen**: list + filter + approve/reject (lihat bagian 7).
+- Approval mengaktifkan **trigger** `handle_agent_approval()` yang otomatis update `profiles.role = 'agent'` untuk user dengan email yang sama (kecuali admin).
+
+### 12. Favorites (Saved Properties)
 - **Sync ke database**: table `saved_properties` (user_id, property_id, unique constraint)
 - **utils/favorites.js**: `setSupabase(client)`, `async initFavorites(userId)` load from DB, `async toggleFavorite(id)` write localStorage + Supabase in background
 - **AuthContext**: panggil `setSupabase()` on mount, `initFavorites()` on auth state change
+- **SavedPropertiesList.jsx** (shared): daftar properti favorit reusable dengan skeleton, fallback ke `DUMMY_PROPERTIES` saat fetch gagal — dipakai HamburgerMenu & ProfileDrawer
+
+### 13. Navigasi (HamburgerMenu / SlideOver)
+- **HamburgerMenu rewrite**: a11y (role/aria, keyboard), i18n penuh, pakai **SavedPropertiesList** shared (bukan fetch duplikat)
+- **Logout confirm**: klik Logout → ConfirmModal (bukan langsung signOut)
+- **Unread chat badge**: `useChatUnread(userId)` menghitung `direct_messages` (receiver = user, created_at > `huniOne_last_chat_read` di localStorage) + realtime INSERT → badge merah `n/99+` di item Chat
+- **Language switcher inline**: panel pilih bahasa ID/EN di dalam drawer
+- **Reduced motion**: `usePrefersReducedMotion()` (matchMedia `prefers-reduced-motion`) dipakai di SlideOver/HamburgerMenu
+- **SlideOver.jsx**: reusable drawer base dengan a11y (Escape close, focus trap, `z-index` numerik, respect reduced motion)
 
 ## Database Supabase
 
@@ -118,6 +170,7 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 
 ### Table `forum_posts`
 - `id` (uuid PK), `author_id` (FK → profiles), `title`, `content`, `category` (text, default 'Umum'), `created_at`
+- **Kolom tambahan (Aug 2026)**: `views` (int, default 0), `is_pinned` (bool, default false), `solved_reply_id` (uuid → forum_replies), `tags` (text[] default '{}'), `poll` (jsonb — `{ question, options[] }`)
 - RLS: select all, insert/update/delete hanya author
 
 ### Table `forum_replies`
@@ -125,10 +178,28 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 - RLS: select all, insert/update/delete hanya author
 - Realtime: INSERT on `forum_replies` (subscribe di ForumDetailPage)
 
-### Table `forum_likes`
+### Table `forum_likes` (legacy — masih ada untuk kompatibilitas)
 - `id` (uuid PK), `user_id` (FK → profiles), `target_id` (uuid — post or reply ID), `target_type` (text — 'post' or 'reply'), `created_at`
 - Unique constraint on `(user_id, target_id, target_type)`
 - RLS: select all, insert/delete only owner
+- Migration `20260801_forum_enhancements.sql` **memindahkan data lama ke `forum_reactions`** sebagai 👍 (backward compat). Fitur baru pakai `forum_reactions`.
+
+### Table `forum_reactions` (baru — menggantikan likes)
+- `id` (uuid PK), `user_id` (FK → profiles, cascade), `target_id` (uuid — post or reply ID), `target_type` (text check 'post'/'reply'), `reaction` (text — emoji 👍❤️🔥💡), `created_at`
+- Unique constraint on `(user_id, target_id, target_type)` — **satu reaksi per user per target**
+- RLS: select all, insert/update/delete hanya owner
+
+### Table `forum_poll_votes` (baru)
+- `id` (uuid PK), `post_id` (FK → forum_posts, cascade), `user_id` (FK → profiles, cascade), `option_index` (int), `created_at`
+- Unique constraint on `(post_id, user_id)` — satu vote per user per poll
+- RLS: select all, insert/update/delete hanya owner
+
+### Table `agent_applications` (baru)
+- `id` (uuid PK), `full_name`, `email`, `whatsapp` (not null), `agency`, `experience`, `region`, `portfolio` (text, default '')
+- `agreement_accepted_at` (timestamptz), `status` (check 'pending'/'approved'/'rejected', default 'pending'), `reject_reason` (text default ''), `reviewed_by` (FK → profiles), `reviewed_at`, `created_at`
+- Index: `status`, `created_at`
+- **RLS**: insert untuk semua (publik, `with check (true)`), select/update hanya admin
+- **Trigger** `agent_approval_trigger` (after update status) → `handle_agent_approval()`: saat approved, update `profiles.role='agent'` untuk profil yang emailnya sama (role lama pembeli/owner, bukan admin)
 
 ### Table `site_visits`
 - `id` (uuid PK), `property_id` (FK → properties), `buyer_id` (FK → profiles), `scheduled_date` (date), `scheduled_time` (time), `notes` (text, default ''), `status` (text, check: 'pending'/'confirmed'/'cancelled'/'completed'), `created_at`
@@ -183,7 +254,7 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 
 ## SEO
 - **useSEO hook** (`src/hooks/useSEO.js`): sets `document.title`, meta description, `og:title`, `og:description`, `og:image`, `og:url`
-- Dipanggil di ExplorePage, PropertyDetailPage, SellPropertyPage, KprCalculatorPage, NotFoundPage
+- Dipanggil di ExplorePage, PropertyDetailPage, SellPropertyPage, KprCalculatorPage, NotFoundPage, **AgentApplicationPage**
 
 ## Error Handling
 - **ErrorBoundary** (`src/components/ErrorBoundary.jsx`): class component, catches render errors, shows reload button + dev stack trace
@@ -202,10 +273,12 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, admin dashb
 - `auth.uid()` tidak bisa dipalsukan
 
 ## Konvensi Kode
-- `useAuth()` → `{ session, user, loading, showToast, signOut }`. `signOut` via `handleLogout` dari App
+- `useAuth()` → `{ session, user, loading, showToast, signOut, role }`. `signOut` via `handleLogout` dari App
 - Color palette: `brand-primary` (#1E3A5F), `brand-accent` (#4A90E2), `brand-bg` (#F8FAFC), `brand-surface` (#FFFFFF), `brand-text` (#1C2733), `brand-muted` (#6B7280), `brand-border` (#E5E7EB), `brand-highlight` (#EDF4FD), `brand-verified` (#2E8B57), `brand-danger` (#DC2626)
 - Logo: `public/huniOne.svg` via `<img>` (viewBox-based)
-- Shared utils: `format.js` (formatPrice), `avatar.js` (getAvatarColor, getInitials), `time.js` (timeAgo), `favorites.js` (setSupabase, initFavorites, toggleFavorite), `images.js` (parseImages, FALLBACK_IMAGE, getImageSrc)
+- Shared utils: `format.js` (formatPrice, formatCurrency, formatCount), `avatar.js` (getAvatarColor, getInitials), `time.js` (timeAgo), `favorites.js` (setSupabase, initFavorites, toggleFavorite), `images.js` (parseImages, FALLBACK_IMAGE, getImageSrc), `markdown.js` (parseBlocks, tokenizeInline, isSafeUrl), `compare.js` (MAX_ITEMS=3, getCompareList, addToCompare, removeFromCompare, isInCompare, clearCompare), `recentlyViewed.js` (get/remove/clear/addRecentlyViewed, CHANGE_EVENT), `financialProfile.js` (getFinancialProfile, saveFinancialProfile, computeAffordability, maxAffordablePrice, estimateMonthlyInstallment, BUYING_POWER_ASSUMPTION)
+- Custom events untuk integrasi antar komponen: `compare-updated`, `recently-viewed-changed`, `financial-profile-saved`, `open-financial-profile`, `open-hunibot-question`, `open-hunibot`
+- Footer: mega footer (5 kolom) + newsletter (validasi email) + stats live (properties verified/profiles/forum_posts) + trust badges + app badges (App Store/Play Store → `/coming-soon`) + contact (WhatsApp `wa.me/6281234567890`, `halo@hunione.com`, tombol tanya HuniBot) + social links real + **scroll-to-top button** (muncul scrollY > 400)
 
 ## Migrations SQL
 Semua file di `supabase/migrations/`:
@@ -217,5 +290,7 @@ Semua file di `supabase/migrations/`:
 6. `20260730_profiles_rls_policies.sql`
 7. `20260731_create_forum_likes.sql`
 8. `20260731_add_forum_category.sql`
+9. `20260801_forum_enhancements.sql` — kolom baru forum_posts (views/is_pinned/solved_reply_id/tags/poll) + tabel `forum_reactions` + `forum_poll_votes` + migrasi data forum_likes → reactions
+10. `20260801_create_agent_applications.sql` — tabel `agent_applications` + RLS + trigger approval role promotion
 
-**Catatan**: PostgreSQL 14 tidak support `CREATE POLICY IF NOT EXISTS` — harus pakai `DROP POLICY IF EXISTS` dulu sebelum `CREATE POLICY`.
+**Catatan**: PostgreSQL 14 tidak support `CREATE POLICY IF NOT EXISTS` — harus pakai `DROP POLICY IF EXISTS` dulu sebelum `CREATE POLICY`. Migration terbaru memakai blok `do $$ ... exception when duplicate_object` untuk idempotency.

@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowLeftRight, CheckCircle2, Info, Plus, X } from 'lucide-r
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
-import { formatPrice } from '../utils/format'
+import { formatPriceDisplay } from '../utils/format'
 import { getCompareList, removeFromCompare, clearCompare, MAX_ITEMS } from '../utils/compare'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import {
@@ -190,7 +190,7 @@ export default function ComparePage() {
         const isMin = minPrice !== null && value === minPrice
         return (
           <span className={`font-bold ${isMin ? 'text-brand-verified' : 'text-brand-text'}`}>
-            {p.priceDisplay || formatPrice(p.price)}
+            {formatPriceDisplay(p)}
             {isMin && (
               <span className="ml-1.5 inline-flex align-middle items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-verified-bg text-brand-verified text-[9px] font-bold uppercase tracking-wide">
                 <CheckCircle2 size={9} />
