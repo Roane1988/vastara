@@ -36,6 +36,7 @@ const PROPERTY_TYPE_OPTIONS = [
   { value: 'Villa', tKey: 'explore.filter.property_types.villa' },
   { value: 'Tanah', tKey: 'explore.filter.property_types.land' },
   { value: 'Kantor', tKey: 'explore.filter.property_types.office' },
+  { value: 'Ruko', tKey: 'explore.filter.property_types.ruko' },
 ]
 
 const POPULAR_SEARCHES = [
@@ -85,6 +86,7 @@ export default function ExplorePage() {
   const [filterPrice, setFilterPrice] = useState('')
   const [filterType, setFilterType] = useState('')
   const [filterBeds, setFilterBeds] = useState('')
+  const [filterPremium, setFilterPremium] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [sortIndex, setSortIndex] = useState(0)
   const [searchCategory, setSearchCategory] = useState('dijual')
@@ -256,6 +258,7 @@ export default function ExplorePage() {
     setFilterType('')
     setFilterPrice('')
     setFilterBeds('')
+    setFilterPremium(false)
     setProperties([])
     fetchProperties().catch(() => {})
     searchInputRef.current?.focus()
@@ -270,7 +273,7 @@ export default function ExplorePage() {
     setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
   }
 
-  const filterCount = [filterType, filterPrice, filterBeds].filter(Boolean).length
+  const filterCount = [filterType, filterPrice, filterBeds, filterPremium].filter(Boolean).length
   const hasActiveSearch = searchText.trim() !== '' || filterCount > 0
 
   const heroStats = useMemo(() => {
@@ -299,6 +302,8 @@ export default function ExplorePage() {
 
       if (filterType && p.property_type !== filterType) return false
 
+      if (filterPremium && !p.is_premium) return false
+
       if (filterBeds) {
         const beds = Number(p.bedrooms) || 0
         const match = filterBeds === '5+' ? beds >= 5 : beds === parseInt(filterBeds, 10)
@@ -318,7 +323,7 @@ export default function ExplorePage() {
       if (sortIndex === 2) return (Number(b.price) || 0) - (Number(a.price) || 0)
       return 0
     })
-  }, [properties, searchCategory, searchText, filterType, filterBeds, filterPrice, sortIndex])
+  }, [properties, searchCategory, searchText, filterType, filterBeds, filterPrice, filterPremium, sortIndex])
 
   const isSearching = hasActiveSearch || isAiSearch
   const isSearchEmpty = isSearching && sorted.length === 0
@@ -779,6 +784,11 @@ export default function ExplorePage() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute top-3 left-3 flex gap-2">
+                        {p.is_premium && (
+                          <span className="bg-amber-400 text-amber-950 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                            {t('explore.filter.premium_badge')}
+                          </span>
+                        )}
                         {p.typeLabel && (
                           <span className="bg-brand-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
                             {p.typeLabel}
@@ -868,6 +878,7 @@ export default function ExplorePage() {
                     setFilterPrice('')
                     setFilterType('')
                     setFilterBeds('')
+                    setFilterPremium(false)
                   }}
                   className="text-sm text-brand-muted hover:text-brand-text transition-colors"
                 >
@@ -945,6 +956,23 @@ export default function ExplorePage() {
                       {b}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-brand-text mb-2 block">{t('explore.filter.premium')}</label>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setFilterPremium(!filterPremium)}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      filterPremium
+                        ? 'bg-brand-primary text-white'
+                        : 'bg-brand-bg text-brand-muted border border-brand-border'
+                    }`}
+                  >
+                    {t('explore.filter.premium_badge')}
+                  </button>
                 </div>
               </div>
 

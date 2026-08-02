@@ -610,6 +610,11 @@ export default function PropertyDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              {property.is_premium && (
+                <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-400 text-amber-950 border border-amber-500">
+                  {lang === 'en' ? 'Premium' : 'Premium'}
+                </span>
+              )}
               {property.certificate_status && (
                 <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   {property.certificate_status}
@@ -641,6 +646,21 @@ export default function PropertyDetailPage() {
                 <span className="text-sm font-medium">{property.area_sqm || property.sqm || '-'} m&sup2;</span>
               </div>
             </div>
+
+            {property.facilities && (
+              <div>
+                <h3 className="text-sm font-semibold text-brand-text mb-2">
+                  {lang === 'en' ? 'Facilities' : 'Fasilitas'}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {property.facilities.split(',').map((f) => f.trim()).filter(Boolean).map((f, i) => (
+                    <span key={i} className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium bg-brand-bg text-brand-text border border-brand-border">
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <h2 className="text-base font-semibold text-brand-text mb-2">

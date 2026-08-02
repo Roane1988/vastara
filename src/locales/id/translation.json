@@ -161,7 +161,8 @@
         "apartment": "Apartemen",
         "villa": "Villa",
         "land": "Tanah",
-        "office": "Kantor"
+        "office": "Kantor",
+        "ruko": "Ruko"
       },
       "price_range": "Rentang Harga",
       "price_options": {
@@ -170,6 +171,8 @@
         "above_3b": "> Rp 3 M"
       },
       "bedrooms": "Kamar Tidur",
+      "premium": "Iklan Premium",
+      "premium_badge": "Premium",
       "apply": "Terapkan Filter"
     },
     "property_card": {

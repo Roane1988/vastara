@@ -10,6 +10,8 @@ const DRAFT_KEY = 'hunione_sell_draft'
 const MAX_IMAGES = 10
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
 
+const PROPERTY_TYPE_OPTIONS = ['Rumah', 'Apartemen', 'Villa', 'Tanah', 'Kantor', 'Ruko']
+
 const EMPTY_FORM = {
   title: '',
   category: 'Dijual',
@@ -20,6 +22,9 @@ const EMPTY_FORM = {
   sqm: '',
   status_sertifikat: '',
   description: '',
+  description_en: '',
+  facilities: '',
+  is_premium: false,
   address: '',
   city: '',
   kecamatan: '',
@@ -135,7 +140,7 @@ function PreviewCard({ form, image }) {
         <p className="text-sm font-semibold text-brand-text mt-0.5">{form.title || 'Judul Properti'}</p>
         <p className="text-xs text-brand-muted mt-0.5 flex items-center gap-1">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-          {form.city || form.kecamatan || form.address ? `${form.city || ''}${form.kota || ''}` : 'Lokasi'} 
+          {[form.kecamatan, form.city].filter(Boolean).join(', ') || form.address || 'Lokasi'} 
         </p>
         <div className="flex gap-3 text-xs text-brand-muted mt-2 pt-2 border-t border-brand-border">
           <span>{form.bedrooms || '0'} KT</span>
@@ -204,6 +209,9 @@ export default function SellPropertyPage() {
           sqm: data.area_sqm ? String(data.area_sqm) : '',
           status_sertifikat: data.certificate_status || '',
           description: data.description_id || '',
+          description_en: data.description_en || '',
+          facilities: data.facilities || '',
+          is_premium: Boolean(data.is_premium),
           address: data.address || '',
           city: data.city || '',
           kecamatan: data.district || '',
@@ -211,6 +219,27 @@ export default function SellPropertyPage() {
         })
       }
     })
+  }, [editId])
+
+  useEffect(() => {
+    if (editId || form.whatsapp) return
+    let cancelled = false
+    const prefillWhatsapp = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled || !user) return
+      const metaWa = user.user_metadata?.whatsapp || user.user_metadata?.phone
+      if (metaWa) {
+        setForm((prev) => ({ ...prev, whatsapp: String(metaWa) }))
+        return
+      }
+      const { data: profile } = await supabase.from('profiles').select('whatsapp').eq('id', user.id).maybeSingle()
+      if (!cancelled && profile?.whatsapp) {
+        setForm((prev) => ({ ...prev, whatsapp: profile.whatsapp }))
+      }
+    }
+    prefillWhatsapp()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId])
 
   useEffect(() => {
@@ -236,7 +265,7 @@ export default function SellPropertyPage() {
   const canProceed = useCallback(() => {
     switch (step) {
       case 0:
-        return form.title.trim().length >= 3 && form.jenis_properti && form.estimasi_harga && form.description.trim().length >= 10 && form.address.trim().length >= 5 && form.city.trim().length >= 2
+        return form.title.trim().length >= 3 && form.jenis_properti && Number(form.estimasi_harga) > 0 && form.description.trim().length >= 10 && form.address.trim().length >= 5 && form.city.trim().length >= 2
       case 1:
         return imageFiles.length > 0
       case 2:
@@ -244,6 +273,23 @@ export default function SellPropertyPage() {
       default:
         return true
     }
+  }, [step, form, imageFiles.length])
+
+  const stepErrors = useMemo(() => {
+    const errs = []
+    if (step === 0) {
+      if (form.title.trim().length < 3) errs.push('Judul minimal 3 karakter')
+      if (!form.jenis_properti) errs.push('Pilih tipe properti')
+      if (!Number(form.estimasi_harga)) errs.push('Masukkan harga yang valid')
+      if (form.description.trim().length < 10) errs.push('Deskripsi minimal 10 karakter')
+      if (form.address.trim().length < 5) errs.push('Alamat minimal 5 karakter')
+      if (form.city.trim().length < 2) errs.push('Kota wajib diisi')
+    } else if (step === 1) {
+      if (imageFiles.length === 0) errs.push('Unggah minimal 1 foto')
+    } else if (step === 2) {
+      if (form.whatsapp.replace(/\D/g, '').length < 10) errs.push('Nomor WhatsApp minimal 10 digit')
+    }
+    return errs
   }, [step, form, imageFiles.length])
 
   const nextStep = () => { if (step < STEPS.length - 1) setStep((s) => s + 1) }
@@ -299,25 +345,38 @@ export default function SellPropertyPage() {
         form.sqm && `${form.sqm} m² luas bangunan`,
         form.status_sertifikat && `sertifikat ${form.status_sertifikat}`,
       ].filter(Boolean).join(', ')
-      const prompt = `Buat deskripsi properti di Bahasa Indonesia yang menarik untuk ${form.jenis_properti} berjudul "${form.title}". ${features ? `Spesifikasi: ${features}.` : ''} Gunakan gaya bahasa profesional dan persuasif. Maksimal 3 kalimat.`
-      const response = await fetch('/api/groq', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'openai/gpt-oss-120b', purpose: 'chat', messages: [{ role: 'user', content: prompt }] }),
-      })
-      const data = await response.json()
-      if (!response.ok) {
-        const friendly = typeof data?.error === 'string' ? data.error : data?.error?.message
-        showToast('Gagal: ' + (friendly || `HTTP ${response.status}`), 'error')
+      const base = `untuk ${form.jenis_properti} berjudul "${form.title}". ${features ? `Spesifikasi: ${features}.` : ''} Gunakan gaya bahasa profesional dan persuasif. Maksimal 3 kalimat.`
+      const prompts = {
+        id: `Buat deskripsi properti di Bahasa Indonesia yang menarik ${base}`,
+        en: `Write an engaging property description in English ${base}`,
+      }
+      const [idRes, enRes] = await Promise.all([
+        fetch('/api/groq', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'openai/gpt-oss-120b', purpose: 'chat', messages: [{ role: 'user', content: prompts.id }] }),
+        }),
+        fetch('/api/groq', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'openai/gpt-oss-120b', purpose: 'chat', messages: [{ role: 'user', content: prompts.en }] }),
+        }),
+      ])
+      const clean = (d) => {
+        const c = d?.choices?.[0]?.message?.content
+        return c ? String(c).replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '').trim() : ''
+      }
+      const [idData, enData] = [await idRes.json(), await enRes.json()]
+      const idText = clean(idData)
+      const enText = clean(enData)
+      if (!idText && !enText) {
+        showToast('Respon AI kosong. Coba lagi.', 'error')
         return
       }
-      const content = data?.choices?.[0]?.message?.content
-      if (content) {
-        const clean = String(content).replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '').trim()
-        updateFormValue('description', clean || content)
-      } else {
-        showToast('Respon AI kosong. Coba lagi.', 'error')
-      }
+      const patch = {}
+      if (idText) patch.description = idText
+      if (enText) patch.description_en = enText
+      setForm((prev) => ({ ...prev, ...patch }))
     } catch {
       showToast('Gagal menghasilkan deskripsi. Coba lagi.', 'error')
     } finally {
@@ -341,9 +400,9 @@ export default function SellPropertyPage() {
       const realFiles = imageFiles.filter((f) => f.size > 0)
       if (realFiles.length > 0) {
         try {
-          const uploads = realFiles.map(async (file) => {
+          const uploads = realFiles.map(async (file, idx) => {
             const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-            const fileName = `${user.id}-${Date.now()}-${safeName}`
+            const fileName = `${user.id}-${Date.now()}-${idx}-${safeName}`
             const { error: uploadErr } = await supabase.storage
               .from('PROPERTIES_IMAGE')
               .upload(fileName, file)
@@ -368,16 +427,22 @@ export default function SellPropertyPage() {
         property_type: form.jenis_properti,
         seller_whatsapp: form.whatsapp,
         description_id: form.description,
+        description_en: form.description_en || null,
+        facilities: form.facilities || null,
+        is_premium: Boolean(form.is_premium),
         address: form.address,
         city: form.city,
         district: form.kecamatan,
-        price: form.estimasi_harga ? Number(form.estimasi_harga) : null,
+        price: Number(form.estimasi_harga) || null,
         bedrooms: Number(form.bedrooms) || 0,
         bathrooms: Number(form.bathrooms) || 0,
         area_sqm: Number(form.sqm) || 0,
         certificate_status: form.status_sertifikat,
-        image_url: JSON.stringify(uploadedImageUrls),
         status: editId ? undefined : 'pending',
+      }
+
+      if (realFiles.length > 0) {
+        payload.image_url = JSON.stringify(uploadedImageUrls)
       }
 
       let queryError
@@ -425,13 +490,9 @@ export default function SellPropertyPage() {
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Tipe Properti <span className="text-red-500">*</span></label>
                 <select value={form.jenis_properti} onChange={updateForm('jenis_properti')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none">
                   <option value="">Pilih tipe</option>
-                  <option value="Rumah">Rumah</option>
-                  <option value="Apartemen">Apartemen</option>
-                  <option value="Villa">Villa</option>
-                  <option value="Tanah">Tanah</option>
-                  <option value="Ruko">Ruko</option>
-                  <option value="Kantor">Kantor</option>
-                  <option value="Lainnya">Lainnya</option>
+                  {PROPERTY_TYPE_OPTIONS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -478,6 +539,28 @@ export default function SellPropertyPage() {
             </div>
 
             <div>
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">Fasilitas</label>
+              <input type="text" placeholder="Contoh: Parkir, AC, Keamanan 24 Jam, Furnished" value={form.facilities} onChange={updateForm('facilities')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+              <p className="text-xs text-brand-muted mt-1.5">Pisahkan dengan koma</p>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 p-4 rounded-xl border border-brand-border bg-white">
+              <div>
+                <p className="text-sm font-semibold text-brand-text">Iklan Premium</p>
+                <p className="text-xs text-brand-muted mt-0.5">Tampilkan lebih menonjol di pencarian</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.is_premium}
+                onClick={() => updateFormValue('is_premium', !form.is_premium)}
+                className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${form.is_premium ? 'bg-brand-primary' : 'bg-brand-border'}`}
+              >
+                <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.is_premium ? 'translate-x-5' : ''}`} />
+              </button>
+            </div>
+
+            <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-sm font-semibold text-brand-text">Deskripsi <span className="text-red-500">*</span></label>
                 <button type="button" onClick={generateDescription} disabled={generatingDesc} className="flex items-center gap-1 text-xs font-medium text-brand-primary hover:text-brand-accent transition-colors disabled:opacity-50">
@@ -486,6 +569,11 @@ export default function SellPropertyPage() {
                 </button>
               </div>
               <textarea rows={4} placeholder="Jelaskan properti Anda secara detail..." value={form.description} onChange={updateForm('description')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none" />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">Deskripsi (English)</label>
+              <textarea rows={3} placeholder="Describe your property in English (optional)" value={form.description_en} onChange={updateForm('description_en')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none" />
             </div>
 
             <div>
@@ -571,7 +659,9 @@ export default function SellPropertyPage() {
                 <p>Sertifikat: {form.status_sertifikat || '-'}</p>
                 <p>Lokasi: {[form.city, form.kecamatan].filter(Boolean).join(', ') || form.address?.slice(0, 30)}</p>
                 <p>Kamar: {form.bedrooms || 0} KT / {form.bathrooms || 0} KM / {form.sqm || '-'} m&sup2;</p>
+                {form.facilities && <p>Fasilitas: {form.facilities}</p>}
                 <p>Foto: {imageFiles.length} file</p>
+                {form.is_premium && <p className="text-brand-primary font-semibold">Iklan Premium</p>}
               </div>
             </div>
 
@@ -632,6 +722,11 @@ export default function SellPropertyPage() {
               <div className="flex-1 px-5 pt-6 pb-28 overflow-y-auto">{renderStep()}</div>
 
               <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-40">
+                {stepErrors.length > 0 && (
+                  <ul className="max-w-lg mx-auto mb-3 space-y-1 text-xs text-red-500">
+                    {stepErrors.map((e) => <li key={e}>• {e}</li>)}
+                  </ul>
+                )}
                 <div className="flex gap-3 max-w-lg mx-auto">
                   {step > 0 && (
                     <button type="button" onClick={prevStep} className="flex-1 py-4 rounded-xl font-medium text-sm text-brand-text bg-brand-bg hover:bg-brand-border transition-colors active:scale-[0.98] border border-brand-border">Kembali</button>

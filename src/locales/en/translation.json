@@ -161,7 +161,8 @@
         "apartment": "Apartment",
         "villa": "Villa",
         "land": "Land",
-        "office": "Office"
+        "office": "Office",
+        "ruko": "Shophouse"
       },
       "price_range": "Price Range",
       "price_options": {
@@ -170,6 +171,8 @@
         "above_3b": "> Rp 3 B"
       },
       "bedrooms": "Bedrooms",
+      "premium": "Premium Listings",
+      "premium_badge": "Premium",
       "apply": "Apply Filter"
     },
     "property_card": {
