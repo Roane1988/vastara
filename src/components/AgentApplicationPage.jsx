@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, UserCheck, Building2, CheckCircle2, AlertCircle, Lock } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
+import { createAgentApplicationSchema, EXPERIENCE_OPTIONS, buildAgentApplicationPayload } from '../utils/agentApplicationSchema'
 
 export default function AgentApplicationPage() {
   useSEO({ title: 'Daftar Menjadi Agen — HuniOne', description: 'Bergabung bersama HuniOne sebagai agen properti. Jangkau lebih banyak klien, kelola listing, dan tumbuhkan bisnis Anda.' })
@@ -12,21 +15,26 @@ export default function AgentApplicationPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  const [form, setForm] = useState({
-    full_name: user?.user_metadata?.first_name || '',
-    email: user?.email || '',
-    whatsapp: '',
-    agency: '',
-    experience: '',
-    region: '',
-    portfolio: '',
+  const schema = useMemo(() => createAgentApplicationSchema(t), [t])
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      full_name: user?.user_metadata?.first_name || '',
+      email: user?.email || '',
+      whatsapp: '',
+      agency: '',
+      experience: '',
+      region: '',
+      portfolio: '',
+      agreed: false,
+    },
   })
-  const [agreed, setAgreed] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
-
-  const updateField = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
   if (!user) {
     return (
@@ -61,45 +69,29 @@ export default function AgentApplicationPage() {
     )
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault()
+  const onSubmit = async (values) => {
     setError(null)
-
-    if (!form.full_name.trim() || !form.email.trim() || !form.whatsapp.trim()) {
-      setError(t('agentApply.error_required'))
+    const payload = buildAgentApplicationPayload(values, user.id, user.email)
+    const { error: insertError } = await supabase.from('agent_applications').insert(payload)
+    if (insertError) {
+      setError(insertError.message)
       return
     }
-    if (!agreed) {
-      setError(t('agentApply.error_agreement'))
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      const { error: insertError } = await supabase.from('agent_applications').insert({
-        user_id: user.id,
-        full_name: form.full_name.trim(),
-        email: user.email,
-        whatsapp: form.whatsapp.trim(),
-        agency: form.agency.trim(),
-        experience: form.experience,
-        region: form.region.trim(),
-        portfolio: form.portfolio.trim(),
-        agreement_accepted_at: new Date().toISOString(),
-      })
-      if (insertError) {
-        setError(insertError.message)
-        setSubmitting(false)
-        return
-      }
-      setSuccess(true)
-    } catch (err) {
-      setError(err.message || 'Terjadi kesalahan, coba lagi.')
-    }
-    setSubmitting(false)
+    setSuccess(true)
   }
 
-  const inputClass = "w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+  const fieldError = (key) =>
+    errors[key] ? (
+      <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
+        <AlertCircle size={13} className="shrink-0" />
+        {errors[key].message}
+      </p>
+    ) : null
+
+  const errorInput = (key) =>
+    errors[key] ? 'border-red-400 focus:border-red-400 focus:ring-red-400/30' : ''
+
+  const inputClass = `w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors`
   const labelClass = "text-xs font-medium text-brand-muted mb-1.5 block"
 
   return (
@@ -161,57 +153,61 @@ export default function AgentApplicationPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="bg-brand-surface rounded-2xl border border-brand-border shadow-sm p-5 sm:p-6 space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} noValidate className="bg-brand-surface rounded-2xl border border-brand-border shadow-sm p-5 sm:p-6 space-y-4">
               <div>
                 <label htmlFor="full_name" className={labelClass}>{t('agentApply.full_name')} *</label>
-                <input id="full_name" type="text" value={form.full_name} onChange={updateField('full_name')} placeholder={t('agentApply.full_name_placeholder')} className={inputClass} />
+                <input id="full_name" type="text" {...register('full_name')} placeholder={t('agentApply.full_name_placeholder')} className={`${inputClass} ${errorInput('full_name')}`} />
+                {fieldError('full_name')}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="email" className={labelClass}>{t('agentApply.email')} *</label>
-                  <input id="email" type="email" value={form.email} readOnly placeholder="nama@email.com" className={`${inputClass} opacity-70 cursor-not-allowed`} />
+                  <input id="email" type="email" {...register('email')} readOnly placeholder="nama@email.com" className={`${inputClass} opacity-70 cursor-not-allowed ${errorInput('email')}`} />
+                  {fieldError('email')}
                 </div>
                 <div>
                   <label htmlFor="whatsapp" className={labelClass}>{t('agentApply.whatsapp')} *</label>
-                  <input id="whatsapp" type="tel" value={form.whatsapp} onChange={updateField('whatsapp')} placeholder="+62 812-3456-7890" className={inputClass} />
+                  <input id="whatsapp" type="tel" {...register('whatsapp')} placeholder="+62 812-3456-7890" className={`${inputClass} ${errorInput('whatsapp')}`} />
+                  {fieldError('whatsapp')}
                 </div>
               </div>
 
               <div>
                 <label htmlFor="agency" className={labelClass}>{t('agentApply.agency')}</label>
-                <input id="agency" type="text" value={form.agency} onChange={updateField('agency')} placeholder={t('agentApply.agency_placeholder')} className={inputClass} />
+                <input id="agency" type="text" {...register('agency')} placeholder={t('agentApply.agency_placeholder')} className={inputClass} />
               </div>
 
               <div>
                 <label htmlFor="experience" className={labelClass}>{t('agentApply.experience')}</label>
-                <select id="experience" value={form.experience} onChange={updateField('experience')} className={inputClass}>
+                <select id="experience" {...register('experience')} className={`${inputClass} ${errorInput('experience')}`}>
                   <option value="">{t('agentApply.experience_placeholder')}</option>
-                  {['<1', '1-3', '3-5', '5+'].map((y) => (
+                  {EXPERIENCE_OPTIONS.map((y) => (
                     <option key={y} value={y}>{y} {t('agentApply.years')}</option>
                   ))}
                 </select>
+                {fieldError('experience')}
               </div>
 
               <div>
                 <label htmlFor="region" className={labelClass}>{t('agentApply.region')}</label>
-                <input id="region" type="text" value={form.region} onChange={updateField('region')} placeholder={t('agentApply.region_placeholder')} className={inputClass} />
+                <input id="region" type="text" {...register('region')} placeholder={t('agentApply.region_placeholder')} className={inputClass} />
               </div>
 
               <div>
                 <label htmlFor="portfolio" className={labelClass}>{t('agentApply.portfolio')}</label>
-                <textarea id="portfolio" rows={3} value={form.portfolio} onChange={updateField('portfolio')} placeholder={t('agentApply.portfolio_placeholder')} className={`${inputClass} resize-none`} />
+                <textarea id="portfolio" rows={3} {...register('portfolio')} placeholder={t('agentApply.portfolio_placeholder')} className={`${inputClass} resize-none`} />
               </div>
 
               <label className="flex items-start gap-3 pt-2 border-t border-brand-border cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
+                  {...register('agreed')}
                   className="mt-0.5 w-4 h-4 rounded border-brand-border text-brand-accent focus:ring-brand-accent/30 cursor-pointer"
                 />
                 <span className="text-xs text-brand-muted leading-relaxed">{t('agentApply.agreement')}</span>
               </label>
+              {fieldError('agreed')}
 
               <div className="flex items-center gap-2 bg-brand-bg border border-brand-border rounded-xl px-4 py-3">
                 <Building2 size={16} className="text-brand-accent shrink-0" />
@@ -220,15 +216,15 @@ export default function AgentApplicationPage() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={isSubmitting}
                 className="w-full py-3.5 text-sm font-bold text-white bg-brand-primary rounded-xl hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {submitting ? (
+                {isSubmitting ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <UserCheck size={16} />
                 )}
-                {submitting ? t('agentApply.submitting') : t('agentApply.submit')}
+                {isSubmitting ? t('agentApply.submitting') : t('agentApply.submit')}
               </button>
             </form>
           </>
