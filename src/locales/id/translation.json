@@ -129,7 +129,7 @@
     "quick_menu": {
       "find_property": "Carikan Properti",
       "advertise": "Iklankan Properti",
-      "find_agent": "Daftar Agen",
+      "find_agent": "Cari Agen",
       "mortgage": "Kalkulator KPR",
       "price_drop": "Turun Harga",
       "forum": "Tanya Forum",
@@ -517,5 +517,28 @@
     "success_title": "Pengajuan Terkirim!",
     "success_desc": "Terima kasih sudah mendaftar sebagai agen HuniOne. Tim kami akan mereview pengajuan Anda dan menghubungi Anda melalui WhatsApp atau email.",
     "back_home": "Kembali ke Beranda"
+  },
+  "agents": {
+    "title": "Direktori Agen HuniOne",
+    "subtitle": "Temukan agen properti terpercaya, lihat listing aktif dan performa mereka sebelum menghubungi.",
+    "become_agent": "Daftar Menjadi Agen",
+    "search_placeholder": "Cari nama atau agensi...",
+    "all_region": "Semua Wilayah",
+    "sort_top": "Top Agent",
+    "sort_rating": "Rating Tertinggi",
+    "sort_name": "Nama A-Z",
+    "empty": "Tidak ada agen yang cocok dengan pencarian.",
+    "top_badge": "Top Agent",
+    "listing_count": "listing",
+    "chat": "Chat",
+    "wa": "WhatsApp",
+    "back_to_directory": "Kembali ke Direktori",
+    "stat_listings": "Listing Aktif",
+    "stat_premium": "Listing Premium",
+    "stat_visits": "Kunjungan Selesai",
+    "stat_rating": "Rating",
+    "listings_title": "Listing Properti",
+    "no_listings": "Belum ada listing aktif dari agen ini.",
+    "reviews_title": "Ulasan Pembeli"
   }
 }

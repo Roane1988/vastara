@@ -129,7 +129,7 @@
     "quick_menu": {
       "find_property": "Find a Property",
       "advertise": "Advertise Property",
-      "find_agent": "Become an Agent",
+      "find_agent": "Find an Agent",
       "mortgage": "Mortgage Calculator",
       "price_drop": "Price Drop",
       "forum": "Ask Forum",
@@ -517,5 +517,28 @@
     "success_title": "Application Submitted!",
     "success_desc": "Thank you for registering as a HuniOne agent. Our team will review your application and contact you via WhatsApp or email.",
     "back_home": "Back to Home"
+  },
+  "agents": {
+    "title": "HuniOne Agent Directory",
+    "subtitle": "Find trusted property agents, see their active listings and performance before reaching out.",
+    "become_agent": "Become an Agent",
+    "search_placeholder": "Search name or agency...",
+    "all_region": "All Regions",
+    "sort_top": "Top Agents",
+    "sort_rating": "Highest Rated",
+    "sort_name": "Name A-Z",
+    "empty": "No agents match your search.",
+    "top_badge": "Top Agent",
+    "listing_count": "listings",
+    "chat": "Chat",
+    "wa": "WhatsApp",
+    "back_to_directory": "Back to Directory",
+    "stat_listings": "Active Listings",
+    "stat_premium": "Premium Listings",
+    "stat_visits": "Completed Visits",
+    "stat_rating": "Rating",
+    "listings_title": "Property Listings",
+    "no_listings": "No active listings from this agent yet.",
+    "reviews_title": "Buyer Reviews"
   }
 }

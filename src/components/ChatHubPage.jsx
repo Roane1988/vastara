@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getAvatarColor, getInitials } from '../utils/avatar'
@@ -143,6 +143,7 @@ function getOtherId(message, userId) {
 export default function ChatHubPage() {
   const navigate = useNavigate()
   const { session, user, showToast } = useAuth()
+  const [searchParams] = useSearchParams()
   const cancelledRef = useRef(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -267,6 +268,15 @@ export default function ChatHubPage() {
     fetchContacts()
     return () => { cancelledRef.current = true }
   }, [userId])
+
+  const openUserId = searchParams.get('user')
+  useEffect(() => {
+    if (!openUserId) return
+    const found = contacts.some((c) => c.id === openUserId)
+    if (found && activeContactId !== openUserId) {
+      handleSelectContact(openUserId)
+    }
+  }, [openUserId, contacts, activeContactId])
 
   useEffect(() => {
     if (!activeContactId || !userId) {
