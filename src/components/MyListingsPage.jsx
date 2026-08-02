@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { getImageSrc } from '../utils/images'
 import { formatPrice } from '../utils/format'
 import ConfirmModal from './ConfirmModal'
+import { Check } from 'lucide-react'
 
 function ArrowLeftIcon() {
   return (
@@ -197,7 +198,9 @@ export default function MyListingsPage() {
               key={p.id}
               type="button"
               onClick={() => navigate(`/property/${p.id}`)}
-              className="w-full bg-brand-surface rounded-2xl overflow-hidden border border-brand-border shadow-sm hover:shadow-md active:scale-[0.99] transition-all duration-200 text-left"
+              className={`w-full bg-brand-surface rounded-2xl overflow-hidden border border-brand-border shadow-sm hover:shadow-md active:scale-[0.99] transition-all duration-200 text-left ${
+                p.status === 'sold' ? 'opacity-70 grayscale' : ''
+              }`}
             >
               <div className="flex items-stretch gap-0">
                 <div className="w-28 sm:w-36 shrink-0 bg-brand-bg flex items-center justify-center overflow-hidden">
@@ -230,6 +233,12 @@ export default function MyListingsPage() {
                     <span>{p.area_sqm} m&sup2;</span>
                   </div>
                   {p.status !== 'sold' && <StatusTimeline status={p.status} />}
+                  {p.status === 'sold' && (
+                    <p className="text-[11px] text-gray-500 mt-2 flex items-center gap-1">
+                      <Check size={12} />
+                      Iklan telah ditandai terjual
+                    </p>
+                  )}
                   {p.status !== 'sold' && (
                     <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                       <button
