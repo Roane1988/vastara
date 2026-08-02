@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Lock,
   Wallet,
+  UserCheck,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import FinancialProfileForm from './FinancialProfileForm'
@@ -458,6 +459,16 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           >
             <LayoutDashboard size={18} className="text-brand-primary shrink-0" />
             Dashboard Admin
+          </button>
+        )}
+        {role === 'agent' && (
+          <button
+            type="button"
+            onClick={() => handleNavigate('/agent-profile')}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors"
+          >
+            <UserCheck size={18} className="text-brand-primary shrink-0" />
+            Profil Agen
           </button>
         )}
         <button

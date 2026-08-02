@@ -499,9 +499,17 @@ export default function AdminDashboardPage() {
                                   </div>
                                   <div className="min-w-0">
                                     <p className="text-xs font-medium text-brand-text truncate max-w-[100px]">{sellerName}</p>
-                                    {waLink && (
-                                      <a href={waLink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-green-600 hover:text-green-700">WA</a>
-                                    )}
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      {p.seller_type === 'agent' && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-brand-accent/10 text-brand-accent border border-brand-accent/20">AGEN</span>
+                                      )}
+                                      {p.seller_type === 'developer' && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#284D7A]/10 text-[#284D7A] border border-[#284D7A]/20">DEVELOPER</span>
+                                      )}
+                                      {waLink && (
+                                        <a href={waLink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-green-600 hover:text-green-700">WA</a>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </td>

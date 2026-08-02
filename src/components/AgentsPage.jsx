@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { MapPin, Star, Crown, MessageCircle, Phone, Building2, Search, X, UserPlus, Briefcase } from 'lucide-react'
+import { MapPin, Star, Crown, MessageCircle, Phone, Building2, Search, X, UserPlus, Briefcase, Pencil } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import useSEO from '../hooks/useSEO'
+import { useAuth } from '../context/AuthContext'
 
 function AgentCardSkeleton() {
   return (
@@ -25,6 +26,7 @@ export default function AgentsPage() {
   useSEO({ title: 'Cari Agen Properti — HuniOne', description: 'Temukan agen properti terpercaya, lihat listing aktif dan performa mereka di HuniOne.' })
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { role } = useAuth()
   const cancelledRef = useRef(false)
 
   const [agents, setAgents] = useState([])
@@ -105,14 +107,25 @@ export default function AgentsPage() {
         <div className="max-w-7xl mx-auto px-4 py-10">
           <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('agents.title')}</h1>
           <p className="text-white/80 mt-2 text-sm max-w-xl">{t('agents.subtitle')}</p>
-          <button
-            type="button"
-            onClick={() => navigate('/agent-apply')}
-            className="mt-5 inline-flex items-center gap-2 bg-white text-brand-primary px-5 py-2.5 rounded-xl text-sm font-semibold hover:brightness-95 active:scale-[0.98] transition-all"
-          >
-            <UserPlus size={16} />
-            {t('agents.become_agent')}
-          </button>
+          {role === 'agent' ? (
+            <button
+              type="button"
+              onClick={() => navigate('/agent-profile')}
+              className="mt-5 inline-flex items-center gap-2 bg-white text-brand-primary px-5 py-2.5 rounded-xl text-sm font-semibold hover:brightness-95 active:scale-[0.98] transition-all"
+            >
+              <Pencil size={16} />
+              {t('agents.edit_profile')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate('/agent-apply')}
+              className="mt-5 inline-flex items-center gap-2 bg-white text-brand-primary px-5 py-2.5 rounded-xl text-sm font-semibold hover:brightness-95 active:scale-[0.98] transition-all"
+            >
+              <UserPlus size={16} />
+              {t('agents.become_agent')}
+            </button>
+          )}
         </div>
       </div>
 

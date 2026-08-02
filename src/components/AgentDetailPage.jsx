@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, MapPin, Building2, Star, MessageCircle, Phone, Briefcase, Crown, CalendarCheck } from 'lucide-react'
+import { ArrowLeft, MapPin, Building2, Star, MessageCircle, Phone, Briefcase, Crown, CalendarCheck, Pencil } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { formatPriceDisplay } from '../utils/format'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import useSEO from '../hooks/useSEO'
 import NotFoundPage from './NotFoundPage'
+import { useAuth } from '../context/AuthContext'
 
 function StatCard({ icon, label, value }) {
   return (
@@ -25,6 +26,7 @@ export default function AgentDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
+  const { user } = useAuth()
   const lang = i18n.language
   const cancelledRef = useRef(false)
 
@@ -152,6 +154,15 @@ export default function AgentDetailPage() {
               </div>
             </div>
             <div className="sm:ml-auto flex gap-2.5 flex-wrap">
+              {user && id === user.id && (
+                <Link
+                  to="/agent-profile"
+                  className="inline-flex items-center gap-2 bg-white/15 text-white border border-white/25 px-5 py-3 rounded-xl text-sm font-semibold hover:bg-white/25 active:scale-[0.98] transition-all"
+                >
+                  <Pencil size={16} />
+                  {t('agents.edit_profile')}
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => navigate(`/chat?user=${id}`)}

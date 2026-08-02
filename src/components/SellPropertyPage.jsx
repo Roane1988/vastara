@@ -461,8 +461,6 @@ export default function SellPropertyPage() {
 
       if (!editId) {
         payload.seller_type = listingType
-        payload.agent_id = listingType === 'agent' ? user.id : null
-        payload.owner_id = listingType === 'owner' ? user.id : null
       }
 
       if (realFiles.length > 0) {

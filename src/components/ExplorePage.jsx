@@ -596,6 +596,16 @@ export default function ExplorePage() {
                       {t('explore.property_card.verified_legal')}
                     </span>
                   )}
+                  {p.seller_type === 'agent' && (
+                    <span className="absolute top-2 right-2 bg-brand-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-md">
+                      {t('explore.property_card.seller_agent')}
+                    </span>
+                  )}
+                  {p.seller_type === 'developer' && (
+                    <span className="absolute top-2 right-2 bg-[#284D7A] text-white text-[10px] font-bold px-2.5 py-1 rounded-md">
+                      {t('explore.property_card.seller_developer')}
+                    </span>
+                  )}
                 </div>
                 <div className="p-3">
                   <p className="text-base font-extrabold text-brand-primary">
@@ -787,6 +797,16 @@ export default function ExplorePage() {
                         {p.is_premium && (
                           <span className="bg-amber-400 text-amber-950 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
                             {t('explore.filter.premium_badge')}
+                          </span>
+                        )}
+                        {p.seller_type === 'agent' && (
+                          <span className="bg-brand-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                            {t('explore.property_card.seller_agent')}
+                          </span>
+                        )}
+                        {p.seller_type === 'developer' && (
+                          <span className="bg-[#284D7A] text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                            {t('explore.property_card.seller_developer')}
                           </span>
                         )}
                         {p.typeLabel && (
