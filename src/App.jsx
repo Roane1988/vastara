@@ -60,7 +60,10 @@ function AppContent() {
 
   const onNavigate = (page) => navigate('/' + page)
 
-  const onLogin = () => navigate('/')
+  const onLogin = () => {
+    const from = location.state?.from
+    navigate(from && from !== '/login' ? from : '/')
+  }
 
   const handleLogout = useCallback(async () => {
     try { await signOut() } catch { /* force-clear */ }

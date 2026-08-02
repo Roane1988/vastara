@@ -1,18 +1,20 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, UserCheck, Building2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, UserCheck, Building2, CheckCircle2, AlertCircle, Lock } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 
 export default function AgentApplicationPage() {
   useSEO({ title: 'Daftar Menjadi Agen — HuniOne', description: 'Bergabung bersama HuniOne sebagai agen properti. Jangkau lebih banyak klien, kelola listing, dan tumbuhkan bisnis Anda.' })
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [form, setForm] = useState({
-    full_name: '',
-    email: '',
+    full_name: user?.user_metadata?.first_name || '',
+    email: user?.email || '',
     whatsapp: '',
     agency: '',
     experience: '',
@@ -25,6 +27,39 @@ export default function AgentApplicationPage() {
   const [success, setSuccess] = useState(false)
 
   const updateField = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-brand-bg">
+        <div className="sticky top-0 z-30 bg-brand-surface/90 backdrop-blur-md pt-12 pb-3 px-5 border-b border-brand-border">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
+            aria-label={t('common.back')}
+          >
+            <ArrowLeft size={18} />
+          </button>
+        </div>
+
+        <div className="max-w-md mx-auto px-4 py-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-brand-accent/10 flex items-center justify-center text-brand-accent mx-auto mb-6">
+            <Lock size={28} />
+          </div>
+          <h1 className="text-2xl font-bold text-brand-text">{t('agentApply.login_title')}</h1>
+          <p className="text-sm text-brand-muted mt-3 leading-relaxed">{t('agentApply.login_desc')}</p>
+          <button
+            type="button"
+            onClick={() => navigate('/login', { state: { from: '/agent-apply' } })}
+            className="mt-8 w-full bg-brand-primary text-white py-3.5 rounded-xl text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all"
+          >
+            {t('agentApply.login_button')}
+          </button>
+          <p className="text-xs text-brand-muted mt-4">{t('agentApply.login_register_hint')}</p>
+        </div>
+      </div>
+    )
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -42,8 +77,9 @@ export default function AgentApplicationPage() {
     setSubmitting(true)
     try {
       const { error: insertError } = await supabase.from('agent_applications').insert({
+        user_id: user.id,
         full_name: form.full_name.trim(),
-        email: form.email.trim(),
+        email: user.email,
         whatsapp: form.whatsapp.trim(),
         agency: form.agency.trim(),
         experience: form.experience,
@@ -134,7 +170,7 @@ export default function AgentApplicationPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="email" className={labelClass}>{t('agentApply.email')} *</label>
-                  <input id="email" type="email" value={form.email} onChange={updateField('email')} placeholder="nama@email.com" className={inputClass} />
+                  <input id="email" type="email" value={form.email} readOnly placeholder="nama@email.com" className={`${inputClass} opacity-70 cursor-not-allowed`} />
                 </div>
                 <div>
                   <label htmlFor="whatsapp" className={labelClass}>{t('agentApply.whatsapp')} *</label>
