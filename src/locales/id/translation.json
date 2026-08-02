@@ -486,7 +486,12 @@
     "ask_hunibot": "Jelaskan ke HuniBot",
     "wa_share": "Bagikan via WhatsApp",
     "wa_message": "Halo, saya ingin konsultasi KPR dengan detail:\n\nHarga Properti: {{price}}\nUang Muka (DP): {{dp}} ({{dpPct}}%)\nPokok Pinjaman: {{principal}}\nBunga: {{rate}}% per tahun\nTenor: {{tenor}} tahun\nEstimasi Cicilan: {{installment}}/bulan",
-    "hunibot_question": "Jelaskan secara sederhana simulasi KPR saya ini: harga {{price}}, DP {{dp}}, bunga {{rate}}% per tahun, tenor {{tenor}} tahun, estimasi cicilan {{installment}} per bulan. Apakah masuk akal?"
+    "hunibot_question": "Jelaskan secara sederhana simulasi KPR saya ini: harga {{price}}, DP {{dp}}, bunga {{rate}}% per tahun, tenor {{tenor}} tahun, estimasi cicilan {{installment}} per bulan. Apakah masuk akal?",
+    "price_min_warning": "Harga properti minimal Rp10 juta.",
+    "price_max_warning": "Harga properti dibatasi maksimal Rp100 miliar.",
+    "dp_min_warning": "DP umumnya minimal 10% dari harga properti.",
+    "dp_max_warning": "DP tidak boleh melebihi harga properti.",
+    "interest_max_warning": "Suku bunga dibatasi maksimal 30% per tahun."
   },
   "agentApply": {
     "title": "Daftar Menjadi Agen",

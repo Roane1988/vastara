@@ -17,6 +17,11 @@ function ArrowLeftIcon() {
   )
 }
 
+const PRICE_MIN = 10_000_000
+const PRICE_MAX = 100_000_000_000
+const INTEREST_MAX = 30
+const DP_MIN_PCT = 10
+
 export default function KprCalculatorPage() {
   useSEO({ title: 'Kalkulator KPR — Simulasi Kredit Pemilikan Rumah', description: 'Hitung cicilan KPR bulanan dengan simulasi DP, suku bunga, dan tenor. Cek kemampuan finansial Anda sebelum membeli properti.' })
   const navigate = useNavigate()
@@ -102,6 +107,7 @@ export default function KprCalculatorPage() {
 
   const [showAmortisasi, setShowAmortisasi] = useState(false)
   const [showBiayaLain, setShowBiayaLain] = useState(false)
+  const [warnings, setWarnings] = useState({ price: '', dp: '', interest: '' })
 
   const [financialProfile, setFinancialProfile] = useState(null)
   const affordability = useMemo(() => computeAffordability(financialProfile), [financialProfile])
@@ -127,6 +133,10 @@ export default function KprCalculatorPage() {
     const pct = Math.min(100, Math.max(0, Number(value) || 0))
     setDpPercentage(pct)
     setDpAmountText('')
+    setWarnings((w) => ({
+      ...w,
+      dp: pct > 0 && pct < DP_MIN_PCT ? 'DP umumnya minimal 10% dari harga properti.' : '',
+    }))
   }
 
   const handleDpAmountChange = (raw) => {
@@ -135,6 +145,26 @@ export default function KprCalculatorPage() {
     const capped = Math.min(propertyPrice, Math.max(0, amount))
     const pct = propertyPrice > 0 ? (capped / propertyPrice) * 100 : 0
     setDpPercentage(pct)
+    setWarnings((w) => ({
+      ...w,
+      dp:
+        amount > propertyPrice
+          ? 'DP tidak boleh melebihi harga properti.'
+          : pct > 0 && pct < DP_MIN_PCT
+            ? 'DP umumnya minimal 10% dari harga properti.'
+            : '',
+    }))
+  }
+
+  const handleInterestChange = (value) => {
+    let rate = Number(value) || 0
+    if (rate > INTEREST_MAX) {
+      rate = INTEREST_MAX
+      setWarnings((w) => ({ ...w, interest: 'Suku bunga dibatasi maksimal 30% per tahun.' }))
+    } else {
+      setWarnings((w) => ({ ...w, interest: '' }))
+    }
+    setInterestRate(Math.max(0, rate))
   }
 
   const dpAmountDisplay = dpAmountText !== '' ? dpAmountText : dpAmount
@@ -233,14 +263,30 @@ export default function KprCalculatorPage() {
                   type="number"
                   value={propertyPrice}
                   onChange={(e) => {
-                    const val = Number(e.target.value) || 0
+                    let val = Number(e.target.value) || 0
+                    if (val > PRICE_MAX) {
+                      val = PRICE_MAX
+                      setWarnings((w) => ({ ...w, price: 'Harga properti dibatasi maksimal Rp100 miliar.' }))
+                    } else {
+                      setWarnings((w) => ({
+                        ...w,
+                        price: val > 0 && val < PRICE_MIN ? 'Harga properti minimal Rp10 juta.' : '',
+                      }))
+                    }
                     setPropertyPrice(val >= 0 ? val : 0)
                   }}
                   className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
                 />
-                <p className="text-xs text-brand-muted mt-1">
-                  {formatCurrency(propertyPrice)}
-                </p>
+                {warnings.price ? (
+                  <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+                    <AlertTriangle size={12} className="shrink-0" />
+                    {warnings.price}
+                  </p>
+                ) : (
+                  <p className="text-xs text-brand-muted mt-1">
+                    {formatCurrency(propertyPrice)}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -274,9 +320,16 @@ export default function KprCalculatorPage() {
                     />
                   </div>
                 </div>
-                <p className="text-xs text-brand-muted mt-1 mb-3">
-                  {formatCurrency(dpAmount)}
-                </p>
+                {warnings.dp ? (
+                  <p className="text-xs text-amber-600 flex items-center gap-1 mt-1 mb-3">
+                    <AlertTriangle size={12} className="shrink-0" />
+                    {warnings.dp}
+                  </p>
+                ) : (
+                  <p className="text-xs text-brand-muted mt-1 mb-3">
+                    {formatCurrency(dpAmount)}
+                  </p>
+                )}
                 <input
                   type="range"
                   min="0"
@@ -304,13 +357,19 @@ export default function KprCalculatorPage() {
                     min="0"
                     max="100"
                     value={interestRate}
-                    onChange={(e) => setInterestRate(Number(e.target.value) || 0)}
+                    onChange={(e) => handleInterestChange(e.target.value)}
                     className="w-full px-4 py-2.5 pr-8 rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-brand-muted pointer-events-none">
                     %
                   </span>
                 </div>
+                {warnings.interest && (
+                  <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+                    <AlertTriangle size={12} className="shrink-0" />
+                    {warnings.interest}
+                  </p>
+                )}
               </div>
 
               <div>

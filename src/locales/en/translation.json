@@ -486,7 +486,12 @@
     "ask_hunibot": "Explain to HuniBot",
     "wa_share": "Share via WhatsApp",
     "wa_message": "Hello, I would like to consult about a KPR loan with these details:\n\nProperty Price: {{price}}\nDown Payment (DP): {{dp}} ({{dpPct}}%)\nLoan Principal: {{principal}}\nInterest: {{rate}}% per year\nTenor: {{tenor}} years\nEstimated Installment: {{installment}}/month",
-    "hunibot_question": "Explain in simple terms this KPR simulation of mine: price {{price}}, DP {{dp}}, interest {{rate}}% per year, tenor {{tenor}} years, estimated installment {{installment}} per month. Does it make sense?"
+    "hunibot_question": "Explain in simple terms this KPR simulation of mine: price {{price}}, DP {{dp}}, interest {{rate}}% per year, tenor {{tenor}} years, estimated installment {{installment}} per month. Does it make sense?",
+    "price_min_warning": "Property price must be at least Rp10 million.",
+    "price_max_warning": "Property price is capped at Rp100 billion.",
+    "dp_min_warning": "Down payment is usually at least 10% of the property price.",
+    "dp_max_warning": "Down payment cannot exceed the property price.",
+    "interest_max_warning": "Interest rate is capped at 30% per year."
   },
   "agentApply": {
     "title": "Register as an Agent",

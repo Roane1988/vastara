@@ -15,6 +15,10 @@ import CountUp from './CountUp'
 
 const DP_PRESETS = [10, 20, 30, 50]
 const TENOR_PRESETS = [10, 15, 20, 25]
+const PRICE_MIN = 10_000_000
+const PRICE_MAX = 100_000_000_000
+const INTEREST_MAX = 30
+const DP_MIN_PCT = 10
 
 export default function KprSimulator({ initialPrice = 900000000 }) {
   const { t } = useTranslation()
@@ -26,6 +30,7 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
   const [tenorYears, setTenorYears] = useState(BUYING_POWER_ASSUMPTION.tenorYears)
 
   const [financialProfile, setFinancialProfile] = useState(null)
+  const [warnings, setWarnings] = useState({ price: '', dp: '', interest: '' })
   const affordability = useMemo(() => computeAffordability(financialProfile), [financialProfile])
 
   useEffect(() => {
@@ -70,6 +75,10 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
     const pct = Math.min(100, Math.max(0, Number(value) || 0))
     setDpPercentage(pct)
     setDpAmountText('')
+    setWarnings((w) => ({
+      ...w,
+      dp: pct > 0 && pct < DP_MIN_PCT ? t('kpr.dp_min_warning') : '',
+    }))
   }
 
   const handleDpAmountChange = (raw) => {
@@ -78,6 +87,26 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
     const capped = Math.min(propertyPrice, Math.max(0, amount))
     const pct = propertyPrice > 0 ? (capped / propertyPrice) * 100 : 0
     setDpPercentage(pct)
+    setWarnings((w) => ({
+      ...w,
+      dp:
+        amount > propertyPrice
+          ? t('kpr.dp_max_warning')
+          : pct > 0 && pct < DP_MIN_PCT
+            ? t('kpr.dp_min_warning')
+            : '',
+    }))
+  }
+
+  const handleInterestChange = (value) => {
+    let rate = Number(value) || 0
+    if (rate > INTEREST_MAX) {
+      rate = INTEREST_MAX
+      setWarnings((w) => ({ ...w, interest: t('kpr.interest_max_warning') }))
+    } else {
+      setWarnings((w) => ({ ...w, interest: '' }))
+    }
+    setInterestRate(Math.max(0, rate))
   }
 
   const dpAmountDisplay = dpAmountText !== '' ? dpAmountText : dpAmount
@@ -133,14 +162,30 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
             type="number"
             value={propertyPrice}
             onChange={(e) => {
-              const val = Number(e.target.value) || 0
+              let val = Number(e.target.value) || 0
+              if (val > PRICE_MAX) {
+                val = PRICE_MAX
+                setWarnings((w) => ({ ...w, price: t('kpr.price_max_warning') }))
+              } else {
+                setWarnings((w) => ({
+                  ...w,
+                  price: val > 0 && val < PRICE_MIN ? t('kpr.price_min_warning') : '',
+                }))
+              }
               setPropertyPrice(val >= 0 ? val : 0)
             }}
             className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
           />
-          <p className="text-xs text-brand-muted mt-1">
-            {formatCurrency(propertyPrice)}
-          </p>
+          {warnings.price ? (
+            <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+              <AlertTriangle size={12} className="shrink-0" />
+              {warnings.price}
+            </p>
+          ) : (
+            <p className="text-xs text-brand-muted mt-1">
+              {formatCurrency(propertyPrice)}
+            </p>
+          )}
         </div>
 
         <div>
@@ -174,9 +219,16 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
               />
             </div>
           </div>
-          <p className="text-xs text-brand-muted mt-1">
-            {formatCurrency(dpAmount)}
-          </p>
+          {warnings.dp ? (
+            <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+              <AlertTriangle size={12} className="shrink-0" />
+              {warnings.dp}
+            </p>
+          ) : (
+            <p className="text-xs text-brand-muted mt-1">
+              {formatCurrency(dpAmount)}
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-3">
             {DP_PRESETS.map((pct) => (
               <button
@@ -220,13 +272,19 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
               min="0"
               max="100"
               value={interestRate}
-              onChange={(e) => setInterestRate(Number(e.target.value) || 0)}
+              onChange={(e) => handleInterestChange(e.target.value)}
               className="w-full px-4 py-2.5 pr-8 rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-brand-muted pointer-events-none">
               %
             </span>
           </div>
+          {warnings.interest && (
+            <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+              <AlertTriangle size={12} className="shrink-0" />
+              {warnings.interest}
+            </p>
+          )}
         </div>
 
         <div>
