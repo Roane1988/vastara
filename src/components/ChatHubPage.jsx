@@ -233,7 +233,7 @@ export default function ChatHubPage() {
 
         const { data: profiles, error: profErr } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, first_name, role')
           .in('id', ids)
 
         if (cancelledRef.current) return
@@ -357,7 +357,7 @@ export default function ChatHubPage() {
             }
             const existingIds = new Set(prev.map(c => c.id))
             if (!existingIds.has(otherId)) {
-              supabase.from('profiles').select('*').eq('id', otherId).single().then(({ data }) => {
+              supabase.from('profiles').select('id, first_name, role').eq('id', otherId).single().then(({ data }) => {
                 if (data && !cancelledRef.current) {
                   setContacts(p => {
                     if (p.some(c => c.id === data.id)) return p

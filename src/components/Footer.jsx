@@ -71,7 +71,7 @@ export default function Footer() {
       try {
         const [prop, users, posts] = await Promise.all([
           supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('forum_posts').select('*', { count: 'exact', head: true }),
         ])
         if (!cancelled) setStats({ properties: prop.count, users: users.count, posts: posts.count })

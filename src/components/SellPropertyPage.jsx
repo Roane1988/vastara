@@ -244,9 +244,9 @@ export default function SellPropertyPage() {
         setForm((prev) => ({ ...prev, whatsapp: String(metaWa) }))
         return
       }
-      const { data: profile } = await supabase.from('profiles').select('whatsapp').eq('id', user.id).maybeSingle()
-      if (!cancelled && profile?.whatsapp) {
-        setForm((prev) => ({ ...prev, whatsapp: profile.whatsapp }))
+      const { data: myProfile } = await supabase.rpc('get_my_profile')
+      if (!cancelled && myProfile?.whatsapp) {
+        setForm((prev) => ({ ...prev, whatsapp: myProfile.whatsapp }))
       }
     }
     prefillWhatsapp()

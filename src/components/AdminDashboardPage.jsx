@@ -158,7 +158,7 @@ export default function AdminDashboardPage() {
     try {
       let query = supabase
         .from('properties')
-        .select('*, profiles!seller_id(first_name, whatsapp)')
+        .select('*, profiles!seller_id(first_name)')
         .order('created_at', { ascending: false })
 
       if (filterTab !== 'all') {
@@ -459,7 +459,7 @@ export default function AdminDashboardPage() {
                         {paged.map((p) => {
                           const images = parseImages(p.image_url)
                           const sellerName = p.profiles?.first_name || 'Anonymous'
-                          const waNumber = p.seller_whatsapp || p.profiles?.whatsapp || ''
+                          const waNumber = p.seller_whatsapp || ''
                           const waLink = waNumber ? `https://wa.me/${waNumber.replace(/[^0-9]/g, '')}` : null
                           const dateStr = p.created_at
                             ? new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })

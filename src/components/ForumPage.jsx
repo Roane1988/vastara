@@ -95,7 +95,7 @@ export default function ForumPage() {
     try {
       const [{ count: replies }, { count: members }] = await Promise.all([
         supabase.from('forum_replies').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
       ])
       if (!cancelledRef.current) setStats({ replies: replies || 0, members: members || 0 })
     } catch { /* non-critical */ }

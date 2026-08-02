@@ -42,10 +42,7 @@ export default function AdminUserManagement() {
 
     async function fetchUsers() {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false, nullsLast: true })
+        const { data, error } = await supabase.rpc('get_admin_users')
 
         if (cancelledRef.current) return
 

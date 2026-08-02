@@ -314,12 +314,10 @@ export default async function handler(req, res) {
 
       if (cacheProperty?.id && supabaseCache) {
         try {
-          await supabaseCache
-            .from('property_ai_analysis')
-            .upsert(
-              { property_id: cacheProperty.id, analysis_data: { fp: cacheFingerprint, response: data }, created_at: new Date().toISOString() },
-              { onConflict: 'property_id' }
-            )
+          await supabaseCache.rpc('set_property_ai_analysis', {
+            p_property_id: cacheProperty.id,
+            p_analysis_data: { fp: cacheFingerprint, response: data },
+          })
         } catch (err) {
           console.warn('Cache write failed:', err.message)
         }

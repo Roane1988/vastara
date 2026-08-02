@@ -47,7 +47,7 @@ export default function AgentDetailPage() {
       try {
         const [agentRes, profileRes, statsRes, listingRes, reviewRes] = await Promise.all([
           supabase.from('agent_profiles').select('*').eq('user_id', id).maybeSingle(),
-          supabase.from('profiles').select('first_name, whatsapp, role').eq('id', id).maybeSingle(),
+          supabase.from('profiles').select('first_name, role').eq('id', id).maybeSingle(),
           supabase.from('agent_stats').select('*').eq('agent_id', id).maybeSingle(),
           supabase.from('properties').select('*').eq('seller_id', id).eq('status', 'verified').order('created_at', { ascending: false }),
           supabase.from('agent_reviews').select('*, profiles!reviewer_id(first_name)').eq('agent_id', id).order('created_at', { ascending: false }),
@@ -74,7 +74,7 @@ export default function AgentDetailPage() {
         setProfile({
           ...agent,
           full_name: agent.full_name || base.first_name || 'Agent',
-          whatsapp: agent.whatsapp || base.whatsapp || '',
+          whatsapp: agent.whatsapp || '',
           role: base.role || 'agent',
         })
         setStats(statsRes.data || null)

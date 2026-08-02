@@ -68,8 +68,8 @@ export default function AdminAnalyticsCards() {
         ] = await Promise.all([
           supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
           supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).in('role', ['agent', 'developer']),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['agent', 'developer']),
         ])
 
         if (cancelledRef.current) return

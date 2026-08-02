@@ -95,17 +95,24 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
         let loadedEmail = authEmail
         let loadedWhatsapp = user.user_metadata?.whatsapp || ''
 
-        const { data: profile } = await supabase
+        const { data: profile, error: profileErr } = await supabase
           .from('profiles')
-          .select('first_name, email, whatsapp, role')
+          .select('first_name, role')
           .eq('id', user.id)
           .single()
+        if (profileErr && profileErr.code !== 'PGRST116') {
+          console.warn('Gagal memuat profil', profileErr.message)
+        }
 
         if (!cancelled && profile) {
           if (profile.first_name) loadedName = profile.first_name
-          if (profile.email) loadedEmail = profile.email
-          if (profile.whatsapp) loadedWhatsapp = profile.whatsapp
           if (profile.role) setRole(profile.role)
+        }
+
+        const { data: myProfile } = await supabase.rpc('get_my_profile')
+        if (!cancelled && myProfile) {
+          if (myProfile.email) loadedEmail = myProfile.email
+          if (myProfile.whatsapp) loadedWhatsapp = myProfile.whatsapp
         }
 
         if (!cancelled) {
