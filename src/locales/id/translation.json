@@ -298,7 +298,8 @@
     "subtitle": "Pilih peran Anda untuk mulai mengiklankan properti.",
     "agent": "Agen Properti",
     "developer": "Developer",
-    "owner": "Pemilik Properti"
+    "owner": "Pemilik Properti",
+    "find_agent": "Cari Agen untuk Menjualkan"
   },
   "profileDrawer": {
     "title": "Informasi Pribadi",

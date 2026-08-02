@@ -156,10 +156,14 @@ export default function SellPropertyPage() {
   useSEO({ title: 'Iklankan Properti — Jual atau Sewakan', description: 'Pasang iklan properti Anda di HuniOne. Proses cepat, mudah, dan menjangkau ribuan pembeli potensial.' })
   const navigate = useNavigate()
   const location = useLocation()
-  const { showToast, loading: authLoading } = useAuth()
+  const { showToast, loading: authLoading, role: accountRole } = useAuth()
   const ALLOWED_ROLES = ['owner', 'agent', 'developer']
   const rawRole = location.state?.role || 'owner'
-  const userRole = ALLOWED_ROLES.includes(rawRole) ? rawRole : 'owner'
+  const requestedRole = ALLOWED_ROLES.includes(rawRole) ? rawRole : 'owner'
+  const listingType = requestedRole === 'agent' && accountRole === 'agent' ? 'agent'
+    : requestedRole === 'developer' && accountRole === 'developer' ? 'developer'
+    : 'owner'
+  const isRoleClamped = requestedRole !== 'owner' && requestedRole !== listingType
 
   const STEPS = useMemo(() => [
     { id: 'info', label: 'Info Properti', desc: 'Judul, harga, tipe, & deskripsi' },
@@ -393,8 +397,6 @@ export default function SellPropertyPage() {
         setSubmitting(false)
         return
       }
-      const { error: roleError } = await supabase.from('profiles').update({ role: userRole }).eq('id', user.id)
-      if (roleError) console.warn('Gagal memperbarui role:', roleError.message)
 
       let uploadedImageUrls = []
       const realFiles = imageFiles.filter((f) => f.size > 0)
@@ -439,6 +441,12 @@ export default function SellPropertyPage() {
         area_sqm: Number(form.sqm) || 0,
         certificate_status: form.status_sertifikat,
         status: editId ? undefined : 'pending',
+      }
+
+      if (!editId) {
+        payload.seller_type = listingType
+        payload.agent_id = listingType === 'agent' ? user.id : null
+        payload.owner_id = listingType === 'owner' ? user.id : null
       }
 
       if (realFiles.length > 0) {
@@ -710,6 +718,23 @@ export default function SellPropertyPage() {
               <h1 className="text-lg font-bold text-brand-text">Iklankan Properti</h1>
             </div>
           </header>
+
+          {isRoleClamped && (
+            <div className="px-5 pt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                <p className="text-xs text-amber-800 leading-relaxed flex-1">
+                  Anda memasang iklan sebagai <b>Pemilik Langsung</b> karena akun Anda belum terverifikasi sebagai {requestedRole === 'agent' ? 'agen' : 'pengembang'}.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate(requestedRole === 'agent' ? '/agent-apply' : '/sell-role')}
+                  className="shrink-0 text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-lg px-3 py-1.5 transition-colors"
+                >
+                  {requestedRole === 'agent' ? 'Daftar sebagai Agen' : 'Pilih Peran Lain'}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 flex flex-col md:flex-row">
             <aside className="md:w-64 md:min-h-screen md:border-r md:border-brand-border md:bg-brand-bg md:sticky md:top-0">

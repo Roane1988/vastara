@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { UserCheck, Building2, Home, ArrowLeft } from 'lucide-react'
+import { UserCheck, Building2, Home, ArrowLeft, Search } from 'lucide-react'
 
 const ROLES = [
+  { key: 'owner', icon: Home, desc: 'roleSelection.owner' },
   { key: 'agent', icon: UserCheck, desc: 'roleSelection.agent' },
   { key: 'developer', icon: Building2, desc: 'roleSelection.developer' },
-  { key: 'owner', icon: Home, desc: 'roleSelection.owner' },
+  { key: 'find-agent', icon: Search, desc: 'roleSelection.find_agent', to: '/agents' },
 ]
 
 export default function RoleSelectionPage() {
@@ -31,11 +32,11 @@ export default function RoleSelectionPage() {
         </div>
 
         <div className="w-full max-w-sm flex flex-col gap-4">
-          {ROLES.map(({ key, icon: Icon, desc }) => (
+          {ROLES.map(({ key, icon: Icon, desc, to }) => (
             <button
               key={key}
               type="button"
-              onClick={() => navigate('/sell', { state: { role: key } })}
+              onClick={() => navigate(to || '/sell', { state: { role: key } })}
               className="w-full flex items-center gap-5 p-5 rounded-2xl bg-brand-surface border border-brand-border shadow-sm hover:shadow-md hover:border-brand-accent/40 active:scale-[0.98] transition-all duration-200 text-left group"
             >
               <div className="w-14 h-14 rounded-2xl bg-brand-accent/10 flex items-center justify-center text-brand-accent shrink-0 group-hover:bg-brand-primary group-hover:text-white transition-colors duration-200">

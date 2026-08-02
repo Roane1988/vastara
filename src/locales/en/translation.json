@@ -298,7 +298,8 @@
     "subtitle": "Choose your role to start advertising your property.",
     "agent": "Property Agent",
     "developer": "Developer",
-    "owner": "Property Owner"
+    "owner": "Property Owner",
+    "find_agent": "Find an Agent to Sell"
   },
   "profileDrawer": {
     "title": "Personal Information",
