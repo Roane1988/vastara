@@ -19,7 +19,7 @@ create policy "Authenticated upload images only"
     bucket_id = 'PROPERTIES_IMAGE'
     and auth.role() = 'authenticated'
     and lower(storage.extension(name)) in ('jpg', 'jpeg', 'png', 'webp', 'avif')
-    and mime_type in ('image/jpeg', 'image/png', 'image/webp', 'image/avif')
+    and mimetype in ('image/jpeg', 'image/png', 'image/webp', 'image/avif')
   );
 
 -- Pengguna hanya bisa menghapus/memperbarui file miliknya sendiri.
@@ -27,4 +27,4 @@ drop policy if exists "Users delete own images" on storage.objects;
 create policy "Users delete own images"
   on storage.objects for delete
   to authenticated
-  using (bucket_id = 'PROPERTIES_IMAGE' and owner = auth.uid());
+  using (bucket_id = 'PROPERTIES_IMAGE' and owner_id = auth.uid());
