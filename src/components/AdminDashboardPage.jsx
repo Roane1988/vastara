@@ -22,6 +22,7 @@ const FILTERS = [
   { key: 'pending', label: 'Pending' },
   { key: 'in_review', label: 'Survei' },
   { key: 'verified', label: 'Terverifikasi' },
+  { key: 'sold', label: 'Terjual' },
   { key: 'rejected', label: 'Ditolak' },
 ]
 
@@ -31,6 +32,7 @@ function statusBadgeClass(status) {
   if (status === 'verified') return 'bg-emerald-50 text-emerald-700'
   if (status === 'in_review') return 'bg-indigo-50 text-indigo-700'
   if (status === 'rejected') return 'bg-red-50 text-red-700'
+  if (status === 'sold') return 'bg-gray-100 text-gray-600'
   return 'bg-amber-50 text-amber-700'
 }
 
@@ -38,6 +40,7 @@ function statusLabel(status) {
   if (status === 'verified') return 'Verified'
   if (status === 'in_review') return 'Survei'
   if (status === 'rejected') return 'Ditolak'
+  if (status === 'sold') return 'Terjual'
   return 'Pending'
 }
 
@@ -539,10 +542,10 @@ export default function AdminDashboardPage() {
                                       </button>
                                     </>
                                   )}
-                                  {p.status === 'rejected' && (
+                                  {(p.status === 'rejected' || p.status === 'sold') && (
                                     <button type="button" onClick={() => handleRestore(p.id)}
                                       className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 active:scale-[0.97] transition-all">
-                                      Pulihkan
+                                      {p.status === 'sold' ? 'Aktifkan Lagi' : 'Pulihkan'}
                                     </button>
                                   )}
                                   {p.status === 'verified' && (
