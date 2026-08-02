@@ -10,7 +10,7 @@ import { timeAgo } from '../utils/time'
 import { useAuth } from '../context/AuthContext'
 
 export default function RecentlyViewed() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { showToast } = useAuth()
   const items = usePropertyStore((s) => s.recentlyViewed)
   const removeRecentlyViewed = usePropertyStore((s) => s.removeRecentlyViewed)
@@ -101,7 +101,7 @@ export default function RecentlyViewed() {
                     )}
                     {p.viewed_at && (
                       <span className="absolute bottom-1.5 left-1.5 text-[9px] font-semibold text-white/90 bg-black/40 rounded px-1.5 py-0.5">
-                        {t('recently.viewed')} {timeAgo(p.viewed_at)}
+                        {t('recently.viewed')} {timeAgo(p.viewed_at, i18n.language)}
                       </span>
                     )}
                   </div>

@@ -49,7 +49,7 @@ function SkeletonCard() {
 }
 
 export default function ForumPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { user, session, showToast, role } = useAuth()
@@ -744,9 +744,9 @@ export default function ForumPage() {
                         <h3 className="text-base font-bold text-brand-text leading-snug mt-1">{post.title}</h3>
                         <p className="text-xs text-brand-muted mt-1">
                           {latestReply ? (
-                            <>↳ {t('forum.replyingTo')} <span className="font-medium text-brand-accent">{latestReply.profiles?.first_name || 'Anonymous'}</span> {timeAgo(latestReply.created_at)}</>
+                            <>↳ {t('forum.replyingTo')} <span className="font-medium text-brand-accent">{latestReply.profiles?.first_name || 'Anonymous'}</span> {timeAgo(latestReply.created_at, i18n.language)}</>
                           ) : (
-                            <>{authorName} &bull; {timeAgo(post.created_at)}</>
+                            <>{authorName} &bull; {timeAgo(post.created_at, i18n.language)}</>
                           )}
                         </p>
                         <p className="text-sm text-brand-muted mt-2 leading-relaxed line-clamp-2">{post.content}</p>

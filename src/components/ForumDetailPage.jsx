@@ -73,7 +73,7 @@ function ReactionRow({ reactions, userReaction, onReact, size = 'sm' }) {
 
 export default function ForumDetailPage() {
   const { id } = useParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { user, session, showToast } = useAuth()
   const [post, setPost] = useState(null)
@@ -640,7 +640,7 @@ export default function ForumDetailPage() {
                     )}
                   </div>
                   <p className="text-xs text-brand-muted mt-0.5 flex items-center gap-2">
-                    <span>{timeAgo(post.created_at)}</span>
+                    <span>{timeAgo(post.created_at, i18n.language)}</span>
                     <span className="flex items-center gap-1"><Eye size={11} />{formatCount(post.views || 0)} {t('forum.viewsLabel')}</span>
                   </p>
                 </div>
@@ -835,7 +835,7 @@ export default function ForumDetailPage() {
                                 </span>
                               )}
                               <span className="text-xs text-brand-muted">&bull;</span>
-                              <span className="text-xs text-brand-muted">{timeAgo(reply.created_at)}</span>
+                              <span className="text-xs text-brand-muted">{timeAgo(reply.created_at, i18n.language)}</span>
                             </div>
                           </div>
                         </div>

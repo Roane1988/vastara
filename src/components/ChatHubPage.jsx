@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getAvatarColor, getInitials } from '../utils/avatar'
@@ -8,7 +9,7 @@ import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X } from 'lucide-
 import ConfirmModal from './ConfirmModal'
 
 
-function MessageBubble({ message, isOwn, onDelete }) {
+function MessageBubble({ message, isOwn, onDelete, lang }) {
   return (
     <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 px-4 group`}>
       <div className="relative max-w-[80%] sm:max-w-[70%]">
@@ -29,7 +30,7 @@ function MessageBubble({ message, isOwn, onDelete }) {
         }`}>
           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
           <p className={`text-[10px] mt-1 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
-            {timeAgo(message.created_at)}
+            {timeAgo(message.created_at, lang)}
           </p>
         </div>
       </div>
@@ -37,7 +38,7 @@ function MessageBubble({ message, isOwn, onDelete }) {
   )
 }
 
-function ContactItem({ contact, isActive, onClick }) {
+function ContactItem({ contact, isActive, onClick, lang }) {
   const avatarColor = getAvatarColor(contact.id)
   const initials = getInitials(contact.first_name)
   const roleLabel = contact.role === 'admin' ? 'Admin Internal'
@@ -66,7 +67,7 @@ function ContactItem({ contact, isActive, onClick }) {
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-semibold text-brand-text truncate">{contact.first_name || 'User'}</span>
           {contact.last_message_at && (
-            <span className="text-[10px] text-brand-muted shrink-0">{timeAgo(contact.last_message_at)}</span>
+            <span className="text-[10px] text-brand-muted shrink-0">{timeAgo(contact.last_message_at, lang)}</span>
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
@@ -141,6 +142,7 @@ function getOtherId(message, userId) {
 }
 
 export default function ChatHubPage() {
+  const { i18n } = useTranslation()
   const navigate = useNavigate()
   const { session, user, showToast } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -535,6 +537,7 @@ export default function ChatHubPage() {
                     contact={contact}
                     isActive={contact.id === activeContactId}
                     onClick={handleSelectContact}
+                    lang={i18n.language}
                   />
                   {(unreadMap[contact.id] || 0) > 0 && contact.id !== activeContactId && (
                     <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
@@ -597,6 +600,7 @@ export default function ChatHubPage() {
                         message={msg}
                         isOwn={msg.sender_id === userId}
                         onDelete={setDeleteTarget}
+                        lang={i18n.language}
                       />
                     ))
                   )}
