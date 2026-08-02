@@ -24,8 +24,9 @@ create policy "Authenticated upload images only"
   );
 
 -- Pengguna hanya bisa menghapus/memperbarui file miliknya sendiri.
+-- Catatan: owner_id di storage.objects bertipe text, sedangkan auth.uid() uuid.
 drop policy if exists "Users delete own images" on storage.objects;
 create policy "Users delete own images"
   on storage.objects for delete
   to authenticated
-  using (bucket_id = 'PROPERTIES_IMAGE' and owner_id = auth.uid());
+  using (bucket_id = 'PROPERTIES_IMAGE' and owner_id = auth.uid()::text);
