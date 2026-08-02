@@ -33,27 +33,28 @@ create policy "Users can insert own profile"
 
 -- UPDATE: user biasa boleh mengubah profil sendiri, TAPI role tidak boleh berubah
 -- (mencegah self-promote ke agent/developer/admin; admin via policy "Admins can update all profiles".)
+-- Catatan: policy RLS tidak punya akses NEW/OLD, jadi nilai lama diambil via subquery.
 drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id)
   with check (
     auth.uid() = id
-    and new.role is not distinct from old.role
+    and role is not distinct from (select p.role from public.profiles p where p.id = id)
   );
 
 -- ----------------------------------------------------------------------------
 -- P1-2. Seller tidak boleh mengubah status properti sendiri.
 -- Seller hanya boleh mengupdate data, dan status harus tetap sama dengan lama.
 -- (Transisi pending -> verified/in_review/rejected hanya oleh admin.)
--- ----------------------------------------------------------------------------
+-- Catatan: policy RLS tidak punya akses NEW/OLD, jadi status lama diambil via subquery.
 drop policy if exists "Sellers can update own properties" on public.properties;
 create policy "Sellers can update own properties"
   on public.properties for update
   using (auth.uid() = seller_id)
   with check (
     auth.uid() = seller_id
-    and new.status is not distinct from old.status
+    and status is not distinct from (select pr.status from public.properties pr where pr.id = id)
   );
 
 -- ----------------------------------------------------------------------------
