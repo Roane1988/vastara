@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { MapPin, Star, Crown, MessageCircle, Phone, Building2, Search, X, UserPlus, Briefcase, Pencil } from 'lucide-react'
-import { supabase } from '../supabaseClient'
+import { useQuery } from '@tanstack/react-query'
+import { MapPin, Star, Crown, MessageCircle, Phone, Building2, Search, X, UserPlus, Briefcase, Pencil, AlertCircle } from 'lucide-react'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import useSEO from '../hooks/useSEO'
 import { useAuth } from '../context/AuthContext'
+import { agentKeys, fetchAgents, fetchAgentDirectory } from '../hooks/useAgentQueries'
 
 function AgentCardSkeleton() {
   return (
@@ -27,71 +28,37 @@ export default function AgentsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { role } = useAuth()
-  const cancelledRef = useRef(false)
 
-  const [agents, setAgents] = useState([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState('')
   const [sortBy, setSortBy] = useState('top')
 
-  useEffect(() => {
-    cancelledRef.current = false
-    async function fetchAgents() {
-      try {
-        const [profilesRes, statsRes] = await Promise.all([
-          supabase.from('agent_profiles').select('*').eq('is_visible', true),
-          supabase.from('agent_stats').select('*'),
-        ])
-        if (cancelledRef.current) return
+  const directoryQuery = useQuery({
+    queryKey: agentKeys.directory(),
+    queryFn: fetchAgentDirectory,
+  })
 
-        const statsMap = new Map((statsRes.data || []).map((s) => [s.agent_id, s]))
-        const merged = (profilesRes.data || []).map((p) => ({
-          ...p,
-          stats: statsMap.get(p.user_id) || null,
-        }))
-        if (!profilesRes.error) setAgents(merged)
-        else console.warn('Gagal memuat agent:', profilesRes.error.message)
-      } catch (err) {
-        if (!cancelledRef.current) console.warn('Gagal memuat agent:', err.message)
-      }
-      if (!cancelledRef.current) setLoading(false)
-    }
-    fetchAgents()
-    return () => { cancelledRef.current = true }
-  }, [])
+  const agentsQuery = useQuery({
+    queryKey: agentKeys.list({ region, sortBy }),
+    queryFn: () => fetchAgents({ region, sortBy }),
+    placeholderData: (prev) => prev,
+  })
 
-  const regions = useMemo(
-    () => [...new Set(agents.map((a) => (a.region || '').trim()).filter(Boolean))].sort(),
-    [agents]
-  )
+  const regions = directoryQuery.data?.regions || []
+  const topIds = directoryQuery.data?.topIds || []
 
   const filtered = useMemo(() => {
+    const list = agentsQuery.data || []
     const q = search.trim().toLowerCase()
-    let list = agents.filter((a) => {
-      const matchRegion = !region || (a.region || '') === region
-      const matchSearch = !q
-        || (a.full_name || '').toLowerCase().includes(q)
-        || (a.agency || '').toLowerCase().includes(q)
-      return matchRegion && matchSearch
-    })
+    if (!q) return list
+    return list.filter((a) =>
+      (a.full_name || '').toLowerCase().includes(q)
+      || (a.agency || '').toLowerCase().includes(q)
+    )
+  }, [agentsQuery.data, search])
 
-    if (sortBy === 'top') {
-      list = [...list].sort((a, b) => (b.stats?.listing_score || 0) - (a.stats?.listing_score || 0))
-    } else if (sortBy === 'rating') {
-      list = [...list].sort((a, b) => (b.stats?.avg_rating || 0) - (a.stats?.avg_rating || 0))
-    } else if (sortBy === 'name') {
-      list = [...list].sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
-    }
-    return list
-  }, [agents, search, region, sortBy])
-
-  const topIds = useMemo(() => {
-    return [...agents]
-      .sort((a, b) => (b.stats?.listing_score || 0) - (a.stats?.listing_score || 0))
-      .slice(0, 3)
-      .map((a) => a.user_id)
-  }, [agents])
+  const isLoading = agentsQuery.isPending && !agentsQuery.isPlaceholderData
+  const isFetching = agentsQuery.isFetching
 
   const openWa = (whatsapp, name) => {
     const num = whatsapp?.replace(/\D/g, '')
@@ -171,7 +138,21 @@ export default function AgentsPage() {
           </select>
         </div>
 
-        {loading ? (
+        {isFetching && !isLoading && (
+          <div className="mb-4 flex items-center gap-2 text-xs text-brand-muted">
+            <div className="w-3.5 h-3.5 border-2 border-brand-accent border-t-transparent rounded-full animate-spin" />
+            <span>{t('agents.loading')}</span>
+          </div>
+        )}
+
+        {agentsQuery.isError && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-6">
+            <AlertCircle size={16} className="shrink-0" />
+            {agentsQuery.error?.message || t('agents.error_load')}
+          </div>
+        )}
+
+        {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {Array.from({ length: 8 }).map((_, i) => <AgentCardSkeleton key={i} />)}
           </div>
@@ -183,7 +164,7 @@ export default function AgentsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filtered.map((agent) => {
-              const isTop = topIds.includes(agent.user_id) && (agent.stats?.listing_score || 0) > 0
+              const isTop = topIds.includes(agent.user_id)
               const wa = agent.whatsapp || ''
               return (
                 <Link

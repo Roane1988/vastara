@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
-import { Link, useParams, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, MapPin, Building2, Star, MessageCircle, Phone, Briefcase, Crown, CalendarCheck, Pencil } from 'lucide-react'
-import { supabase } from '../supabaseClient'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { formatPriceDisplay } from '../utils/format'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import useSEO from '../hooks/useSEO'
 import NotFoundPage from './NotFoundPage'
 import { useAuth } from '../context/AuthContext'
+import { agentKeys, fetchAgentDetail } from '../hooks/useAgentQueries'
 
 function StatCard({ icon, label, value }) {
   return (
@@ -22,86 +22,57 @@ function StatCard({ icon, label, value }) {
   )
 }
 
+function DetailSkeleton() {
+  return (
+    <div className="min-h-screen bg-brand-bg animate-pulse">
+      <div className="bg-brand-border/40 h-56" />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="w-20 h-20 rounded-full bg-brand-border" />
+          <div className="flex-1 space-y-3">
+            <div className="h-5 w-48 bg-brand-border rounded" />
+            <div className="h-4 w-64 bg-brand-border rounded" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-2xl border border-brand-border p-4 h-24" />
+          ))}
+        </div>
+        <div className="h-40 bg-brand-border/50 rounded-2xl mt-8" />
+      </div>
+    </div>
+  )
+}
+
 export default function AgentDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const lang = i18n.language
-  const cancelledRef = useRef(false)
 
-  const [profile, setProfile] = useState(null)
-  const [stats, setStats] = useState(null)
-  const [listings, setListings] = useState([])
-  const [reviews, setReviews] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { data, isPending, isError, error } = useQuery({
+    queryKey: agentKeys.detail(id),
+    queryFn: () => fetchAgentDetail(id),
+    retry: false,
+  })
+
+  const profile = data?.profile || null
+  const stats = data?.stats || null
+  const listings = data?.listings || []
+  const reviews = data?.reviews || []
 
   useSEO(profile
     ? { title: `${profile.full_name} — Agen Properti | HuniOne`, description: profile.bio || profile.full_name }
     : { title: 'Profil Agen — HuniOne' })
 
-  useEffect(() => {
-    cancelledRef.current = false
-    async function fetchData() {
-      try {
-        const [agentRes, profileRes, statsRes, listingRes, reviewRes] = await Promise.all([
-          supabase.from('agent_profiles').select('*').eq('user_id', id).maybeSingle(),
-          supabase.from('profiles').select('first_name, role').eq('id', id).maybeSingle(),
-          supabase.from('agent_stats').select('*').eq('agent_id', id).maybeSingle(),
-          supabase.from('properties').select('*').eq('seller_id', id).eq('status', 'verified').order('created_at', { ascending: false }),
-          supabase.from('agent_reviews').select('*, profiles!reviewer_id(first_name)').eq('agent_id', id).order('created_at', { ascending: false }),
-        ])
-        if (cancelledRef.current) return
-
-        if (agentRes.error || profileRes.error) {
-          setError('Agent tidak ditemukan.')
-          return
-        }
-
-        const agent = agentRes.data || {}
-        const base = profileRes.data || {}
-
-        if (base.role && base.role !== 'agent') {
-          setError('Agent tidak ditemukan.')
-          return
-        }
-        if (!agentRes.data && !profileRes.data) {
-          setError('Agent tidak ditemukan.')
-          return
-        }
-
-        setProfile({
-          ...agent,
-          full_name: agent.full_name || base.first_name || 'Agent',
-          whatsapp: agent.whatsapp || '',
-          role: base.role || 'agent',
-        })
-        setStats(statsRes.data || null)
-        setListings(listingRes.data || [])
-        setReviews(reviewRes.data || [])
-      } catch (err) {
-        if (!cancelledRef.current) {
-          console.warn('Gagal memuat profil agent:', err.message)
-          setError('Terjadi kesalahan saat memuat profil agent.')
-        }
-      }
-      if (!cancelledRef.current) setLoading(false)
-    }
-    fetchData()
-    return () => { cancelledRef.current = true }
-  }, [id])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+  if (isPending) {
+    return <DetailSkeleton />
   }
 
-  if (error) {
-    return <NotFoundPage message={error} onBack={() => navigate(-1)} />
+  if (isError) {
+    return <NotFoundPage message={error?.message || 'Agent tidak ditemukan.'} onBack={() => navigate(-1)} />
   }
 
   const waNumber = profile.whatsapp?.replace(/\D/g, '')

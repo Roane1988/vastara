@@ -542,6 +542,8 @@
     "sort_rating": "Highest Rated",
     "sort_name": "Name A-Z",
     "empty": "No agents match your search.",
+    "loading": "Loading agents...",
+    "error_load": "Failed to load the agent directory.",
     "top_badge": "Top Agent",
     "listing_count": "listings",
     "chat": "Chat",

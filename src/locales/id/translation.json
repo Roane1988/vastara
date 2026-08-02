@@ -542,6 +542,8 @@
     "sort_rating": "Rating Tertinggi",
     "sort_name": "Nama A-Z",
     "empty": "Tidak ada agen yang cocok dengan pencarian.",
+    "loading": "Memuat agen...",
+    "error_load": "Gagal memuat daftar agen.",
     "top_badge": "Top Agent",
     "listing_count": "listing",
     "chat": "Chat",
