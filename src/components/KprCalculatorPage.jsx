@@ -2,11 +2,34 @@ import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calculator, MessageCircle, Bot, ChevronDown, Plus, Wallet, Check, AlertTriangle } from 'lucide-react'
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { formatCurrency, formatShort } from '../utils/format'
 import useSEO from '../hooks/useSEO'
 import FinancialProfileForm from './FinancialProfileForm'
 import { getFinancialProfile, computeAffordability, maxAffordablePrice, TENOR_OPTIONS } from '../utils/financialProfile'
 import InfoTooltip from './InfoTooltip'
+
+const CHART_COLORS = {
+  pokok: '#2E8B57',
+  bunga: '#F59E0B',
+  sisa: '#4A90E2',
+}
+
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) return null
+  return (
+    <div className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-xs shadow-md">
+      <p className="font-bold text-brand-text mb-1">Tahun {label}</p>
+      {payload.map((entry) => (
+        <div key={entry.dataKey} className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
+          <span className="text-brand-muted">{entry.name}</span>
+          <span className="font-semibold text-brand-text ml-auto">{formatShort(Math.round(entry.value))}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function ArrowLeftIcon() {
   return (
@@ -90,6 +113,16 @@ export default function KprCalculatorPage() {
     }
     return schedule
   }, [principal, monthlyInstallment, interestRate, tenorYears])
+
+  const amortizationChartData = useMemo(
+    () => amortizationSchedule.map((row) => ({
+      year: row.year,
+      pokok: Math.round(row.principalPaid),
+      bunga: Math.round(row.interestPaid),
+      sisa: Math.round(row.endingBalance),
+    })),
+    [amortizationSchedule]
+  )
 
   const additionalCosts = useMemo(() => {
     const bphtb = Math.max(0, propertyPrice - 60000000) * 0.05
@@ -602,6 +635,50 @@ export default function KprCalculatorPage() {
                       className="overflow-hidden"
                     >
                       <div className="px-5 sm:px-6 pb-5 sm:pb-6 border-t border-brand-border pt-4">
+                        {amortizationChartData.length > 0 && (
+                          <div className="mb-6">
+                            <p className="text-sm font-semibold text-brand-text mb-3">
+                              Grafik Pokok vs Bunga
+                            </p>
+                            <div className="h-64 sm:h-72 w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={amortizationChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-brand-border)" vertical={false} />
+                                  <XAxis
+                                    dataKey="year"
+                                    tick={{ fontSize: 11, fill: 'var(--color-brand-muted)' }}
+                                    tickLine={false}
+                                    axisLine={{ stroke: 'var(--color-brand-border)' }}
+                                    label={{ value: 'Tahun', position: 'insideBottomRight', offset: -4, fontSize: 11, fill: 'var(--color-brand-muted)' }}
+                                  />
+                                  <YAxis
+                                    tickFormatter={(v) => formatShort(v)}
+                                    tick={{ fontSize: 11, fill: 'var(--color-brand-muted)' }}
+                                    tickLine={false}
+                                    axisLine={{ stroke: 'var(--color-brand-border)' }}
+                                    width={62}
+                                  />
+                                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-brand-bg)' }} />
+                                  <Legend
+                                    formatter={(value) => <span className="text-xs text-brand-muted">{value}</span>}
+                                    iconSize={10}
+                                    iconType="circle"
+                                  />
+                                  <Bar dataKey="pokok" name="Pokok" fill={CHART_COLORS.pokok} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                                  <Bar dataKey="bunga" name="Bunga" fill={CHART_COLORS.bunga} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                                  <Line
+                                    type="monotone"
+                                    dataKey="sisa"
+                                    name="Sisa Pokok"
+                                    stroke={CHART_COLORS.sisa}
+                                    strokeWidth={2}
+                                    dot={{ r: 3, fill: CHART_COLORS.sisa, strokeWidth: 0 }}
+                                  />
+                                </ComposedChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        )}
                         <div className="overflow-x-auto">
                           <table className="w-full text-xs">
                             <thead>

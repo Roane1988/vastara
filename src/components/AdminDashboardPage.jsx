@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../utils/format'
@@ -144,6 +145,7 @@ export default function AdminDashboardPage() {
   const [rejecting, setRejecting] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null)
   const [confirming, setConfirming] = useState(false)
+  const [statusCounts, setStatusCounts] = useState(null)
 
   useEffect(() => {
     if (role !== 'admin') {
@@ -155,6 +157,32 @@ export default function AdminDashboardPage() {
     cancelledRef.current = false
     return () => { cancelledRef.current = true }
   }, [])
+
+  const fetchStatusCounts = useCallback(async () => {
+    try {
+      const [verified, pending, sold] = await Promise.all([
+        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
+        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'sold'),
+      ])
+      if (cancelledRef.current) return
+      setStatusCounts({
+        verified: verified.count ?? 0,
+        pending: pending.count ?? 0,
+        sold: sold.count ?? 0,
+      })
+    } catch (err) {
+      if (!cancelledRef.current) {
+        console.warn('Gagal memuat distribusi status:', err.message)
+        setStatusCounts({ verified: 0, pending: 0, sold: 0 })
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchStatusCounts()
+  }, [fetchStatusCounts])
 
   const fetchProperties = useCallback(async () => {
     setLoading(true)
@@ -197,16 +225,20 @@ export default function AdminDashboardPage() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'properties' }, (payload) => {
         if (payload.new && !cancelledRef.current) {
           fetchProperties()
+          fetchStatusCounts()
           showToast('Properti baru masuk: ' + (payload.new.title || 'Tanpa judul'), 'info')
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'properties' }, () => {
-        if (!cancelledRef.current) fetchProperties()
+        if (!cancelledRef.current) {
+          fetchProperties()
+          fetchStatusCounts()
+        }
       })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [fetchProperties, showToast])
+  }, [fetchProperties, fetchStatusCounts, showToast])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return properties
@@ -404,6 +436,66 @@ export default function AdminDashboardPage() {
         {activeTab === 'overview' && (
           <>
             <AdminAnalyticsCards />
+
+            <div className="mt-6">
+              <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-5 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-bold text-brand-text">Distribusi Status Properti</h3>
+                    <p className="text-xs text-brand-muted mt-0.5">Verified, Pending, dan Terjual</p>
+                  </div>
+                </div>
+                {statusCounts ? (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Verified', value: statusCounts.verified },
+                            { name: 'Pending', value: statusCounts.pending },
+                            { name: 'Sold', value: statusCounts.sold },
+                          ]}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={85}
+                          paddingAngle={3}
+                          stroke="var(--color-brand-surface)"
+                          strokeWidth={2}
+                        >
+                          <Cell fill="var(--color-brand-verified)" />
+                          <Cell fill="var(--color-brand-pending)" />
+                          <Cell fill="var(--color-brand-sold)" />
+                        </Pie>
+                        <Tooltip
+                          formatter={(value, name) => [`${value} properti`, name]}
+                          contentStyle={{
+                            borderRadius: 12,
+                            border: '1px solid var(--color-brand-border)',
+                            background: 'var(--color-brand-surface)',
+                            fontSize: 12,
+                            color: 'var(--color-brand-text)',
+                          }}
+                          itemStyle={{ color: 'var(--color-brand-text)' }}
+                          labelStyle={{ color: 'var(--color-brand-muted)' }}
+                        />
+                        <Legend
+                          formatter={(value) => <span className="text-xs text-brand-muted">{value}</span>}
+                          iconSize={10}
+                          iconType="circle"
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="mt-6 bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden">
               <div className="px-5 py-4 border-b border-brand-border flex flex-col sm:flex-row sm:items-center gap-3">
