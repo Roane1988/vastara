@@ -58,16 +58,16 @@ function StatusTimeline({ status }) {
 
   return (
     <div className="mt-3">
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-1.5">
         {PROGRESS_STAGES.map((stage, i) => {
           const done = i <= currentIndex
           return (
-            <div key={stage.key} className="flex items-center flex-1">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className={`w-2 h-2 rounded-full shrink-0 ${done ? 'bg-brand-accent' : 'bg-brand-border'}`} />
-                <span className={`text-[10px] truncate ${done ? 'text-brand-accent font-semibold' : 'text-brand-muted'}`}>{stage.label}</span>
-              </div>
-              {i < PROGRESS_STAGES.length - 1 && <div className={`flex-1 h-px mx-1 ${i < currentIndex ? 'bg-brand-accent' : 'bg-brand-border'}`} />}
+            <div key={stage.key} className="flex items-center gap-1.5 sm:flex-1 sm:min-w-0">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${done ? 'bg-brand-accent' : 'bg-brand-border'}`} />
+              <span className={`text-[11px] sm:text-[10px] sm:truncate ${done ? 'text-brand-accent font-semibold' : 'text-brand-muted'}`}>{stage.label}</span>
+              {i < PROGRESS_STAGES.length - 1 && (
+                <div className={`hidden sm:block flex-1 h-px mx-1 ${i < currentIndex ? 'bg-brand-accent' : 'bg-brand-border'}`} />
+              )}
             </div>
           )
         })}
