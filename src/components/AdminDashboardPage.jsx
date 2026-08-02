@@ -142,8 +142,8 @@ export default function AdminDashboardPage() {
   const [rejectTarget, setRejectTarget] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [rejecting, setRejecting] = useState(false)
-  const [verifyLoading, setVerifyLoading] = useState(null)
-  const [bulkVerifying, setBulkVerifying] = useState(false)
+  const [confirmAction, setConfirmAction] = useState(null)
+  const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
     if (role !== 'admin') {
@@ -234,66 +234,66 @@ export default function AdminDashboardPage() {
     } catch { /* audit must never block */ }
   }
 
-  async function handleVerify(id) {
-    setVerifyLoading(id)
-    try {
-      const { error } = await supabase.from('properties').update({ status: 'verified' }).eq('id', id)
-      if (cancelledRef.current) return
-      if (error) {
-        showToast(error.message, 'error')
-      } else {
-        const target = properties.find((p) => p.id === id)
-        setProperties((prev) => prev.map((p) => p.id === id ? { ...p, status: 'verified' } : p))
-        showToast('Properti berhasil diverifikasi', 'success')
-        insertAuditLog('verify_property', 'property', id, { property_title: target?.title || '', property_price: target?.price || null })
-      }
-    } catch (err) {
-      if (!cancelledRef.current) showToast(err.message || 'Gagal', 'error')
+  async function applyStatusChange(ids, newStatus, toastMessage, auditAction, prevMap) {
+    const { error } = await supabase.from('properties').update({ status: newStatus }).in('id', ids)
+    if (cancelledRef.current) return false
+    if (error) {
+      showToast(error.message, 'error')
+      return false
     }
-    if (!cancelledRef.current) setVerifyLoading(null)
+    setProperties((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, status: newStatus } : p))
+    showToast(toastMessage, 'success', {
+      label: 'Undo',
+      onClick: () => undoStatusChange(ids, prevMap),
+    })
+    for (const id of ids) {
+      const target = properties.find((p) => p.id === id)
+      insertAuditLog(auditAction, 'property', id, { property_title: target?.title || '', property_price: target?.price || null })
+    }
+    return true
   }
 
-  async function handleStartReview(id) {
-    setVerifyLoading(id)
-    try {
-      const { error } = await supabase.from('properties').update({ status: 'in_review' }).eq('id', id)
-      if (cancelledRef.current) return
-      if (error) {
-        showToast(error.message, 'error')
-      } else {
-        const target = properties.find((p) => p.id === id)
-        setProperties((prev) => prev.map((p) => p.id === id ? { ...p, status: 'in_review' } : p))
-        showToast('Properti masuk antrian survei', 'success')
-        insertAuditLog('start_review', 'property', id, { property_title: target?.title || '', property_price: target?.price || null })
-      }
-    } catch (err) {
-      if (!cancelledRef.current) showToast(err.message || 'Gagal', 'error')
+  async function undoStatusChange(ids, prevMap) {
+    const grouped = {}
+    ids.forEach((id) => {
+      const status = prevMap[id] || 'pending'
+      ;(grouped[status] ||= []).push(id)
+    })
+    for (const status of Object.keys(grouped)) {
+      const { error } = await supabase.from('properties').update({ status }).in('id', grouped[status])
+      if (error) { showToast(error.message, 'error'); return }
     }
-    if (!cancelledRef.current) setVerifyLoading(null)
+    setProperties((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, status: prevMap[p.id] || 'pending' } : p))
+    showToast('Aksi dibatalkan', 'success')
   }
 
-  async function handleBulkVerify() {
-    if (selectedIds.size === 0) return
-    setBulkVerifying(true)
-    const ids = Array.from(selectedIds)
-    try {
-      const { error } = await supabase.from('properties').update({ status: 'verified' }).in('id', ids)
-      if (cancelledRef.current) return
-      if (error) {
-        showToast(error.message, 'error')
-      } else {
-        setProperties((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, status: 'verified' } : p))
-        showToast(`${ids.length} properti berhasil diverifikasi`, 'success')
-        setSelectedIds(new Set())
-        for (const id of ids) {
-          const target = properties.find((p) => p.id === id)
-          insertAuditLog('verify_property', 'property', id, { property_title: target?.title || '', property_price: target?.price || null })
-        }
-      }
-    } catch (err) {
-      if (!cancelledRef.current) showToast(err.message || 'Gagal', 'error')
+  const openConfirm = (type, ids) => {
+    const prevMap = {}
+    properties.forEach((p) => { if (ids.includes(p.id)) prevMap[p.id] = p.status })
+    setConfirmAction({ type, ids, prevMap })
+  }
+
+  async function handleConfirmAction() {
+    if (!confirmAction) return
+    const { type, ids, prevMap } = confirmAction
+    setConfirming(true)
+    let newStatus, toastMessage, auditAction
+    if (type === 'review') {
+      newStatus = 'in_review'
+      auditAction = 'start_review'
+      toastMessage = ids.length > 1 ? `${ids.length} properti masuk antrian survei` : 'Properti masuk antrian survei'
+    } else {
+      newStatus = 'verified'
+      auditAction = 'verify_property'
+      toastMessage = ids.length > 1 ? `${ids.length} properti berhasil diverifikasi` : 'Properti berhasil diverifikasi'
     }
-    if (!cancelledRef.current) setBulkVerifying(false)
+    const ok = await applyStatusChange(ids, newStatus, toastMessage, auditAction, prevMap)
+    if (cancelledRef.current) return
+    if (ok) {
+      setConfirmAction(null)
+      if (type === 'bulkVerify') setSelectedIds(new Set())
+    }
+    setConfirming(false)
   }
 
   async function handleConfirmReject() {
@@ -421,9 +421,9 @@ export default function AdminDashboardPage() {
                   <input type="text" placeholder="Cari properti..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
                     className="w-full sm:w-48 py-2 px-3 text-xs bg-brand-bg border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
                   {selectedIds.size > 0 && filterTab === 'pending' && (
-                    <button type="button" onClick={handleBulkVerify} disabled={bulkVerifying}
+                    <button type="button" onClick={() => openConfirm('bulkVerify', Array.from(selectedIds))} disabled={confirming}
                       className="whitespace-nowrap px-3 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] transition-all disabled:opacity-50 flex items-center gap-1.5">
-                      {bulkVerifying ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                      {confirming ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
                       Verifikasi ({selectedIds.size})
                     </button>
                   )}
@@ -525,13 +525,13 @@ export default function AdminDashboardPage() {
                                 <div className="flex items-center justify-end gap-1.5">
                                   {(p.status === 'pending' || p.status === 'in_review') && (
                                     <>
-                                      <button type="button" onClick={() => handleVerify(p.id)} disabled={verifyLoading === p.id}
+                                      <button type="button" onClick={() => openConfirm('verify', [p.id])} disabled={confirming}
                                         className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] transition-all disabled:opacity-50 flex items-center gap-1">
-                                        {verifyLoading === p.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                                        {confirming ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
                                         Setujui
                                       </button>
                                       {p.status === 'pending' && (
-                                        <button type="button" onClick={() => handleStartReview(p.id)} disabled={verifyLoading === p.id}
+                                        <button type="button" onClick={() => openConfirm('review', [p.id])} disabled={confirming}
                                           className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 active:scale-[0.97] transition-all">
                                           Survei
                                         </button>
@@ -601,7 +601,7 @@ export default function AdminDashboardPage() {
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
         )}
-        confirmDisabled={!rejectReason.trim()}
+          confirmDisabled={!rejectReason.trim()}
       >
         <textarea
           value={rejectReason}
@@ -611,6 +611,34 @@ export default function AdminDashboardPage() {
           className="w-full py-3 px-4 text-sm text-brand-text bg-brand-bg border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none"
         />
       </ConfirmModal>
+
+      <ConfirmModal
+        isOpen={confirmAction !== null}
+        onClose={() => !confirming && setConfirmAction(null)}
+        onConfirm={handleConfirmAction}
+        title={
+          confirmAction?.type === 'review'
+            ? 'Mulai Survei'
+            : confirmAction?.type === 'bulkVerify'
+              ? `Verifikasi ${confirmAction.ids.length} Properti`
+              : 'Setujui Properti'
+        }
+        description={
+          confirmAction?.type === 'review'
+            ? 'Properti akan masuk antrian survei lokasi. Lanjutkan?'
+            : `Properti akan diverifikasi dan langsung tayang untuk publik${confirmAction?.type === 'bulkVerify' ? ` (${confirmAction.ids.length} terpilih)` : ''}. Lanjutkan?`
+        }
+        confirmText={
+          confirmAction?.type === 'review'
+            ? 'Ya, Mulai Survei'
+            : confirmAction?.type === 'bulkVerify'
+              ? `Ya, Verifikasi ${confirmAction.ids.length}`
+              : 'Ya, Setujui'
+        }
+        cancelText="Batal"
+        loading={confirming}
+        danger={false}
+      />
     </div>
   )
 }

@@ -9,19 +9,27 @@ const styles = {
   info: 'bg-blue-50 border-blue-500 text-blue-800',
 }
 
-export default function Toast({ message, type = 'error', onClose }) {
+export default function Toast({ message, type = 'error', onClose, action }) {
   const Icon = icons[type]
 
   useEffect(() => {
-    const timer = setTimeout(onClose, 4000)
+    const timer = setTimeout(onClose, action ? 6000 : 4000)
     return () => clearTimeout(timer)
-  }, [onClose])
+  }, [onClose, action])
 
   return (
     <div className="fixed top-20 right-4 z-50 max-w-sm w-full animate-slide-down">
       <div className={`flex items-start gap-3 p-4 rounded-xl border-l-4 shadow-lg ${styles[type]}`}>
         <Icon size={18} className="shrink-0 mt-0.5" />
         <p className="text-sm font-medium flex-1">{message}</p>
+        {action && (
+          <button
+            onClick={() => { action.onClick(); onClose() }}
+            className="shrink-0 text-xs font-bold underline-offset-2 hover:underline"
+          >
+            {action.label}
+          </button>
+        )}
         <button onClick={onClose} className="shrink-0 hover:opacity-70 transition-opacity">
           <X size={16} />
         </button>

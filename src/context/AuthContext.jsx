@@ -12,8 +12,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
 
-  const showToast = useCallback((message, type = 'error') => {
-    setToast({ message, type })
+  const showToast = useCallback((message, type = 'error', action = null) => {
+    setToast({ message, type, action })
   }, [])
 
   const hideToast = useCallback(() => {
@@ -80,7 +80,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{ session, user, role, loading, showToast, signOut }}>
       {children}
-      {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
+      {toast && <Toast message={toast.message} type={toast.type} action={toast.action} onClose={hideToast} />}
     </AuthContext.Provider>
   )
 }
