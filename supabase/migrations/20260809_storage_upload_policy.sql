@@ -11,6 +11,7 @@ on conflict (id) do nothing;
 
 -- Upload hanya file gambar oleh user terautentikasi.
 -- Ekstensi + MIME di-whitelist; file non-gambar (HTML/SVG/JS) ditolak.
+-- Catatan: skema storage.objects menyimpan mimetype di dalam kolom JSON `metadata`.
 drop policy if exists "Authenticated upload images only" on storage.objects;
 create policy "Authenticated upload images only"
   on storage.objects for insert
@@ -19,7 +20,7 @@ create policy "Authenticated upload images only"
     bucket_id = 'PROPERTIES_IMAGE'
     and auth.role() = 'authenticated'
     and lower(storage.extension(name)) in ('jpg', 'jpeg', 'png', 'webp', 'avif')
-    and mimetype in ('image/jpeg', 'image/png', 'image/webp', 'image/avif')
+    and (metadata->>'mimetype') in ('image/jpeg', 'image/png', 'image/webp', 'image/avif')
   );
 
 -- Pengguna hanya bisa menghapus/memperbarui file miliknya sendiri.
