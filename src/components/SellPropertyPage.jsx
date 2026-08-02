@@ -221,6 +221,14 @@ export default function SellPropertyPage() {
           kecamatan: data.district || '',
           whatsapp: data.seller_whatsapp || '',
         })
+        try {
+          const existing = JSON.parse(data.image_url || '[]')
+          if (Array.isArray(existing)) {
+            setImageFiles(existing.map((url) => new File([], url)))
+          }
+        } catch {
+          /* ignore malformed image_url */
+        }
       }
     })
   }, [editId])
@@ -398,6 +406,12 @@ export default function SellPropertyPage() {
         return
       }
 
+      if (requestedRole !== 'owner' && !accountRole) {
+        showToast('Role akun belum dapat diverifikasi. Silakan muat ulang halaman.', 'error')
+        setSubmitting(false)
+        return
+      }
+
       let uploadedImageUrls = []
       const realFiles = imageFiles.filter((f) => f.size > 0)
       if (realFiles.length > 0) {
@@ -421,6 +435,8 @@ export default function SellPropertyPage() {
           return
         }
       }
+
+      const existingImageNames = imageFiles.filter((f) => f.size === 0).map((f) => f.name)
 
       const payload = {
         seller_id: editId ? undefined : user.id,
@@ -450,7 +466,9 @@ export default function SellPropertyPage() {
       }
 
       if (realFiles.length > 0) {
-        payload.image_url = JSON.stringify(uploadedImageUrls)
+        payload.image_url = JSON.stringify([...existingImageNames, ...uploadedImageUrls])
+      } else if (existingImageNames.length > 0) {
+        payload.image_url = JSON.stringify(existingImageNames)
       }
 
       let queryError

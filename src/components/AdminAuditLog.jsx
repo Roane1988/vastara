@@ -130,6 +130,7 @@ function csvCell(value) {
 
 export default function AdminAuditLog() {
   const cancelledRef = useRef(false)
+  const fetchVersionRef = useRef(0)
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -162,6 +163,8 @@ export default function AdminAuditLog() {
 
   useEffect(() => {
     cancelledRef.current = false
+    fetchVersionRef.current += 1
+    const version = fetchVersionRef.current
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setError(null)
@@ -169,7 +172,7 @@ export default function AdminAuditLog() {
     async function fetchFirstPage() {
       try {
         const { data, error: err } = await buildQuery().range(0, PAGE_SIZE - 1)
-        if (cancelledRef.current) return
+        if (cancelledRef.current || version !== fetchVersionRef.current) return
         if (err) {
           setError(err.message)
         } else {
@@ -177,7 +180,8 @@ export default function AdminAuditLog() {
           setHasMore((data?.length || 0) >= PAGE_SIZE)
         }
       } catch (e) {
-        if (!cancelledRef.current) setError(e.message)
+        if (cancelledRef.current || version !== fetchVersionRef.current) return
+        setError(e.message)
       }
       if (!cancelledRef.current) setLoading(false)
     }
@@ -199,9 +203,10 @@ export default function AdminAuditLog() {
     if (refreshing) return
     setRefreshing(true)
     setError(null)
+    const version = fetchVersionRef.current
     try {
       const { data, error: err } = await buildQuery().range(0, PAGE_SIZE - 1)
-      if (cancelledRef.current) return
+      if (cancelledRef.current || version !== fetchVersionRef.current) return
       if (err) {
         setError(err.message)
       } else {
@@ -209,7 +214,8 @@ export default function AdminAuditLog() {
         setHasMore((data?.length || 0) >= PAGE_SIZE)
       }
     } catch (e) {
-      if (!cancelledRef.current) setError(e.message)
+      if (cancelledRef.current || version !== fetchVersionRef.current) return
+      setError(e.message)
     }
     if (!cancelledRef.current) setRefreshing(false)
   }
@@ -217,10 +223,11 @@ export default function AdminAuditLog() {
   async function handleLoadMore() {
     if (loadingMore || !hasMore) return
     setLoadingMore(true)
+    const version = fetchVersionRef.current
     try {
       const from = logs.length
       const { data, error: err } = await buildQuery().range(from, from + PAGE_SIZE - 1)
-      if (cancelledRef.current) return
+      if (cancelledRef.current || version !== fetchVersionRef.current) return
       if (err) {
         setError(err.message)
       } else if (data) {
@@ -228,7 +235,8 @@ export default function AdminAuditLog() {
         setHasMore(data.length >= PAGE_SIZE)
       }
     } catch (e) {
-      if (!cancelledRef.current) setError(e.message)
+      if (cancelledRef.current || version !== fetchVersionRef.current) return
+      setError(e.message)
     }
     if (!cancelledRef.current) setLoadingMore(false)
   }

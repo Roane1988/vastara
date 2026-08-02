@@ -143,7 +143,7 @@ function getOtherId(message, userId) {
 export default function ChatHubPage() {
   const navigate = useNavigate()
   const { session, user, showToast } = useAuth()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const cancelledRef = useRef(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -270,13 +270,16 @@ export default function ChatHubPage() {
   }, [userId])
 
   const openUserId = searchParams.get('user')
+  const didAutoSelectRef = useRef(false)
   useEffect(() => {
-    if (!openUserId) return
+    if (!openUserId || didAutoSelectRef.current) return
     const found = contacts.some((c) => c.id === openUserId)
-    if (found && activeContactId !== openUserId) {
+    if (found) {
+      didAutoSelectRef.current = true
       handleSelectContact(openUserId)
+      setSearchParams({}, { replace: true })
     }
-  }, [openUserId, contacts, activeContactId])
+  }, [openUserId, contacts, setSearchParams])
 
   useEffect(() => {
     if (!activeContactId || !userId) {

@@ -56,13 +56,19 @@ export default function AgentDetailPage() {
           setError('Agent tidak ditemukan.')
           return
         }
+
+        const agent = agentRes.data || {}
+        const base = profileRes.data || {}
+
+        if (base.role && base.role !== 'agent') {
+          setError('Agent tidak ditemukan.')
+          return
+        }
         if (!agentRes.data && !profileRes.data) {
           setError('Agent tidak ditemukan.')
           return
         }
 
-        const agent = agentRes.data || {}
-        const base = profileRes.data || {}
         setProfile({
           ...agent,
           full_name: agent.full_name || base.first_name || 'Agent',
