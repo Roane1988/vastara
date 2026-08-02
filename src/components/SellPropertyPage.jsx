@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../utils/format'
 import useSEO from '../hooks/useSEO'
 import { getAuthHeaders } from '../utils/groqClient'
+import { compressImage } from '../utils/imageCompression'
 
 const DRAFT_KEY = 'hunione_sell_draft'
 const MAX_IMAGES = 10
@@ -424,6 +425,10 @@ export default function SellPropertyPage() {
             if (file.size > 5 * 1024 * 1024) {
               throw new Error('Ukuran file maksimal 5MB per gambar.')
             }
+            const compressed = await compressImage(file)
+            if (!ALLOWED_MIME_TYPES.includes(compressed.type)) {
+              throw new Error('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.')
+            }
             const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
             const ext = (file.name.split('.').pop() || '').toLowerCase()
             const allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'avif']
@@ -433,7 +438,7 @@ export default function SellPropertyPage() {
             const fileName = `${user.id}-${Date.now()}-${idx}-${safeName}`
             const { error: uploadErr } = await supabase.storage
               .from('PROPERTIES_IMAGE')
-              .upload(fileName, file, { contentType: file.type, upsert: false })
+              .upload(fileName, compressed, { contentType: compressed.type || file.type, upsert: false })
             if (uploadErr) throw new Error(uploadErr.message)
             const { data: { publicUrl } } = supabase.storage
               .from('PROPERTIES_IMAGE')
