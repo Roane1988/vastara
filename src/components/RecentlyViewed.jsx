@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Clock, X, Eye, ChevronLeft, ChevronRight, ArrowLeftRight, Trash2 } from 'lucide-react'
-import { getRecentlyViewed, removeRecentlyViewed, clearRecentlyViewed, CHANGE_EVENT } from '../utils/recentlyViewed'
+import { usePropertyStore } from '../store/usePropertyStore'
 import { useCompare } from '../hooks/useCompare'
 import { formatPriceDisplay } from '../utils/format'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
@@ -12,19 +12,11 @@ import { useAuth } from '../context/AuthContext'
 export default function RecentlyViewed() {
   const { t } = useTranslation()
   const { showToast } = useAuth()
-  const [items, setItems] = useState(() => getRecentlyViewed())
+  const items = usePropertyStore((s) => s.recentlyViewed)
+  const removeRecentlyViewed = usePropertyStore((s) => s.removeRecentlyViewed)
+  const clearRecentlyViewed = usePropertyStore((s) => s.clearRecentlyViewed)
   const { compareSet, toggleCompare } = useCompare(showToast)
   const scrollerRef = useRef(null)
-
-  useEffect(() => {
-    function sync() { setItems(getRecentlyViewed()) }
-    window.addEventListener(CHANGE_EVENT, sync)
-    window.addEventListener('storage', sync)
-    return () => {
-      window.removeEventListener(CHANGE_EVENT, sync)
-      window.removeEventListener('storage', sync)
-    }
-  }, [])
 
   function handleRemove(id) {
     removeRecentlyViewed(id)

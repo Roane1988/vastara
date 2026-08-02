@@ -6,7 +6,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { formatPriceDisplay } from '../utils/format'
-import { getCompareList, removeFromCompare, clearCompare, MAX_ITEMS } from '../utils/compare'
+import { usePropertyStore, MAX_ITEMS } from '../store/usePropertyStore'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import {
   getFinancialProfile,
@@ -39,18 +39,15 @@ export default function ComparePage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { user } = useAuth()
-  const [items, setItems] = useState([])
+  const items = usePropertyStore((s) => s.compareList)
+  const removeFromCompare = usePropertyStore((s) => s.removeFromCompare)
+  const clearCompare = usePropertyStore((s) => s.clearCompare)
   const [fullData, setFullData] = useState([])
   const [loading, setLoading] = useState(true)
   const [finState, setFinState] = useState('loading')
   const [affordability, setAffordability] = useState(null)
-  const cancelledRef = useRef(false)
   const requestRef = useRef(0)
   const renderedIdsRef = useRef([])
-
-  useEffect(() => {
-    return () => { cancelledRef.current = true }
-  }, [])
 
   useEffect(() => {
     let alive = true
@@ -97,8 +94,25 @@ export default function ComparePage() {
   }, [fullData])
 
   useEffect(() => {
-    async function load(ids) {
+    let cancelled = false
+    const ids = items
+
+    async function load() {
+      if (ids.length === 0) {
+        requestRef.current += 1
+        setFullData([])
+        setLoading(false)
+        return
+      }
+
+      const wanted = new Set(ids.map(p => p.id))
+      const rendered = renderedIdsRef.current
+      const isMismatch = rendered.length !== wanted.size || rendered.some(id => !wanted.has(id))
+      if (!isMismatch) return
+
+      setLoading(true)
       const requestId = ++requestRef.current
+
       const dummies = ids.filter(p => p.id.startsWith('dummy-'))
       const real = ids.filter(p => !p.id.startsWith('dummy-'))
 
@@ -121,60 +135,27 @@ export default function ComparePage() {
         /* keep only dummy results; page still renders */
       }
 
-      if (!cancelledRef.current && requestId === requestRef.current) {
+      if (!cancelled && requestId === requestRef.current) {
         setFullData(results)
-      }
-      if (!cancelledRef.current && requestId === requestRef.current) {
         setLoading(false)
       }
     }
 
-    function sync() {
-      const ids = Array.isArray(getCompareList()) ? getCompareList() : []
-      setItems(ids)
-
-      if (ids.length === 0) {
-        requestRef.current += 1
-        setFullData([])
-        setLoading(false)
-        return
-      }
-
-      const wanted = new Set(ids.map(p => p.id))
-      const rendered = renderedIdsRef.current
-      const isMismatch = rendered.length !== wanted.size || rendered.some(id => !wanted.has(id))
-      if (!isMismatch) return
-
-      setLoading(true)
-      load(ids)
-    }
-
-    sync()
-    window.addEventListener('compare-updated', sync)
-    window.addEventListener('storage', sync)
-    return () => {
-      cancelledRef.current = true
-      window.removeEventListener('compare-updated', sync)
-      window.removeEventListener('storage', sync)
-    }
-  }, [])
+    load()
+    return () => { cancelled = true }
+  }, [items])
 
   function handleRemove(id) {
     removeFromCompare(id)
-    const updated = getCompareList()
-    setItems(updated)
     renderedIdsRef.current = renderedIdsRef.current.filter(rid => rid !== id)
     setFullData(prev => prev.filter(p => p.id !== id))
-    window.dispatchEvent(new Event('compare-updated'))
   }
 
   function handleClearAll() {
     clearCompare()
-    setItems([])
     setFullData([])
     requestRef.current += 1
     setLoading(false)
-    window.dispatchEvent(new Event('compare-updated'))
   }
 
   const validPrices = fullData

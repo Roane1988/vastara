@@ -1,34 +1,25 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { addToCompare, removeFromCompare, getCompareList, MAX_ITEMS } from '../utils/compare'
+import { usePropertyStore, MAX_ITEMS } from '../store/usePropertyStore'
 
 export function useCompare(showToast) {
   const { t } = useTranslation()
-  const [compareSet, setCompareSet] = useState(() => new Set(getCompareList().map(p => p.id)))
+  const compareList = usePropertyStore((s) => s.compareList)
+  const addToCompare = usePropertyStore((s) => s.addToCompare)
+  const removeFromCompare = usePropertyStore((s) => s.removeFromCompare)
 
-  useEffect(() => {
-    const sync = () => setCompareSet(new Set(getCompareList().map(p => p.id)))
-    window.addEventListener('compare-updated', sync)
-    window.addEventListener('storage', sync)
-    return () => {
-      window.removeEventListener('compare-updated', sync)
-      window.removeEventListener('storage', sync)
-    }
-  }, [])
+  const compareSet = useMemo(() => new Set(compareList.map(p => p.id)), [compareList])
 
   const toggleCompare = useCallback((property) => {
     if (compareSet.has(property.id)) {
       removeFromCompare(property.id)
-      setCompareSet(prev => { const s = new Set(prev); s.delete(property.id); return s })
     } else {
-      const updated = addToCompare(property)
-      if (!updated.some(x => x.id === property.id)) {
+      const added = addToCompare(property)
+      if (!added) {
         showToast?.(t('compare.toast_max', { max: MAX_ITEMS }), 'error')
       }
-      setCompareSet(new Set(updated.map(x => x.id)))
     }
-    window.dispatchEvent(new Event('compare-updated'))
-  }, [compareSet, showToast, t])
+  }, [compareSet, addToCompare, removeFromCompare, showToast, t])
 
   return { compareSet, toggleCompare }
 }

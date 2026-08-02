@@ -1,33 +1,16 @@
-import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { X, ArrowLeftRight } from 'lucide-react'
-import { getCompareList, removeFromCompare, MAX_ITEMS } from '../utils/compare'
+import { usePropertyStore, MAX_ITEMS } from '../store/usePropertyStore'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 
 export default function CompareBar() {
-  const [items, setItems] = useState([])
   const navigate = useNavigate()
   const { t } = useTranslation()
-
-  useEffect(() => {
-    function sync() { setItems(getCompareList()) }
-    sync()
-    window.addEventListener('storage', sync)
-    window.addEventListener('compare-updated', sync)
-    return () => {
-      window.removeEventListener('storage', sync)
-      window.removeEventListener('compare-updated', sync)
-    }
-  }, [])
+  const items = usePropertyStore((s) => s.compareList)
+  const removeFromCompare = usePropertyStore((s) => s.removeFromCompare)
 
   if (items.length === 0) return null
-
-  function handleRemove(id) {
-    const updated = removeFromCompare(id)
-    setItems(updated)
-    window.dispatchEvent(new Event('compare-updated'))
-  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-brand-surface border-t border-brand-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
@@ -44,7 +27,7 @@ export default function CompareBar() {
               <span className="text-xs text-brand-text truncate max-w-[80px]">{p.title}</span>
               <button
                 type="button"
-                onClick={() => handleRemove(p.id)}
+                onClick={() => removeFromCompare(p.id)}
                 aria-label={t('compare.remove_aria')}
                 className="text-brand-muted hover:text-brand-danger shrink-0"
               >

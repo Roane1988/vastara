@@ -8,7 +8,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { parseImages, FALLBACK_IMAGE } from '../utils/images'
 import { useGroqTranslation } from '../hooks/useGroqTranslation'
 import useSEO from '../hooks/useSEO'
-import { addRecentlyViewed } from '../utils/recentlyViewed'
+import { usePropertyStore } from '../store/usePropertyStore'
 import NotFoundPage from './NotFoundPage'
 import KprSimulator from './KprSimulator'
 import InvestmentAnalyzer from './InvestmentAnalyzer'
@@ -321,6 +321,7 @@ export default function PropertyDetailPage() {
   const navigate = useNavigate()
   const { i18n } = useTranslation()
   const lang = i18n.language
+  const addRecentlyViewed = usePropertyStore((s) => s.addRecentlyViewed)
 
   const [property, setProperty] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -474,7 +475,7 @@ export default function PropertyDetailPage() {
 
     fetchProperty()
     return () => { cancelled = true }
-  }, [id])
+  }, [id, addRecentlyViewed])
 
   useEffect(() => {
     const propId = property?.id
