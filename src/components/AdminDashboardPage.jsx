@@ -126,7 +126,7 @@ function PropertyPreviewModal({ property, onClose }) {
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate()
-  const { showToast, user, role } = useAuth()
+  const { showToast, role } = useAuth()
   const cancelledRef = useRef(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [filterTab, setFilterTab] = useState('all')
@@ -222,11 +222,11 @@ export default function AdminDashboardPage() {
 
   async function insertAuditLog(actionType, targetType, targetId, targetDetail) {
     try {
-      const adminName = user?.user_metadata?.first_name || user?.email || 'Admin'
-      await supabase.from('audit_logs').insert({
-        admin_id: user?.id, admin_name: adminName,
-        action_type: actionType, target_type: targetType,
-        target_id: targetId, target_detail: targetDetail,
+      await supabase.rpc('record_audit', {
+        p_action_type: actionType,
+        p_target_type: targetType,
+        p_target_id: targetId,
+        p_target_detail: targetDetail,
       })
     } catch { /* audit must never block */ }
   }

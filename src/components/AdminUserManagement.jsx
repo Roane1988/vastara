@@ -87,14 +87,11 @@ export default function AdminUserManagement() {
 
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)))
 
-      const adminName = currentUser?.user_metadata?.first_name || currentUser?.email || 'Admin'
-      await supabase.from('audit_logs').insert({
-        admin_id: currentUser?.id,
-        admin_name: adminName,
-        action_type: 'change_role',
-        target_type: 'user',
-        target_id: userId,
-        target_detail: {
+      await supabase.rpc('record_audit', {
+        p_action_type: 'change_role',
+        p_target_type: 'user',
+        p_target_id: userId,
+        p_target_detail: {
           user_name: targetUser?.first_name || 'Unknown',
           user_email: targetUser?.email || '',
           old_role: oldRole,

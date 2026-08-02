@@ -66,11 +66,11 @@ export default function AdminAgentApplications() {
 
   async function insertAuditLog(actionType, targetId, targetDetail) {
     try {
-      const adminName = user?.user_metadata?.first_name || user?.email || 'Admin'
-      await supabase.from('audit_logs').insert({
-        admin_id: user?.id, admin_name: adminName,
-        action_type: actionType, target_type: 'agent_application',
-        target_id: targetId, target_detail: targetDetail,
+      await supabase.rpc('record_audit', {
+        p_action_type: actionType,
+        p_target_type: 'agent_application',
+        p_target_id: targetId,
+        p_target_detail: targetDetail,
       })
     } catch { /* audit must never block */ }
   }
