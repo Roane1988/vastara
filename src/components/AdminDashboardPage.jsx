@@ -158,7 +158,7 @@ export default function AdminDashboardPage() {
     try {
       let query = supabase
         .from('properties')
-        .select('*, profiles(first_name, whatsapp)')
+        .select('*, profiles!seller_id(first_name, whatsapp)')
         .order('created_at', { ascending: false })
 
       if (filterTab !== 'all') {

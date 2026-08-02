@@ -48,7 +48,7 @@ export default function AgentDetailPage() {
           supabase.from('profiles').select('first_name, whatsapp, role').eq('id', id).maybeSingle(),
           supabase.from('agent_stats').select('*').eq('agent_id', id).maybeSingle(),
           supabase.from('properties').select('*').eq('seller_id', id).eq('status', 'verified').order('created_at', { ascending: false }),
-          supabase.from('agent_reviews').select('*, profiles(first_name)').eq('agent_id', id).order('created_at', { ascending: false }),
+          supabase.from('agent_reviews').select('*, profiles!reviewer_id(first_name)').eq('agent_id', id).order('created_at', { ascending: false }),
         ])
         if (cancelledRef.current) return
 

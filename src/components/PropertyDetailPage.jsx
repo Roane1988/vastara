@@ -443,7 +443,7 @@ export default function PropertyDetailPage() {
       try {
         const { data, error: fetchError } = await supabase
           .from('properties')
-          .select('*, profiles(first_name, role)')
+          .select('*, profiles!seller_id(first_name, role)')
           .eq('id', id)
           .maybeSingle()
 
