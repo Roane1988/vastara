@@ -112,9 +112,15 @@ const BLOCKED_PATTERNS = [
   /jailbreak|do\.anything\.now/i,
 ]
 
+function hasControlChars(content) {
+  for (let i = 0; i < content.length; i++) {
+    const c = content.charCodeAt(i)
+    if (c === 0x00 || (c >= 0x01 && c <= 0x08) || c === 0x0b || c === 0x0c || (c >= 0x0e && c <= 0x1f)) return true
+  }
+  return false
+}
+
 const SUSPICIOUS_INPUT = [
-  /\0/,
-  /[\x00-\x08\x0B\x0C\x0E-\x1F]/,
   /<script\b[^>]*>.*<\/script>/si,
   /data:\s*text\/html/i,
   /vbscript:/i,
@@ -127,7 +133,7 @@ const BLOCKED_OUTPUT = [
 ]
 
 function hasSuspiciousInput(content) {
-  return SUSPICIOUS_INPUT.some(p => p.test(content))
+  return hasControlChars(content) || SUSPICIOUS_INPUT.some(p => p.test(content))
 }
 
 function sanitizeOutput(content) {

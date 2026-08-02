@@ -51,9 +51,9 @@ function ArrowLeftIcon() {
 }
 
 function PropertyPreviewModal({ property, onClose }) {
+  const [imgIndex, setImgIndex] = useState(0)
   if (!property) return null
   const images = parseImages(property.image_url)
-  const [imgIndex, setImgIndex] = useState(0)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-5 py-10">
@@ -184,12 +184,9 @@ export default function AdminDashboardPage() {
   }, [filterTab])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProperties()
   }, [fetchProperties])
-
-  useEffect(() => {
-    if (!cancelledRef.current) setSelectedIds(new Set())
-  }, [filterTab])
 
   useEffect(() => {
     const channel = supabase
@@ -222,10 +219,6 @@ export default function AdminDashboardPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages - 1)
   const paged = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
-
-  useEffect(() => {
-    if (safePage !== page) setPage(safePage)
-  }, [safePage, page])
 
   async function insertAuditLog(actionType, targetType, targetId, targetDetail) {
     try {
@@ -413,7 +406,7 @@ export default function AdminDashboardPage() {
               <div className="px-5 py-4 border-b border-brand-border flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex gap-1">
                   {FILTERS.map((f) => (
-                    <button key={f.key} type="button" onClick={() => { setFilterTab(f.key); setPage(0) }}
+                    <button key={f.key} type="button" onClick={() => { setFilterTab(f.key); setPage(0); setSelectedIds(new Set()) }}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                         filterTab === f.key ? 'bg-brand-accent text-white' : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'
                       }`}>
@@ -560,9 +553,9 @@ export default function AdminDashboardPage() {
                     <div className="flex items-center justify-between px-5 py-4 border-t border-brand-border bg-brand-bg/30">
                       <p className="text-xs text-brand-muted">{safePage * PAGE_SIZE + 1}-{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} dari {filtered.length}</p>
                       <div className="flex gap-1">
-                        <button type="button" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0}
+                        <button type="button" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={safePage === 0}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium text-brand-text bg-brand-surface border border-brand-border hover:bg-brand-bg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Sebelumnya</button>
-                        <button type="button" onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}
+                        <button type="button" onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))} disabled={safePage >= totalPages - 1}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium text-brand-text bg-brand-surface border border-brand-border hover:bg-brand-bg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Selanjutnya</button>
                       </div>
                     </div>

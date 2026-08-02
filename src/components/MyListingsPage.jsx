@@ -149,7 +149,7 @@ export default function MyListingsPage() {
     fetchListings()
 
     return () => { cancelled = true }
-  }, [user])
+  }, [user, showToast])
 
   return (
     <div className="min-h-screen bg-brand-bg">

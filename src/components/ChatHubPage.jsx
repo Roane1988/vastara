@@ -146,6 +146,7 @@ export default function ChatHubPage() {
   const cancelledRef = useRef(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+  const contactsRef = useRef([])
 
   const userId = session?.user?.id || user?.id
 
@@ -165,6 +166,10 @@ export default function ChatHubPage() {
   const [unreadMap, setUnreadMap] = useState({})
 
   const activeContact = contacts.find((c) => c.id === activeContactId) || null
+
+  useEffect(() => {
+    contactsRef.current = contacts
+  }, [contacts])
 
   const filteredContacts = contacts.filter((c) =>
     !searchQuery.trim() || (c.first_name || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -325,7 +330,7 @@ export default function ChatHubPage() {
 
           if (otherId !== activeContactId) {
             setUnreadMap(prev => ({ ...prev, [otherId]: (prev[otherId] || 0) + 1 }))
-            const senderName = contacts.find(c => c.id === otherId)?.first_name || 'Seseorang'
+            const senderName = contactsRef.current.find(c => c.id === otherId)?.first_name || 'Seseorang'
             if (msg.content) showToast(`${senderName}: ${msg.content.slice(0, 80)}`, 'info')
           }
 
@@ -357,7 +362,7 @@ export default function ChatHubPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [userId, activeContactId])
+  }, [userId, activeContactId, showToast])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
