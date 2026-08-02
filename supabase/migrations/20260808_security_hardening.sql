@@ -14,6 +14,13 @@
 alter table public.profiles
   drop constraint if exists profiles_role_check;
 
+-- Normalisasi role yang tidak dikenal (sisa nilai lama) menjadi 'pembeli',
+-- supaya constraint di bawah tidak gagal karena data lama.
+update public.profiles
+  set role = 'pembeli'
+  where role is null
+     or role not in ('pembeli', 'owner', 'agent', 'developer', 'admin');
+
 alter table public.profiles
   add constraint profiles_role_check
   check (role in ('pembeli', 'owner', 'agent', 'developer', 'admin'));
