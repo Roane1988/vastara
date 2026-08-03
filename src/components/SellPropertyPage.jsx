@@ -25,7 +25,6 @@ const EMPTY_FORM = {
   status_sertifikat: '',
   description: '',
   description_en: '',
-  facilities: '',
   is_premium: false,
   address: '',
   city: '',
@@ -222,7 +221,6 @@ export default function SellPropertyPage() {
           status_sertifikat: data.certificate_status || '',
           description: data.description_id || '',
           description_en: data.description_en || '',
-          facilities: data.facilities || '',
           is_premium: Boolean(data.is_premium),
           address: data.address || '',
           city: data.city || '',
@@ -469,7 +467,6 @@ export default function SellPropertyPage() {
         seller_whatsapp: form.whatsapp,
         description_id: form.description,
         description_en: form.description_en || null,
-        facilities: form.facilities || null,
         is_premium: Boolean(form.is_premium),
         address: form.address,
         city: form.city,
@@ -605,12 +602,6 @@ export default function SellPropertyPage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-brand-text mb-1.5 block">Fasilitas</label>
-              <input type="text" placeholder="Contoh: Parkir, AC, Keamanan 24 Jam, Furnished" value={form.facilities} onChange={updateForm('facilities')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
-              <p className="text-xs text-brand-muted mt-1.5">Pisahkan dengan koma</p>
-            </div>
-
             <div className="flex items-center justify-between gap-3 p-4 rounded-xl border border-brand-border bg-white">
               <div>
                 <p className="text-sm font-semibold text-brand-text">Iklan Premium</p>
@@ -726,7 +717,6 @@ export default function SellPropertyPage() {
                 <p>Sertifikat: {form.status_sertifikat || '-'}</p>
                 <p>Lokasi: {[form.city, form.kecamatan].filter(Boolean).join(', ') || form.address?.slice(0, 30)}</p>
                 <p>Kamar: {form.bedrooms || 0} KT / {form.bathrooms || 0} KM / {form.sqm || '-'} m&sup2;</p>
-                {form.facilities && <p>Fasilitas: {form.facilities}</p>}
                 <p>Foto: {imageFiles.length} file</p>
                 {form.is_premium && <p className="text-brand-primary font-semibold">Iklan Premium</p>}
               </div>

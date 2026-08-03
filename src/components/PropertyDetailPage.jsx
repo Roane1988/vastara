@@ -648,21 +648,6 @@ export default function PropertyDetailPage() {
               </div>
             </div>
 
-            {property.facilities && (
-              <div>
-                <h3 className="text-sm font-semibold text-brand-text mb-2">
-                  {lang === 'en' ? 'Facilities' : 'Fasilitas'}
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {property.facilities.split(',').map((f) => f.trim()).filter(Boolean).map((f, i) => (
-                    <span key={i} className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium bg-brand-bg text-brand-text border border-brand-border">
-                      {f}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div>
               <h2 className="text-base font-semibold text-brand-text mb-2">
                 {lang === 'en' ? 'Description' : 'Deskripsi'}
