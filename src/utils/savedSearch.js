@@ -20,7 +20,7 @@ export function matchesFilters(p, filters = {}) {
 
   if (f.search) {
     const q = String(f.search).toLowerCase()
-    const haystack = [p.title, p.address, p.location, p.city, p.district, p.description_id]
+    const haystack = [p.title, p.address, p.city, p.district, p.description_id]
       .filter(Boolean)
       .join(' ')
       .toLowerCase()

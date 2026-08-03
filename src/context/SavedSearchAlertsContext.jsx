@@ -4,7 +4,7 @@ import { matchesFilters } from '../utils/savedSearch'
 
 const SavedSearchAlertsContext = createContext(null)
 
-const PROPERTY_FIELDS = 'id, title, address, location, city, district, description_id, property_type, is_premium, price, category, bedrooms, created_at'
+const PROPERTY_FIELDS = 'id, title, address, city, district, description_id, property_type, is_premium, price, category, bedrooms, created_at'
 
 export function SavedSearchAlertsProvider({ children }) {
   const [userId, setUserId] = useState(null)
