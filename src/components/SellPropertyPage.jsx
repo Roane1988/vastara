@@ -199,12 +199,14 @@ export default function SellPropertyPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [hasUnsaved])
   const [dragIndex, setDragIndex] = useState(null)
+  const [originalPrice, setOriginalPrice] = useState(null)
   const [generatingDesc, setGeneratingDesc] = useState(false)
 
   useEffect(() => {
     if (!editId) return
     supabase.from('properties').select('*').eq('id', editId).single().then(({ data, error }) => {
       if (!error && data) {
+        setOriginalPrice(data.price ? Number(data.price) : null)
         setForm({
           title: data.title || '',
           category: data.category || 'Dijual',
@@ -503,7 +505,21 @@ export default function SellPropertyPage() {
 
       clearDraft()
       setSubmitting(false)
-      showToast(editId ? 'Properti berhasil diperbarui' : 'Properti berhasil dikirim', 'success')
+      if (editId) {
+        const newPrice = Number(form.estimasi_harga)
+        const sentToReview =
+          originalPrice > 0 &&
+          Number.isFinite(newPrice) &&
+          Math.abs(newPrice - originalPrice) > originalPrice * 0.15
+        showToast(
+          sentToReview
+            ? 'Perubahan harga dikirim untuk persetujuan admin. Harga publik belum berubah.'
+            : 'Properti berhasil diperbarui',
+          sentToReview ? 'info' : 'success'
+        )
+      } else {
+        showToast('Properti berhasil dikirim', 'success')
+      }
       setIsSubmitted(true)
     } catch (err) {
       showToast('Terjadi kesalahan: ' + (err.message || 'Silakan coba lagi.'), 'error')

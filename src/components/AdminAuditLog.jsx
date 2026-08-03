@@ -14,6 +14,8 @@ const ACTION_META = {
   approve_agent: { label: 'Terima Agen', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
   reject_agent: { label: 'Tolak Agen', color: 'text-red-600 bg-red-50 border-red-200' },
   delete_agent_application: { label: 'Hapus Pengajuan Agen', color: 'text-rose-600 bg-rose-50 border-rose-200' },
+  approve_price_change: { label: 'Setujui Ubah Harga', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+  reject_price_change: { label: 'Tolak Ubah Harga', color: 'text-red-600 bg-red-50 border-red-200' },
 }
 
 const ACTION_FILTERS = [
@@ -26,6 +28,8 @@ const ACTION_FILTERS = [
   { key: 'approve_agent', label: 'Agen Diterima' },
   { key: 'reject_agent', label: 'Agen Ditolak' },
   { key: 'delete_agent_application', label: 'Pengajuan Dihapus' },
+  { key: 'approve_price_change', label: 'Harga Disetujui' },
+  { key: 'reject_price_change', label: 'Harga Ditolak' },
 ]
 
 function getActionMeta(type) {
@@ -58,6 +62,14 @@ function getTargetSummary(log) {
     case 'delete_agent_application': {
       const name = detail?.agent_name || detail?.agent_email || 'Unknown'
       return detail?.reason ? `${name} — ${detail.reason}` : name
+    }
+    case 'approve_price_change':
+    case 'reject_price_change': {
+      const prop = detail?.property_title || fallback
+      const from = detail?.old_price
+      const to = detail?.new_price
+      const price = (from && to) ? `${from} → ${to}` : ''
+      return prop + (price ? ` (${price})` : '')
     }
     default:
       return fallback
