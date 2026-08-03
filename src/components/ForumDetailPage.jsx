@@ -97,6 +97,7 @@ export default function ForumDetailPage() {
   const [editingPostSubmitting, setEditingPostSubmitting] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [summary, setSummary] = useState(null)
+  const [summaryError, setSummaryError] = useState('')
   const [summarizing, setSummarizing] = useState(false)
   const [relatedPosts, setRelatedPosts] = useState([])
   const [votes, setVotes] = useState({ count: 0, byIndex: {}, userIndex: null })
@@ -481,6 +482,7 @@ export default function ForumDetailPage() {
     if (summarizing) return
     setSummarizing(true)
     setSummary(null)
+    setSummaryError('')
     try {
       const excerpt = replies
         .map((r) => `- ${r.profiles?.first_name || 'Anonymous'}: ${r.content.replace(/<!--.*?-->/g, '').trim().slice(0, 220)}`)
@@ -489,13 +491,17 @@ export default function ForumDetailPage() {
       const res = await fetch('/api/groq', {
         method: 'POST',
         headers: await getAuthHeaders(),
-        body: JSON.stringify({ purpose: 'chat', messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({ model: 'openai/gpt-oss-120b', purpose: 'chat', messages: [{ role: 'user', content: prompt }] }),
       })
       const data = await res.json()
       const text = data?.choices?.[0]?.message?.content
-      setSummary(text || '')
+      if (text) {
+        setSummary(text)
+      } else {
+        setSummaryError(data?.error?.message || 'Gagal membuat ringkasan. Coba lagi nanti.')
+      }
     } catch {
-      setSummary('')
+      setSummaryError('Gagal membuat ringkasan. Coba lagi nanti.')
     }
     setSummarizing(false)
   }
@@ -743,6 +749,12 @@ export default function ForumDetailPage() {
                 <Sparkles size={14} className="animate-pulse" />
                 {t('forum.summarizing')}...
               </div>
+            </div>
+          )}
+
+          {summaryError && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-xs text-red-700">
+              {summaryError}
             </div>
           )}
 
