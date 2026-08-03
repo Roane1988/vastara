@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { getImageSrc } from '../utils/images'
 import { formatPrice } from '../utils/format'
 import ConfirmModal from './ConfirmModal'
-import { Check, Clock, X } from 'lucide-react'
+import { Check, Clock, X, Users } from 'lucide-react'
 
 function ArrowLeftIcon() {
   return (
@@ -86,6 +86,7 @@ export default function MyListingsPage() {
   const [showSoldModal, setShowSoldModal] = useState(false)
   const [selectedPropertyId, setSelectedPropertyId] = useState(null)
   const [soldLoading, setSoldLoading] = useState(false)
+  const [leadCounts, setLeadCounts] = useState({})
 
   const handleConfirmSold = async () => {
     if (!selectedPropertyId) return
@@ -136,6 +137,20 @@ export default function MyListingsPage() {
             showToast('Gagal memuat iklan. Silakan coba lagi.', 'error')
           } else if (data) {
             setListings(data)
+            const ids = data.map((p) => p.id)
+            if (ids.length > 0) {
+              const { data: leads, error: leadsError } = await supabase
+                .from('whatsapp_leads')
+                .select('property_id')
+                .in('property_id', ids)
+              if (!cancelled && !leadsError && leads) {
+                const counts = {}
+                leads.forEach((l) => {
+                  counts[l.property_id] = (counts[l.property_id] || 0) + 1
+                })
+                setLeadCounts(counts)
+              }
+            }
           }
           setLoading(false)
         }
@@ -250,6 +265,12 @@ export default function MyListingsPage() {
                     <span className="text-brand-border">&bull;</span>
                     <span>{p.area_sqm} m&sup2;</span>
                   </div>
+                  {leadCounts[p.id] > 0 && (
+                    <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-accent bg-brand-accent/5 border border-brand-accent/20 rounded-lg px-2 py-0.5 mt-2 w-fit">
+                      <Users size={12} />
+                      {leadCounts[p.id]} orang tertarik
+                    </p>
+                  )}
                   {p.status !== 'sold' && <StatusTimeline status={p.status} />}
                   {p.status === 'sold' && (
                     <p className="text-[11px] text-gray-500 mt-2 flex items-center gap-1">
