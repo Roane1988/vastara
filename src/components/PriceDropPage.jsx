@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { TrendingDown, MapPin, Search, ArrowLeft, SlidersHorizontal } from 'lucide-react'
+import { TrendingDown, TrendingUp, MapPin, Search, ArrowLeft, SlidersHorizontal } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { formatPrice } from '../utils/format'
@@ -86,6 +86,24 @@ export default function PriceDropPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* DISCOVERY */}
+        <button
+          type="button"
+          onClick={() => navigate('/price-trends')}
+          className="w-full mb-6 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-brand-primary/5 via-brand-accent/5 to-brand-bg border border-brand-border hover:border-brand-accent/40 transition-colors"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0">
+              <TrendingUp size={18} className="text-brand-primary" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-sm font-bold text-brand-text">Lihat tren harga per area</p>
+              <p className="text-xs text-brand-muted truncate">Rata-rata & median harga berdasarkan kota dan kecamatan</p>
+            </div>
+          </div>
+          <span className="text-brand-accent shrink-0">&#8250;</span>
+        </button>
+
         {/* KONTROL */}
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-6">
           <div className="relative flex-1">

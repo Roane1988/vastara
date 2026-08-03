@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, TrendingDown, SlidersHorizontal, MapPin } from 'lucide-react'
+import { ArrowLeft, TrendingUp, TrendingDown, SlidersHorizontal, MapPin, Trophy, Info, Plus } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../supabaseClient'
 import { formatPrice } from '../utils/format'
@@ -13,6 +13,12 @@ const PROPERTY_TYPES = [
   { value: 'Tanah', label: 'Tanah' },
   { value: 'Kantor', label: 'Kantor' },
   { value: 'Ruko', label: 'Ruko' },
+]
+
+const CHART_METRICS = [
+  { key: 'avgPrice', label: 'Rata-rata' },
+  { key: 'medianPrice', label: 'Median' },
+  { key: 'count', label: 'Jumlah' },
 ]
 
 const MONTH_FMT = new Intl.DateTimeFormat('id-ID', { month: 'short', year: '2-digit' })
@@ -37,14 +43,30 @@ function median(nums) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2
 }
 
-function PriceTooltip({ active, payload }) {
+function TrendTooltip({ active, payload, metric }) {
   if (!active || !payload || payload.length === 0) return null
   const row = payload[0].payload
+  const value = row[metric]
   return (
     <div className="bg-white rounded-xl border border-brand-border shadow-lg px-3.5 py-2.5 text-xs">
       <p className="font-bold text-brand-text">{row.label}</p>
-      <p className="text-brand-muted mt-1">{formatPrice(row.avgPrice)} <span className="text-[10px]">rata-rata</span></p>
-      {row.count > 0 && <p className="text-brand-muted">{row.count} listing</p>}
+      {metric === 'count' ? (
+        <p className="text-brand-muted mt-1">{value} listing</p>
+      ) : (
+        <p className="text-brand-muted mt-1">
+          {formatPrice(value)} <span className="text-[10px]">{metric === 'avgPrice' ? 'rata-rata' : 'median'}</span>
+        </p>
+      )}
+      <p className="text-brand-muted">{row.count} listing</p>
+    </div>
+  )
+}
+
+function MetricLegend({ value }) {
+  return (
+    <div className="bg-white rounded-xl border border-brand-border px-2.5 py-1 text-[11px] font-medium text-brand-muted">
+      <span className="inline-block w-2 h-2 rounded-full bg-[#2E86DE] mr-1.5" />
+      {value}
     </div>
   )
 }
@@ -56,6 +78,8 @@ export default function PriceTrendPage() {
   const [category, setCategory] = useState('Dijual')
   const [city, setCity] = useState('all')
   const [type, setType] = useState('all')
+  const [chartMetric, setChartMetric] = useState('avgPrice')
+  const [rankMode, setRankMode] = useState('highest')
 
   useEffect(() => {
     let cancelled = false
@@ -131,6 +155,7 @@ export default function PriceTrendPage() {
           key,
           label: MONTH_FMT.format(date),
           avgPrice: avg(nums),
+          medianPrice: median(nums),
           count: nums.length,
         }
       })
@@ -162,10 +187,34 @@ export default function PriceTrendPage() {
           count: list.length,
           avgPrice: avg(prices),
           change,
+          recentCount: recent.length,
+          priorCount: prior.length,
         }
       })
       .sort((a, b) => b.count - a.count)
   }, [filtered])
+
+  const cityRanking = useMemo(() => {
+    const map = new Map()
+    properties.forEach((p) => {
+      if (p.category !== category) return
+      if (type !== 'all' && p.property_type !== type) return
+      const key = normCity(p.city)
+      const label = (p.city || 'Lainnya').trim()
+      if (!map.has(key)) map.set(key, { label, prices: [] })
+      map.get(key).prices.push(Number(p.price) || 0)
+    })
+    const rows = [...map.values()]
+      .map((r) => {
+        const nums = r.prices.filter(Boolean)
+        return { label: r.label, count: nums.length, avgPrice: avg(nums) }
+      })
+      .filter((r) => r.count > 0 && r.avgPrice > 0)
+    const max = Math.max(...rows.map((r) => r.avgPrice), 1)
+    rows.forEach((r) => { r.barPct = Math.round((r.avgPrice / max) * 100) })
+    rows.sort((a, b) => (rankMode === 'highest' ? b.avgPrice - a.avgPrice : a.avgPrice - b.avgPrice))
+    return rows.slice(0, 6)
+  }, [properties, category, type, rankMode])
 
   const hasArea = filtered.length > 0
 
@@ -194,15 +243,21 @@ export default function PriceTrendPage() {
             <div className="w-9 h-9 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : !hasArea ? (
-          <div className="text-center py-24">
+          <div className="text-center py-20">
             <TrendingUp size={40} className="mx-auto text-brand-muted/40 mb-3" />
             <p className="text-sm font-semibold text-brand-text">Belum ada data tren untuk filter ini</p>
-            <p className="text-xs text-brand-muted mt-1 max-w-xs mx-auto">
-              Data tren dihitung dari listing terverifikasi. Tambahkan lebih banyak properti untuk melihat pergerakannya.
+            <p className="text-xs text-brand-muted mt-1 max-w-sm mx-auto leading-relaxed">
+              Tren dihitung dari listing terverifikasi yang aktif. Ubah filter, atau tambah listing properti agar area kamu mulai punya data.
             </p>
-            <button type="button" onClick={() => navigate('/explore')} className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all">
-              Jelajahi Semua Properti
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+              <button type="button" onClick={() => { setCategory('Dijual'); setCity('all'); setType('all') }} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all">
+                Reset Filter
+              </button>
+              <button type="button" onClick={() => navigate('/sell-role')} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-surface border border-brand-border text-sm font-bold text-brand-text hover:bg-brand-highlight active:scale-[0.98] transition-all">
+                <Plus size={15} />
+                Iklankan Properti
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -278,14 +333,33 @@ export default function PriceTrendPage() {
 
             {/* GRAFIK */}
             <div className="bg-white rounded-2xl border border-brand-border p-4 sm:p-5 mb-6">
-              <h2 className="text-sm font-bold text-brand-text mb-1">Pergerakan Harga per Bulan</h2>
-              <p className="text-xs text-brand-muted mb-4">Rata-rata harga listing baru yang masuk setiap bulan</p>
+              <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
+                <div>
+                  <h2 className="text-sm font-bold text-brand-text">Pergerakan Harga per Bulan</h2>
+                  <p className="text-xs text-brand-muted mt-0.5">Rata-rata harga listing baru yang masuk setiap bulan</p>
+                </div>
+                <div className="flex rounded-xl bg-brand-bg border border-brand-border p-0.5 shrink-0">
+                  {CHART_METRICS.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setChartMetric(m.key)}
+                      className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-colors ${
+                        chartMetric === m.key ? 'bg-white text-brand-primary shadow-sm border border-brand-border' : 'text-brand-muted hover:text-brand-text'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <MetricLegend value={CHART_METRICS.find((m) => m.key === chartMetric)?.label} />
               {monthly.length > 0 ? (
                 <div className="h-64 sm:h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={monthly} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
                       <defs>
-                        <linearGradient id="avgPrice" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#2E86DE" stopOpacity={0.25} />
                           <stop offset="100%" stopColor="#2E86DE" stopOpacity={0} />
                         </linearGradient>
@@ -296,11 +370,13 @@ export default function PriceTrendPage() {
                         tick={{ fontSize: 10, fill: '#64748B' }}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(v) => formatPrice(v)}
+                        tickFormatter={(v) => chartMetric === 'count'
+                          ? (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v)
+                          : formatPrice(v)}
                         width={64}
                       />
-                      <Tooltip content={<PriceTooltip />} />
-                      <Area type="monotone" dataKey="avgPrice" name="Rata-rata" stroke="#2E86DE" strokeWidth={2.5} fill="url(#avgPrice)" />
+                      <Tooltip content={<TrendTooltip metric={chartMetric} />} />
+                      <Area type="monotone" dataKey={chartMetric} name="value" stroke="#2E86DE" strokeWidth={2.5} fill="url(#trendFill)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -308,6 +384,60 @@ export default function PriceTrendPage() {
                 <p className="text-sm text-brand-muted py-10 text-center">Belum ada data rentang waktu yang cukup.</p>
               )}
             </div>
+
+            {/* RANKING AREA */}
+            {cityRanking.length > 0 && (
+              <div className="bg-white rounded-2xl border border-brand-border p-4 sm:p-5 mb-6">
+                <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                  <h2 className="text-sm font-bold text-brand-text flex items-center gap-1.5">
+                    <Trophy size={15} className="text-brand-accent" />
+                    Ranking Kota
+                  </h2>
+                  <div className="flex rounded-xl bg-brand-bg border border-brand-border p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setRankMode('highest')}
+                      className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-colors ${rankMode === 'highest' ? 'bg-white text-brand-primary shadow-sm border border-brand-border' : 'text-brand-muted hover:text-brand-text'}`}
+                    >
+                      Termahal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRankMode('lowest')}
+                      className={`px-3 py-1.5 rounded-[10px] text-xs font-bold transition-colors ${rankMode === 'lowest' ? 'bg-white text-brand-primary shadow-sm border border-brand-border' : 'text-brand-muted hover:text-brand-text'}`}
+                    >
+                      Termurah
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  {cityRanking.map((r, i) => (
+                    <div key={r.label} className="flex items-center gap-3">
+                      <span className={`w-6 h-6 rounded-full text-[11px] font-extrabold flex items-center justify-center shrink-0 ${
+                        i === 0 ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-brand-bg text-brand-muted border border-brand-border'
+                      }`}>
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-brand-text truncate">{r.label}</p>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs text-brand-muted">{r.count} listing</span>
+                            <span className="text-sm font-bold text-brand-primary">{formatPrice(r.avgPrice)}</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-brand-bg mt-1.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${i === 0 ? 'bg-amber-400' : 'bg-brand-accent'}`}
+                            style={{ width: `${r.barPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* TABEL PER KECAMATAN */}
             {byDistrict.length > 0 && (
@@ -318,28 +448,40 @@ export default function PriceTrendPage() {
                     Perbandingan per Kecamatan
                   </h2>
                   <p className="text-xs text-brand-muted mt-0.5">
-                    {city === 'all' ? 'Semua kota' : city} · {category} · {type === 'all' ? 'semua tipe' : type}
+                    {city === 'all' ? 'Semua kota' : city} · {category} · {type === 'all' ? 'semua tipe' : type} · perubahan 60 hari terakhir vs 60 hari sebelumnya
                   </p>
                 </div>
                 <div className="divide-y divide-brand-border">
-                  {byDistrict.map((d) => (
-                    <div key={d.district} className="px-4 sm:px-5 py-3.5 flex items-center gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-brand-text truncate">{d.district}</p>
-                        <p className="text-xs text-brand-muted">{d.count} listing</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-brand-primary">{formatPrice(d.avgPrice)}</p>
-                        {d.change !== null && d.change !== 0 && (
-                          <p className={`text-[11px] font-semibold flex items-center justify-end gap-0.5 ${d.change > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                            {d.change > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                            {d.change > 0 ? '+' : ''}{d.change.toFixed(1)}%
+                  {byDistrict.map((d) => {
+                    const lowSample = d.recentCount < 3 || d.priorCount < 3
+                    return (
+                      <div key={d.district} className="px-4 sm:px-5 py-3.5 flex items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-brand-text truncate">{d.district}</p>
+                          <p className="text-xs text-brand-muted">
+                            {d.count} listing
+                            {lowSample && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 ml-1.5" title="Sampel kecil: perbandingan bisa kurang representatif">
+                                <Info size={10} />
+                                sampel kecil ({d.recentCount} vs {d.priorCount} listing)
+                              </span>
+                            )}
                           </p>
-                        )}
-                        {d.change === 0 && <p className="text-[11px] text-brand-muted">±0%</p>}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-brand-primary">{formatPrice(d.avgPrice)}</p>
+                          {d.change !== null && d.change !== 0 && (
+                            <p className={`text-[11px] font-semibold flex items-center justify-end gap-0.5 ${d.change > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {d.change > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                              {d.change > 0 ? '+' : ''}{d.change.toFixed(1)}%
+                            </p>
+                          )}
+                          {d.change === 0 && <p className="text-[11px] text-brand-muted">±0%</p>}
+                          {d.change === null && <p className="text-[11px] text-brand-muted">perbandingan baru dimulai</p>}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}

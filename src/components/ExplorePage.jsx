@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart, Bell, Check } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart, Bell, Check } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
@@ -27,6 +27,7 @@ const QUICK_MENU = [
   { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/agents' },
   { icon: Calculator, tKey: 'explore.quick_menu.mortgage', path: '/kpr' },
   { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/price-drop' },
+  { icon: TrendingUp, tKey: 'explore.quick_menu.price_trends', path: '/price-trends' },
   { icon: MessageCircle, tKey: 'explore.quick_menu.forum', path: '/forum' },
   { icon: ArrowLeftRight, tKey: 'explore.quick_menu.refinance', path: '/coming-soon' },
   { icon: LayoutGrid, tKey: 'explore.quick_menu.more', drawer: true },
