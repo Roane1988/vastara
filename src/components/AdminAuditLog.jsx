@@ -13,6 +13,7 @@ const ACTION_META = {
   change_role: { label: 'Ubah Role', color: 'text-amber-600 bg-amber-50 border-amber-200' },
   approve_agent: { label: 'Terima Agen', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
   reject_agent: { label: 'Tolak Agen', color: 'text-red-600 bg-red-50 border-red-200' },
+  delete_agent_application: { label: 'Hapus Pengajuan Agen', color: 'text-rose-600 bg-rose-50 border-rose-200' },
 }
 
 const ACTION_FILTERS = [
@@ -24,6 +25,7 @@ const ACTION_FILTERS = [
   { key: 'change_role', label: 'Ubah Role' },
   { key: 'approve_agent', label: 'Agen Diterima' },
   { key: 'reject_agent', label: 'Agen Ditolak' },
+  { key: 'delete_agent_application', label: 'Pengajuan Dihapus' },
 ]
 
 function getActionMeta(type) {
@@ -52,7 +54,8 @@ function getTargetSummary(log) {
       return `${name}: ${detail?.old_role || '?'} → ${detail?.new_role || '?'}`
     }
     case 'approve_agent':
-    case 'reject_agent': {
+    case 'reject_agent':
+    case 'delete_agent_application': {
       const name = detail?.agent_name || detail?.agent_email || 'Unknown'
       return detail?.reason ? `${name} — ${detail.reason}` : name
     }

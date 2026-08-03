@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { CheckCircle2, XCircle, RefreshCw, Briefcase, Mail, Phone } from 'lucide-react'
+import { CheckCircle2, XCircle, Trash2, RefreshCw, Briefcase, Mail, Phone } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 
 function statusBadgeClass(status) {
@@ -30,6 +30,7 @@ export default function AdminAgentApplications() {
   const [processingId, setProcessingId] = useState(null)
   const [rejectTarget, setRejectTarget] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   useEffect(() => {
     cancelledRef.current = false
@@ -126,6 +127,34 @@ export default function AdminAgentApplications() {
       setProcessingId(null)
       setRejectTarget(null)
       setRejectReason('')
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return
+    setProcessingId(deleteTarget)
+    try {
+      const { error } = await supabase
+        .from('agent_applications')
+        .delete()
+        .eq('id', deleteTarget)
+
+      if (cancelledRef.current) return
+
+      if (error) {
+        showToast(error.message, 'error')
+      } else {
+        const target = applications.find((a) => a.id === deleteTarget)
+        setApplications((prev) => prev.filter((a) => a.id !== deleteTarget))
+        showToast(`Pengajuan ${target?.full_name || ''} dihapus`, 'success')
+        insertAuditLog('delete_agent_application', deleteTarget, { agent_name: target?.full_name || '', agent_email: target?.email || '' })
+      }
+    } catch (err) {
+      if (!cancelledRef.current) showToast(err.message || 'Gagal', 'error')
+    }
+    if (!cancelledRef.current) {
+      setProcessingId(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -246,6 +275,16 @@ export default function AdminAgentApplications() {
                       </button>
                     </>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(a.id)}
+                    disabled={processingId === a.id}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold text-brand-muted bg-brand-bg border border-brand-border hover:text-red-600 hover:bg-red-50 hover:border-red-200 active:scale-[0.97] transition-all disabled:opacity-50"
+                    title="Hapus pengajuan"
+                  >
+                    <Trash2 size={13} />
+                    Hapus
+                  </button>
                 </div>
               </div>
             </div>
@@ -274,6 +313,19 @@ export default function AdminAgentApplications() {
           className="w-full py-3 px-4 text-sm text-brand-text bg-brand-bg border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none"
         />
       </ConfirmModal>
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => !processingId && setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Pengajuan Agen"
+        description="Pengajuan ini akan dihapus permanen dari daftar. Tindakan ini tidak bisa dibatalkan."
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        loading={processingId === deleteTarget}
+        danger
+        icon={() => <Trash2 size={24} className="text-red-500" />}
+      />
     </div>
   )
 }
