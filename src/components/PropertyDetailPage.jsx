@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MessageCircle, MessageSquare, Phone, ChevronDown, X, ChevronLeft, ChevronRight, Calendar, Share2 } from 'lucide-react'
+import { MessageCircle, MessageSquare, Phone, ChevronDown, ChevronRight, X, ChevronLeft, Calendar, Share2, MapPin, Tag, TrendingDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -82,6 +82,37 @@ function WhatsAppIcon() {
   )
 }
 
+function dropPct(p) {
+  if (!p?.original_price || !p?.price) return 0
+  const orig = Number(p.original_price)
+  const curr = Number(p.price)
+  if (orig <= curr || orig <= 0) return 0
+  return ((orig - curr) / orig) * 100
+}
+
+function SpecGrid({ property }) {
+  const pricePerSqmText = Number(property?.area_sqm) > 0 && Number(property?.price) > 0
+    ? formatPrice(Math.round(Number(property.price) / Number(property.area_sqm)))
+    : '-'
+  const tiles = [
+    { icon: <BedIcon />, label: 'Kamar', value: property?.bedrooms ?? '-' },
+    { icon: <BathIcon />, label: 'Kamar Mandi', value: property?.bathrooms ?? '-' },
+    { icon: <SqmIcon />, label: 'Luas', value: `${property?.area_sqm || property?.sqm || '-'} m²` },
+    { icon: <Tag size={18} />, label: 'Harga /m²', value: pricePerSqmText },
+  ]
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      {tiles.map((t) => (
+        <div key={t.label} className="rounded-xl bg-brand-bg/50 border border-brand-border p-3">
+          <span className="text-brand-muted inline-block">{t.icon}</span>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-brand-muted mt-1.5">{t.label}</p>
+          <p className="text-sm font-bold text-brand-text mt-0.5 truncate">{t.value}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-brand-bg animate-pulse">
@@ -109,12 +140,19 @@ function LoadingSkeleton() {
 
 function GalleryDesktop({ images, property, onOpenLightbox }) {
   const heroImage = images[0] || FALLBACK_IMAGE
+  const drop = dropPct(property)
 
   if (images.length >= 5) {
     const remaining = images.slice(0, 5)
     return (
       <div className="hidden lg:grid lg:grid-cols-4 lg:grid-rows-2 lg:gap-2 lg:h-[420px] lg:rounded-2xl lg:overflow-hidden">
         <div className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
+          {drop > 0 && (
+            <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow">
+              <TrendingDown size={12} />
+              Turun {drop.toFixed(1)}%
+            </span>
+          )}
           <img loading="lazy" src={remaining[0]} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
         </div>
         {remaining.slice(1, 5).map((url, i) => (
@@ -152,7 +190,13 @@ function GalleryDesktop({ images, property, onOpenLightbox }) {
   }
 
   return (
-    <div className="hidden lg:block lg:rounded-2xl overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
+    <div className="hidden lg:block lg:rounded-2xl overflow-hidden cursor-pointer relative" onClick={() => onOpenLightbox(0)}>
+      {drop > 0 && (
+        <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow">
+          <TrendingDown size={12} />
+          Turun {drop.toFixed(1)}%
+        </span>
+      )}
       <img loading="lazy" src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
     </div>
   )
@@ -165,6 +209,7 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
 
   const galleryImages = images.length > 0 ? images : [FALLBACK_IMAGE]
   const totalCount = images.length
+  const drop = dropPct(property)
 
   function goTo(index) {
     setCurrent(Math.max(0, Math.min(index, galleryImages.length - 1)))
@@ -234,6 +279,12 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
         {totalCount > 0 && (
           <div className="absolute top-3 right-3 z-10 bg-black/40 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
             {current + 1}/{totalCount}
+          </div>
+        )}
+        {drop > 0 && (
+          <div className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+            <TrendingDown size={11} />
+            Turun {drop.toFixed(1)}%
           </div>
         )}
       </div>
@@ -569,6 +620,23 @@ export default function PropertyDetailPage() {
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
       <div className="w-full max-w-7xl mx-auto lg:px-5 lg:mt-5 relative">
+        <nav className="hidden lg:flex items-center gap-1.5 text-xs text-brand-muted px-1 pb-3" aria-label="Breadcrumb">
+          <Link to="/explore" className="hover:text-brand-text transition-colors">Beranda</Link>
+          <span aria-hidden="true">/</span>
+          {property.category && (
+            <>
+              <span>{property.category}</span>
+              <span aria-hidden="true">/</span>
+            </>
+          )}
+          {property.city && (
+            <>
+              <span className="truncate max-w-[180px]">{property.city}</span>
+              <span aria-hidden="true">/</span>
+            </>
+          )}
+          <span className="text-brand-text font-semibold truncate max-w-[280px]">{displayTitle}</span>
+        </nav>
         <GalleryDesktop images={images} property={property} onOpenLightbox={openLightbox} />
         <GalleryMobile images={images} property={property} onOpenLightbox={openLightbox} />
         <button
@@ -586,21 +654,6 @@ export default function PropertyDetailPage() {
         >
           <Share2 size={18} />
         </button>
-
-        {waLink && (
-          <div className="lg:hidden px-4 pt-3">
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={trackWaClick}
-              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-bold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all"
-            >
-              <MessageCircle size={18} />
-              Hubungi Pengiklan Segera
-            </a>
-          </div>
-        )}
       </div>
 
       <div className="flex-1 w-full max-w-7xl mx-auto px-5 pt-5 pb-32">
@@ -653,19 +706,28 @@ export default function PropertyDetailPage() {
               )}
             </div>
 
-            <div className="flex gap-6">
-              <div className="flex items-center gap-2 text-brand-muted ">
-                <BedIcon />
-                <span className="text-sm font-medium">{property.bedrooms} Kamar</span>
+            <div className="mt-4">
+              <SpecGrid property={property} />
+            </div>
+
+            <div className="rounded-2xl border border-brand-border bg-white p-5">
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-10 h-10 rounded-xl bg-brand-bg flex items-center justify-center text-brand-muted">
+                  <MapPin size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-brand-text mb-0.5">{lang === 'en' ? 'Location' : 'Lokasi'}</p>
+                  <p className="text-sm text-brand-muted leading-relaxed">{displayAddress}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-brand-muted ">
-                <BathIcon />
-                <span className="text-sm font-medium">{property.bathrooms} Kamar Mandi</span>
-              </div>
-              <div className="flex items-center gap-2 text-brand-muted ">
-                <SqmIcon />
-                <span className="text-sm font-medium">{property.area_sqm || property.sqm || '-'} m&sup2;</span>
-              </div>
+              <a
+                href={`https://maps.google.com/?q=${encodeURIComponent([property.address, property.district, property.city].filter(Boolean).join(', '))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-brand-primary hover:opacity-90 transition-opacity active:scale-[0.98]"
+              >
+                {lang === 'en' ? 'View on map' : 'Lihat lokasi di peta'}
+              </a>
             </div>
 
             <div>
@@ -683,7 +745,7 @@ export default function PropertyDetailPage() {
             </div>
 
             <div className="mt-10 pt-8 border-t border-gray-200">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Simulasi KPR</h3>
+              <h3 className="text-2xl font-bold text-brand-text mb-6">Simulasi KPR</h3>
               <KprSimulator initialPrice={property?.price || 900000000} />
             </div>
 
@@ -713,6 +775,17 @@ export default function PropertyDetailPage() {
 
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-6">
+              <div className="bg-white rounded-xl shadow-md border border-brand-border p-5">
+                <p className="text-2xl font-extrabold text-brand-primary leading-none">{displayPrice}</p>
+                {property.area_sqm > 0 && property.price > 0 && (
+                  <p className="text-sm text-brand-muted mt-1.5">
+                    {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;
+                  </p>
+                )}
+                <div className="mt-4">
+                  <SpecGrid property={property} />
+                </div>
+              </div>
               <div ref={agentCardRef} className="bg-white rounded-xl shadow-md border border-brand-border p-5">
                 <div className="flex items-center gap-3 mb-4">
                   {isAgentSeller ? (
@@ -844,16 +917,23 @@ export default function PropertyDetailPage() {
 
       {waLink && (
         <div className={`fixed bottom-0 left-0 right-0 w-full z-50 lg:hidden transition-transform duration-300 ease-in-out ${showFloatingBtn ? 'translate-y-0' : 'translate-y-[150%]'}`}>
-          <div className="bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4">
+          <div className="bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 flex items-center gap-4">
+            <div className="min-w-0 shrink">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-brand-muted">{lang === 'en' ? 'Price' : 'Harga'}</p>
+              <p className="text-lg font-extrabold text-brand-text leading-tight truncate">{displayPrice}</p>
+              {Number(property?.price) > 0 && Number(property?.area_sqm) > 0 && (
+                <p className="text-[11px] text-brand-muted truncate">{formatPrice(Math.round(Number(property.price) / Number(property.area_sqm)))} /m²</p>
+              )}
+            </div>
             <a
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
               onClick={trackWaClick}
-              className="w-full py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:brightness-90 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-sm"
+              className="shrink-0 flex-1 min-w-0 py-3 rounded-xl font-bold text-white bg-brand-primary hover:brightness-90 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-sm"
             >
               <WhatsAppIcon />
-              Hubungi Agent via WhatsApp
+              <span className="truncate">Hubungi via WA</span>
             </a>
           </div>
         </div>
