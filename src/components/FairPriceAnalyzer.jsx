@@ -275,7 +275,7 @@ export default function FairPriceAnalyzer({ property }) {
         <button
           type="button"
           onClick={handleAnalyze}
-          disabled={loading}
+          disabled={loading || loadingMarket}
           className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-brand-accent to-brand-primary text-white text-sm font-bold hover:brightness-95 active:scale-[0.99] transition-all disabled:opacity-60"
         >
           {loading ? (
@@ -283,7 +283,7 @@ export default function FairPriceAnalyzer({ property }) {
           ) : (
             <Target size={16} />
           )}
-          {loading ? 'Menganalisis harga…' : 'Analisis Harga Wajar'}
+          {loading ? 'Menganalisis harga…' : loadingMarket ? 'Menyiapkan data pasar…' : 'Analisis Harga Wajar'}
         </button>
         {!user && (
           <p className="flex items-center gap-1 text-[11px] text-brand-muted mt-2">

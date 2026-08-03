@@ -7,13 +7,14 @@ export function formatPrice(value) {
 }
 
 export function formatCurrency(value) {
-  if (value == null || isNaN(value) || !Number.isFinite(value)) return 'Rp 0'
+  const num = Number(value)
+  if (value == null || isNaN(num) || !Number.isFinite(num)) return 'Rp 0'
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(value)
+  }).format(num)
 }
 
 export function formatShort(value) {
