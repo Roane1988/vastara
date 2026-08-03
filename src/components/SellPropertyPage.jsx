@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { CheckCircle, X, Plus, Sparkles } from 'lucide-react'
+import { CheckCircle, X, Plus, Sparkles, Info } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../utils/format'
@@ -200,6 +200,8 @@ export default function SellPropertyPage() {
   }, [hasUnsaved])
   const [dragIndex, setDragIndex] = useState(null)
   const [originalPrice, setOriginalPrice] = useState(null)
+  const [priceChangeStatus, setPriceChangeStatus] = useState('none')
+  const [priceRequested, setPriceRequested] = useState(null)
   const [generatingDesc, setGeneratingDesc] = useState(false)
 
   useEffect(() => {
@@ -207,6 +209,8 @@ export default function SellPropertyPage() {
     supabase.from('properties').select('*').eq('id', editId).single().then(({ data, error }) => {
       if (!error && data) {
         setOriginalPrice(data.price ? Number(data.price) : null)
+        setPriceChangeStatus(data.price_change_status || 'none')
+        setPriceRequested(data.price_requested)
         setForm({
           title: data.title || '',
           category: data.category || 'Dijual',
@@ -566,6 +570,12 @@ export default function SellPropertyPage() {
                 <input type="text" inputMode="numeric" placeholder="500.000.000" value={form.estimasi_harga} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setForm((p) => ({ ...p, estimasi_harga: raw })) }} className="w-full py-4 pl-10 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
               </div>
               {form.estimasi_harga && <p className="text-xs text-brand-muted mt-1.5">Rp {Number(form.estimasi_harga).toLocaleString('id-ID')}</p>}
+              {editId && (
+                <p className="text-[11px] text-brand-muted mt-1.5 flex items-start gap-1">
+                  <Info size={12} className="shrink-0 mt-0.5" />
+                  Perubahan harga di atas 15% akan ditinjau admin terlebih dahulu sebelum tayang.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -781,6 +791,16 @@ export default function SellPropertyPage() {
                 >
                   {requestedRole === 'agent' ? 'Daftar sebagai Agen' : 'Pilih Peran Lain'}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {editId && priceChangeStatus === 'pending' && priceRequested && (
+            <div className="px-5 pt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                <p className="text-xs text-amber-800 leading-relaxed flex-1">
+                  <b>Perubahan harga sedang menunggu persetujuan admin.</b> Harga yang diminta {formatPrice(Number(priceRequested))}, sedangkan harga publik masih {formatPrice(originalPrice || Number(form.estimasi_harga))}. Harga baru akan tayang setelah disetujui.
+                </p>
               </div>
             </div>
           )}
