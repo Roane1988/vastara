@@ -65,7 +65,7 @@ function PropertyPreviewModal({ property, onClose }) {
       <div className="relative w-full max-w-2xl bg-brand-surface rounded-2xl shadow-xl border border-brand-border overflow-hidden max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border shrink-0">
           <h2 className="font-bold text-brand-text truncate pr-4">{property.title}</h2>
-          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors shrink-0">
+          <button type="button" onClick={onClose} aria-label="Tutup pratinjau" className="w-8 h-8 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
@@ -78,7 +78,7 @@ function PropertyPreviewModal({ property, onClose }) {
               {images.length > 1 && (
                 <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
                   {images.map((url, i) => (
-                    <button key={i} type="button" onClick={() => setImgIndex(i)} className={`w-14 h-10 rounded-lg overflow-hidden border-2 shrink-0 transition-colors ${i === imgIndex ? 'border-brand-accent' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                    <button key={i} type="button" onClick={() => setImgIndex(i)} aria-label={`Lihat gambar ${i + 1}`} className={`w-14 h-10 rounded-lg overflow-hidden border-2 shrink-0 transition-colors ${i === imgIndex ? 'border-brand-accent' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                       <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.src = FALLBACK_IMAGE }} />
                     </button>
                   ))}
@@ -146,6 +146,7 @@ export default function AdminDashboardPage() {
   const [confirmAction, setConfirmAction] = useState(null)
   const [confirming, setConfirming] = useState(false)
   const [statusCounts, setStatusCounts] = useState(null)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     if (role !== 'admin') {
@@ -186,6 +187,7 @@ export default function AdminDashboardPage() {
 
   const fetchProperties = useCallback(async () => {
     setLoading(true)
+    setLoadError('')
     try {
       let query = supabase
         .from('properties')
@@ -199,16 +201,16 @@ export default function AdminDashboardPage() {
       const { data, error } = await query
 
       if (!cancelledRef.current) {
-        if (!error && data) {
-          setProperties(data)
-        } else if (error) {
-          console.warn('Gagal memuat properti:', error.message)
+        if (error) {
+          setLoadError(error.message)
+        } else {
+          setProperties(data || [])
         }
         setLoading(false)
       }
     } catch (err) {
       if (!cancelledRef.current) {
-        console.warn('Gagal memuat properti:', err.message)
+        setLoadError(err.message || 'Gagal memuat properti.')
         setLoading(false)
       }
     }
@@ -397,7 +399,7 @@ export default function AdminDashboardPage() {
       <header className="sticky top-0 bg-brand-surface/80 backdrop-blur-md z-10 border-b border-brand-border">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0">
+            <button type="button" onClick={() => navigate(-1)} aria-label="Kembali" className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0">
               <ArrowLeftIcon />
             </button>
             <div>
@@ -526,6 +528,23 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-center py-20">
                   <div className="w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
                 </div>
+              ) : loadError ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-red-400 mb-4">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <p className="text-sm font-semibold text-brand-text">Gagal memuat properti</p>
+                  <p className="text-xs text-brand-muted mt-1 mb-5 max-w-xs">{loadError}</p>
+                  <button
+                    type="button"
+                    onClick={fetchProperties}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
               ) : paged.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand-muted/50 mb-4">
@@ -536,7 +555,7 @@ export default function AdminDashboardPage() {
               ) : (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm min-w-[700px]">
                       <thead>
                         <tr className="border-b border-brand-border bg-brand-bg/50">
                           <th className="px-3 py-4 w-10">
@@ -568,7 +587,7 @@ export default function AdminDashboardPage() {
                               </td>
                               <td className="px-3 py-4">
                                 <div className="flex items-center gap-3">
-                                  <button type="button" onClick={() => setPreviewProperty(p)}
+                                  <button type="button" disabled={confirming} onClick={() => setPreviewProperty(p)} aria-label={`Lihat detail ${p.title || 'properti'}`}
                                     className="w-10 h-10 rounded-lg overflow-hidden bg-brand-bg border border-brand-border shrink-0 hover:opacity-80 transition-opacity">
                                     <img src={images[0] || FALLBACK_IMAGE} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.src = FALLBACK_IMAGE }} />
                                   </button>

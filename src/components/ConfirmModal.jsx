@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trash2, X } from 'lucide-react'
 
@@ -17,12 +17,46 @@ export default function ConfirmModal({
   confirmDisabled = false,
   zIndex = 50,
 }) {
+  const dialogRef = useRef(null)
+
   useEffect(() => {
     if (!isOpen) return
-    const handler = (e) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [isOpen, onClose])
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && !loading) onClose()
+      if (e.key === 'Tab') trapFocus(e)
+    }
+
+    const trapFocus = (e) => {
+      const dialog = dialogRef.current
+      if (!dialog) return
+      const focusables = dialog.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusables.length === 0) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', onKeyDown)
+    // Focus the panel on open, then let the close (X) button receive focus.
+    const t = setTimeout(() => dialogRef.current?.querySelector('button')?.focus(), 40)
+
+    return () => {
+      document.body.style.overflow = prevOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      clearTimeout(t)
+    }
+  }, [isOpen, onClose, loading])
 
   return (
     <AnimatePresence>
@@ -35,8 +69,14 @@ export default function ConfirmModal({
             transition={{ duration: 0.2 }}
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
+            aria-hidden="true"
           />
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-modal-title"
+            aria-describedby="confirm-modal-desc"
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
@@ -46,7 +86,9 @@ export default function ConfirmModal({
             <button
               type="button"
               onClick={onClose}
-              className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
+              disabled={loading}
+              aria-label="Tutup dialog"
+              className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors disabled:opacity-50"
             >
               <X size={16} />
             </button>
@@ -55,8 +97,8 @@ export default function ConfirmModal({
               <Icon size={24} className={danger ? 'text-red-500' : 'text-amber-500'} />
             </div>
 
-            <h3 className="text-lg font-bold text-brand-text text-center">{title}</h3>
-            <p className="text-sm text-brand-muted text-center mt-2 leading-relaxed">{description}</p>
+            <h3 id="confirm-modal-title" className="text-lg font-bold text-brand-text text-center">{title}</h3>
+            <p id="confirm-modal-desc" className="text-sm text-brand-muted text-center mt-2 leading-relaxed">{description}</p>
 
             {children && <div className="mt-4">{children}</div>}
 

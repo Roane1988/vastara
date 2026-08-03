@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, RefreshCw } from 'lucide-react'
 
 const ROLE_OPTIONS = [
   { value: 'pembeli', label: 'Pembeli' },
@@ -36,30 +36,34 @@ export default function AdminUserManagement() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
+  const [loadError, setLoadError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     cancelledRef.current = false
 
     async function fetchUsers() {
+      setLoading(true)
+      setLoadError('')
       try {
         const { data, error } = await supabase.rpc('get_admin_users')
 
         if (cancelledRef.current) return
 
         if (error) {
-          console.warn('Gagal memuat pengguna:', error.message)
+          setLoadError(error.message)
         } else if (data) {
           setUsers(data)
         }
       } catch (err) {
-        if (!cancelledRef.current) console.warn('Gagal memuat pengguna:', err.message)
+        if (!cancelledRef.current) setLoadError(err.message || 'Gagal memuat pengguna.')
       }
       if (!cancelledRef.current) setLoading(false)
     }
 
     fetchUsers()
     return () => { cancelledRef.current = true }
-  }, [])
+  }, [reloadKey])
 
   async function handleRoleChange(userId, newRole) {
     if (updatingId || role !== 'admin') return
@@ -84,7 +88,7 @@ export default function AdminUserManagement() {
 
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)))
 
-      await supabase.rpc('record_audit', {
+      const { error: auditError } = await supabase.rpc('record_audit', {
         p_action_type: 'change_role',
         p_target_type: 'user',
         p_target_id: userId,
@@ -97,7 +101,11 @@ export default function AdminUserManagement() {
       })
 
       if (!cancelledRef.current) {
-        showToast(`Role ${targetUser?.first_name || 'pengguna'} diubah ke ${getRoleLabel(newRole)}`, 'success')
+        if (auditError) {
+          showToast('Role diubah, tapi audit gagal dicatat: ' + auditError.message, 'error')
+        } else {
+          showToast(`Role ${targetUser?.first_name || 'pengguna'} diubah ke ${getRoleLabel(newRole)}`, 'success')
+        }
       }
     } catch (err) {
       if (!cancelledRef.current) showToast(err.message || 'Gagal mengubah role', 'error')
@@ -117,10 +125,25 @@ export default function AdminUserManagement() {
     <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden">
       <div className="px-5 py-4 border-b border-brand-border flex items-center justify-between">
         <h2 className="text-base font-bold text-brand-text">Manajemen Pengguna</h2>
-        <span className="text-xs text-brand-muted">{users.length} pengguna</span>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="flex items-center gap-1.5 text-xs font-medium text-brand-muted bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 hover:text-brand-text hover:bg-brand-bg/70 transition-colors">
+            <RefreshCw size={13} />
+            Refresh
+          </button>
+          <span className="text-xs text-brand-muted">{users.length} pengguna</span>
+        </div>
       </div>
+      {loadError ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+          <p className="text-sm font-semibold text-brand-text">Gagal memuat pengguna</p>
+          <p className="text-xs text-brand-muted mt-1 mb-5 max-w-xs">{loadError}</p>
+          <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all">
+            Coba Lagi
+          </button>
+        </div>
+      ) : (
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[620px]">
           <thead>
             <tr className="border-b border-brand-border bg-brand-bg/50">
               <th className="text-left font-semibold text-brand-muted px-5 py-4 whitespace-nowrap">Nama</th>
@@ -186,6 +209,7 @@ export default function AdminUserManagement() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   )
 }

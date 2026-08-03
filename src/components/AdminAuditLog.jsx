@@ -83,7 +83,7 @@ function DetailModal({ log, onClose }) {
           <div className="flex items-center gap-2.5">
             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${meta.color}`}>{meta.label}</span>
           </div>
-          <button type="button" onClick={onClose} className="text-brand-muted hover:text-brand-text transition-colors">
+          <button type="button" onClick={onClose} aria-label="Tutup detail" className="text-brand-muted hover:text-brand-text transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -415,7 +415,7 @@ export default function AdminAuditLog() {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="border-b border-brand-border bg-brand-bg/50">
                 <th className="text-left font-semibold text-brand-muted px-5 py-4 whitespace-nowrap">Admin</th>
