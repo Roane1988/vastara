@@ -13,6 +13,7 @@ import { usePropertyStore } from '../store/usePropertyStore'
 import NotFoundPage from './NotFoundPage'
 import KprSimulator from './KprSimulator'
 import InvestmentAnalyzer from './InvestmentAnalyzer'
+import FairPriceAnalyzer from './FairPriceAnalyzer'
 import ScheduleVisit from './ScheduleVisit'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
@@ -688,6 +689,10 @@ export default function PropertyDetailPage() {
 
             <div className="mt-10 pt-8 border-t border-gray-200">
               <InvestmentAnalyzer property={property} />
+            </div>
+
+            <div className="mt-10 pt-8 border-t border-gray-200">
+              <FairPriceAnalyzer property={property} />
             </div>
 
             <AccordionBlock id="panduan" title="Panduan Membeli Properti" isOpen={accordionState.panduan} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>

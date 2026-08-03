@@ -9,12 +9,15 @@ const MODEL_CHAINS = {
   translation: ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
   smart_search: ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
   investment: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'],
+  fair_price: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'],
 }
 const ALLOWED_MODELS = new Set(Object.values(MODEL_CHAINS).flat())
 const RATE_LIMIT_MAX = 20
 const RATE_LIMIT_WINDOW_MS = 60_000
 const INVESTMENT_LIMIT_MAX = 8
 const INVESTMENT_LIMIT_WINDOW_MS = 3_600_000
+const FAIR_PRICE_LIMIT_MAX = 8
+const FAIR_PRICE_LIMIT_WINDOW_MS = 3_600_000
 const MAX_MESSAGES = 20
 const MAX_SESSION_MESSAGES = 50
 const SESSION_WINDOW_MS = 3_600_000
@@ -70,11 +73,36 @@ const SYSTEM_PROMPTS = {
       'intent "rent" prioritizes yield, "resale" prioritizes appreciation, "occupy" prioritizes affordability/livability. ' +
       'Keep goalFitScores consistent with the verdict.',
   },
+  fair_price: {
+    role: 'system',
+    content:
+      'Expert real estate market analyst (Indonesia) for fair-price assessment. ' +
+      'Input: target property essentials, optional market comparables, and deterministic market stats already computed ' +
+      '(median/avg/min/max price per m² of comparables, target price per m², deviation % of target vs market median). ' +
+      'Use the provided market stats as the ground truth for percentages; do not recompute them from raw comparables. ' +
+      'Reply ONLY with a valid raw JSON object (no markdown, no backticks) with exactly these keys: ' +
+      'fairVerdict ("Wajar" | "Di Atas Pasar" | "Di Bawah Pasar" | "Data Terbatas"), ' +
+      'deviationPct (number, % target is above/below market median; negative = below market; 0 when no comparables), ' +
+      'fairPriceRange (object: low, high, median; each IDR or null), ' +
+      'pricePerSqm (number, IDR/m² or null), ' +
+      'comparableCount (number, 0 if none), ' +
+      'buyRecommendation ("Worth It" | "Nego" | "Tunda" | "Data Terbatas"), ' +
+      'suggestedOffer (number, IDR suggested reasonable offer; null when insufficient data), ' +
+      'priceHistoryNote (string, short Indonesian note about price history/drops, "-" if none), ' +
+      'explanation (string, 2-3 Indonesian sentences), ' +
+      'confidence ("Tinggi" | "Sedang" | "Rendah"). ' +
+      'Rules: if comparableCount is 0, fairVerdict and buyRecommendation must be "Data Terbatas", ' +
+      'deviationPct 0, fairPriceRange null values, suggestedOffer null, confidence "Rendah". ' +
+      'deviationPct > 8 => "Di Atas Pasar"; < -8 => "Di Bawah Pasar"; else "Wajar". ' +
+      'suggestedOffer should be near fairPriceRange.median when above market, near price when below. ' +
+      'Always answer in Bahasa Indonesia for explanation and priceHistoryNote.',
+  },
 }
 
 const rateLimiter = new LRUCache({ max: 500, ttl: RATE_LIMIT_WINDOW_MS })
 const sessionLimiter = new LRUCache({ max: 5000, ttl: SESSION_WINDOW_MS })
 const investmentLimiter = new LRUCache({ max: 5000, ttl: INVESTMENT_LIMIT_WINDOW_MS })
+const fairPriceLimiter = new LRUCache({ max: 5000, ttl: FAIR_PRICE_LIMIT_WINDOW_MS })
 const auditLog = []
 
 function appendAudit(entry) {
@@ -115,6 +143,17 @@ function computeCacheFingerprint(body) {
   return `${CACHE_VERSION}:${hashString(JSON.stringify([
     f.monthlyIncome, f.monthlyCommitments, f.monthlyBudget, f.purchaseGoal,
     g.targetYield, g.horizonYears, g.intent,
+  ]))}`
+}
+
+function computeFairPriceFingerprint(body) {
+  const m = body.property?.market || {}
+  const comps = Array.isArray(body.property?.comparables) ? body.property.comparables : []
+  return `${CACHE_VERSION}:fair:${hashString(JSON.stringify([
+    body.property?.id || '',
+    comps.length,
+    m.medianPricePerSqm, m.avgPricePerSqm, m.minPricePerSqm, m.maxPricePerSqm,
+    m.targetPricePerSqm, m.deltaPct,
   ]))}`
 }
 
@@ -162,7 +201,7 @@ function sanitizeOutput(content) {
 
 function isValidBody(body) {
   if (!body || typeof body !== 'object') return false
-  if (body.purpose === 'investment') {
+  if (body.purpose === 'investment' || body.purpose === 'fair_price') {
     if (!body.property || typeof body.property !== 'object') return false
     return true
   }
@@ -227,21 +266,26 @@ export default defineConfig(({ mode }) => {
 
                 authUser = await resolveUser(req, cacheClient)
                 const rateKey = authUser ? `u:${authUser.id}` : `ip:${ip}`
-                const purpose = ['translation', 'smart_search', 'investment'].includes(parsed.purpose) ? parsed.purpose : 'chat'
+                const purpose = ['translation', 'smart_search', 'investment', 'fair_price'].includes(parsed.purpose) ? parsed.purpose : 'chat'
 
-                if (purpose === 'investment') {
+                if (purpose === 'investment' || purpose === 'fair_price') {
                   if (!authUser) {
-                    appendAudit({ time: Date.now(), ip, action: 'investment_unauthorized' })
+                    appendAudit({ time: Date.now(), ip, action: `${purpose}_unauthorized` })
                     res.writeHead(401, { 'Content-Type': 'application/json' })
-                    res.end(JSON.stringify({ error: { message: 'Silakan masuk terlebih dahulu untuk menganalisis investasi.' } }))
+                    const authMsg = purpose === 'investment'
+                      ? 'Silakan masuk terlebih dahulu untuk menganalisis investasi.'
+                      : 'Silakan masuk terlebih dahulu untuk menganalisis harga.'
+                    res.end(JSON.stringify({ error: { message: authMsg } }))
                     return
                   }
-                  const invCount = (investmentLimiter.get(rateKey) || 0) + 1
-                  investmentLimiter.set(rateKey, invCount)
-                  if (invCount > INVESTMENT_LIMIT_MAX) {
-                    appendAudit({ time: Date.now(), ip, userId: authUser.id, action: 'investment_limited' })
+                  const limiter = purpose === 'investment' ? investmentLimiter : fairPriceLimiter
+                  const limitMax = purpose === 'investment' ? INVESTMENT_LIMIT_MAX : FAIR_PRICE_LIMIT_MAX
+                  const invCount = (limiter.get(rateKey) || 0) + 1
+                  limiter.set(rateKey, invCount)
+                  if (invCount > limitMax) {
+                    appendAudit({ time: Date.now(), ip, userId: authUser.id, action: `${purpose}_limited` })
                     res.writeHead(429, { 'Content-Type': 'application/json' })
-                    res.end(JSON.stringify({ error: { message: 'Batas analisis investasi tercapai. Coba lagi nanti.' } }))
+                    res.end(JSON.stringify({ error: { message: 'Batas analisis harga tercapai. Coba lagi nanti.' } }))
                     return
                   }
                 } else {
@@ -257,8 +301,12 @@ export default defineConfig(({ mode }) => {
 
                 const systemPrompt = SYSTEM_PROMPTS[purpose]
 
-                const cacheProperty = purpose === 'investment' ? parsed.property : null
-                const cacheFingerprint = cacheProperty ? computeCacheFingerprint(parsed) : ''
+                const cacheProperty = purpose === 'investment' || purpose === 'fair_price' ? parsed.property : null
+                const cacheFingerprint = cacheProperty
+                  ? purpose === 'fair_price'
+                    ? computeFairPriceFingerprint(parsed)
+                    : computeCacheFingerprint(parsed)
+                  : ''
 
                 if (cacheProperty?.id && cacheClient) {
                   try {
@@ -324,6 +372,52 @@ export default defineConfig(({ mode }) => {
                   }
                   safeMessages = [systemPrompt, { role: 'user', content: lines.join('\n') }]
                   clientMessages = []
+                } else if (purpose === 'fair_price') {
+                  const p = cacheProperty
+                  const lines = []
+                  if (p.price) lines.push(`Price: Rp ${p.price.toLocaleString('id-ID')}`)
+                  if (p.city) lines.push(`City: ${p.city}`)
+                  if (p.district) lines.push(`District: ${p.district}`)
+                  if (p.category) lines.push(`Category: ${p.category}`)
+                  if (p.property_type) lines.push(`Type: ${p.property_type}`)
+                  if (p.bedrooms) lines.push(`Bedrooms: ${p.bedrooms}`)
+                  if (p.bathrooms) lines.push(`Bathrooms: ${p.bathrooms}`)
+                  if (p.area_sqm) lines.push(`Area: ${p.area_sqm} m²`)
+                  if (p.address) lines.push(`Address: ${p.address}`)
+                  if (p.certificate_status) lines.push(`Certificate: ${p.certificate_status}`)
+                  if (p.original_price && Number(p.original_price) > 0 && Number(p.original_price) !== Number(p.price)) {
+                    lines.push(`Original price (baseline): Rp ${p.original_price.toLocaleString('id-ID')}`)
+                  }
+                  if (p.price_change_status && p.price_change_status !== 'none') {
+                    lines.push(`Price change status: ${p.price_change_status}`)
+                  }
+                  if (Array.isArray(p.comparables) && p.comparables.length > 0) {
+                    lines.push('Market comparables:')
+                    p.comparables.slice(0, 8).forEach((c, i) => {
+                      const parts = []
+                      if (c.price) parts.push(`Rp ${c.price.toLocaleString('id-ID')}`)
+                      if (c.property_type) parts.push(c.property_type)
+                      if (c.city) parts.push(c.city)
+                      if (c.district) parts.push(c.district)
+                      if (c.bedrooms) parts.push(`${c.bedrooms} KT`)
+                      if (c.bathrooms) parts.push(`${c.bathrooms} KM`)
+                      if (c.area_sqm) parts.push(`${c.area_sqm} m²`)
+                      if (parts.length) lines.push(`${i + 1}. ${parts.join(', ')}`)
+                    })
+                  }
+                  const m = p.market
+                  if (m && typeof m === 'object') {
+                    lines.push('Deterministic market stats (ground truth):')
+                    if (m.comparableCount != null) lines.push(`- Comparables with area data: ${m.comparableCount}`)
+                    if (m.targetPricePerSqm != null) lines.push(`- Target price per m²: Rp ${m.targetPricePerSqm.toLocaleString('id-ID')}`)
+                    if (m.medianPricePerSqm != null) lines.push(`- Median comparables price per m²: Rp ${m.medianPricePerSqm.toLocaleString('id-ID')}`)
+                    if (m.avgPricePerSqm != null) lines.push(`- Avg comparables price per m²: Rp ${m.avgPricePerSqm.toLocaleString('id-ID')}`)
+                    if (m.minPricePerSqm != null) lines.push(`- Min comparables price per m²: Rp ${m.minPricePerSqm.toLocaleString('id-ID')}`)
+                    if (m.maxPricePerSqm != null) lines.push(`- Max comparables price per m²: Rp ${m.maxPricePerSqm.toLocaleString('id-ID')}`)
+                    if (m.deltaPct != null) lines.push(`- Deviation of target vs market median: ${m.deltaPct}%`)
+                  }
+                  safeMessages = [systemPrompt, { role: 'user', content: lines.join('\n') }]
+                  clientMessages = []
                 } else {
                   clientMessages = parsed.messages.filter(m => m.role !== 'system')
                   const profileContext = parsed.messages.find(
@@ -348,9 +442,9 @@ export default defineConfig(({ mode }) => {
                       body: JSON.stringify({
                         model,
                         messages: safeMessages,
-                        max_tokens: purpose === 'translation' ? 1200 : purpose === 'smart_search' ? 512 : purpose === 'investment' ? 3000 : 768,
-                        temperature: purpose === 'translation' ? 0.3 : purpose === 'smart_search' ? 0.1 : purpose === 'investment' ? 0.2 : 0.7,
-                        ...(purpose === 'investment' ? { response_format: { type: 'json_object' } } : {}),
+                        max_tokens: purpose === 'translation' ? 1200 : purpose === 'smart_search' ? 512 : (purpose === 'investment' || purpose === 'fair_price') ? 3000 : 768,
+                        temperature: purpose === 'translation' ? 0.3 : purpose === 'smart_search' ? 0.1 : (purpose === 'investment' || purpose === 'fair_price') ? 0.2 : 0.7,
+                        ...((purpose === 'investment' || purpose === 'fair_price') ? { response_format: { type: 'json_object' } } : {}),
                       }),
                     })
 
@@ -368,8 +462,8 @@ export default defineConfig(({ mode }) => {
 
                     appendAudit({
                       time: Date.now(), ip, action: 'completed', purpose,
-                      msgCount: purpose === 'investment' ? 1 : clientMessages.length,
-                      totalChars: purpose === 'investment' ? 0 : clientMessages.reduce((s, m) => s + m.content.length, 0),
+                      msgCount: (purpose === 'investment' || purpose === 'fair_price') ? 1 : clientMessages.length,
+                      totalChars: (purpose === 'investment' || purpose === 'fair_price') ? 0 : clientMessages.reduce((s, m) => s + m.content.length, 0),
                       status: response.status, duration,
                     })
 
