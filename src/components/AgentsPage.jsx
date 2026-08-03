@@ -218,10 +218,14 @@ export default function AgentsPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <span className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border border-brand-border text-brand-text hover:bg-brand-bg transition-colors">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); navigate(`/chat?user=${agent.user_id}`) }}
+                      className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border border-brand-border text-brand-text hover:bg-brand-bg transition-colors"
+                    >
                       <MessageCircle size={15} />
                       {t('agents.chat')}
-                    </span>
+                    </button>
                     {wa ? (
                       <button
                         type="button"

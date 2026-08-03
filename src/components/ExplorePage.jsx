@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart, Bell, Check } from 'lucide-react'
 import { supabase } from '../supabaseClient'
-import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
@@ -29,7 +28,6 @@ const QUICK_MENU = [
   { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/price-drop' },
   { icon: TrendingUp, tKey: 'explore.quick_menu.price_trends', path: '/price-trends' },
   { icon: MessageCircle, tKey: 'explore.quick_menu.forum', path: '/forum' },
-  { icon: ArrowLeftRight, tKey: 'explore.quick_menu.refinance', path: '/coming-soon' },
   { icon: LayoutGrid, tKey: 'explore.quick_menu.more', drawer: true },
 ]
 
@@ -45,21 +43,25 @@ const PROPERTY_TYPE_OPTIONS = [
 const POPULAR_SEARCHES = [
   {
     title: 'Rekomendasi Hunian Nyaman Dekat Kampus',
+    query: 'kost',
     tags: ['Kos Eksklusif', 'Apartemen', 'BSD', 'Budget Mahasiswa'],
     image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80',
   },
   {
     title: 'Kost Jakarta Nyaman dan Strategis',
+    query: 'jakarta',
     tags: ['Kost', 'Jakarta', 'Fasilitas Lengkap'],
     image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80',
   },
   {
     title: 'Cluster Mewah dengan Fasilitas Premium',
+    query: 'bsd',
     tags: ['Cluster', 'Mewah', 'BSD City', 'Diskon 10%'],
     image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
   },
   {
     title: 'Ruko & Ruang Usaha Strategis BSD',
+    query: 'ruko',
     tags: ['Ruko', 'Kantor', 'BSD Central', 'Komersial'],
     image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
   },
@@ -86,6 +88,7 @@ export default function ExplorePage() {
   const location = useLocation()
   const { user, showToast } = useAuth()
   const [saved, setSaved] = useState(getFavorites())
+  const [popularSearches, setPopularSearches] = useState(POPULAR_SEARCHES)
   const [showFilter, setShowFilter] = useState(false)
   const [filterPrice, setFilterPrice] = useState('')
   const [filterType, setFilterType] = useState('')
@@ -405,12 +408,12 @@ export default function ExplorePage() {
   const isSearchEmpty = isSearching && sorted.length === 0
   const showSkeleton = loadingProperties && !isSearching
   const displayRecommendations = useMemo(
-    () => (sorted.length > 0 ? sorted.slice(0, 4) : (isSearching ? [] : DUMMY_PROPERTIES.slice(0, 4))),
-    [sorted, isSearching]
+    () => (sorted.length > 0 ? sorted.slice(0, 4) : []),
+    [sorted]
   )
   const displayListings = useMemo(
-    () => (sorted.length > 0 ? sorted : (isSearching ? [] : DUMMY_PROPERTIES)),
-    [sorted, isSearching]
+    () => (sorted.length > 0 ? sorted : []),
+    [sorted]
   )
 
   const [translations, setTranslations] = useState({})
@@ -715,17 +718,17 @@ export default function ExplorePage() {
           </h2>
           <button
             type="button"
-            onClick={() => navigate('/coming-soon')}
+            onClick={() => setPopularSearches((prev) => [...prev].sort(() => Math.random() - 0.5))}
             className="text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors"
           >
             {t('explore.popular_searches.shuffle')}
           </button>
         </div>
         <div className="flex flex-col gap-4">
-          {POPULAR_SEARCHES.map((item) => (
+          {popularSearches.map((item) => (
             <Link
               key={item.title}
-              to="/coming-soon"
+              to={`/explore?q=${encodeURIComponent(item.query)}`}
               className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden flex items-stretch group"
             >
               <div className="w-24 sm:w-32 shrink-0 overflow-hidden">
@@ -854,6 +857,25 @@ export default function ExplorePage() {
               className="px-6 py-3 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all duration-200"
             >
               Reset Pencarian
+            </button>
+          </div>
+        ) : displayListings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center mb-4">
+              <Sparkles size={32} className="text-brand-muted/40" />
+            </div>
+            <p className="text-base font-semibold text-brand-text mb-1">
+              Belum ada properti di HuniOne
+            </p>
+            <p className="text-sm text-brand-muted mb-6 max-w-xs">
+              Jadilah yang pertama menawarkan properti Anda di platform ini.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/sell-role')}
+              className="px-6 py-3 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all duration-200"
+            >
+              Jual Properti
             </button>
           </div>
         ) : (

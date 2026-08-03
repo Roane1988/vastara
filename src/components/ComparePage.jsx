@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowLeftRight, CheckCircle2, Info, Plus, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { formatPriceDisplay } from '../utils/format'
 import { usePropertyStore, MAX_ITEMS } from '../store/usePropertyStore'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
@@ -113,26 +112,29 @@ export default function ComparePage() {
       setLoading(true)
       const requestId = ++requestRef.current
 
-      const dummies = ids.filter(p => p.id.startsWith('dummy-'))
-      const real = ids.filter(p => !p.id.startsWith('dummy-'))
-
       const results = []
 
-      for (const d of dummies) {
-        const match = DUMMY_PROPERTIES.find(p => p.id === d.id)
-        if (match) results.push(match)
-      }
-
       try {
-        if (real.length > 0) {
+        if (ids.length > 0) {
           const { data, error } = await supabase
             .from('properties')
             .select('*')
-            .in('id', real.map(p => p.id))
+            .in('id', ids.map(p => p.id))
+          if (error) {
+            if (!cancelled && requestId === requestRef.current) {
+              setFullData([])
+              setLoading(false)
+            }
+            return
+          }
           if (!error && data) results.push(...data)
         }
       } catch {
-        /* keep only dummy results; page still renders */
+        if (!cancelled && requestId === requestRef.current) {
+          setFullData([])
+          setLoading(false)
+        }
+        return
       }
 
       if (!cancelled && requestId === requestRef.current) {

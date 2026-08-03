@@ -4,7 +4,6 @@ import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
 export default function SavedPropertiesList({ showAddress = false, emptyText, emptyCtaLabel, onEmptyCta, onItemClick }) {
   const navigate = useNavigate()
@@ -27,13 +26,13 @@ export default function SavedPropertiesList({ showAddress = false, emptyText, em
           .in('id', favIds)
         if (!cancelled) {
           if (error) {
-            setProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
+            setProperties([])
           } else {
             setProperties(data || [])
           }
         }
       } catch {
-        if (!cancelled) setProperties(DUMMY_PROPERTIES.filter((p) => favIds.includes(p.id)))
+        if (!cancelled) setProperties([])
       }
       if (!cancelled) setLoading(false)
     })()

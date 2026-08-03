@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowUp, Send, ShieldCheck, BadgeCheck, Headset, Apple, Play, MessageCircle, Mail, Bot, Loader2, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
@@ -50,7 +50,6 @@ const socialLinks = [
 
 export default function Footer() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { showToast } = useAuth()
 
   const [email, setEmail] = useState('')
@@ -289,22 +288,14 @@ export default function Footer() {
               ))}
             </div>
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate('/coming-soon')}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs font-semibold hover:bg-black/50 active:scale-[0.97] transition-all"
-              >
+              <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs font-semibold opacity-80">
                 <Apple size={16} />
                 {t('footer.app_ios')}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/coming-soon')}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs font-semibold hover:bg-black/50 active:scale-[0.97] transition-all"
-              >
+              </span>
+              <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs font-semibold opacity-80">
                 <Play size={16} />
                 {t('footer.app_android')}
-              </button>
+              </span>
             </div>
           </div>
         </div>

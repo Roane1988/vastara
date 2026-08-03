@@ -380,7 +380,7 @@ export default function PropertyDetailPage() {
   const navigate = useNavigate()
   const { i18n } = useTranslation()
   const lang = i18n.language
-  const { user } = useAuth()
+  const { user, showToast } = useAuth()
   const addRecentlyViewed = usePropertyStore((s) => s.addRecentlyViewed)
 
   const [property, setProperty] = useState(null)
@@ -433,9 +433,14 @@ export default function PropertyDetailPage() {
       url: window.location.href,
     }
     if (navigator.share) {
-      navigator.share(shareData).catch(() => {})
+      navigator.share(shareData).catch(() => {
+        showToast('Gagal membagikan properti. Coba lagi.', 'error')
+      })
     } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href).catch(() => {})
+      navigator.clipboard.writeText(window.location.href).then(
+        () => showToast('Link properti disalin', 'success'),
+        () => showToast('Gagal menyalin link. Coba lagi.', 'error')
+      )
     }
   }
 

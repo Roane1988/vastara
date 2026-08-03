@@ -6,22 +6,22 @@ const SECTIONS = [
   {
     title: 'Cari Properti Dijual',
     items: [
-      { label: 'Rumah', icon: Home },
-      { label: 'Tanah', icon: Map },
-      { label: 'Apartemen', icon: Building2 },
-      { label: 'Ruko', icon: Store },
-      { label: 'Perkantoran', icon: Briefcase },
-      { label: 'Gudang', icon: Warehouse },
+      { label: 'Rumah', icon: Home, to: '/explore?category=dijual&type=Rumah' },
+      { label: 'Tanah', icon: Map, to: '/explore?category=dijual&type=Tanah' },
+      { label: 'Apartemen', icon: Building2, to: '/explore?category=dijual&type=Apartemen' },
+      { label: 'Ruko', icon: Store, to: '/explore?category=dijual&type=Ruko' },
+      { label: 'Perkantoran', icon: Briefcase, to: '/explore?category=dijual&type=Kantor' },
+      { label: 'Gudang', icon: Warehouse, to: '/explore?category=dijual&type=Gudang' },
     ],
   },
   {
     title: 'Cari Properti Disewa',
     items: [
-      { label: 'Ruang Usaha', icon: ShoppingBag },
-      { label: 'Pabrik', icon: Factory },
-      { label: 'Hotel', icon: Hotel, isNew: true },
-      { label: 'Kost', icon: BedDouble, isNew: true },
-      { label: 'Villa', icon: TreePine, isNew: true },
+      { label: 'Ruang Usaha', icon: ShoppingBag, to: '/explore?category=disewa&type=Ruang Usaha' },
+      { label: 'Pabrik', icon: Factory, to: '/explore?category=disewa&type=Pabrik' },
+      { label: 'Hotel', icon: Hotel, to: '/explore?category=disewa&type=Hotel', isNew: true },
+      { label: 'Kost', icon: BedDouble, to: '/explore?category=disewa&type=Kost', isNew: true },
+      { label: 'Villa', icon: TreePine, to: '/explore?category=disewa&type=Villa', isNew: true },
     ],
   },
   {
@@ -100,7 +100,7 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
                           <button
                             key={item.label}
                             type="button"
-                            onClick={() => { navigate(item.path || '/coming-soon'); onClose() }}
+                            onClick={() => { navigate(item.to || item.path || '/coming-soon'); onClose() }}
                             className="flex flex-col items-center text-center p-2 rounded-xl hover:bg-brand-bg transition-all cursor-pointer"
                           >
                             <div className="relative w-12 h-12 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent shadow-sm shrink-0">
