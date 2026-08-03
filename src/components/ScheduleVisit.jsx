@@ -15,6 +15,23 @@ function getMaxDate() {
   return d.toISOString().split('T')[0]
 }
 
+function normalizeWhatsAppNumber(raw) {
+  if (!raw) return ''
+  let digits = String(raw).replace(/\D/g, '')
+  if (digits.startsWith('0')) digits = '62' + digits.slice(1)
+  return digits
+}
+
+function formatDateForMessage(dateStr) {
+  if (!dateStr) return ''
+  try {
+    const d = new Date(`${dateStr}T00:00:00`)
+    return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  } catch {
+    return dateStr
+  }
+}
+
 export default function ScheduleVisit({ property, onClose }) {
   const { user, showToast } = useAuth()
   const [date, setDate] = useState(getMinDate())
@@ -22,6 +39,7 @@ export default function ScheduleVisit({ property, onClose }) {
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [waLink, setWaLink] = useState('')
 
   if (!user) {
     return (
@@ -48,6 +66,15 @@ export default function ScheduleVisit({ property, onClose }) {
         showToast(error.message, 'error')
       } else {
         setSuccess(true)
+        const rawNumber = property?.seller_whatsapp || property?.agent_whatsapp
+        const number = normalizeWhatsAppNumber(rawNumber)
+        if (number) {
+          const buyerName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Calon pembeli'
+          const msg = `Halo, saya ${buyerName} ingin mengatur jadwal survei untuk "${property?.title || 'properti'}" pada ${formatDateForMessage(date)} pukul ${time}.${notes ? ` Catatan: ${notes}` : ''}`
+          const link = `https://wa.me/${number}?text=${encodeURIComponent(msg)}`
+          setWaLink(link)
+          window.open(link, '_blank', 'noopener')
+        }
       }
     } catch (err) {
       showToast(err.message || 'Gagal mengirim permintaan', 'error')
@@ -74,6 +101,16 @@ export default function ScheduleVisit({ property, onClose }) {
             <p className="text-sm text-brand-muted max-w-xs">
               Jadwal survei kamu sudah dikirim. Agen akan mengonfirmasi melalui WhatsApp.
             </p>
+            {waLink && (
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 py-2.5 px-5 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:brightness-90 transition-all"
+              >
+                Lanjut ke WhatsApp
+              </a>
+            )}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
