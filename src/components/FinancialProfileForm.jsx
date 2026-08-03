@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import FormErrorSummary from './FormErrorSummary'
 import {
   Wallet,
   Info,
@@ -430,7 +431,7 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
         </div>
 
         {error && (
-          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+          <FormErrorSummary errors={[error]} title="Gagal menyimpan profil keuangan" />
         )}
 
         <button

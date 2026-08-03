@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, UserCheck, Building2, CheckCircle2, AlertCircle, Lock } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import FormErrorSummary from './FormErrorSummary'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { createAgentApplicationSchema, EXPERIENCE_OPTIONS, buildAgentApplicationPayload } from '../utils/agentApplicationSchema'
@@ -147,9 +148,8 @@ export default function AgentApplicationPage() {
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-xs px-4 py-3 rounded-xl mb-5">
-                <AlertCircle size={15} className="shrink-0" />
-                {error}
+              <div className="mb-5">
+                <FormErrorSummary errors={[error]} title="Pengajuan gagal dikirim" />
               </div>
             )}
 

@@ -189,6 +189,7 @@
   },
   "login": {
     "title": "Masuk ke akun Anda",
+    "error_title": "Gagal masuk",
     "subtitle": "platform properti terpercaya",
     "email_label": "Email",
     "email_placeholder": "Email",

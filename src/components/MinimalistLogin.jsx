@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
+import FormErrorSummary from './FormErrorSummary'
 
 function EyeIcon({ visible }) {
   return (
@@ -110,11 +111,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
             </h2>
 
             <form onSubmit={handleAuth} className="space-y-5">
-              {error && (
-                <p className="text-xs text-red-500 text-center bg-red-50 py-2 px-3 rounded-lg">
-                  {error}
-                </p>
-              )}
+              {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
 
               <div>
                 <label htmlFor="email" className="sr-only">{t('login.email_label')}</label>
@@ -204,11 +201,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
             </div>
 
             <form onSubmit={handleAuth} className="space-y-4">
-              {error && (
-                <p className="text-xs text-red-500 text-center bg-red-50 py-2 px-3 rounded-lg">
-                  {error}
-                </p>
-              )}
+              {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
 
               <div>
                 <label htmlFor="firstName" className="text-xs font-medium text-brand-muted mb-1.5 block">

@@ -7,6 +7,7 @@ import { formatPrice } from '../utils/format'
 import useSEO from '../hooks/useSEO'
 import { getAuthHeaders } from '../utils/groqClient'
 import { compressImage } from '../utils/imageCompression'
+import FormErrorSummary from './FormErrorSummary'
 
 const DRAFT_KEY = 'hunione_sell_draft'
 const MAX_IMAGES = 10
@@ -807,9 +808,12 @@ export default function SellPropertyPage() {
 
               <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-40">
                 {stepErrors.length > 0 && (
-                  <ul className="max-w-lg mx-auto mb-3 space-y-1 text-xs text-red-500">
-                    {stepErrors.map((e) => <li key={e}>• {e}</li>)}
-                  </ul>
+                  <div className="max-w-lg mx-auto mb-3">
+                    <FormErrorSummary
+                      errors={stepErrors}
+                      title="Ayo lengkapi data berikut dulu"
+                    />
+                  </div>
                 )}
                 <div className="flex gap-3 max-w-lg mx-auto">
                   {step > 0 && (
