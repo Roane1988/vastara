@@ -113,6 +113,8 @@ export default function AdminUserManagement() {
     if (!cancelledRef.current) setUpdatingId(null)
   }
 
+  const currentSuperAdmin = users.find((u) => u.id === currentUser?.id)?.is_super_admin === true
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -124,8 +126,15 @@ export default function AdminUserManagement() {
   return (
     <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden">
       <div className="px-5 py-4 border-b border-brand-border flex items-center justify-between">
-        <h2 className="text-base font-bold text-brand-text">Manajemen Pengguna</h2>
-        <div className="flex items-center gap-2">
+        <div className="min-w-0">
+          <h2 className="text-base font-bold text-brand-text">Manajemen Pengguna</h2>
+          <p className="text-xs text-brand-muted mt-0.5">
+            {currentSuperAdmin
+              ? 'Kamu super admin — dapat mengubah peran semua pengguna.'
+              : 'Hanya super admin yang dapat mengubah peran pengguna.'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="flex items-center gap-1.5 text-xs font-medium text-brand-muted bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 hover:text-brand-text hover:bg-brand-bg/70 transition-colors">
             <RefreshCw size={13} />
             Refresh
@@ -183,24 +192,38 @@ export default function AdminUserManagement() {
                     <td className="px-5 py-4 whitespace-nowrap text-brand-muted">{u.email || '-'}</td>
                     <td className="px-5 py-4 whitespace-nowrap text-brand-muted">{u.whatsapp || '-'}</td>
                     <td className="px-5 py-4 whitespace-nowrap">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${getRoleBadgeClass(u.role)}`}>
-                        {getRoleLabel(u.role)}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${getRoleBadgeClass(u.role)}`}>
+                          {getRoleLabel(u.role)}
+                        </span>
+                        {u.role === 'admin' && u.is_super_admin && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-accent text-white border border-brand-accent">
+                            Super Admin
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-4 whitespace-nowrap text-right">
-                      <div className="relative inline-block">
-                        <select
-                          value={u.role || 'pembeli'}
-                          disabled={updatingId === u.id}
-                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                          className="appearance-none bg-brand-bg border border-brand-border rounded-xl px-3 py-2 pr-8 text-xs font-medium text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                          {ROLE_OPTIONS.map((r) => (
-                            <option key={r.value} value={r.value}>{r.label}</option>
-                          ))}
-                        </select>
-                        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
-                      </div>
+                      {currentSuperAdmin ? (
+                        <div className="relative inline-block">
+                          <select
+                            value={u.role || 'pembeli'}
+                            disabled={updatingId === u.id}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                            aria-label={`Ubah role ${u.first_name || 'pengguna'}`}
+                            className="appearance-none bg-brand-bg border border-brand-border rounded-xl px-3 py-2 pr-8 text-xs font-medium text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            {ROLE_OPTIONS.map((r) => (
+                              <option key={r.value} value={r.value}>{r.label}</option>
+                            ))}
+                          </select>
+                          <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted" />
+                        </div>
+                      ) : (
+                        <span className="text-[10px] font-medium text-brand-muted bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5">
+                          Dikelola super admin
+                        </span>
+                      )}
                     </td>
                   </tr>
                 )
