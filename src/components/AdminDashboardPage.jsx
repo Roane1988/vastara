@@ -56,6 +56,17 @@ function ArrowLeftIcon() {
   )
 }
 
+function UsersIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+}
+
 function PropertyPreviewModal({ property, onClose }) {
   const [imgIndex, setImgIndex] = useState(0)
   if (!property) return null
@@ -148,6 +159,7 @@ export default function AdminDashboardPage() {
   const [confirmAction, setConfirmAction] = useState(null)
   const [confirming, setConfirming] = useState(false)
   const [statusCounts, setStatusCounts] = useState(null)
+  const [leadCounts, setLeadCounts] = useState({})
   const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
@@ -207,6 +219,22 @@ export default function AdminDashboardPage() {
           setLoadError(error.message)
         } else {
           setProperties(data || [])
+          const ids = (data || []).map((p) => p.id)
+          if (ids.length > 0) {
+            const { data: leads, error: leadsError } = await supabase
+              .from('whatsapp_leads')
+              .select('property_id')
+              .in('property_id', ids)
+            if (!cancelledRef.current && !leadsError && leads) {
+              const counts = {}
+              leads.forEach((l) => {
+                counts[l.property_id] = (counts[l.property_id] || 0) + 1
+              })
+              setLeadCounts(counts)
+            }
+          } else {
+            setLeadCounts({})
+          }
         }
         setLoading(false)
       }
@@ -630,9 +658,17 @@ export default function AdminDashboardPage() {
                                 </div>
                               </td>
                               <td className="px-3 py-4 whitespace-nowrap hidden md:table-cell">
-                                <span className={`inline-block text-[10px] font-bold px-2 py-1 rounded-full ${statusBadgeClass(p.status)}`}>
-                                  {statusLabel(p.status)}
-                                </span>
+                                <div className="flex flex-col items-start gap-1">
+                                  <span className={`inline-block text-[10px] font-bold px-2 py-1 rounded-full ${statusBadgeClass(p.status)}`}>
+                                    {statusLabel(p.status)}
+                                  </span>
+                                  {leadCounts[p.id] > 0 && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-accent bg-brand-accent/5 border border-brand-accent/20 rounded-full px-2 py-0.5">
+                                      <UsersIcon />
+                                      {leadCounts[p.id]} minat
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-3 py-4 whitespace-nowrap text-right">
                                 <div className="flex items-center justify-end gap-1.5">
