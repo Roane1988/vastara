@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { getImageSrc } from '../utils/images'
 import { formatPrice } from '../utils/format'
 import ConfirmModal from './ConfirmModal'
-import { Check } from 'lucide-react'
+import { Check, Clock, X } from 'lucide-react'
 
 function ArrowLeftIcon() {
   return (
@@ -127,7 +127,7 @@ export default function MyListingsPage() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, status, image_url, address, bedrooms, bathrooms, area_sqm, created_at')
+          .select('id, title, price, status, image_url, address, bedrooms, bathrooms, area_sqm, created_at, price_requested, price_change_status, price_reviewed_at')
           .eq('seller_id', user.id)
           .order('created_at', { ascending: false })
 
@@ -222,6 +222,24 @@ export default function MyListingsPage() {
                   <p className="text-base font-extrabold text-brand-primary mt-1">
                     {formatPrice(p.price)}
                   </p>
+                  {p.price_change_status === 'pending' && (
+                    <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-0.5 mt-1.5 w-fit">
+                      <Clock size={12} />
+                      Menunggu persetujuan harga ({formatPrice(p.price_requested)})
+                    </p>
+                  )}
+                  {p.price_change_status === 'rejected' && (
+                    <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-0.5 mt-1.5 w-fit">
+                      <X size={12} />
+                      Permintaan ubah harga ditolak · harga tetap {formatPrice(p.price)}
+                    </p>
+                  )}
+                  {p.price_change_status === 'approved' && p.price_requested === null && (
+                    <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-0.5 mt-1.5 w-fit">
+                      <Check size={12} />
+                      Perubahan harga disetujui
+                    </p>
+                  )}
                   <p className="text-xs text-brand-muted mt-1 truncate">
                     {p.address || ''}
                   </p>
