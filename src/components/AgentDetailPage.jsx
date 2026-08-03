@@ -75,7 +75,8 @@ export default function AgentDetailPage() {
     return <NotFoundPage message={error?.message || 'Agent tidak ditemukan.'} onBack={() => navigate(-1)} />
   }
 
-  const waNumber = profile.whatsapp?.replace(/\D/g, '')
+  let waNumber = profile.whatsapp?.replace(/\D/g, '')
+  if (waNumber?.startsWith('0')) waNumber = '62' + waNumber.slice(1)
   const waLink = waNumber
     ? `https://wa.me/${waNumber}?text=${encodeURIComponent(
         lang === 'en' ? `Hello ${profile.full_name}, I'd like to consult about properties on HuniOne.` : `Halo ${profile.full_name}, saya ingin berkonsultasi tentang properti di HuniOne.`

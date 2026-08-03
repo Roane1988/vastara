@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight, Calendar, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
 import { formatPrice, formatPriceDisplay } from '../utils/format'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { parseImages, FALLBACK_IMAGE } from '../utils/images'
@@ -15,8 +16,14 @@ import InvestmentAnalyzer from './InvestmentAnalyzer'
 import ScheduleVisit from './ScheduleVisit'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
-function ArrowLeftIcon() {
-  return (
+function normalizeWhatsAppNumber(raw) {
+  if (!raw) return ''
+  let digits = String(raw).replace(/\D/g, '')
+  if (digits.startsWith('0')) digits = '62' + digits.slice(1)
+  return digits
+}
+
+function ArrowLeftIcon() {  return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="19" y1="12" x2="5" y2="12" />
       <polyline points="12 19 5 12 12 5" />
@@ -321,6 +328,7 @@ export default function PropertyDetailPage() {
   const navigate = useNavigate()
   const { i18n } = useTranslation()
   const lang = i18n.language
+  const { user } = useAuth()
   const addRecentlyViewed = usePropertyStore((s) => s.addRecentlyViewed)
 
   const [property, setProperty] = useState(null)
@@ -530,14 +538,24 @@ export default function PropertyDetailPage() {
   }
 
   const hasWhatsapp = Boolean(property.seller_whatsapp || property.agent_whatsapp)
-  const waNumber = hasWhatsapp ? (property.seller_whatsapp || property.agent_whatsapp) : null
+  const rawNumber = hasWhatsapp ? (property.seller_whatsapp || property.agent_whatsapp) : ''
+  const waNumber = normalizeWhatsAppNumber(rawNumber)
   const displayPrice = formatPriceDisplay(property)
-  const waMessage = encodeURIComponent(
-    lang === 'en'
-      ? `Hello, I am interested in ${displayTitle}`
-      : `Halo, saya tertarik dengan properti ${displayTitle}`
-  )
-  const waLink = waNumber ? `https://wa.me/${waNumber}?text=${waMessage}` : null
+  const locationText = [property.district, property.city].filter(Boolean).join(', ')
+  const propertyLink = typeof window !== 'undefined' ? window.location.href : ''
+  const waText = lang === 'en'
+    ? `Hello, I'm interested in ${displayTitle}${locationText ? ` (${locationText})` : ''} — ${displayPrice}. Is it still available? ${propertyLink}`
+    : `Halo, saya tertarik dengan properti ${displayTitle}${locationText ? ` (${locationText})` : ''} — ${displayPrice}. Apakah masih tersedia? ${propertyLink}`
+  const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(waText)}` : null
+
+  const trackWaClick = () => {
+    if (!property?.id || !property?.seller_id) return
+    supabase
+      .from('whatsapp_leads')
+      .insert({ property_id: property.id, seller_id: property.seller_id, buyer_id: user?.id || null })
+      .then(() => {})
+      .catch(() => {})
+  }
 
   const sellerName = property.profiles?.first_name || 'Agen Properti'
   const sellerRole = property.seller_type === 'developer' ? 'Pengembang'
@@ -574,6 +592,7 @@ export default function PropertyDetailPage() {
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={trackWaClick}
               className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-bold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all"
             >
               <MessageCircle size={18} />
@@ -728,6 +747,7 @@ export default function PropertyDetailPage() {
                       href={waLink}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={trackWaClick}
                       className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
                     >
                       <Phone size={16} className="text-brand-muted" />
@@ -747,6 +767,7 @@ export default function PropertyDetailPage() {
                       href={waLink}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={trackWaClick}
                       className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.98]"
                     >
                       <MessageCircle size={16} />
@@ -769,7 +790,7 @@ export default function PropertyDetailPage() {
             <p className="text-xs font-semibold text-brand-primary">{displayPrice}</p>
           </div>
           {waLink && (
-            <a href={waLink} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-2 py-2 px-4 rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.97]">
+            <a href={waLink} target="_blank" rel="noopener noreferrer" onClick={trackWaClick} className="shrink-0 flex items-center gap-2 py-2 px-4 rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.97]">
               <MessageCircle size={16} />
               WhatsApp
             </a>
@@ -808,6 +829,7 @@ export default function PropertyDetailPage() {
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={trackWaClick}
               className="w-full py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:brightness-90 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2.5 shadow-sm"
             >
               <WhatsAppIcon />
