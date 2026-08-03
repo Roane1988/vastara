@@ -335,6 +335,7 @@ export default function ExplorePage() {
       if (error) throw error
       setSavedSearchOk(true)
       setSaveName('')
+      window.dispatchEvent(new Event('saved-searches-updated'))
       showToast('Pencarian disimpan! Kamu akan dapat notifikasi properti baru yang cocok.', 'success')
     } catch (err) {
       showToast(err.message || 'Gagal menyimpan pencarian. Coba lagi.', 'error')

@@ -20,6 +20,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
 import FinancialProfileForm from './FinancialProfileForm'
 import SlideOver from './SlideOver'
 import SavedPropertiesList from './SavedPropertiesList'
@@ -58,6 +59,7 @@ function Collapsible({ title, icon, defaultOpen = false, children }) {
 export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { totalNew } = useSavedSearchAlerts()
 
   const [name, setName] = useState(userName || '')
   const [email, setEmail] = useState('')
@@ -494,7 +496,12 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors"
         >
           <BellRing size={18} className="text-brand-primary shrink-0" />
-          Pencarian Tersimpan
+          <span className="flex-1 text-left">Pencarian Tersimpan</span>
+          {totalNew > 0 && (
+            <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-brand-danger text-white text-[10px] font-bold flex items-center justify-center">
+              {totalNew > 99 ? '99+' : totalNew}
+            </span>
+          )}
         </button>
         <button
           type="button"

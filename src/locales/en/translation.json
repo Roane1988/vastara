@@ -3,7 +3,8 @@
     "sell_property": "Sell Property",
     "language": "Language",
     "login": "Log in",
-    "open_menu": "Open Menu"
+    "open_menu": "Open Menu",
+    "saved_searches": "Saved Searches"
   },
   "footer": {
     "desc": "Hunione is a digital platform that helps people buy and sell homes more easily, safely, and reliably.",
@@ -101,6 +102,7 @@
     "admin": "Dashboard",
     "kpr": "KPR Calculator",
     "compare": "Compare",
+    "saved_searches": "Saved Searches",
     "language": "Language",
     "log_out": "Log Out",
     "logging_out": "Logging out...",

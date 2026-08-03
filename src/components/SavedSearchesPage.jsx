@@ -62,6 +62,7 @@ export default function SavedSearchesPage() {
       const { error } = await supabase.from('saved_searches').update({ last_checked_at: new Date().toISOString() }).eq('id', id)
       if (error) throw error
       setSearches((prev) => prev.map((s) => (s.id === id ? { ...s, last_checked_at: new Date().toISOString() } : s)))
+      window.dispatchEvent(new Event('saved-searches-updated'))
     } catch (err) {
       console.warn('Gagal memperbarui pengecekan:', err.message)
     } finally {
@@ -76,6 +77,7 @@ export default function SavedSearchesPage() {
       const { error } = await supabase.from('saved_searches').update({ active: !s.active }).eq('id', s.id)
       if (error) throw error
       setSearches((prev) => prev.map((x) => (x.id === s.id ? { ...x, active: !x.active } : x)))
+      window.dispatchEvent(new Event('saved-searches-updated'))
     } catch (err) {
       console.warn('Gagal mengubah status alert:', err.message)
     } finally {
@@ -90,6 +92,7 @@ export default function SavedSearchesPage() {
       const { error } = await supabase.from('saved_searches').delete().eq('id', id)
       if (error) throw error
       setSearches((prev) => prev.filter((s) => s.id !== id))
+      window.dispatchEvent(new Event('saved-searches-updated'))
     } catch (err) {
       console.warn('Gagal menghapus pencarian:', err.message)
     } finally {

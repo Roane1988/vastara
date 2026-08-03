@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { SavedSearchAlertsProvider } from './context/SavedSearchAlertsContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import TopNavbar from './components/TopNavbar'
 import Footer from './components/Footer'
@@ -131,7 +132,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppContent />
+        <SavedSearchAlertsProvider>
+          <AppContent />
+        </SavedSearchAlertsProvider>
       </AuthProvider>
     </BrowserRouter>
   )

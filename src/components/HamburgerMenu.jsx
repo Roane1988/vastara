@@ -16,8 +16,10 @@ import {
   Plus,
   Scale,
   Search,
+  BellRing,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { useChatUnread } from '../hooks/useChatUnread'
 import SlideOver from './SlideOver'
@@ -93,6 +95,7 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
   const { role, user } = useAuth()
   const reduced = usePrefersReducedMotion()
   const { unread, markRead } = useChatUnread(user?.id)
+  const { totalNew: savedNew } = useSavedSearchAlerts()
 
   const [loggingOut, setLoggingOut] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
@@ -252,6 +255,20 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
             active={compareActive}
             onClick={() => handleNavigate('/compare')}
           />
+          {isAuth && (
+            <MenuItem
+              icon={<BellRing size={18} />}
+              label={t('hamburger.saved_searches')}
+              onClick={() => handleNavigate('/saved-searches')}
+              badge={
+                savedNew > 0 ? (
+                  <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-brand-danger text-white text-[10px] font-bold flex items-center justify-center">
+                    {savedNew > 99 ? '99+' : savedNew}
+                  </span>
+                ) : null
+              }
+            />
+          )}
         </div>
       </div>
 

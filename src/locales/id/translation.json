@@ -3,7 +3,8 @@
     "sell_property": "Jual Properti",
     "language": "Bahasa",
     "login": "Masuk",
-    "open_menu": "Buka Menu"
+    "open_menu": "Buka Menu",
+    "saved_searches": "Pencarian Tersimpan"
   },
   "footer": {
     "desc": "Hunione adalah platform digital yang membantu masyarakat membeli dan menjual rumah dengan lebih mudah, aman, dan terpercaya.",
@@ -101,6 +102,7 @@
     "admin": "Dashboard",
     "kpr": "Kalkulator KPR",
     "compare": "Bandingkan",
+    "saved_searches": "Pencarian Tersimpan",
     "language": "Bahasa",
     "log_out": "Keluar",
     "logging_out": "Keluar...",
