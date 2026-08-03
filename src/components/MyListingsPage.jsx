@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getImageSrc } from '../utils/images'
 import { formatPrice } from '../utils/format'
+import { getAvatarColor, getInitials } from '../utils/avatar'
+import { timeAgo } from '../utils/time'
 import ConfirmModal from './ConfirmModal'
-import { Check, Clock, X, Users } from 'lucide-react'
+import { Check, Clock, X, Users, MessageCircle } from 'lucide-react'
 
 function ArrowLeftIcon() {
   return (
@@ -87,6 +90,26 @@ export default function MyListingsPage() {
   const [selectedPropertyId, setSelectedPropertyId] = useState(null)
   const [soldLoading, setSoldLoading] = useState(false)
   const [leadCounts, setLeadCounts] = useState({})
+  const [leadModal, setLeadModal] = useState(null)
+  const [leads, setLeads] = useState([])
+  const [leadsLoading, setLeadsLoading] = useState(false)
+
+  const openLeadModal = async (p) => {
+    setLeadModal({ propertyId: p.id, title: p.title })
+    setLeadsLoading(true)
+    setLeads([])
+    try {
+      const { data, error } = await supabase
+        .from('whatsapp_leads')
+        .select('id, buyer_id, created_at, profiles!buyer_id(first_name)')
+        .eq('property_id', p.id)
+        .order('created_at', { ascending: false })
+      if (!error && data) setLeads(data)
+    } catch {
+      /* ignore */
+    }
+    setLeadsLoading(false)
+  }
 
   const handleConfirmSold = async () => {
     if (!selectedPropertyId) return
@@ -266,10 +289,14 @@ export default function MyListingsPage() {
                     <span>{p.area_sqm} m&sup2;</span>
                   </div>
                   {leadCounts[p.id] > 0 && (
-                    <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-accent bg-brand-accent/5 border border-brand-accent/20 rounded-lg px-2 py-0.5 mt-2 w-fit">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); openLeadModal(p) }}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-accent bg-brand-accent/5 border border-brand-accent/20 rounded-lg px-2 py-0.5 mt-2 w-fit hover:bg-brand-accent/10 transition-colors"
+                    >
                       <Users size={12} />
                       {leadCounts[p.id]} orang tertarik
-                    </p>
+                    </button>
                   )}
                   {p.status !== 'sold' && <StatusTimeline status={p.status} />}
                   {p.status === 'sold' && (
@@ -316,6 +343,99 @@ export default function MyListingsPage() {
         cancelText="Batal"
         loading={soldLoading}
       />
+
+      <AnimatePresence>
+        {leadModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
+            onClick={() => setLeadModal(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 24, scale: 0.97 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Orang yang tertarik"
+              className="w-full sm:max-w-md bg-brand-surface rounded-t-3xl sm:rounded-3xl shadow-2xl border border-brand-border overflow-hidden max-h-[80vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-brand-border">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-brand-text">Orang yang Tertarik</h3>
+                  <p className="text-xs text-brand-muted truncate mt-0.5">{leadModal.title}</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Tutup"
+                  onClick={() => setLeadModal(null)}
+                  className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                {leadsLoading ? (
+                  <div className="flex items-center justify-center py-14">
+                    <div className="w-7 h-7 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : leads.length === 0 ? (
+                  <div className="text-center py-14">
+                    <Users size={32} className="mx-auto text-brand-muted/40 mb-3" />
+                    <p className="text-sm font-semibold text-brand-text">Belum ada data minat</p>
+                    <p className="text-xs text-brand-muted mt-1">Saat pembeli menghubungi via WhatsApp, mereka akan muncul di sini.</p>
+                  </div>
+                ) : (
+                  <ul className="space-y-3">
+                    {leads.map((lead) => {
+                      const buyerName = lead.profiles?.first_name || null
+                      return (
+                        <li key={lead.id} className="flex items-center gap-3 rounded-2xl border border-brand-border bg-brand-bg/50 px-4 py-3">
+                          <span
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                            style={{ backgroundColor: getAvatarColor(lead.buyer_id || lead.id) }}
+                          >
+                            {getInitials(buyerName || 'P')}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-brand-text truncate">
+                              {buyerName || 'Pengunjung'}
+                            </p>
+                            <p className="text-xs text-brand-muted mt-0.5 flex items-center gap-1.5">
+                              <MessageCircle size={11} />
+                              Menghubungi via WhatsApp · {timeAgo(lead.created_at)}
+                            </p>
+                          </div>
+                          {buyerName && (
+                            <span className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                              Terdaftar
+                            </span>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <div className="px-5 py-4 border-t border-brand-border">
+                <button
+                  type="button"
+                  onClick={() => setLeadModal(null)}
+                  className="w-full py-3 rounded-xl font-bold text-sm text-white bg-brand-primary hover:brightness-90 active:scale-[0.98] transition-all"
+                >
+                  Tutup
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

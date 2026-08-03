@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MessageCircle, Phone, ChevronDown, X, ChevronLeft, ChevronRight, Calendar, Share2 } from 'lucide-react'
+import { MessageCircle, MessageSquare, Phone, ChevronDown, X, ChevronLeft, ChevronRight, Calendar, Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -774,6 +774,15 @@ export default function PropertyDetailPage() {
                       WhatsApp
                     </a>
                   )}
+                  {property.seller_id && (
+                    <Link
+                      to={`/chat?user=${property.seller_id}`}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-brand-primary bg-brand-primary/5 border border-brand-primary/20 hover:bg-brand-primary/10 transition-colors active:scale-[0.98]"
+                    >
+                      <MessageSquare size={16} />
+                      Chat di HuniOne
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
@@ -794,6 +803,12 @@ export default function PropertyDetailPage() {
               <MessageCircle size={16} />
               WhatsApp
             </a>
+          )}
+          {property.seller_id && (
+            <Link to={`/chat?user=${property.seller_id}`} className="shrink-0 flex items-center gap-2 py-2 px-4 rounded-lg text-sm font-bold text-brand-primary bg-brand-primary/5 border border-brand-primary/20 hover:bg-brand-primary/10 transition-colors active:scale-[0.97]">
+              <MessageSquare size={16} />
+              Chat
+            </Link>
           )}
         </div>
       </div>
