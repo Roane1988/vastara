@@ -71,11 +71,49 @@ async function fetchComparables(property) {
   }
 }
 
-const VERDICT_STYLES = {
-  Wajar: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'Di Atas Pasar': 'bg-red-50 text-red-700 border-red-200',
-  'Di Bawah Pasar': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'Data Terbatas': 'bg-gray-100 text-gray-600 border-gray-200',
+const VERDICT_HERO = {
+  Wajar: 'from-emerald-500/10 via-emerald-400/5 to-transparent border-emerald-200',
+  'Di Atas Pasar': 'from-red-500/10 via-orange-400/5 to-transparent border-red-200',
+  'Di Bawah Pasar': 'from-emerald-500/10 via-teal-400/5 to-transparent border-emerald-200',
+  'Data Terbatas': 'from-slate-500/10 to-transparent border-slate-200',
+}
+
+const VERDICT_TEXT = {
+  Wajar: 'text-emerald-700',
+  'Di Atas Pasar': 'text-red-600',
+  'Di Bawah Pasar': 'text-emerald-700',
+  'Data Terbatas': 'text-slate-600',
+}
+
+const HERO_ICON = {
+  Wajar: { bg: 'bg-emerald-100 text-emerald-700', Icon: Scale },
+  'Di Atas Pasar': { bg: 'bg-red-100 text-red-600', Icon: TrendingUp },
+  'Di Bawah Pasar': { bg: 'bg-emerald-100 text-emerald-700', Icon: TrendingDown },
+  'Data Terbatas': { bg: 'bg-slate-100 text-slate-600', Icon: Info },
+}
+
+const VERDICT_HEADLINES = {
+  Wajar: 'Harga properti ini berada dalam kisaran wajar pasar.',
+  'Data Terbatas': 'Data pasar masih terbatas — analisis ini bersifat indikatif.',
+}
+
+const REC_SUPPORT = {
+  'Worth It': 'Harga kompetitif dibanding pasar. Layak dipertimbangkan.',
+  Nego: 'Sesuaikan penawaran mendekati kisaran wajar sebelum memutuskan.',
+  Tunda: 'Harga terpaut jauh di atas pasar. Pertimbangkan menunggu atau cari alternatif lain.',
+  'Data Terbatas': 'Saran ditangguhkan sampai data pembanding mencukupi.',
+}
+
+function buildHeadline(verdict, dev) {
+  if (verdict === 'Di Atas Pasar') {
+    const pct = dev != null ? ` ${Math.abs(dev)}%` : ''
+    return `Harga${pct} di atas median pasar — masih ada ruang untuk negosiasi.`
+  }
+  if (verdict === 'Di Bawah Pasar') {
+    const pct = dev != null ? ` ${Math.abs(dev)}%` : ''
+    return `Harga${pct} di bawah median pasar — peluang menarik.`
+  }
+  return VERDICT_HEADLINES[verdict] || 'Analisis harga wajar berdasarkan data pasar.'
 }
 
 const REC_STYLES = {
@@ -312,7 +350,16 @@ export default function FairPriceAnalyzer({ property }) {
 
   const det = market ? verdictFromMarket(market) : null
   const aiVerdict = analysis?.fairVerdict
-  const aiColor = aiVerdict && VERDICT_STYLES[aiVerdict] ? aiVerdict : null
+  const dev = analysis?.deviationPct
+  const headline = buildHeadline(aiVerdict, dev)
+  const targetPrice = Number(property?.price) || 0
+  const medianTotal = analysis?.fairPriceRange?.median
+    ? Number(analysis.fairPriceRange.median)
+    : market?.medianPricePerSqm && Number(property?.area_sqm)
+      ? market.medianPricePerSqm * Number(property.area_sqm)
+      : null
+  const hasCompare = targetPrice > 0 && medianTotal != null && medianTotal > 0
+  const barMax = hasCompare ? Math.max(targetPrice, medianTotal) * 1.05 : 1
 
   return (
     <div ref={cardRef} className="bg-white border border-brand-border rounded-3xl p-5 sm:p-6 shadow-sm">
@@ -417,56 +464,105 @@ export default function FairPriceAnalyzer({ property }) {
       {/* Hasil AI */}
       {analysis && (
         <div className="mt-5 pt-5 border-t border-brand-border space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {aiVerdict && (
-              <span className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border ${aiColor ? VERDICT_STYLES[aiVerdict] : 'bg-brand-bg text-brand-text border-brand-border'}`}>
-                <Scale size={12} />
-                {aiVerdict}
-              </span>
-            )}
+          <div className={`rounded-2xl border bg-gradient-to-br ${VERDICT_HERO[aiVerdict] || VERDICT_HERO['Data Terbatas']} p-4 sm:p-5`}>
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${HERO_ICON[aiVerdict]?.bg || HERO_ICON['Data Terbatas'].bg}`}>
+                  {(() => {
+                    const I = HERO_ICON[aiVerdict]?.Icon || Info
+                    return <I size={20} />
+                  })()}
+                </div>
+                <div>
+                  <p className={`text-lg font-extrabold leading-tight ${VERDICT_TEXT[aiVerdict] || VERDICT_TEXT['Data Terbatas']}`}>
+                    {aiVerdict || 'Hasil Analisis'}
+                  </p>
+                  <p className="text-[11px] text-brand-muted mt-0.5">Hasil penilaian AI</p>
+                </div>
+              </div>
+              {analysis.confidence && (
+                <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-full border ${CONF_STYLES[analysis.confidence] || CONF_STYLES.Rendah}`}>
+                  <Sparkles size={11} />
+                  Keyakinan {analysis.confidence}
+                </span>
+              )}
+            </div>
+
+            <p className="text-sm font-semibold text-brand-text mt-3 leading-relaxed">{headline}</p>
+
             {analysis.buyRecommendation && (
-              <span className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border ${REC_STYLES[analysis.buyRecommendation] || 'bg-brand-bg text-brand-text border-brand-border'}`}>
-                <Check size={12} />
-                {analysis.buyRecommendation}
-              </span>
-            )}
-            {analysis.confidence && (
-              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${CONF_STYLES[analysis.confidence] || 'bg-brand-bg text-brand-text border-brand-border'}`}>
-                Keyakinan: {analysis.confidence}
-              </span>
+              <div className="mt-3 flex items-start gap-2 rounded-xl bg-white/70 border border-brand-border/70 px-3.5 py-2.5">
+                <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border shrink-0 mt-0.5 ${REC_STYLES[analysis.buyRecommendation] || REC_STYLES['Data Terbatas']}`}>
+                  <Check size={11} />
+                  {analysis.buyRecommendation}
+                </span>
+                <p className="text-xs text-brand-muted leading-relaxed">{REC_SUPPORT[analysis.buyRecommendation]}</p>
+              </div>
             )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {analysis.deviationPct != null && analysis.fairVerdict !== 'Data Terbatas' && (
-              <div className="bg-brand-bg/60 rounded-xl border border-brand-border p-3">
-                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide">Deviasi Harga</p>
-                <p className={`text-sm font-extrabold mt-0.5 ${analysis.deviationPct > 8 ? 'text-red-600' : analysis.deviationPct < -8 ? 'text-emerald-600' : 'text-brand-text'}`}>
-                  {analysis.deviationPct > 0 ? '+' : ''}{analysis.deviationPct}%
-                </p>
+          {hasCompare && (
+            <div className="rounded-2xl bg-white border border-brand-border p-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+                <p className="text-xs font-bold text-brand-text">Harga vs median pasar</p>
+                {analysis.deviationPct != null && (
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                    analysis.deviationPct > 8
+                      ? 'bg-red-50 text-red-600 border-red-200'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  }`}>
+                    {analysis.deviationPct > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                    {analysis.deviationPct > 0 ? '+' : ''}{analysis.deviationPct}% vs median
+                  </span>
+                )}
               </div>
-            )}
+              <div className="space-y-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-brand-muted">Harga properti ini</span>
+                    <span className="text-[11px] font-bold text-brand-text">{formatCurrency(targetPrice)}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-brand-bg overflow-hidden">
+                    <div className="h-full rounded-full bg-[#2E86DE]" style={{ width: `${Math.min(100, (targetPrice / barMax) * 100)}%` }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-brand-muted">Median pasar</span>
+                    <span className="text-[11px] font-bold text-brand-text">{formatCurrency(medianTotal)}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-brand-bg overflow-hidden">
+                    <div className="h-full rounded-full bg-slate-400" style={{ width: `${Math.min(100, (medianTotal / barMax) * 100)}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {analysis.suggestedOffer != null && analysis.suggestedOffer > 0 && (
-              <div className="bg-brand-bg/60 rounded-xl border border-brand-border p-3">
-                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide flex items-center gap-1">
-                  <ArrowDownRight size={11} className="text-brand-accent" />
+              <div className="rounded-xl bg-gradient-to-br from-brand-accent to-brand-primary p-3 text-white">
+                <p className="text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 opacity-90">
+                  <ArrowDownRight size={11} />
                   Saran Penawaran
                 </p>
-                <p className="text-sm font-extrabold text-brand-accent mt-0.5">{formatCurrency(analysis.suggestedOffer)}</p>
+                <p className="text-base font-extrabold mt-1">{formatCurrency(analysis.suggestedOffer)}</p>
+              </div>
+            )}
+            {analysis.fairPriceRange && (analysis.fairPriceRange.low || analysis.fairPriceRange.high) && aiVerdict !== 'Data Terbatas' && (
+              <div className="bg-brand-bg/60 rounded-xl border border-brand-border p-3">
+                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide">Kisaran Wajar</p>
+                <p className="text-sm font-extrabold text-brand-text mt-1">
+                  {analysis.fairPriceRange.low ? formatCurrency(analysis.fairPriceRange.low) : '-'}
+                  {' – '}
+                  {analysis.fairPriceRange.high ? formatCurrency(analysis.fairPriceRange.high) : '-'}
+                </p>
               </div>
             )}
             {analysis.pricePerSqm != null && (
               <div className="bg-brand-bg/60 rounded-xl border border-brand-border p-3">
                 <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide">Harga /m²</p>
-                <p className="text-sm font-extrabold text-brand-text mt-0.5">{formatCurrency(analysis.pricePerSqm)}</p>
-              </div>
-            )}
-            {analysis.fairPriceRange && (analysis.fairPriceRange.low || analysis.fairPriceRange.median) && analysis.fairVerdict !== 'Data Terbatas' && (
-              <div className="bg-brand-bg/60 rounded-xl border border-brand-border p-3">
-                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide">Kisaran Wajar</p>
-                <p className="text-sm font-extrabold text-brand-text mt-0.5">
-                  {analysis.fairPriceRange.low ? formatCurrency(analysis.fairPriceRange.low) : '-'} – {analysis.fairPriceRange.median ? formatCurrency(analysis.fairPriceRange.median) : '-'}
-                </p>
+                <p className="text-sm font-extrabold text-brand-text mt-1">{formatCurrency(analysis.pricePerSqm)}</p>
               </div>
             )}
           </div>
@@ -479,7 +575,13 @@ export default function FairPriceAnalyzer({ property }) {
           )}
 
           {analysis.explanation && (
-            <p className="text-sm text-brand-muted leading-relaxed">{analysis.explanation}</p>
+            <div className="rounded-2xl bg-brand-bg/50 border border-brand-border p-4">
+              <p className="text-[11px] font-bold text-brand-muted uppercase tracking-wide flex items-center gap-1.5 mb-2">
+                <Sparkles size={12} className="text-brand-accent" />
+                Alasan Analisis
+              </p>
+              <p className="text-sm text-brand-text leading-relaxed">{analysis.explanation}</p>
+            </div>
           )}
         </div>
       )}
