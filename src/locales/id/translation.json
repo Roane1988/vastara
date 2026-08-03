@@ -175,6 +175,14 @@
       "premium_badge": "Premium",
       "apply": "Terapkan Filter"
     },
+    "save_search": {
+      "title": "Simpan pencarian ini",
+      "desc": "Kamu akan dapat notifikasi properti baru yang cocok dengan kriteria ini.",
+      "name_placeholder": "Nama pencarian (opsional)",
+      "save": "Simpan Alert",
+      "saved": "Pencarian berhasil disimpan!",
+      "close": "Tutup"
+    },
     "property_card": {
       "verified_legal": "Terverifikasi Legal",
       "seller_agent": "Dijual Agen",
@@ -589,5 +597,25 @@
     "login_title": "Masuk untuk Mengelola Profil Agen",
     "login_desc": "Anda perlu login ke akun HuniOne terlebih dahulu untuk mengelola profil agen Anda.",
     "login_button": "Masuk / Daftar Akun"
+  },
+  "saved_searches": {
+    "title": "Pencarian Tersimpan",
+    "subtitle": "Alert properti baru sesuai kriteriamu",
+    "empty_title": "Belum ada pencarian tersimpan",
+    "empty_desc": "Simpan pencarian dari halaman Explore untuk dapat notifikasi saat properti baru masuk.",
+    "empty_cta": "Cari Properti",
+    "all_properties": "Semua properti",
+    "chip_kt": "KT",
+    "new_badge": "baru sejak cek terakhir",
+    "paused": "Dijeda",
+    "matches": "properti cocok",
+    "last_checked": "Cek terakhir:",
+    "view_results": "Lihat Hasil",
+    "mark_checked": "Tandai Sudah Dicek",
+    "pause": "Jeda",
+    "resume": "Aktifkan",
+    "delete": "Hapus",
+    "delete_confirm": "Hapus pencarian ini? Alert tidak lagi berjalan.",
+    "show_all": "Lihat semua"
   }
 }

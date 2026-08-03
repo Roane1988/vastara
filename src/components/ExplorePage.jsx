@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart, Bell, Check } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
 import { useCompare } from '../hooks/useCompare'
+import { serializeFilters } from '../utils/savedSearch'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
 import CompareBar from './CompareBar'
@@ -81,6 +82,7 @@ export default function ExplorePage() {
   useSEO({ title: 'Cari Properti — Jual, Beli & Sewa', description: 'Temukan properti terbaik untuk dijual, disewa di HuniOne. Rumah, apartemen, villa, tanah, ruko dan lainnya.' })
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, showToast } = useAuth()
   const [saved, setSaved] = useState(getFavorites())
   const [showFilter, setShowFilter] = useState(false)
@@ -95,6 +97,9 @@ export default function ExplorePage() {
   const [properties, setProperties] = useState([])
   const [loadingProperties, setLoadingProperties] = useState(true)
   const [isSmartSearching, setIsSmartSearching] = useState(false)
+  const [saveName, setSaveName] = useState('')
+  const [savingSearch, setSavingSearch] = useState(false)
+  const [savedSearchOk, setSavedSearchOk] = useState(false)
   const cancelledRef = useRef(false)
   const listingRef = useRef(null)
   const searchInputRef = useRef(null)
@@ -149,6 +154,31 @@ export default function ExplorePage() {
     fetchProperties().catch(() => {})
     return () => { cancelledRef.current = true }
   }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    let changed = false
+    const setIf = (v) => v && v.length > 0
+    const q = params.get('q')
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (setIf(q)) { setSearchText(q); changed = true }
+    const type = params.get('type')
+    if (setIf(type)) { setFilterType(type); changed = true }
+    const price = params.get('price')
+    if (setIf(price)) { setFilterPrice(price); changed = true }
+    const beds = params.get('beds')
+    if (setIf(beds)) { setFilterBeds(beds); changed = true }
+    if (params.get('premium')) { setFilterPremium(true); changed = true }
+    const category = params.get('category')
+    if (category === 'dijual' || category === 'disewa' || category === 'baru') {
+      setSearchCategory(category)
+      changed = true
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+    if (changed) {
+      setTimeout(() => scrollToSearch(), 300)
+    }
+  }, [location.search])
 
   const SORT_OPTIONS = [
     t('explore.all_properties.sort_newest'),
@@ -268,6 +298,49 @@ export default function ExplorePage() {
   const toggleSave = async (id) => {
     const updated = await toggleFav(id)
     setSaved(updated)
+  }
+
+  async function handleSaveSearch() {
+    if (savingSearch) return
+    if (!user) {
+      showToast('Silakan login terlebih dahulu untuk menyimpan pencarian.', 'error')
+      return
+    }
+    const filters = serializeFilters({
+      searchCategory,
+      searchText,
+      filterType,
+      filterPrice,
+      filterBeds,
+      filterPremium,
+    })
+    const hasCriteria = Object.keys(filters).length > 0
+    const name = saveName.trim() || (hasCriteria ? searchText.trim() : 'Pencarian saya')
+
+    if (!hasCriteria && !saveName.trim()) {
+      showToast('Atur minimal satu kriteria pencarian dulu agar alert bermanfaat.', 'error')
+      return
+    }
+
+    setSavingSearch(true)
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
+        showToast('Sesi kamu sudah berakhir. Silakan login ulang.', 'error')
+        return
+      }
+      const { error } = await supabase
+        .from('saved_searches')
+        .insert({ user_id: authUser.id, name, filters })
+      if (error) throw error
+      setSavedSearchOk(true)
+      setSaveName('')
+      showToast('Pencarian disimpan! Kamu akan dapat notifikasi properti baru yang cocok.', 'success')
+    } catch (err) {
+      showToast(err.message || 'Gagal menyimpan pencarian. Coba lagi.', 'error')
+    } finally {
+      setSavingSearch(false)
+    }
   }
 
   const cycleSort = () => {
@@ -1004,6 +1077,57 @@ export default function ExplorePage() {
               >
                 {t('explore.filter.apply')}
               </button>
+
+              <div className="pt-5 mt-2 border-t border-brand-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Bell size={15} className="text-brand-accent shrink-0" />
+                  <p className="text-sm font-semibold text-brand-text">
+                    {t('explore.save_search.title')}
+                  </p>
+                </div>
+                <p className="text-xs text-brand-muted mb-3">
+                  {t('explore.save_search.desc')}
+                </p>
+                {savedSearchOk ? (
+                  <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-3 flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-emerald-700 flex items-center gap-1.5">
+                      <Check size={15} />
+                      {t('explore.save_search.saved')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setSavedSearchOk(false); setShowFilter(false) }}
+                      className="text-xs font-bold text-emerald-700 underline hover:text-emerald-800"
+                    >
+                      {t('explore.save_search.close')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={saveName}
+                      onChange={(e) => setSaveName(e.target.value)}
+                      placeholder={t('explore.save_search.name_placeholder')}
+                      maxLength={60}
+                      className="flex-1 min-w-0 rounded-xl bg-brand-bg border border-brand-border px-3 py-2.5 text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-accent placeholder:text-brand-muted"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveSearch}
+                      disabled={savingSearch}
+                      className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-brand-accent text-white px-3.5 py-2.5 text-sm font-bold hover:bg-brand-primary active:scale-[0.97] transition-all disabled:opacity-50"
+                    >
+                      {savingSearch ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Bell size={14} />
+                      )}
+                      {t('explore.save_search.save')}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </>

@@ -171,9 +171,17 @@
         "above_3b": "> Rp 3 B"
       },
       "bedrooms": "Bedrooms",
-      "premium": "Premium Listings",
+      "premium": "Premium Listing",
       "premium_badge": "Premium",
       "apply": "Apply Filter"
+    },
+    "save_search": {
+      "title": "Save this search",
+      "desc": "You'll be notified when new properties match these criteria.",
+      "name_placeholder": "Search name (optional)",
+      "save": "Save Alert",
+      "saved": "Search saved successfully!",
+      "close": "Close"
     },
     "property_card": {
       "verified_legal": "Verified Legal",
@@ -589,5 +597,25 @@
     "login_title": "Sign In to Manage Your Agent Profile",
     "login_desc": "You need to be signed in to your HuniOne account to manage your agent profile.",
     "login_button": "Sign In / Create Account"
+  },
+  "saved_searches": {
+    "title": "Saved Searches",
+    "subtitle": "Alerts for new properties matching your criteria",
+    "empty_title": "No saved searches yet",
+    "empty_desc": "Save a search from the Explore page to get notified when new properties are listed.",
+    "empty_cta": "Search Properties",
+    "all_properties": "All properties",
+    "chip_kt": "BR",
+    "new_badge": "new since last check",
+    "paused": "Paused",
+    "matches": "matching properties",
+    "last_checked": "Last checked:",
+    "view_results": "View Results",
+    "mark_checked": "Mark as Checked",
+    "pause": "Pause",
+    "resume": "Resume",
+    "delete": "Delete",
+    "delete_confirm": "Delete this search? The alert will stop running.",
+    "show_all": "Show all"
   }
 }

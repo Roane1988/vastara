@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useDragControls } from 'framer-motion'
-import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine } from 'lucide-react'
+import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine, TrendingUp, BellRing } from 'lucide-react'
 
 const SECTIONS = [
   {
@@ -22,6 +22,13 @@ const SECTIONS = [
       { label: 'Hotel', icon: Hotel, isNew: true },
       { label: 'Kost', icon: BedDouble, isNew: true },
       { label: 'Villa', icon: TreePine, isNew: true },
+    ],
+  },
+  {
+    title: 'Alat & Fitur',
+    items: [
+      { label: 'Tren Harga', icon: TrendingUp, path: '/price-trends', isNew: true },
+      { label: 'Pencarian Tersimpan', icon: BellRing, path: '/saved-searches', isNew: true },
     ],
   },
 ]
@@ -93,7 +100,7 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
                           <button
                             key={item.label}
                             type="button"
-                            onClick={() => { navigate('/coming-soon'); onClose() }}
+                            onClick={() => { navigate(item.path || '/coming-soon'); onClose() }}
                             className="flex flex-col items-center text-center p-2 rounded-xl hover:bg-brand-bg transition-all cursor-pointer"
                           >
                             <div className="relative w-12 h-12 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent shadow-sm shrink-0">

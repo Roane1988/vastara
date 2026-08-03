@@ -26,6 +26,8 @@ const ComingSoonPage = lazy(() => import('./components/ComingSoonPage'))
 const KprCalculatorPage = lazy(() => import('./components/KprCalculatorPage'))
 const ComparePage = lazy(() => import('./components/ComparePage'))
 const PriceDropPage = lazy(() => import('./components/PriceDropPage'))
+const PriceTrendPage = lazy(() => import('./components/PriceTrendPage'))
+const SavedSearchesPage = lazy(() => import('./components/SavedSearchesPage'))
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'))
 
 function PageLoader() {
@@ -108,6 +110,8 @@ function AppContent() {
               <Route path="/kpr" element={<KprCalculatorPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/price-drop" element={<PriceDropPage />} />
+              <Route path="/price-trends" element={<PriceTrendPage />} />
+              <Route path="/saved-searches" element={<ProtectedRoute isAuth={isAuth} location={location}><SavedSearchesPage /></ProtectedRoute>} />
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>

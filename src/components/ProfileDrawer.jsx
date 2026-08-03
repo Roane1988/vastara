@@ -16,6 +16,8 @@ import {
   Lock,
   Wallet,
   UserCheck,
+  BellRing,
+  TrendingUp,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import FinancialProfileForm from './FinancialProfileForm'
@@ -485,6 +487,22 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
         >
           <Home size={18} className="text-brand-primary shrink-0" />
           Iklan Saya
+        </button>
+        <button
+          type="button"
+          onClick={() => handleNavigate('/saved-searches')}
+          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors"
+        >
+          <BellRing size={18} className="text-brand-primary shrink-0" />
+          Pencarian Tersimpan
+        </button>
+        <button
+          type="button"
+          onClick={() => handleNavigate('/price-trends')}
+          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors"
+        >
+          <TrendingUp size={18} className="text-brand-primary shrink-0" />
+          Tren Harga
         </button>
         <button
           type="button"
