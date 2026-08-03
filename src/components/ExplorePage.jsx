@@ -25,7 +25,7 @@ const QUICK_MENU = [
   { icon: Megaphone, tKey: 'explore.quick_menu.advertise', path: '/sell-role' },
   { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/agents' },
   { icon: Calculator, tKey: 'explore.quick_menu.mortgage', path: '/kpr' },
-  { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/coming-soon' },
+  { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/price-drop' },
   { icon: MessageCircle, tKey: 'explore.quick_menu.forum', path: '/forum' },
   { icon: ArrowLeftRight, tKey: 'explore.quick_menu.refinance', path: '/coming-soon' },
   { icon: LayoutGrid, tKey: 'explore.quick_menu.more', drawer: true },

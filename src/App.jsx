@@ -25,6 +25,7 @@ const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const ComingSoonPage = lazy(() => import('./components/ComingSoonPage'))
 const KprCalculatorPage = lazy(() => import('./components/KprCalculatorPage'))
 const ComparePage = lazy(() => import('./components/ComparePage'))
+const PriceDropPage = lazy(() => import('./components/PriceDropPage'))
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'))
 
 function PageLoader() {
@@ -106,6 +107,7 @@ function AppContent() {
               <Route path="/coming-soon" element={<ComingSoonPage />} />
               <Route path="/kpr" element={<KprCalculatorPage />} />
               <Route path="/compare" element={<ComparePage />} />
+              <Route path="/price-drop" element={<PriceDropPage />} />
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
