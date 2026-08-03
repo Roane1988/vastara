@@ -662,7 +662,7 @@ export default function PropertyDetailPage() {
             <div>
               <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1">
                 <MapPinIcon />
-                <span>{displayAddress}</span>
+                <span>{locationText || displayAddress}</span>
               </div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-brand-text leading-tight">
                 {displayTitle}
@@ -717,17 +717,29 @@ export default function PropertyDetailPage() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-brand-text mb-0.5">{lang === 'en' ? 'Location' : 'Lokasi'}</p>
-                  <p className="text-sm text-brand-muted leading-relaxed">{displayAddress}</p>
+                  <p className="text-sm text-brand-muted leading-relaxed">{locationText || displayAddress}</p>
                 </div>
               </div>
               <a
-                href={`https://maps.google.com/?q=${encodeURIComponent([property.address, property.district, property.city].filter(Boolean).join(', '))}`}
+                href={`https://maps.google.com/?q=${encodeURIComponent(locationText || displayAddress)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-brand-primary hover:opacity-90 transition-opacity active:scale-[0.98]"
               >
-                {lang === 'en' ? 'View on map' : 'Lihat lokasi di peta'}
+                {lang === 'en' ? 'View area on map' : 'Lihat lokasi di peta'}
               </a>
+              {waLink && (
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={trackWaClick}
+                  className="mt-2.5 w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
+                >
+                  <WhatsAppIcon />
+                  {lang === 'en' ? 'Get full address via WhatsApp' : 'Dapatkan alamat lengkap'}
+                </a>
+              )}
             </div>
 
             <div>
