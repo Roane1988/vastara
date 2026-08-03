@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
+  AreaChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts'
+import {
   TrendingUp,
   Sparkles,
   RefreshCw,
@@ -21,7 +32,7 @@ import {
   Check,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
-import { formatCurrency } from '../utils/format'
+import { formatCurrency, formatCompact } from '../utils/format'
 import { getFinancialProfile, computeAffordability, maxAffordablePrice, BUYING_POWER_ASSUMPTION } from '../utils/financialProfile'
 import { getAuthHeaders } from '../utils/groqClient'
 
@@ -147,6 +158,134 @@ function Row({ label, value, valueClass }) {
     <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
       <span className="text-xs text-brand-muted">{label}</span>
       <span className={`text-xs font-semibold text-right text-brand-text ${valueClass || ''}`}>{value}</span>
+    </div>
+  )
+}
+
+function BreakEvenTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) return null
+  const rent = payload.find((p) => p.dataKey === 'cumulativeRent')?.value
+  const cost = payload.find((p) => p.dataKey === 'totalCost')?.value
+  return (
+    <div className="bg-white rounded-xl border border-brand-border shadow-lg px-3.5 py-2.5 text-xs">
+      <p className="font-bold text-brand-text mb-1.5">Tahun ke-{label}</p>
+      <p className="flex items-center gap-1.5 text-emerald-700">
+        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0" />
+        Akumulasi sewa: {formatCompact(rent)}
+      </p>
+      <p className="flex items-center gap-1.5 text-slate-500 mt-1">
+        <span className="w-3 border-t-2 border-dashed border-slate-400 inline-block shrink-0" />
+        Total biaya: {formatCompact(cost)}
+      </p>
+    </div>
+  )
+}
+
+function BreakEvenChart({ price, monthlyRentalEstimate, horizonYears }) {
+  const priceNum = Number(price) || 0
+  const monthlyRent = Number(monthlyRentalEstimate) || 0
+  const annualRent = monthlyRent * 12
+
+  if (priceNum <= 0 || annualRent <= 0) {
+    return (
+      <div className="rounded-2xl bg-brand-bg/50 border border-dashed border-brand-border p-5 text-center">
+        <Info size={22} className="mx-auto text-brand-muted/40 mb-2" />
+        <p className="text-sm font-semibold text-brand-text">Belum cukup data untuk proyeksi</p>
+        <p className="text-xs text-brand-muted mt-1 max-w-xs mx-auto leading-relaxed">
+          Butuh estimasi sewa bulanan dan harga properti agar grafik balik modal bisa dihitung.
+        </p>
+      </div>
+    )
+  }
+
+  const breakEven = priceNum / annualRent
+  const maxYears = Math.min(30, Math.max(horizonYears || 5, Math.ceil(breakEven * 1.2), 5))
+  const data = Array.from({ length: maxYears + 1 }, (_, i) => ({
+    year: i,
+    cumulativeRent: Math.round(annualRent * i),
+    totalCost: priceNum,
+  }))
+  const brokeEven = breakEven <= maxYears
+  const step = maxYears <= 10 ? 1 : 5
+  const ticks = Array.from({ length: Math.floor(maxYears / step) + 1 }, (_, i) => i * step)
+
+  return (
+    <div className="rounded-2xl bg-white border border-brand-border p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <p className="text-xs font-bold text-brand-text">Akumulasi sewa vs total biaya properti</p>
+        <div className="flex items-center gap-3 text-[10px] font-semibold text-brand-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
+            Sewa terakumulasi
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 border-t-2 border-dashed border-slate-400 inline-block" />
+            Total biaya
+          </span>
+        </div>
+      </div>
+
+      <div className="h-56 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+            <defs>
+              <linearGradient id="beRentFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity={0.22} />
+                <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E8EDF3" vertical={false} />
+            <XAxis
+              dataKey="year"
+              type="number"
+              domain={[0, maxYears]}
+              ticks={ticks}
+              tickFormatter={(v) => `${v}`}
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              tickLine={false}
+              axisLine={false}
+              label={{ value: 'tahun', position: 'insideBottomRight', offset: -2, fontSize: 9, fill: '#94a3b8' }}
+            />
+            <YAxis
+              tickFormatter={formatCompact}
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              tickLine={false}
+              axisLine={false}
+              width={62}
+            />
+            <Tooltip content={<BreakEvenTooltip />} />
+            <Line type="monotone" dataKey="totalCost" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
+            <Area type="monotone" dataKey="cumulativeRent" stroke="#10b981" strokeWidth={2.5} fill="url(#beRentFill)" />
+            {brokeEven && (
+              <ReferenceLine x={breakEven} stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 3" />
+            )}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className={`mt-3 rounded-xl px-3.5 py-2.5 flex items-start gap-2 border ${brokeEven ? 'bg-emerald-50/70 border-emerald-100' : 'bg-amber-50/70 border-amber-100'}`}>
+        {brokeEven ? (
+          <>
+            <Hourglass size={14} className="shrink-0 mt-0.5 text-emerald-600" />
+            <p className="text-xs text-emerald-800 leading-relaxed">
+              Dengan asumsi sewa <span className="font-bold">{formatCompact(monthlyRent)}</span>/bulan stabil tanpa biaya tambahan, biaya properti diperkirakan tertutup di{' '}
+              <span className="font-extrabold">tahun ke-{breakEven.toFixed(1)}</span>.
+            </p>
+          </>
+        ) : (
+          <>
+            <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-600" />
+            <p className="text-xs text-amber-800 leading-relaxed">
+              Dalam {maxYears} tahun, akumulasi sewa belum menutupi harga properti. Pertimbangkan apresiasi harga &amp; rencana jual kembali.
+            </p>
+          </>
+        )}
+      </div>
+
+      <p className="text-[10px] text-brand-muted/70 mt-2.5 flex items-start gap-1">
+        <Info size={11} className="shrink-0 mt-0.5" />
+        Model sederhana: hasil sewa tahunan × jumlah tahun dibandingkan harga properti. Tidak termasuk biaya KPR, pajak, perawatan, dan periode kosong.
+      </p>
     </div>
   )
 }
@@ -541,6 +680,19 @@ export default function InvestmentAnalyzer({ property }) {
                 value={analysis.breakEvenYears != null ? `${Number(analysis.breakEvenYears).toFixed(1)} tahun` : '-'}
               />
             </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.08 }}
+          >
+            <SectionLabel icon={<Hourglass size={13} />}>Proyeksi Balik Modal</SectionLabel>
+            <BreakEvenChart
+              price={property?.price}
+              monthlyRentalEstimate={analysis.monthlyRentalEstimate}
+              horizonYears={horizonYears}
+            />
           </motion.div>
 
           {buyingPower != null && property?.price > 0 && (

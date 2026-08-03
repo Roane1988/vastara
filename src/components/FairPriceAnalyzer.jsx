@@ -13,9 +13,10 @@ import {
   Database,
   ArrowDownRight,
 } from 'lucide-react'
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { formatCurrency } from '../utils/format'
+import { formatCurrency, formatCompact } from '../utils/format'
 import { getAuthHeaders } from '../utils/groqClient'
 import { computeMarketStats, verdictFromMarket } from '../utils/fairPrice'
 
@@ -88,6 +89,120 @@ const CONF_STYLES = {
   Tinggi: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   Sedang: 'bg-amber-50 text-amber-700 border-amber-200',
   Rendah: 'bg-gray-100 text-gray-600 border-gray-200',
+}
+
+function ComparableTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) return null
+  const v = payload[0].value
+  return (
+    <div className="bg-white rounded-xl border border-brand-border shadow-lg px-3.5 py-2.5 text-xs">
+      <p className="font-bold text-brand-text mb-1">{label}</p>
+      <p className="text-brand-muted">{formatCompact(v)} / m²</p>
+      {label === 'Properti ini' && (
+        <p className="text-[10px] text-brand-accent mt-0.5 font-semibold">Harga target</p>
+      )}
+    </div>
+  )
+}
+
+function ComparableChart({ comparables, market }) {
+  const targetPsqm = market?.targetPricePerSqm
+  const medianPsqm = market?.medianPricePerSqm
+  const deltaPct = market?.deltaPct
+
+  const rows = (comparables || [])
+    .map((c) => {
+      const price = Number(c?.price)
+      const area = Number(c?.area_sqm || c?.sqm)
+      if (!price || price <= 0 || !area || area <= 0) return null
+      return { label: c.district || c.city || 'Area lain', psqm: Math.round(price / area) }
+    })
+    .filter(Boolean)
+
+  if (rows.length < 2 || !targetPsqm) {
+    return (
+      <div className="rounded-2xl bg-brand-bg/50 border border-dashed border-brand-border p-4 text-center">
+        <Info size={20} className="mx-auto text-brand-muted/40 mb-2" />
+        <p className="text-xs font-semibold text-brand-text">Belum cukup data pembanding</p>
+        <p className="text-[11px] text-brand-muted mt-1 max-w-xs mx-auto leading-relaxed">
+          Perlu minimal 2 properti pembanding dengan luas area untuk membandingkan harga per m².
+        </p>
+      </div>
+    )
+  }
+
+  const chartData = [...rows, { label: 'Properti ini', psqm: targetPsqm, target: true }]
+  const domainMax = Math.max(...chartData.map((d) => d.psqm), 1)
+
+  return (
+    <div className="rounded-2xl bg-white border border-brand-border p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <p className="text-xs font-bold text-brand-text">Sebaran harga pembanding (per m²)</p>
+        <div className="flex items-center gap-3 text-[10px] font-semibold text-brand-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm bg-[#CBD5E1] inline-block" />
+            Pembanding
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm bg-[#2E86DE] inline-block" />
+            Properti ini
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 border-t-2 border-dashed border-amber-500 inline-block" />
+            Median pasar
+          </span>
+        </div>
+      </div>
+
+      <div className="h-56 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E8EDF3" horizontal={false} />
+            <XAxis
+              type="number"
+              domain={[0, domainMax]}
+              tickFormatter={formatCompact}
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              type="category"
+              dataKey="label"
+              width={94}
+              tick={{ fontSize: 10, fill: '#64748b' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip content={<ComparableTooltip />} />
+            {medianPsqm != null && (
+              <ReferenceLine x={medianPsqm} stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 3" />
+            )}
+            <Bar dataKey="psqm" radius={[0, 6, 6, 0]} barSize={18} isAnimationActive={false}>
+              {chartData.map((d, i) => (
+                <Cell key={i} fill={d.target ? '#2E86DE' : '#CBD5E1'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {deltaPct != null && (
+        <div className="mt-3 rounded-xl bg-brand-bg/60 border border-brand-border px-3.5 py-2.5 flex items-start gap-2">
+          <Scale size={14} className="shrink-0 mt-0.5 text-brand-accent" />
+          <p className="text-xs text-brand-muted leading-relaxed">
+            Harga properti ini <span className={`font-bold ${deltaPct > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{deltaPct > 0 ? 'lebih tinggi' : 'lebih rendah'} {Math.abs(deltaPct)}%</span>{' '}
+            dari median pasar {medianPsqm != null ? `(${formatCompact(medianPsqm)}/m²)` : ''}.
+          </p>
+        </div>
+      )}
+
+      <p className="text-[10px] text-brand-muted/70 mt-2.5 flex items-start gap-1">
+        <Info size={11} className="shrink-0 mt-0.5" />
+        Nilai dihitung dari harga dibagi luas (Rp/m²) properti pembanding terverifikasi di area serupa. Garis putus-putus = median pasar.
+      </p>
+    </div>
+  )
 }
 
 export default function FairPriceAnalyzer({ property }) {
@@ -261,6 +376,12 @@ export default function FairPriceAnalyzer({ property }) {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {!loadingMarket && (
+        <div className="mt-4">
+          <ComparableChart comparables={comparables} market={market} />
         </div>
       )}
 

@@ -25,6 +25,15 @@ export function formatShort(value) {
   return formatCurrency(value)
 }
 
+export function formatCompact(value) {
+  const num = Number(value)
+  if (value == null || isNaN(num) || !Number.isFinite(num)) return ''
+  if (Math.abs(num) >= 1_000_000_000) return `Rp${(num / 1_000_000_000).toFixed(1)}M`
+  if (Math.abs(num) >= 1_000_000) return `Rp${(num / 1_000_000).toFixed(0)}Jt`
+  if (Math.abs(num) >= 1_000) return `Rp${(num / 1_000).toFixed(0)}rb`
+  return `Rp${Math.round(num)}`
+}
+
 export function formatPriceDisplay(property) {
   if (property?.priceDisplay) return property.priceDisplay
   const isRent = property?.category === 'Disewa' || property?.typeLabel === 'Disewa'
