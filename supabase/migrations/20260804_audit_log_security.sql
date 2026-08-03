@@ -27,6 +27,7 @@ create table if not exists public.audit_logs (
 );
 
 alter table public.audit_logs
+  add column if not exists admin_name text,
   add column if not exists action_type text,
   add column if not exists ip_address text,
   add column if not exists user_agent text;

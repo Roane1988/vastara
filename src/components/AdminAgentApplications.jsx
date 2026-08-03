@@ -67,13 +67,20 @@ export default function AdminAgentApplications() {
 
   async function insertAuditLog(actionType, targetId, targetDetail) {
     try {
-      await supabase.rpc('record_audit', {
+      const { error } = await supabase.rpc('record_audit', {
         p_action_type: actionType,
         p_target_type: 'agent_application',
         p_target_id: targetId,
         p_target_detail: targetDetail,
       })
-    } catch { /* audit must never block */ }
+      if (error) {
+        console.warn('Audit gagal dicatat:', error.message)
+        showToast('Audit gagal dicatat: ' + error.message, 'error')
+      }
+    } catch (err) {
+      console.warn('Audit gagal dicatat:', err.message)
+      showToast('Audit gagal dicatat: ' + err.message, 'error')
+    }
   }
 
   async function handleApprove(id) {

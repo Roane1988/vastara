@@ -41,6 +41,12 @@ function isFilled(value) {
   return String(value == null ? '' : value).trim() !== ''
 }
 
+function isNetworkError(e) {
+  const msg = String(e?.message || '').toLowerCase()
+  return e instanceof TypeError
+    || /load failed|failed to fetch|networkerror|network request failed/i.test(msg)
+}
+
 function dsrStyle(dsr) {
   if (dsr == null) return { color: 'text-brand-muted', bar: 'bg-brand-muted', message: '' }
   if (dsr <= 30) return { color: 'text-emerald-600', bar: 'bg-emerald-500', message: 'Sehat — cicilan masih di bawah 30% pendapatan' }
@@ -155,7 +161,11 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
       onSaved?.(data)
       window.dispatchEvent(new Event('financial-profile-saved'))
     } catch (e) {
-      setError(e.message || 'Terjadi kesalahan. Coba lagi.')
+      if (isNetworkError(e)) {
+        setError('Gagal terhubung ke server. Periksa koneksi internet kamu lalu coba lagi.')
+      } else {
+        setError(e.message || 'Terjadi kesalahan. Coba lagi.')
+      }
     } finally {
       setSaving(false)
     }
