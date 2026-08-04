@@ -26,7 +26,7 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 | `/my-listings` | MyListingsPage | Ya | Edit & **Tandai Terjual** (verified→sold), status timeline **vertikal di mobile** (tidak terpotong), card sold diredupkan + catatan "Iklan telah ditandai terjual", **tab Leads** (`whatsapp_leads` per listing) |
 | `/chat` | ChatHubPage (realtime DM) | Tidak (login prompt) | ArrowLeft lucide icon |
 | `/forum` | ForumPage | Tidak | hero stats, category pills, sort tabs, search + filter tag via `?tag=` |
-| `/forum/:id` | ForumDetailPage | Tidak | views counter, reactions, poll, best answer, AI summarize, related threads, share |
+| `/forum/:id` | ForumDetailPage | Tidak | views counter, reactions, poll, best answer, related threads, share |
 | `/property/:id` | PropertyDetailPage | Tidak | **mobile bottom price bar (sticky)**, **spec tiles** (KT/KM/luas/sertifikat), **map card**, harga di sidebar desktop, Properti Serupa, KPR simulator, lightbox gallery, **share → toast sukses/gagal**, **alamat area-only + gate alamat lengkap via kontak agent** |
 | `/admin` | AdminDashboardPage | Ya (admin only) | **5-tab** (Overview/**Agen**/**Harga**/Users/Audit Trail), preview modal, konfirmasi sebelum verify/survei/bulk + **undo**, soft reject, pagination, realtime, filter **Terjual** |
 | `/kpr` | KprCalculatorPage | Tidak | amortization table, biaya tambahan |

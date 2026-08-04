@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import {
   ArrowLeft, Send, MessageCircle, Trash2, X, Edit3, Check, AlertTriangle,
-  Eye, Share2, Sparkles, CheckCircle2, BarChart2,
+  Eye, Share2, CheckCircle2, BarChart2,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getAvatarColor, getInitials } from '../utils/avatar'
@@ -12,7 +12,6 @@ import { timeAgo } from '../utils/time'
 import { formatCount } from '../utils/format'
 import ConfirmModal from './ConfirmModal'
 import Markdown from './Markdown'
-import { getAuthHeaders } from '../utils/groqClient'
 
 const REACTIONS = ['👍', '❤️', '🔥', '💡']
 
@@ -96,9 +95,6 @@ export default function ForumDetailPage() {
   const [editPostContent, setEditPostContent] = useState('')
   const [editingPostSubmitting, setEditingPostSubmitting] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
-  const [summary, setSummary] = useState(null)
-  const [summaryError, setSummaryError] = useState('')
-  const [summarizing, setSummarizing] = useState(false)
   const [relatedPosts, setRelatedPosts] = useState([])
   const [votes, setVotes] = useState({ count: 0, byIndex: {}, userIndex: null })
   const replyInputRef = useRef(null)
@@ -478,34 +474,6 @@ export default function ForumDetailPage() {
     window.open(wa, '_blank', `width=${width},height=${height},left=${(window.innerWidth - width) / 2},top=${(window.innerHeight - height) / 2}`)
   }
 
-  async function handleSummarize() {
-    if (summarizing) return
-    setSummarizing(true)
-    setSummary(null)
-    setSummaryError('')
-    try {
-      const excerpt = replies
-        .map((r) => `- ${r.profiles?.first_name || 'Anonymous'}: ${r.content.replace(/<!--.*?-->/g, '').trim().slice(0, 220)}`)
-        .join('\n')
-      const prompt = `Ringkas diskusi forum properti berikut dalam 4-5 poin penting berbahasa Indonesia (padat, tanpa basa-basi).\n\nJudul: ${post.title}\nKonten: ${post.content}\n\nBalasan:\n${excerpt || '- (belum ada balasan)'}`
-      const res = await fetch('/api/groq', {
-        method: 'POST',
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ model: 'openai/gpt-oss-120b', purpose: 'chat', messages: [{ role: 'user', content: prompt }] }),
-      })
-      const data = await res.json()
-      const text = data?.choices?.[0]?.message?.content
-      if (text) {
-        setSummary(text)
-      } else {
-        setSummaryError(data?.error?.message || 'Gagal membuat ringkasan. Coba lagi nanti.')
-      }
-    } catch {
-      setSummaryError('Gagal membuat ringkasan. Coba lagi nanti.')
-    }
-    setSummarizing(false)
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
@@ -730,43 +698,7 @@ export default function ForumDetailPage() {
         )}
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-brand-text">{replies.length} {t('forum.reply')}</h2>
-            <button
-              type="button"
-              onClick={handleSummarize}
-              disabled={summarizing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/15 transition-colors disabled:opacity-50"
-            >
-              <Sparkles size={13} />
-              {summarizing ? t('forum.summarizing') : t('forum.summarize')}
-            </button>
-          </div>
-
-          {summarizing && (
-            <div className="bg-gradient-to-br from-brand-accent/10 to-brand-bg rounded-2xl border border-brand-accent/20 p-4">
-              <div className="flex items-center gap-2 text-xs font-bold text-brand-accent">
-                <Sparkles size={14} className="animate-pulse" />
-                {t('forum.summarizing')}...
-              </div>
-            </div>
-          )}
-
-          {summaryError && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-xs text-red-700">
-              {summaryError}
-            </div>
-          )}
-
-          {summary && (
-            <div className="bg-gradient-to-br from-brand-accent/10 to-brand-bg rounded-2xl border border-brand-accent/20 p-4">
-              <div className="flex items-center gap-2 text-xs font-bold text-brand-accent mb-2">
-                <Sparkles size={14} />
-                {t('forum.summarize')}
-              </div>
-              <Markdown content={summary} />
-            </div>
-          )}
+          <h2 className="text-sm font-bold text-brand-text">{replies.length} {t('forum.reply')}</h2>
 
           {replies.length === 0 ? (
             <div className="text-center py-12 bg-brand-surface/50 rounded-2xl border border-dashed border-brand-border">
