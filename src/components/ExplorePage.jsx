@@ -15,6 +15,7 @@ import { serializeFilters } from '../utils/savedSearch'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
 import CompareBar from './CompareBar'
+import PopularSearches from './PopularSearches'
 import { getFinancialProfile } from '../utils/financialProfile'
 import { getAuthHeaders } from '../utils/groqClient'
 
@@ -40,33 +41,6 @@ const PROPERTY_TYPE_OPTIONS = [
   { value: 'Ruko', tKey: 'explore.filter.property_types.ruko' },
 ]
 
-const POPULAR_SEARCHES = [
-  {
-    title: 'Rekomendasi Hunian Nyaman Dekat Kampus',
-    query: 'kost',
-    tags: ['Kos Eksklusif', 'Apartemen', 'BSD', 'Budget Mahasiswa'],
-    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    title: 'Kost Jakarta Nyaman dan Strategis',
-    query: 'jakarta',
-    tags: ['Kost', 'Jakarta', 'Fasilitas Lengkap'],
-    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    title: 'Cluster Mewah dengan Fasilitas Premium',
-    query: 'bsd',
-    tags: ['Cluster', 'Mewah', 'BSD City', 'Diskon 10%'],
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    title: 'Ruko & Ruang Usaha Strategis BSD',
-    query: 'ruko',
-    tags: ['Ruko', 'Kantor', 'BSD Central', 'Komersial'],
-    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
-  },
-]
-
 function PropertyCardSkeleton() {
   return (
     <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden">
@@ -88,7 +62,6 @@ export default function ExplorePage() {
   const location = useLocation()
   const { user, showToast } = useAuth()
   const [saved, setSaved] = useState(getFavorites())
-  const [popularSearches, setPopularSearches] = useState(POPULAR_SEARCHES)
   const [showFilter, setShowFilter] = useState(false)
   const [filterPrice, setFilterPrice] = useState('')
   const [filterType, setFilterType] = useState('')
@@ -711,52 +684,7 @@ export default function ExplorePage() {
       )}
 
       {/* ─── PENCARIAN PROPERTI POPULER ─── */}
-      <section className="max-w-7xl mx-auto px-4 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-brand-text">
-            {t('explore.popular_searches.title')}
-          </h2>
-          <button
-            type="button"
-            onClick={() => setPopularSearches((prev) => [...prev].sort(() => Math.random() - 0.5))}
-            className="text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors"
-          >
-            {t('explore.popular_searches.shuffle')}
-          </button>
-        </div>
-        <div className="flex flex-col gap-4">
-          {popularSearches.map((item) => (
-            <Link
-              key={item.title}
-              to={`/explore?q=${encodeURIComponent(item.query)}`}
-              className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden flex items-stretch group"
-            >
-              <div className="w-24 sm:w-32 shrink-0 overflow-hidden">
-                <img loading="lazy"
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center">
-                <h3 className="text-sm sm:text-base font-bold text-brand-text group-hover:text-brand-accent transition-colors">
-                  {item.title}
-                </h3>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {item.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-[10px] font-medium text-brand-muted bg-brand-bg px-2 py-0.5 rounded-full border border-brand-border"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <PopularSearches />
 
       {showFinBanner && user && (
         <div className="max-w-7xl mx-auto px-4 mb-8">
