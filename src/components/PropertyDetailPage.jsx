@@ -263,9 +263,9 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
   return (
     <div className="lg:hidden">
       <div className="relative aspect-[4/3] overflow-hidden select-none" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown}>
-        <div className="flex h-full" style={{ transform: `translateX(calc(-${current * 100}% + ${swipeOffset}px))`, transition: swipeOffset !== 0 ? 'none' : 'transform 0.3s ease-out' }}>
+        <div className="flex w-full h-full" style={{ transform: `translateX(calc(-${current * 100}% + ${swipeOffset}px))`, transition: swipeOffset !== 0 ? 'none' : 'transform 0.3s ease-out' }}>
           {galleryImages.map((url, i) => (
-            <div key={i} className="min-w-full h-full shrink-0">
+            <div key={i} className="w-full h-full flex-none">
               <img loading={i === 0 ? 'eager' : 'lazy'} src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" draggable={false} />
             </div>
           ))}
