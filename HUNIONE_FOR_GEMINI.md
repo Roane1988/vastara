@@ -1,6 +1,6 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 2 Agustus 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 18 Agustus 2026.
 
 ## Tech Stack
 - **React 19 + Vite 8** — JavaScript (JSX)
@@ -15,23 +15,25 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 ## Routes
 | Path | Component | Auth | Notes |
 |---|---|---|---|
-| `/` atau `/explore` | ExplorePage | Tidak | filter by status='verified', back-to-top button, lazy loading images, **Cari Properti** scroll & fokus ke kotak pencarian, quick menu "Cari Agen" → `/agent-apply` |
+| `/` atau `/explore` | ExplorePage | Tidak | filter by status='verified', back-to-top button, lazy loading images, **Cari Properti** scroll & fokus ke kotak pencarian, quick menu "Cari Agen" → `/agent-apply`, **pencarian populer & tombol Acak → filter nyata via `?q=`** (bukan dead-end), empty state "Belum ada properti" saat kosong |
 | `/login` | MinimalistLogin | Tidak | |
 | `/sell-role` | RoleSelectionPage | Ya | onboarding pilih peran sebelum iklan properti |
-| `/agent-apply` | AgentApplicationPage | Tidak (publik) | form pendaftaran agen eksternal → insert `agent_applications` |
-| `/agents` | AgentsPage | Tidak | direktori agen publik (Top Agent, search, filter region, sort) |
+| `/agent-apply` | AgentApplicationPage | **Ya (login)** | form pendaftaran agen → insert `agent_applications` dengan `user_id` (20260802 — tidak lagi publik) |
+| `/agents` | AgentsPage | Tidak | direktori agen publik (Top Agent, search, filter region, sort); **tombol Chat → `/chat?user=ID`** |
 | `/agents/:id` | AgentDetailPage | Tidak | profil agen + listing + ulasan pembeli |
 | `/agent-profile` | AgentProfilePage | Ya (agen) | kelola profil direktori agen sendiri (toggle `is_visible`, bio, dll) |
 | `/sell` | SellPropertyPage (3-step) | Ya | + edit via `?edit=ID`, beforeunload guard, draft autosave |
-| `/my-listings` | MyListingsPage | Ya | Edit & **Tandai Terjual** (verified→sold), status timeline **vertikal di mobile** (tidak terpotong), card sold diredupkan + catatan "Iklan telah ditandai terjual" |
-| `/saved` | SavedPropertiesPage | Ya | sync from DB via `saved_properties` table |
+| `/my-listings` | MyListingsPage | Ya | Edit & **Tandai Terjual** (verified→sold), status timeline **vertikal di mobile** (tidak terpotong), card sold diredupkan + catatan "Iklan telah ditandai terjual", **tab Leads** (`whatsapp_leads` per listing) |
 | `/chat` | ChatHubPage (realtime DM) | Tidak (login prompt) | ArrowLeft lucide icon |
 | `/forum` | ForumPage | Tidak | hero stats, category pills, sort tabs, search + filter tag via `?tag=` |
 | `/forum/:id` | ForumDetailPage | Tidak | views counter, reactions, poll, best answer, AI summarize, related threads, share |
-| `/property/:id` | PropertyDetailPage | Tidak | Properti Serupa, KPR simulator, lightbox gallery |
-| `/admin` | AdminDashboardPage | Ya (admin only) | **4-tab** (Overview/Users/Audit/**Agen**), preview modal, konfirmasi sebelum verify/survei/bulk + **undo**, soft reject, pagination, realtime, filter **Terjual** |
+| `/property/:id` | PropertyDetailPage | Tidak | **mobile bottom price bar (sticky)**, **spec tiles** (KT/KM/luas/sertifikat), **map card**, harga di sidebar desktop, Properti Serupa, KPR simulator, lightbox gallery, **share → toast sukses/gagal**, **alamat area-only + gate alamat lengkap via kontak agent** |
+| `/admin` | AdminDashboardPage | Ya (admin only) | **5-tab** (Overview/**Agen**/**Harga**/Users/Audit Trail), preview modal, konfirmasi sebelum verify/survei/bulk + **undo**, soft reject, pagination, realtime, filter **Terjual** |
 | `/kpr` | KprCalculatorPage | Tidak | amortization table, biaya tambahan |
 | `/compare` | ComparePage | Tidak | bandingkan max 3 properti + affordability dari financial profile |
+| `/price-drop` | PriceDropPage | Tidak | properti yang baru turun harga (dari `price_history`/`price_change_status`) |
+| `/price-trends` | PriceTrendPage | Tidak | tren harga per kota/kategori/tipe (2×60 hari) |
+| `/saved-searches` | SavedSearchesPage | Ya | kelola alert pencarian tersimpan (`saved_searches`) |
 | `*` | NotFoundPage | Tidak | wildcard route, bukan redirect |
 | `/coming-soon` | ComingSoonPage | Tidak | |
 
@@ -55,6 +57,9 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 - Dynamic EN translation via `batchTranslate()`
 - **Quick menu "Cari Properti"**: `scrollIntoView` ke kotak pencarian lalu auto-focus input (bukan redirect lagi)
 - **Quick menu "Cari Agen"**: navigasi ke `/agent-apply`
+- **Pencarian populer** (chip "rumah bandung", "apartemen jakarta", dll): mengisi query lalu menavigasi ke `/explore?q=...` — filter nyata (bukan dead-end)
+- **Tombol Acak (Shuffle)**: benar-benar mengacak urutan daftar properti
+- **Empty state**: saat tidak ada properti verified, tampil "Belum ada properti" + CTA jual (fallback `DUMMY_PROPERTIES` dihapus)
 - **RecentlyViewed** (`<RecentlyViewed />`): kartu horizontal properti yang terakhir dilihat
 - **CompareBar** (`<CompareBar />`): floating bar bottom saat ada item di keranjang banding
 
@@ -64,6 +69,11 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 - **KprSimulator**: mortgage calculator
 - **Properti Serupa**: grid 6 item, filter by category/city, exclude current ID, limit 6, status='verified'
 - **Accordion**: Panduan Membeli + Disclaimer
+- **UI/UX detail (b1dda98)**: **mobile bottom price bar** (sticky di bawah layar), **spec tiles** (KT/KM/luas/sertifikat), **map card**, harga terpajang di **sidebar desktop**
+- **Share**: tombol bagikan → toast sukses/gagal (diambil dari `useAuth`)
+- **Privasi lokasi (da8f6ca)**: alamat tampil **area-level saja** (kota/kecamatan); alamat lengkap di-gate di belakang kontak agent → dibuka via WhatsApp
+- **Jadwal Survei (3428e59)**: form simpan ke `site_visits` + buka WhatsApp pre-filled tanggal/jam + tombol "Lanjut ke WhatsApp" (hybrid — bukan cuma buka WA)
+- **WhatsApp Leads (20260816)**: klik "Hubungi via WhatsApp" → catat ke tabel `whatsapp_leads` (property+seller+buyer)
 - Dynamic EN translation via `useGroqTranslation` hook
 - Lazy loading images
 
@@ -85,9 +95,10 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 - ArrowLeft icon dari lucide-react (bukan custom SVG)
 
 ### 7. Admin Dashboard
-- **4-tab**: Overview (analytics + pending table), Users (role management via dropdown), Audit (log trail), **Agen** (review pendaftaran agent eksternal)
+- **5-tab**: Overview (analytics + pending table), **Agen** (review pendaftaran agent eksternal), **Harga** (antrian perubahan harga — AdminPriceChangeQueue), Users (role management via dropdown), Audit Trail (log)
 - **AdminDashboardPage enhancements**: preview modal (gallery, inline property info), reject modal (required reason → `audit_logs`), soft delete (status='rejected' + restore button), **konfirmasi modal sebelum Setujui/Survei/Bulk verify** + **tombol Undo di toast** (mengembalikan status ke kondisi sebelumnya), filter tabs (Semua/Pending/Survei/Terverifikasi/**Terjual**/Ditolak), status `'sold'` dikenali (label **"Terjual"**, badge abu-abu, aksi **"Aktifkan Lagi"** → pending), bulk verify (checkboxes), pagination (10/page), thumbnails di table, search input, realtime subscription (INSERT/UPDATE on properties)
-- **AdminAgentApplications**: daftar pendaftaran calon agen (`agent_applications`) dengan filter Pending/Disetujui/Ditolak/Semua, tombol **Setujui** (→ status approved + trigger update role profil ke 'agent' + isi `agent_profiles`) dan **Tolak** (wajib alasan → `reject_reason`, ConfirmModal + textarea), catat `audit_logs` (`approve_agent`/`reject_agent`, target_type `agent_application`)
+- **AdminAgentApplications**: daftar pendaftaran calon agen (`agent_applications`) dengan filter Pending/Disetujui/Ditolak/Semua, tombol **Setujui** (→ status approved + trigger update role profil ke 'agent' + isi `agent_profiles`) dan **Tolak** (wajib alasan → `reject_reason`, ConfirmModal + textarea), catat `audit_logs` (`approve_agent`/`reject_agent`, target_type `agent_application`); admin bisa **hapus** aplikasi menggantung (20260808)
+- **AdminPriceChangeQueue**: antrian perubahan harga di luar ambang 15% — admin bisa **setujui/tolak** (`approve_price_change`/`reject_price_change`), properti yang ditahan tetap menampilkan harga lama dengan status `price_change_status='pending'`
 - **ConfirmModal**: props `danger`, `icon`, `children`, `confirmDisabled`
 - **AdminAnalyticsCards**: 4 metric cards (verified/pending/totalUsers/agentCount) — hanya status exact, tidak terpengaruh status baru
 - **AdminAuditLog**: 100 recent entries
@@ -126,16 +137,17 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 - **RecentlyViewed** (di ExplorePage): kartu horizontal `w-40` dengan **hapus per-item** (X), **hapus semua** (Trash2), **scroll kiri/kanan** (desktop), **label waktu** "Dilihat {timeAgo}", **tombol compare** per kartu (toggle + toast max), live sync via `storage` + `recently-viewed-changed`, i18n
 - `PropertyDetailPage` memanggil `addRecentlyViewed(property)` saat properti dimuat
 
-### 11. Pendaftaran Agen Publik
-- **AgentApplicationPage** (`/agent-apply`, publik tanpa login): form full_name, email, whatsapp (wajib), agency, experience (<1/1-3/3-5/5+ tahun), region, portfolio, **checkbox persetujuan** (wajib), info review 3-langkah. Submit → insert `agent_applications` (status default 'pending'), tampil success state. `useSEO` title/description.
-- **AdminAgentApplications** di dashboard admin tab **Agen**: list + filter + approve/reject (lihat bagian 7).
-- Approval mengaktifkan **trigger** `handle_agent_approval()` yang otomatis update `profiles.role = 'agent'` untuk user dengan email yang sama (kecuali admin).
+### 11. Pendaftaran Agen
+- **AgentApplicationPage** (`/agent-apply`, **wajib login — 20260802**): form full_name, email, whatsapp (wajib), agency, experience (<1/1-3/3-5/5+ tahun), region, portfolio, **checkbox persetujuan** (wajib), info review 3-langkah. Submit → insert `agent_applications` dengan `user_id` (RLS `user_id = auth.uid()`) + status default 'pending', tampil success state. `useSEO` title/description.
+- **AdminAgentApplications** di dashboard admin tab **Agen**: list + filter + approve/reject/hapus (lihat bagian 7).
+- Approval mengaktifkan **trigger** `handle_agent_approval()` yang otomatis update `profiles.role = 'agent'` untuk profil dengan `user_id` yang sama (fallback email), kecuali admin.
 
 ### 12. Favorites (Saved Properties)
 - **Sync ke database**: table `saved_properties` (user_id, property_id, unique constraint)
 - **utils/favorites.js**: `setSupabase(client)`, `async initFavorites(userId)` load from DB, `async toggleFavorite(id)` write localStorage + Supabase in background
 - **AuthContext**: panggil `setSupabase()` on mount, `initFavorites()` on auth state change
-- **SavedPropertiesList.jsx** (shared): daftar properti favorit reusable dengan skeleton, fallback ke `DUMMY_PROPERTIES` saat fetch gagal — dipakai HamburgerMenu & ProfileDrawer
+- **Fix DB (20260818)**: trigger `set_saved_property_owner()` mengisi `user_id = auth.uid()` otomatis — klien (`favorites.js:49`) insert hanya `{ property_id }`, tanpa trigger insert selalu gagal (kolom NOT NULL + RLS). **Smoke test: favorit kini tersimpan di DB**.
+- **SavedPropertiesList.jsx** (shared): daftar properti favorit reusable dengan skeleton (fallback `DUMMY_PROPERTIES` dihapus) — dipakai HamburgerMenu & ProfileDrawer. **Halaman `/saved` dihapus** (SavedPropertiesPage.jsx dibuang) — favorit diakses via drawer.
 
 ### 13. Navigasi (HamburgerMenu / SlideOver)
 - **HamburgerMenu rewrite**: a11y (role/aria, keyboard), i18n penuh, pakai **SavedPropertiesList** shared (bukan fetch duplikat)
@@ -152,6 +164,23 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 - Approval aplikasi agen (tab Agen di admin) otomatis: role profil → `agent` + isi `agent_profiles` (trigger `handle_agent_approval`)
 - Statistik performa via **view `agent_stats`** (listing verified, premium, visits, rating, review_count)
 
+### 15. WhatsApp Leads
+- **Tabel `whatsapp_leads` (20260816)**: `property_id`, `seller_id`, `buyer_id` (nullable — lead fire-and-forget), `created_at`
+- **Sumber**: klik "Hubungi via WhatsApp" di `PropertyDetailPage` (`buyer_id: user?.id || null`)
+- **Tampilan**: seller lihat di **Iklan Saya → tab Leads** (`MyListingsPage`), admin lihat di **AdminDashboardPage**
+- **RLS (20260818)**: INSERT **wajib login** (`auth.uid() is not null` — cegah spam anonim); SELECT seller utk properti sendiri + admin
+
+### 16. Saved Searches (Alert Pencarian)
+- **Tabel `saved_searches` (20260817)**: `user_id`, `name`, `filters` (jsonb), `active`, `last_checked_at`
+- **SavedSearchesPage** (`/saved-searches`): simpan kriteria pencarian, toggle aktif/pause, hapus; `SavedSearchAlertsContext` menghitung "properti baru sejak cek terakhir" vs `properties` verified
+- RLS: owner-only (select/insert/update/delete)
+
+### 17. Price Drop & Price Trends
+- **Guard harga (20260816)**: trigger `guard_property_price_change()` — seller boleh ubah harga **≤ 15%** langsung jadi (tercatat `price_history`); perubahan **> 15%** ditahan → `price_requested` + `price_change_status='pending'` menunggu persetujuan admin (tab **Harga** di admin)
+- **`properties.original_price`** = harga tertinggi tercatat (baseline % penurunan), backfilled saat migrasi
+- **PriceDropPage** (`/price-drop`): properti verified dengan penurunan harga
+- **PriceTrendPage** (`/price-trends`): tren harga per kota/kategori/tipe (bandingkan 60 hari terakhir vs 60 hari sebelumnya)
+
 ## Database Supabase
 
 ### Table `properties`
@@ -161,11 +190,13 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 - `bedrooms`, `bathrooms`, `area_sqm` (bukan `sqm`)
 - `image_url` (text — single URL or JSON.stringify([...]))
 - `seller_whatsapp`, `status` ('pending'/'in_review'/'verified'/'rejected'/'sold'), `created_at`
-- **TIDAK ada kolom** `agent_id`, `is_verified`, `gmaps_link` — mekanisme status murni via kolom `status`; penjual via `seller_id`.
+- **Kolom harga (20260816)**: `original_price` (numeric, baseline % penurunan), `price_requested` (harga yang ditahan), `price_change_status` ('none'/'pending'/'approved'/'rejected', default 'none'), `price_requested_at`, `price_reviewed_by`, `price_reviewed_at`
+- **TIDAK ada kolom** `agent_id`, `is_verified`, `gmaps_link` — mekanisme status murni via kolom `status`; penjual via `seller_id` (kolom `agent_id`/`owner_id` sudah di-drop 20260807).
 - **Column naming**: `address` (bukan `location`), `area_sqm` (bukan `sqm`), `seller_whatsapp` (bukan `agent_whatsapp`), `description_id` (bukan `description`)
 
 ### Table `profiles`
 - `id` (uuid PK, references auth.users), `first_name`, `email`, `whatsapp`, `role`, `created_at`
+- **`is_super_admin` (bool, default false — 20260815)**: hanya super admin yang boleh mengubah role/`is_super_admin` (trigger `enforce_role_super_guard`); admin terakhir tidak bisa diturunkan (anti lockout)
 - Role values: `pembeli`, `owner`, `agent`, `developer`, `admin` (constraint `profiles_role_check`)
 - **TIDAK ada kolom `updated_at`** (sudah dibuktikan bugfix: update payload tidak boleh menyertakan `updated_at`).
 - Catatan: **tidak ada tabel `agents` terpisah** — "agen" = baris `profiles` dengan `role` = agent/developer/admin.
@@ -175,7 +206,7 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 
 ### Table `agent_profiles` (baru — direktori agen, 1:1 ke profiles)
 - `user_id` (uuid PK, FK → profiles, cascade), `full_name`, `agency`, `region`, `experience`, `experience_years` (int), `portfolio`, `bio`, `whatsapp`, `is_visible` (bool, default true), `created_at`, `updated_at`
-- RLS: select hanya `is_visible = true`; insert/update owner (`user_id = auth.uid()`); admin `for all` via subquery role admin
+- RLS: select `is_visible = true` **atau user_id = auth.uid()** (agent bisa baca profil sendiri walau disembunyikan — 20260818); insert/update owner (`user_id = auth.uid()`, insert wajib role 'agent'); admin `for all` via subquery role admin
 
 ### Table `agent_reviews` (baru)
 - `id` (uuid PK), `agent_id` (FK → profiles, cascade), `reviewer_id` (FK → profiles, cascade), `rating` (smallint 1-5), `comment`, `created_at`, `updated_at`, unique `(agent_id, reviewer_id)`
@@ -188,6 +219,7 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 ### Table `saved_properties`
 - `id` (uuid PK), `user_id` (FK → profiles), `property_id` (FK → properties), `created_at`
 - Unique constraint on `(user_id, property_id)`
+- **Trigger `set_saved_property_owner()` (20260818)**: mengisi `user_id = auth.uid()` otomatis saat INSERT tanpa `user_id` (klien tidak mengirimnya)
 
 ### Table `audit_logs`
 - `id`, `admin_id`, `admin_name`, `action_type`, `target_type`, `target_id`, `target_detail` (JSONB), `created_at`
@@ -223,14 +255,28 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 
 ### Table `agent_applications` (baru)
 - `id` (uuid PK), `full_name`, `email`, `whatsapp` (not null), `agency`, `experience`, `region`, `portfolio` (text, default '')
-- `agreement_accepted_at` (timestamptz), `status` (check 'pending'/'approved'/'rejected', default 'pending'), `reject_reason` (text default ''), `reviewed_by` (FK → profiles), `reviewed_at`, `created_at`
-- Index: `status`, `created_at`
-- **RLS**: insert untuk semua (publik, `with check (true)`), select/update hanya admin
-- **Trigger** `agent_approval_trigger` (after update status) → `handle_agent_approval()`: saat approved, update `profiles.role='agent'` untuk profil yang emailnya sama (role lama pembeli/owner, bukan admin)
+- `user_id` (uuid FK → auth.users — 20260802), `agreement_accepted_at` (timestamptz), `status` (check 'pending'/'approved'/'rejected', default 'pending'), `reject_reason` (text default ''), `reviewed_by` (FK → profiles), `reviewed_at`, `created_at`
+- Index: `status`, `created_at`, `user_id`
+- **RLS (20260802)**: insert `user_id = auth.uid()` (wajib login, bukan lagi "Anyone can submit"); select milik sendiri (`user_id = auth.uid()`); update hanya admin; **delete hanya admin** (20260808)
+- **Trigger** `agent_approval_trigger` (after update status) → `handle_agent_approval()`: saat approved, update `profiles.role='agent'` untuk profil dengan `user_id` yang sama (fallback email, role lama pembeli/owner, bukan admin) + isi `agent_profiles`
 
 ### Table `site_visits`
 - `id` (uuid PK), `property_id` (FK → properties), `buyer_id` (FK → profiles), `scheduled_date` (date), `scheduled_time` (time), `notes` (text, default ''), `status` (text, check: 'pending'/'confirmed'/'cancelled'/'completed'), `created_at`
-- RLS: user hanya bisa select/insert milik sendiri, dan update hanya ke status 'cancelled'.
+- RLS: user hanya bisa select/insert milik sendiri (`auth.uid() = buyer_id`), dan update hanya ke status 'cancelled'.
+- **Tambah (20260818)**: seller dapat select jadwal survei propertinya sendiri + admin dapat select semua (persiapan fitur jadwal survei di sisi seller)
+
+### Table `whatsapp_leads` (baru — 20260816)
+- `id` (uuid PK), `property_id` (FK → properties, cascade), `seller_id` (FK → profiles), `buyer_id` (FK → profiles, nullable), `created_at`
+- RLS: insert **wajib login** (20260818); select seller utk properti sendiri (`exists properties.seller_id = auth.uid()`) + admin
+- Sumber data: klik "Hubungi via WhatsApp" di PropertyDetailPage; dibaca MyListingsPage (tab Leads) & AdminDashboardPage
+
+### Table `price_history` (baru — 20260816)
+- `id` (uuid PK), `property_id` (FK → properties, cascade), `old_price`, `new_price` (not null), `price_pct` (numeric), `source` ('seller' dalam ambang / 'admin' approve/override), `applied_by` (FK → profiles), `created_at`
+- Diisi oleh trigger `guard_property_price_change()` via `log_price_change()` (security definer); RLS enabled
+
+### Table `saved_searches` (baru — 20260817)
+- `id` (uuid PK), `user_id` (FK → profiles, cascade), `name` (default 'Pencarian saya'), `filters` (jsonb default '{}'), `active` (bool default true), `last_checked_at`, `created_at`
+- RLS: owner-only (select/insert/update/delete `auth.uid() = user_id`)
 
 ### Table `user_financial_profiles`
 - `id` (uuid PK), `user_id` (uuid, FK → **auth.users**, unique), `monthly_income`, `monthly_commitments`, `monthly_budget` (numeric), `purchase_goal` (check: 'rumah_pertama'/'huni'/'investasi'/'sewa'/'belum_tahu'), `created_at`, `updated_at`
@@ -250,13 +296,17 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 ## Functions & RPC (Security definer)
 - `is_admin()` — cek `role='admin'` dari `auth.uid()`; **dipakai semua policy admin** (menghindari subquery self-referential yang memicu 42P17)
 - `get_my_profile()` — email/whatsapp milik sendiri (owner-only)
-- `get_admin_users()` — daftar user lengkap + email/whatsapp (hanya admin)
+- `get_admin_users()` — daftar user lengkap + email/whatsapp (hanya admin); kini juga ekspos `is_super_admin` (20260815)
 - `set_property_ai_analysis(uuid, jsonb)` — tulis cache AI (hanya service_role)
 - `increment_forum_views(uuid)` — naikkan `forum_posts.views`
 - `record_audit(...)` — catat `audit_logs` (hanya admin; identity dari `auth.uid()`, bukan input client)
+- `guard_property_price_change()` — trigger: harga ≤15% langsung jadi; >15% ditahan (20260816)
+- `log_price_change(...)` — rekam `price_history` (dipanggil guard harga)
+- `set_saved_property_owner()` — trigger: isi `user_id` di `saved_properties` (20260818)
 - Trigger `enforce_property_seller_type()` — validasi `seller_type` vs role penjual (20260805/06)
 - Trigger `enforce_property_status_transition()` — non-admin hanya boleh `verified → sold`; admin/service bebas (20260813)
 - Trigger `enforce_profile_role_change()` — role hanya bisa diubah admin (20260813)
+- Trigger `enforce_role_super_guard()` — hanya super admin yang boleh ubah role/`is_super_admin`; admin terakhir dilindungi (20260815)
 - Trigger `handle_new_user()` — auto-create profil saat signup (20260810)
 - Trigger `handle_agent_approval()` — aplikasi agen approved → role='agent' + isi `agent_profiles`
 
@@ -297,6 +347,15 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 
 ### `saved_properties`
 - Users can select/insert/delete only their own (`auth.uid() = user_id`)
+- **Trigger `set_saved_property_owner`**: BEFORE INSERT mengisi `user_id = auth.uid()` bila kosong (klien tidak mengirim `user_id`)
+
+### `whatsapp_leads`
+- Insert: **wajib login** (`auth.uid() is not null` — 20260818, menggantikan `with check (true)`)
+- Select: seller utk properti sendiri (`exists properties.seller_id = auth.uid()`) + admin
+
+### `site_visits`
+- Buyer: select/insert milik sendiri; update hanya ke 'cancelled'
+- Seller: select utk propertinya sendiri; admin: select semua (20260818)
 
 ## SEO
 - **useSEO hook** (`src/hooks/useSEO.js`): sets `document.title`, meta description, `og:title`, `og:description`, `og:image`, `og:url`
@@ -314,7 +373,10 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 ## Keamanan
 - **RLS tanpa 42P17 (20260813)**: semua policy update sederhana; cek admin via `is_admin()`; transisi status/role di-trigger
 - **Profiles**: email/whatsapp privat (column-level grant), role terkunci (insert `pembeli`, trigger role-guard)
-- **Properties**: seller tidak bisa ubah status (hanya `verified → sold`); admin via `is_admin()`
+- **Super Admin Guard (20260815)**: kolom `is_super_admin`; hanya super admin yang bisa ubah role/is_super_admin; admin biasa tidak bisa menaikkan siapa pun; admin terakhir tidak bisa diturunkan
+- **Properties**: seller tidak bisa ubah status (hanya `verified → sold`); admin via `is_admin()`; **guard harga** (20260816) — perubahan >15% ditahan menunggu persetujuan admin
+- **WhatsApp leads (20260818)**: INSERT wajib login (anti spam anonim)
+- **Favorit (20260818)**: `user_id` diisi server-side via trigger (anti salah-user)
 - **Auth di `/api/groq`**: verifikasi Bearer token (Supabase), rate limit per user + per IP, purpose `investment` wajib login (8×/jam)
 - **Upload validasi**: whitelist MIME (jpeg/png/webp/avif) + ukuran ≤ 5MB (policy storage + cek di klien)
 - **Forum RLS**: post/reply hanya author + admin; views via RPC security definer
@@ -330,7 +392,7 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komun
 - Logo: `public/huniOne.svg` via `<img>` (viewBox-based)
 - Shared utils: `format.js` (formatPrice, formatCurrency, formatCount), `avatar.js` (getAvatarColor, getInitials), `time.js` (timeAgo), `favorites.js` (setSupabase, initFavorites, toggleFavorite), `images.js` (parseImages, FALLBACK_IMAGE, getImageSrc), `markdown.js` (parseBlocks, tokenizeInline, isSafeUrl), `compare.js` (MAX_ITEMS=3, getCompareList, addToCompare, removeFromCompare, isInCompare, clearCompare), `recentlyViewed.js` (get/remove/clear/addRecentlyViewed, CHANGE_EVENT), `financialProfile.js` (getFinancialProfile, saveFinancialProfile, computeAffordability, maxAffordablePrice, estimateMonthlyInstallment, BUYING_POWER_ASSUMPTION), `groqClient.js` (`getAuthHeaders()` — baca token session untuk `Authorization: Bearer` ke `/api/groq`)
 - Custom events untuk integrasi antar komponen: `compare-updated`, `recently-viewed-changed`, `financial-profile-saved`, `open-financial-profile`, `open-hunibot-question`, `open-hunibot`
-- Footer: mega footer (5 kolom) + newsletter (validasi email) + stats live (properties verified/profiles/forum_posts) + trust badges + app badges (App Store/Play Store → `/coming-soon`) + contact (WhatsApp `wa.me/6281234567890`, `halo@hunione.com`, tombol tanya HuniBot) + social links real + **scroll-to-top button** (muncul scrollY > 400)
+- Footer: mega footer (5 kolom) + newsletter (validasi email) + stats live (properties verified/profiles/forum_posts) + trust badges + app badges (**statis** — bukan link dead-end, diubah saat audit fix) + contact (WhatsApp `wa.me/6281234567890`, `halo@hunione.com`, tombol tanya HuniBot) + social links real + **scroll-to-top button** (muncul scrollY > 400)
 
 ## Migrations SQL
 Semua file di `supabase/migrations/`:
@@ -351,10 +413,18 @@ Semua file di `supabase/migrations/`:
 15. `20260806_agent_integrity_fixes.sql` — policy insert `agent_profiles` (role agent), view `agent_stats` fix (`seller_type='agent'`), trigger hanya validasi saat kolom berubah
 16. `20260807_agent_directory_completion.sql` — selesaikan direktori agen (drop kolom mati `properties.agent_id`/`owner_id`)
 17. `20260808_security_hardening.sql` — **RLS profiles/properties**: normalisasi role + constraint, email privat, role guard, cache AI via RPC `set_property_ai_analysis` (service_role), RPC `get_my_profile`/`get_admin_users`
-18. `20260809_storage_upload_policy.sql` — policy upload storage (whitelist mimetype `metadata->>'mimetype'`, `owner_id = auth.uid()::text`)
-19. `20260810_forum_rls_and_handle_new_user.sql` — RLS `forum_posts`/`forum_replies` (author+admin), RPC `increment_forum_views`, trigger `handle_new_user()` (auto-create profil saat signup)
-20. `20260811_seller_can_mark_sold.sql` — seller boleh `verified → sold` *(DIGANTIKAN oleh 20260813 — masih ada bug 42P17)*
-21. `20260812_seller_mark_sold_any_status.sql` — seller boleh `sold` dari status apa pun *(DIGANTIKAN oleh 20260813 — masih ada bug 42P17)*
-22. `20260813_fix_rls_recursion.sql` — **fix 42P17**: helper `is_admin()`, policy sederhana (tanpa subquery self-ref), trigger `enforce_property_status_transition()` + `enforce_profile_role_change()`
+18. `20260808_admin_delete_agent_applications.sql` — policy DELETE `agent_applications` (admin) + action audit `delete_agent_application`
+19. `20260809_storage_upload_policy.sql` — policy upload storage (whitelist mimetype `metadata->>'mimetype'`, `owner_id = auth.uid()::text`)
+20. `20260809_drop_legacy_audit_columns.sql` — hapus kolom audit lama yang tidak dipakai
+21. `20260810_forum_rls_and_handle_new_user.sql` — RLS `forum_posts`/`forum_replies` (author+admin), RPC `increment_forum_views`, trigger `handle_new_user()` (auto-create profil saat signup)
+22. `20260811_seller_can_mark_sold.sql` — seller boleh `verified → sold` *(DIGANTIKAN oleh 20260813 — masih ada bug 42P17)*
+23. `20260812_seller_mark_sold_any_status.sql` — seller boleh `sold` dari status apa pun *(DIGANTIKAN oleh 20260813 — masih ada bug 42P17)*
+24. `20260813_fix_rls_recursion.sql` — **fix 42P17**: helper `is_admin()`, policy sederhana (tanpa subquery self-ref), trigger `enforce_property_status_transition()` + `enforce_profile_role_change()`
+25. `20260815_admin_super_admin_role_guard.sql` — kolom `is_super_admin`, trigger `enforce_role_super_guard()`, admin lama otomatis jadi super admin, `get_admin_users()` ekspos `is_super_admin`
+26. `20260816_price_history.sql` — kolom `properties.original_price`, tabel `price_history`, `log_price_change()`, update `guard_property_price_change()`
+27. `20260816_property_price_change_guard.sql` — kolom harga (`price_requested`, `price_change_status`, dll) + trigger guard ≤15% → langsung, >15% → antrian admin
+28. `20260816_whatsapp_leads.sql` — tabel `whatsapp_leads` + RLS (insert publik, select seller/admin)
+29. `20260817_saved_searches.sql` — tabel `saved_searches` + RLS owner-only
+30. `20260818_security_gap_fixes.sql` — **penutup celah audit**: trigger `saved_properties` (user_id otomatis), agent_profiles self-read, whatsapp_leads wajib login, site_visits select seller/admin
 
 **Catatan**: PostgreSQL 14 tidak support `CREATE POLICY IF NOT EXISTS` — harus pakai `DROP POLICY IF EXISTS` dulu sebelum `CREATE POLICY`. Migration terbaru memakai blok `do $$ ... exception when duplicate_object` untuk idempotency.
