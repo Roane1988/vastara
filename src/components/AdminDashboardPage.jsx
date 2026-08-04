@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [previewProperty, setPreviewProperty] = useState(null)
-  const [rejectTarget, setRejectTarget] = useState(null)
+  const [rejectTargets, setRejectTargets] = useState([])
   const [rejectReason, setRejectReason] = useState('')
   const [rejecting, setRejecting] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null)
@@ -289,6 +289,19 @@ export default function AdminDashboardPage() {
   const safePage = Math.min(page, totalPages - 1)
   const paged = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
 
+  const selectedProps = useMemo(
+    () => properties.filter((p) => selectedIds.has(p.id)),
+    [properties, selectedIds]
+  )
+
+  const bulkCounts = useMemo(() => {
+    const survey = selectedProps.filter((p) => p.status === 'pending').map((p) => p.id)
+    const verify = selectedProps.filter((p) => p.status === 'pending' || p.status === 'in_review').map((p) => p.id)
+    const reject = selectedProps.filter((p) => p.status === 'pending' || p.status === 'in_review').map((p) => p.id)
+    const restore = selectedProps.filter((p) => p.status === 'rejected' || p.status === 'sold').map((p) => p.id)
+    return { surveyIds: survey, verifyIds: verify, rejectIds: reject, restoreIds: restore }
+  }, [selectedProps])
+
   async function insertAuditLog(actionType, targetType, targetId, targetDetail) {
     try {
       await supabase.rpc('record_audit', {
@@ -344,10 +357,15 @@ export default function AdminDashboardPage() {
     const { type, ids, prevMap } = confirmAction
     setConfirming(true)
     let newStatus, toastMessage, auditAction
-    if (type === 'review') {
+    const isBulk = type.startsWith('bulk')
+    if (type === 'review' || type === 'bulkReview') {
       newStatus = 'in_review'
       auditAction = 'start_review'
       toastMessage = ids.length > 1 ? `${ids.length} properti masuk antrian survei` : 'Properti masuk antrian survei'
+    } else if (type === 'bulkRestore') {
+      newStatus = 'pending'
+      auditAction = 'restore_property'
+      toastMessage = ids.length > 1 ? `${ids.length} properti dikembalikan ke antrian pending` : 'Properti dikembalikan ke antrian pending'
     } else {
       newStatus = 'verified'
       auditAction = 'verify_property'
@@ -357,36 +375,39 @@ export default function AdminDashboardPage() {
     if (cancelledRef.current) return
     if (ok) {
       setConfirmAction(null)
-      if (type === 'bulkVerify') setSelectedIds(new Set())
+      if (isBulk) setSelectedIds(new Set())
     }
     setConfirming(false)
   }
 
   async function handleConfirmReject() {
-    if (!rejectTarget) return
+    if (rejectTargets.length === 0) return
     setRejecting(true)
-    const targetId = rejectTarget
-    const target = properties.find((p) => p.id === targetId)
+    const ids = rejectTargets
     try {
-      const { error } = await supabase.from('properties').update({ status: 'rejected' }).eq('id', targetId)
+      const { error } = await supabase.from('properties').update({ status: 'rejected' }).in('id', ids)
       if (cancelledRef.current) return
       if (error) {
         showToast(error.message, 'error')
       } else {
-        setProperties((prev) => prev.map((p) => p.id === targetId ? { ...p, status: 'rejected' } : p))
-        showToast('Properti ditolak', 'success')
-        insertAuditLog('reject_property', 'property', targetId, {
-          property_title: target?.title || '',
-          property_price: target?.price || null,
-          reason: rejectReason || undefined,
-        })
+        setProperties((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, status: 'rejected' } : p))
+        showToast(ids.length > 1 ? `${ids.length} properti ditolak` : 'Properti ditolak', 'success')
+        for (const id of ids) {
+          const target = properties.find((p) => p.id === id)
+          insertAuditLog('reject_property', 'property', id, {
+            property_title: target?.title || '',
+            property_price: target?.price || null,
+            reason: rejectReason || undefined,
+          })
+        }
+        setSelectedIds(new Set())
       }
     } catch (err) {
       if (!cancelledRef.current) showToast(err.message || 'Gagal', 'error')
     }
     if (!cancelledRef.current) {
       setRejecting(false)
-      setRejectTarget(null)
+      setRejectTargets([])
       setRejectReason('')
     }
   }
@@ -421,6 +442,35 @@ export default function AdminDashboardPage() {
       setSelectedIds(new Set())
     } else {
       setSelectedIds(new Set(paged.map((p) => p.id)))
+    }
+  }
+
+  const confirmMeta = (type, count) => {
+    if (type === 'review' || type === 'bulkReview') {
+      return {
+        title: type === 'bulkReview' ? `Mulai Survei ${count} Properti` : 'Mulai Survei',
+        description: 'Properti akan masuk antrian survei lokasi. Lanjutkan?',
+        confirmText: type === 'bulkReview' ? `Ya, Mulai Survei ${count}` : 'Ya, Mulai Survei',
+      }
+    }
+    if (type === 'bulkVerify') {
+      return {
+        title: `Verifikasi ${count} Properti`,
+        description: `Properti akan diverifikasi dan langsung tayang untuk publik (${count} terpilih). Lanjutkan?`,
+        confirmText: `Ya, Verifikasi ${count}`,
+      }
+    }
+    if (type === 'bulkRestore') {
+      return {
+        title: count > 1 ? `Pulihkan ${count} Properti` : 'Pulihkan Properti',
+        description: `Properti akan dikembalikan ke antrian pending (${count} terpilih). Lanjutkan?`,
+        confirmText: count > 1 ? `Ya, Pulihkan ${count}` : 'Ya, Pulihkan',
+      }
+    }
+    return {
+      title: 'Setujui Properti',
+      description: 'Properti akan diverifikasi dan langsung tayang untuk publik. Lanjutkan?',
+      confirmText: 'Ya, Setujui',
     }
   }
 
@@ -546,15 +596,43 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-2 sm:ml-auto">
                   <input type="text" placeholder="Cari properti..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
                     className="w-full sm:w-48 py-2 px-3 text-xs bg-brand-bg border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
-                  {selectedIds.size > 0 && filterTab === 'pending' && (
-                    <button type="button" onClick={() => openConfirm('bulkVerify', Array.from(selectedIds))} disabled={confirming}
-                      className="whitespace-nowrap px-3 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] transition-all disabled:opacity-50 flex items-center gap-1.5">
-                      {confirming ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                      Verifikasi ({selectedIds.size})
-                    </button>
-                  )}
                 </div>
               </div>
+
+              {selectedIds.size > 0 && (
+                <div className="px-5 py-3 border-b border-brand-border bg-brand-accent/5 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-brand-text mr-1">{selectedIds.size} properti dipilih</span>
+                  {bulkCounts.surveyIds.length > 0 && (
+                    <button type="button" onClick={() => openConfirm('bulkReview', bulkCounts.surveyIds)} disabled={confirming}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 active:scale-[0.97] transition-all disabled:opacity-50">
+                      Survei ({bulkCounts.surveyIds.length})
+                    </button>
+                  )}
+                  {bulkCounts.verifyIds.length > 0 && (
+                    <button type="button" onClick={() => openConfirm('bulkVerify', bulkCounts.verifyIds)} disabled={confirming}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] transition-all disabled:opacity-50 flex items-center gap-1">
+                      {confirming ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                      Verifikasi ({bulkCounts.verifyIds.length})
+                    </button>
+                  )}
+                  {bulkCounts.rejectIds.length > 0 && (
+                    <button type="button" onClick={() => { setRejectTargets(bulkCounts.rejectIds); setRejectReason('') }} disabled={confirming}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 active:scale-[0.97] transition-all disabled:opacity-50">
+                      Tolak ({bulkCounts.rejectIds.length})
+                    </button>
+                  )}
+                  {bulkCounts.restoreIds.length > 0 && (
+                    <button type="button" onClick={() => openConfirm('bulkRestore', bulkCounts.restoreIds)} disabled={confirming}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 active:scale-[0.97] transition-all disabled:opacity-50">
+                      Pulihkan ({bulkCounts.restoreIds.length})
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setSelectedIds(new Set())} disabled={confirming}
+                    className="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors">
+                    Batal
+                  </button>
+                </div>
+              )}
 
               {loading ? (
                 <div className="flex items-center justify-center py-20">
@@ -693,7 +771,7 @@ export default function AdminDashboardPage() {
                                           Survei
                                         </button>
                                       )}
-                                      <button type="button" onClick={() => { setRejectTarget(p.id); setRejectReason('') }}
+                                      <button type="button" onClick={() => { setRejectTargets([p.id]); setRejectReason('') }}
                                         className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 active:scale-[0.97] transition-all">
                                         Tolak
                                       </button>
@@ -746,12 +824,14 @@ export default function AdminDashboardPage() {
       )}
 
       <ConfirmModal
-        isOpen={rejectTarget !== null}
-        onClose={() => !rejecting && setRejectTarget(null)}
+        isOpen={rejectTargets.length > 0}
+        onClose={() => !rejecting && setRejectTargets([])}
         onConfirm={handleConfirmReject}
-        title="Tolak Properti"
-        description="Properti akan ditandai sebagai ditolak. Penjual dapat mengirim ulang setelah diperbaiki."
-        confirmText="Ya, Tolak"
+        title={rejectTargets.length > 1 ? `Tolak ${rejectTargets.length} Properti` : 'Tolak Properti'}
+        description={rejectTargets.length > 1
+          ? `${rejectTargets.length} properti akan ditandai sebagai ditolak. Penjual dapat mengirim ulang setelah diperbaiki.`
+          : 'Properti akan ditandai sebagai ditolak. Penjual dapat mengirim ulang setelah diperbaiki.'}
+        confirmText={rejectTargets.length > 1 ? `Ya, Tolak ${rejectTargets.length}` : 'Ya, Tolak'}
         cancelText="Batal"
         loading={rejecting}
         danger={false}
@@ -775,25 +855,7 @@ export default function AdminDashboardPage() {
         isOpen={confirmAction !== null}
         onClose={() => !confirming && setConfirmAction(null)}
         onConfirm={handleConfirmAction}
-        title={
-          confirmAction?.type === 'review'
-            ? 'Mulai Survei'
-            : confirmAction?.type === 'bulkVerify'
-              ? `Verifikasi ${confirmAction.ids.length} Properti`
-              : 'Setujui Properti'
-        }
-        description={
-          confirmAction?.type === 'review'
-            ? 'Properti akan masuk antrian survei lokasi. Lanjutkan?'
-            : `Properti akan diverifikasi dan langsung tayang untuk publik${confirmAction?.type === 'bulkVerify' ? ` (${confirmAction.ids.length} terpilih)` : ''}. Lanjutkan?`
-        }
-        confirmText={
-          confirmAction?.type === 'review'
-            ? 'Ya, Mulai Survei'
-            : confirmAction?.type === 'bulkVerify'
-              ? `Ya, Verifikasi ${confirmAction.ids.length}`
-              : 'Ya, Setujui'
-        }
+        {...confirmMeta(confirmAction?.type, confirmAction?.ids?.length ?? 0)}
         cancelText="Batal"
         loading={confirming}
         danger={false}
