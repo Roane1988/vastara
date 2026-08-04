@@ -11,11 +11,13 @@ import AdminUserManagement from './AdminUserManagement'
 import AdminAuditLog from './AdminAuditLog'
 import AdminAgentApplications from './AdminAgentApplications'
 import AdminPriceChangeQueue from './AdminPriceChangeQueue'
+import AdminPropertyReports from './AdminPropertyReports'
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'agents', label: 'Agen' },
   { key: 'pricing', label: 'Harga' },
+  { key: 'reports', label: 'Laporan' },
   { key: 'users', label: 'Users' },
   { key: 'audit', label: 'Audit Trail' },
 ]
@@ -728,6 +730,7 @@ export default function AdminDashboardPage() {
 
         {activeTab === 'agents' && <AdminAgentApplications />}
         {activeTab === 'pricing' && <AdminPriceChangeQueue />}
+        {activeTab === 'reports' && <AdminPropertyReports />}
         {activeTab === 'users' && <AdminUserManagement />}
         {activeTab === 'audit' && <AdminAuditLog />}
       </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MessageCircle, MessageSquare, Phone, ChevronDown, ChevronRight, X, ChevronLeft, Calendar, Share2, MapPin, Tag, TrendingDown } from 'lucide-react'
+import { MessageCircle, MessageSquare, Phone, ChevronDown, ChevronRight, X, ChevronLeft, Calendar, Share2, MapPin, Tag, TrendingDown, Flag } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -15,6 +15,7 @@ import KprSimulator from './KprSimulator'
 import InvestmentAnalyzer from './InvestmentAnalyzer'
 import FairPriceAnalyzer from './FairPriceAnalyzer'
 import ScheduleVisit from './ScheduleVisit'
+import ReportListingModal from './ReportListingModal'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
 function normalizeWhatsAppNumber(raw) {
@@ -395,6 +396,7 @@ export default function PropertyDetailPage() {
   const [showScheduleVisit, setShowScheduleVisit] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
+  const [showReport, setShowReport] = useState(false)
 
   useSEO(property ? {
     title: property.title,
@@ -442,6 +444,14 @@ export default function PropertyDetailPage() {
         () => showToast('Gagal menyalin link. Coba lagi.', 'error')
       )
     }
+  }
+
+  function handleReportClick() {
+    if (!user) {
+      navigate('/login', { state: { from: window.location.pathname } })
+      return
+    }
+    setShowReport(true)
   }
 
   const openLightbox = (index) => {
@@ -788,6 +798,15 @@ export default function PropertyDetailPage() {
             <AccordionBlock id="disclaimer" title="Disclaimer" isOpen={accordionState.disclaimer} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
               Informasi yang ditampilkan pada halaman ini disediakan oleh pengiklan dan/atau pihak ketiga. HuniOne tidak bertanggung jawab atas keakuratan, kelengkapan, atau keabsahan informasi tersebut. Segala transaksi dan kesepakatan sepenuhnya merupakan tanggung jawab antara pembeli dan penjual.
             </AccordionBlock>
+
+            <button
+              type="button"
+              onClick={handleReportClick}
+              className="mt-8 flex items-center gap-1.5 text-xs font-semibold text-brand-muted hover:text-red-600 transition-colors cursor-pointer"
+            >
+              <Flag size={13} />
+              {lang === 'en' ? 'Report this listing' : 'Laporkan Iklan'}
+            </button>
           </div>
 
           <div className="lg:col-span-1">
@@ -931,6 +950,15 @@ export default function PropertyDetailPage() {
       {showScheduleVisit && (
         <ScheduleVisit property={property} onClose={() => setShowScheduleVisit(false)} />
       )}
+
+      <ReportListingModal
+        key={`report-${showReport}-${property?.id}`}
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+        propertyId={property?.id}
+        propertyTitle={property?.title}
+        onSubmitted={() => {}}
+      />
 
       {waLink && (
         <div className={`fixed bottom-0 left-0 right-0 w-full z-50 lg:hidden transition-transform duration-300 ease-in-out ${showFloatingBtn ? 'translate-y-0' : 'translate-y-[150%]'}`}>
