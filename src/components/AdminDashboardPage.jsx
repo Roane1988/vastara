@@ -430,12 +430,12 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-brand-bg">
       <header className="sticky top-0 bg-brand-surface/80 backdrop-blur-md z-10 border-b border-brand-border">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button type="button" onClick={() => navigate(-1)} aria-label="Kembali" className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0">
               <ArrowLeftIcon />
             </button>
-            <div>
-              <h1 className="text-lg font-bold text-brand-text">Internal Dashboard</h1>
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold text-brand-text truncate">Internal Dashboard</h1>
               <p className="text-xs text-brand-muted">{loading ? 'Memuat...' : `${filtered.length} properti`}</p>
             </div>
           </div>
@@ -452,10 +452,10 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-6 -mb-px">
+          <div className="flex gap-5 -mb-px overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TABS.map((tab) => (
               <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
-                className={`pb-3 text-sm font-semibold transition-colors relative ${
+                className={`pb-3 text-sm font-semibold transition-colors relative whitespace-nowrap shrink-0 ${
                   activeTab === tab.key ? 'text-brand-accent' : 'text-brand-muted hover:text-brand-text'
                 }`}>
                 {tab.label}
@@ -533,7 +533,7 @@ export default function AdminDashboardPage() {
 
             <div className="mt-6 bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden">
               <div className="px-5 py-4 border-b border-brand-border flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   {FILTERS.map((f) => (
                     <button key={f.key} type="button" onClick={() => { setFilterTab(f.key); setPage(0); setSelectedIds(new Set()) }}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
@@ -628,11 +628,17 @@ export default function AdminDashboardPage() {
                                       className="font-semibold text-brand-text hover:text-brand-accent transition-colors text-left truncate block max-w-[200px]">
                                       {p.title}
                                     </button>
-                                    <div className="flex gap-1.5 mt-0.5">
+                                    <div className="flex flex-wrap gap-1.5 mt-0.5">
                                       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-brand-bg text-brand-muted border border-brand-border">
                                         {p.property_type || 'Properti'}
                                       </span>
                                       <span className="text-[10px] text-brand-muted">{dateStr}</span>
+                                      {leadCounts[p.id] > 0 && (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-accent bg-brand-accent/5 border border-brand-accent/20 rounded-full px-2 py-0.5 md:hidden">
+                                          <UsersIcon />
+                                          {leadCounts[p.id]} minat
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -712,7 +718,7 @@ export default function AdminDashboardPage() {
                   </div>
 
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-5 py-4 border-t border-brand-border bg-brand-bg/30">
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-brand-border bg-brand-bg/30">
                       <p className="text-xs text-brand-muted">{safePage * PAGE_SIZE + 1}-{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} dari {filtered.length}</p>
                       <div className="flex gap-1">
                         <button type="button" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={safePage === 0}

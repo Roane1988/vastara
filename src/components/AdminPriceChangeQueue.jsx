@@ -132,14 +132,14 @@ export default function AdminPriceChangeQueue() {
 
   return (
     <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden">
-      <div className="px-5 py-4 border-b border-brand-border flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-brand-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-base font-bold text-brand-text">Perubahan Harga</h2>
           <p className="text-xs text-brand-muted mt-0.5">
             Permintaan ubah harga di luar ambang {THRESHOLD * 100}%. Setujui untuk menerapkan harga baru, atau tolak untuk mempertahankan harga lama.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap self-start sm:self-auto">
           <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="flex items-center gap-1.5 text-xs font-medium text-brand-muted bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 hover:text-brand-text hover:bg-brand-bg/70 transition-colors">
             <RefreshCw size={13} />
             Refresh

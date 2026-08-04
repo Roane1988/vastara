@@ -275,7 +275,7 @@ export default function AdminPropertyReports() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${statusBadgeClass(r.status)}`}>
                       {statusLabel(r.status)}
                     </span>

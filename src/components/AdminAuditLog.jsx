@@ -333,14 +333,14 @@ export default function AdminAuditLog() {
     <>
       <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden">
         <div className="px-5 py-4 border-b border-brand-border">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <h2 className="text-base font-bold text-brand-text">Audit Trail</h2>
               <span className="text-xs text-brand-muted">
                 {hasActiveFilter ? `${logs.length} entri tampil (difilter)` : `${logs.length} entri`}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
               <button
                 type="button"
                 onClick={handleExport}
@@ -390,7 +390,7 @@ export default function AdminAuditLog() {
                   className="w-full sm:w-52 pl-8 pr-3 py-1.5 text-xs bg-brand-bg border border-brand-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/30 placeholder:text-brand-muted"
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Calendar size={14} className="text-brand-muted shrink-0" />
                 <input
                   type="date"
