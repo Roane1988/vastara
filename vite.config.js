@@ -285,7 +285,10 @@ export default defineConfig(({ mode }) => {
                   if (invCount > limitMax) {
                     appendAudit({ time: Date.now(), ip, userId: authUser.id, action: `${purpose}_limited` })
                     res.writeHead(429, { 'Content-Type': 'application/json' })
-                    res.end(JSON.stringify({ error: { message: 'Batas analisis harga tercapai. Coba lagi nanti.' } }))
+                    const limitMsg = purpose === 'investment'
+                      ? 'Batas analisis investasi tercapai. Coba lagi nanti.'
+                      : 'Batas analisis harga tercapai. Coba lagi nanti.'
+                    res.end(JSON.stringify({ error: { message: limitMsg } }))
                     return
                   }
                 } else {

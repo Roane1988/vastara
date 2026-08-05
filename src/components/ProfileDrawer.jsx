@@ -206,7 +206,11 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
       const { error: authError } = await supabase.auth.updateUser(authUpdates)
       if (authError) {
-        notify(authError.message, 'error')
+        if (isRateLimitError(authError)) {
+          showToast(t('login.too_many_attempts'), 'error')
+        } else {
+          notify(authError.message, 'error')
+        }
         return
       }
 
@@ -269,7 +273,11 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
       const { error: updateError } = await supabase.auth.updateUser({ password: pwNew })
       if (updateError) {
-        setPwError(updateError.message)
+        if (isRateLimitError(updateError)) {
+          showToast(t('login.too_many_attempts'), 'error')
+        } else {
+          setPwError(updateError.message)
+        }
         return
       }
 
