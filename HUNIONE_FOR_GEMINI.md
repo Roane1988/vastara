@@ -20,6 +20,11 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
   - **Floating CTA expandable**: tombol `+` bawah-kanan, memutar 45°, membuka Jual Properti / Simulasi KPR / Tanya Forum; otomatis sembunyi saat CompareBar aktif.
   - **Property card upgrade (bagian 1)**: tombol `Share2` di kartu listing (native share, fallback salin link + toast).
   - **Dilewati sengaja**: nearby geolocation (tidak ada kolom lat/lng di `properties`), AI Score (butuh panggilan AI per kartu, risiko 429).
+- **Fase 3 (upgrade kartu properti grid)** — 20 poin arah desain Aqsha tuntas & adaptasi selesai:
+  - **Badge cerdas (tanpa tumpukan kasar)**: maks 2 chip di kiri-atas — **VERIFIED** (chip putih transparan + `BadgeCheck`, selalu) & **PREMIUM** (emas + `Star`, bila `is_premium`); **Turun Harga** (merah + `TrendingDown`) satu-satunya di kiri-bawah. Deteksi drop via `original_price > price`. Chip `seller_type` & `typeLabel` lama dihapus agar bersih.
+  - **Estimasi cicilan**: baris kecil di bawah harga — `Estimasi cicilan Rp X/bulan` via `estimateMonthlyInstallment(price, 5.5% , tenor 20, DP 20%)`; disembunyikan untuk properti sewa (Dijual).
+  - **Quick actions dalam kartu**: restrukturisasi kartu menjadi container `div` (gambar + isi dibungkus `<Link>`, action bar terpisah di kaki kartu) — menghindari nested-anchor yang tidak valid. Tombol **Save** (Heart+label), **Bandingkan**, **Share** akses langsung tanpa buka halaman detail.
+  - **Rating Area & AI Score di-skip permanen** agar kartu ringan saat dirender massal.
 
 
 ## Changelog — Perbaikan Favicon & Sinkronisasi Auth (satu batch)

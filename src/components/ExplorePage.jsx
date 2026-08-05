@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart, Bell, Check, Building2, Share2, Plus, Home, MessageSquare } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart, Bell, Check, Building2, Share2, Plus, Home, MessageSquare, BadgeCheck, Star } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
-import { formatPriceDisplay, formatCount } from '../utils/format'
+import { formatPriceDisplay, formatPrice, formatCount } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
@@ -19,7 +19,7 @@ import PopularSearches from './PopularSearches'
 import ExploreInsights from './ExploreInsights'
 import ExplorePhase2 from './ExplorePhase2'
 import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
-import { getFinancialProfile, computeAffordability, maxAffordablePrice } from '../utils/financialProfile'
+import { getFinancialProfile, computeAffordability, maxAffordablePrice, estimateMonthlyInstallment } from '../utils/financialProfile'
 import { getAuthHeaders } from '../utils/groqClient'
 
 const NEW_WEEK_CUTOFF = Date.now() - 7 * 24 * 60 * 60 * 1000
@@ -1030,83 +1030,101 @@ export default function ExplorePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {displayListings.map((p) => (
-              <div key={p.id}>
-                <Link to={`/property/${p.id}`} className="block group">
-                  <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl group-hover:shadow-brand-primary/5">
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <img loading="lazy"
-                        src={getImageSrc(p.image_url)}
-                        alt={p.title}
-                        onError={(e) => { e.target.src = FALLBACK_IMAGE }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute top-3 left-3 flex gap-2">
-                        {p.is_premium && (
-                          <span className="bg-amber-400 text-amber-950 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                            {t('explore.filter.premium_badge')}
-                          </span>
-                        )}
-                        {p.seller_type === 'agent' && (
-                          <span className="bg-brand-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                            {t('explore.property_card.seller_agent')}
-                          </span>
-                        )}
-                        {p.seller_type === 'developer' && (
-                          <span className="bg-[#284D7A] text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                            {t('explore.property_card.seller_developer')}
-                          </span>
-                        )}
-                        {p.typeLabel && (
-                          <span className="bg-brand-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                            {p.typeLabel}
-                          </span>
-                        )}
-                        {p.status === 'verified' && (
-                          <span className="bg-brand-verified-bg text-brand-verified border border-brand-verified/20 text-[10px] font-bold px-2.5 py-1 rounded-md">
-                            {t('explore.property_card.verified_legal')}
-                          </span>
-                        )}
-                      </div>
+            {displayListings.map((p) => {
+              const drop = p.original_price && Number(p.original_price) > Number(p.price)
+              const isRent = p.category === 'Disewa' || p.typeLabel === 'Disewa'
+              const installment =
+                !isRent && Number(p.price) > 0 ? estimateMonthlyInstallment(p.price, 5.5, 20, 20) : 0
+              return (
+              <div key={p.id} className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand-primary/5">
+                <Link to={`/property/${p.id}`} className="block group flex-1">
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <img loading="lazy"
+                      src={getImageSrc(p.image_url)}
+                      alt={p.title}
+                      onError={(e) => { e.target.src = FALLBACK_IMAGE }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3 flex gap-1.5">
+                      {p.status === 'verified' && (
+                        <span className="inline-flex items-center gap-1 bg-white/90 backdrop-blur text-brand-verified border border-brand-verified/20 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                          <BadgeCheck size={11} />
+                          {t('explore.property_card.verified_legal')}
+                        </span>
+                      )}
+                      {p.is_premium && (
+                        <span className="inline-flex items-center gap-1 bg-amber-400 text-amber-950 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                          <Star size={11} className="fill-current" />
+                          {t('explore.filter.premium_badge')}
+                        </span>
+                      )}
                     </div>
-                    <div className="p-4">
+                    {drop && (
+                      <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 bg-brand-danger text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                        <TrendingDown size={11} />
+                        {t('explore.property_card.price_drop')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-end gap-2 flex-wrap">
+                      {drop && (
+                        <span className="text-sm font-semibold text-brand-muted line-through">
+                          {formatPrice(p.original_price)}
+                        </span>
+                      )}
                       <p className="text-xl font-extrabold text-brand-primary">
                         {formatPriceDisplay(p)}
                       </p>
-                      <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-accent transition-colors">
-                        {getTranslated(p, 'title', p.title)}
+                    </div>
+                    {installment > 0 && (
+                      <p className="text-[11px] text-brand-muted mt-0.5">
+                        Estimasi cicilan <b className="text-brand-accent">{formatPrice(installment)}</b>/bulan
                       </p>
-                      <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
-                        <MapPin size={14} />
-                        {getTranslated(p, 'address', p.address || p.location || t('explore.location_fallback'))}
-                      </p>
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
-                        <div className="flex gap-3 text-xs text-brand-muted">
-                          <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
-                          <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
-                          <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
-                        </div>
-                        {p.agent && (
-                          <span className="text-xs font-medium text-brand-accent">{p.agent}</span>
-                        )}
+                    )}
+                    <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-accent transition-colors">
+                      {getTranslated(p, 'title', p.title)}
+                    </p>
+                    <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
+                      <MapPin size={14} />
+                      {getTranslated(p, 'address', p.address || p.location || t('explore.location_fallback'))}
+                    </p>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
+                      <div className="flex gap-3 text-xs text-brand-muted">
+                        <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
+                        <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
+                        <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
                       </div>
+                      {p.agent && (
+                        <span className="text-xs font-medium text-brand-accent">{p.agent}</span>
+                      )}
                     </div>
                   </div>
                 </Link>
-                <div className="mt-2 flex items-center justify-between">
+                <div className="px-4 py-2.5 border-t border-brand-border flex items-center justify-between">
                   <button
                     type="button"
-                    onClick={() => toggleCompare(p)}
-                    className={`flex items-center gap-1 text-xs transition-colors ${
-                      compareSet.has(p.id)
-                        ? 'text-brand-primary font-semibold'
-                        : 'text-brand-muted hover:text-brand-primary'
+                    onClick={() => toggleSave(p.id)}
+                    className={`flex items-center gap-1.5 text-xs transition-colors ${
+                      saved.includes(p.id) ? 'text-[#4A90E2] font-semibold' : 'text-brand-muted hover:text-brand-accent'
                     }`}
                   >
-                    <ArrowLeftRight size={14} />
-                    {compareSet.has(p.id) ? 'Terseleksi' : 'Bandingkan'}
+                    <Heart size={15} className={saved.includes(p.id) ? 'fill-[#4A90E2] text-[#4A90E2]' : 'text-current'} />
+                    {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
                   </button>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleCompare(p)}
+                      className={`flex items-center gap-1 text-xs transition-colors ${
+                        compareSet.has(p.id)
+                          ? 'text-brand-primary font-semibold'
+                          : 'text-brand-muted hover:text-brand-primary'
+                      }`}
+                    >
+                      <ArrowLeftRight size={14} />
+                      {compareSet.has(p.id) ? 'Terseleksi' : 'Bandingkan'}
+                    </button>
                     <button
                       type="button"
                       onClick={() => shareProperty(p)}
@@ -1116,18 +1134,11 @@ export default function ExplorePage() {
                     >
                       <Share2 size={15} />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleSave(p.id)}
-                      className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent transition-colors"
-                    >
-                     <Heart size={16} className={saved.includes(p.id) ? 'fill-[#4A90E2] text-[#4A90E2]' : 'text-current'} />
-                    {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
-                    </button>
                   </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </motion.section>
