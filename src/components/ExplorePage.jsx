@@ -1366,7 +1366,7 @@ export default function ExplorePage() {
 
       {/* ─── FLOATING CTA ─── */}
       {!isSearching && compareSet.size === 0 && (
-        <div className="fixed bottom-6 right-4 z-40 flex flex-col items-end gap-3">
+        <div className="fixed bottom-28 right-6 z-40 flex flex-col items-end gap-3">
           {ctaOpen && (
             <div className="flex flex-col items-stretch gap-2 animate-fadeIn">
               {[
