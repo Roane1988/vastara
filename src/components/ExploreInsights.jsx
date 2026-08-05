@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -10,68 +10,149 @@ import {
   Building2,
   Users,
   MapPin,
+  BadgeCheck,
+  Star,
+  Heart,
+  Share2,
+  ArrowLeftRight,
 } from 'lucide-react'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { formatPrice, formatPriceDisplay } from '../utils/format'
+import { getFavorites, toggleFavorite } from '../utils/favorites'
+import { estimateMonthlyInstallment } from '../utils/financialProfile'
+import { useAuth } from '../context/AuthContext'
+import { useCompare } from '../hooks/useCompare'
 
 export function CarouselPropertyCard({ p, t }) {
+  const { showToast } = useAuth()
+  const [saved, setSaved] = useState(getFavorites())
+  const { compareSet, toggleCompare } = useCompare(showToast)
+
   const drop = p.original_price && Number(p.original_price) > Number(p.price)
+  const isRent = p.category === 'Disewa' || p.typeLabel === 'Disewa'
+  const installment =
+    !isRent && Number(p.price) > 0 ? estimateMonthlyInstallment(p.price, 5.5, 20, 20) : 0
+
+  async function toggleSave(id) {
+    const updated = await toggleFavorite(id)
+    setSaved(updated)
+  }
+
+  async function shareProperty(prop) {
+    const url = `${window.location.origin}/property/${prop.id}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: prop.title, text: prop.title, url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        showToast('Link properti disalin', 'success')
+      }
+    } catch {
+      /* user cancelled share sheet */
+    }
+  }
+
   return (
-    <Link to={`/property/${p.id}`} className="min-w-[260px] w-[260px] shrink-0 group">
-      <div className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl group-hover:shadow-brand-primary/5">
+    <div className="min-w-[260px] w-[260px] shrink-0 bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand-primary/5">
+      <Link to={`/property/${p.id}`} className="block group flex-1">
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
             loading="lazy"
             src={getImageSrc(p.image_url)}
             alt={p.title}
             onError={(e) => { e.target.src = FALLBACK_IMAGE; e.target.onerror = null }}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute top-2.5 left-2.5 flex gap-2">
+          <div className="absolute top-3 left-3 flex gap-1.5">
             {p.status === 'verified' && (
-              <span className="bg-brand-verified-bg text-brand-verified border border-brand-verified/20 text-[10px] font-bold px-2 py-0.5 rounded-md">
+              <span className="inline-flex items-center gap-1 bg-white/90 backdrop-blur text-brand-verified border border-brand-verified/20 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                <BadgeCheck size={11} />
                 {t('explore.property_card.verified_legal')}
               </span>
             )}
             {p.is_premium && (
-              <span className="bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+              <span className="inline-flex items-center gap-1 bg-amber-400 text-amber-950 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                <Star size={11} className="fill-current" />
                 {t('explore.filter.premium_badge')}
               </span>
             )}
           </div>
           {drop && (
-            <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 bg-brand-danger text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 bg-brand-danger text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
               <TrendingDown size={11} />
               {t('explore.property_card.price_drop')}
             </span>
           )}
         </div>
-        <div className="p-3">
-          {drop ? (
-            <p className="text-base font-extrabold text-brand-primary">
-              <span className="line-through text-brand-muted font-semibold text-sm mr-1.5">
+        <div className="p-4">
+          <div className="flex items-end gap-2 flex-wrap">
+            {drop && (
+              <span className="text-sm font-semibold text-brand-muted line-through">
                 {formatPrice(p.original_price)}
               </span>
+            )}
+            <p className="text-xl font-extrabold text-brand-primary">
               {formatPriceDisplay(p)}
             </p>
-          ) : (
-            <p className="text-base font-extrabold text-brand-primary">
-              {formatPriceDisplay(p)}
+          </div>
+          {installment > 0 && (
+            <p className="text-[11px] text-brand-muted mt-0.5">
+              Estimasi cicilan <b className="text-brand-accent">{formatPrice(installment)}</b>/bulan
             </p>
           )}
-          <p className="text-sm font-semibold text-brand-text mt-0.5 truncate">{p.title}</p>
-          <p className="text-xs text-brand-muted mt-0.5 flex items-center gap-1">
-            <MapPin size={12} className="shrink-0" />
+          <p className="text-base font-semibold text-brand-text mt-1 truncate">{p.title}</p>
+          <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
+            <MapPin size={14} />
             {p.address || p.location || p.city || 'Indonesia'}
           </p>
-          <div className="flex gap-3 text-[11px] text-brand-muted mt-2 pt-2 border-t border-brand-border">
-            <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
-            <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
-            <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
+            <div className="flex gap-3 text-xs text-brand-muted">
+              <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
+              <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
+              <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
+            </div>
+            {p.agent && (
+              <span className="text-xs font-medium text-brand-accent">{p.agent}</span>
+            )}
           </div>
         </div>
+      </Link>
+      <div className="px-4 py-2.5 border-t border-brand-border flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => toggleSave(p.id)}
+          className={`flex items-center gap-1.5 text-xs transition-colors ${
+            saved.includes(p.id) ? 'text-[#4A90E2] font-semibold' : 'text-brand-muted hover:text-brand-accent'
+          }`}
+        >
+          <Heart size={15} className={saved.includes(p.id) ? 'fill-[#4A90E2] text-[#4A90E2]' : 'text-current'} />
+          {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
+        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => toggleCompare(p)}
+            className={`flex items-center gap-1 text-xs transition-colors ${
+              compareSet.has(p.id)
+                ? 'text-brand-primary font-semibold'
+                : 'text-brand-muted hover:text-brand-primary'
+            }`}
+          >
+            <ArrowLeftRight size={14} />
+            {compareSet.has(p.id) ? 'Terseleksi' : 'Bandingkan'}
+          </button>
+          <button
+            type="button"
+            onClick={() => shareProperty(p)}
+            aria-label="Bagikan properti"
+            title="Bagikan properti"
+            className="text-brand-muted hover:text-brand-accent transition-colors"
+          >
+            <Share2 size={15} />
+          </button>
+        </div>
       </div>
-    </Link>
+    </div>
   )
 }
 
