@@ -190,23 +190,28 @@ function MarketPulse({ properties }) {
       const city = (p.city || '').trim()
       const price = Number(p.price)
       if (!city || !(price > 0)) continue
-      if (!byCity[city]) byCity[city] = []
-      byCity[city].push(price)
+      if (!byCity[city]) byCity[city] = { prices: [], perSqm: [] }
+      byCity[city].prices.push(price)
+      const area = Number(p.area_sqm || p.sqm) || 0
+      if (area > 0) byCity[city].perSqm.push(price / area)
     }
     const cities = Object.entries(byCity)
-      .filter(([, prices]) => prices.length >= MIN_CITY_LISTINGS)
-      .map(([name, prices]) => ({
+      .filter(([, v]) => v.prices.length >= MIN_CITY_LISTINGS)
+      .map(([name, v]) => ({
         name,
-        median: median(prices),
-        count: prices.length,
+        median: median(v.prices),
+        perSqm: v.perSqm.length > 0 ? median(v.perSqm) : 0,
+        count: v.prices.length,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 3)
     if (cities.length === 0) return []
     const overall = cities.reduce((s, c) => s + c.median, 0) / cities.length
+    const maxMedian = Math.max(...cities.map((c) => c.median))
     return cities.map((c) => ({
       ...c,
       delta: overall ? Math.round(((c.median - overall) / overall) * 1000) / 10 : 0,
+      barPct: Math.max(8, Math.round((c.median / maxMedian) * 100)),
     }))
   }, [properties])
 
@@ -214,32 +219,56 @@ function MarketPulse({ properties }) {
 
   return (
     <section className="max-w-7xl mx-auto px-4 mb-8">
-      <SectionHeader icon={TrendingUp} title="Market Pulse" sub="harga median per kota · perbandingan, bukan tren" action="Analisis penuh" to="/price-trends" />
-      <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4">
+      <SectionHeader icon={TrendingUp} title="Market Pulse" sub="median harga & per m² per kota · perbandingan, bukan tren" action="Analisis penuh" to="/price-trends" />
+      <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4">
         {pulse.map((c) => {
           const up = c.delta >= 0.1
           const down = c.delta <= -0.1
+          const initial = (c.name.trim()[0] || '?').toUpperCase()
           return (
             <Link
               key={c.name}
               to={`/explore?q=${encodeURIComponent(c.name)}`}
-              className="min-w-[200px] w-[200px] shrink-0 bg-white rounded-2xl border border-brand-border p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className="relative min-w-[220px] w-[220px] shrink-0 rounded-2xl border border-brand-border bg-white overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
             >
-              <p className="text-sm font-bold text-brand-text">{c.name}</p>
-              <p className="text-lg font-extrabold text-brand-primary mt-1">{formatPrice(c.median)}</p>
-              <div className="flex items-center justify-between mt-2">
-                <span
-                  title={up ? 'Di atas rata-rata kota lain' : down ? 'Di bawah rata-rata kota lain' : 'Sekitar rata-rata kota lain'}
-                  className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    up ? 'bg-emerald-50 text-emerald-700'
-                      : down ? 'bg-red-50 text-red-600'
-                      : 'bg-brand-bg text-brand-muted'
-                  }`}
-                >
-                  {up ? <TrendingUp size={11} /> : down ? <TrendingDown size={11} /> : null}
-                  {up ? `+${c.delta}%` : down ? `${c.delta}%` : 'rata-rata'}
-                </span>
-                <span className="text-[11px] text-brand-muted">{c.count} listing</span>
+              <div className="h-1.5 bg-gradient-to-r from-brand-accent to-brand-primary" />
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-9 h-9 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center font-extrabold text-sm shrink-0">
+                      {initial}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-brand-text truncate">{c.name}</p>
+                      <p className="text-[11px] text-brand-muted truncate">{c.count} listing aktif</p>
+                    </div>
+                  </div>
+                  <span
+                    title={up ? 'Di atas rata-rata kota lain' : down ? 'Di bawah rata-rata kota lain' : 'Sekitar rata-rata kota lain'}
+                    className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                      up ? 'bg-brand-primary/10 text-brand-primary'
+                        : down ? 'bg-gray-100 text-gray-500'
+                        : 'bg-brand-bg text-brand-muted'
+                    }`}
+                  >
+                    {up ? `+${c.delta}%` : down ? `${c.delta}%` : 'rata-rata'}
+                  </span>
+                </div>
+
+                <p className="text-2xl font-extrabold text-brand-text mt-3">{formatPrice(c.median)}</p>
+                {c.perSqm > 0 && (
+                  <p className="text-xs text-brand-muted mt-0.5">{formatPrice(Math.round(c.perSqm))}/m²</p>
+                )}
+
+                <div className="mt-3">
+                  <div className="h-1.5 w-full rounded-full bg-brand-bg overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-brand-accent to-brand-primary"
+                      style={{ width: `${c.barPct}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-brand-muted mt-1">posisi harga vs rata-rata kota lain</p>
+                </div>
               </div>
             </Link>
           )
