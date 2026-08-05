@@ -1151,13 +1151,13 @@ export default function ExplorePage() {
       {!isSearching && displayListings.length > 0 && compareSet.size === 0 && (
         <section className="max-w-7xl mx-auto px-4 pb-4">
           <div className="flex flex-col sm:flex-row items-center gap-4 bg-white rounded-2xl border border-brand-border p-4">
-            <div className="flex-1 min-w-0 flex items-center gap-3">
+            <div className="flex-1 w-full min-w-0 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-brand-highlight flex items-center justify-center shrink-0">
                 <ArrowLeftRight size={18} className="text-brand-accent" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-brand-text">Cocokkan properti</p>
-                <p className="text-xs text-brand-muted truncate">
+                <p className="text-xs text-brand-muted">
                   Pilih hingga 3 properti untuk dibandingkan berdampingan.
                 </p>
               </div>
