@@ -1,17 +1,37 @@
-import { useState, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Globe, Check } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
 
 const HamburgerMenu = lazy(() => import('./HamburgerMenu'))
 
+const LANGUAGES = [
+  { code: 'id', label: 'Bahasa Indonesia' },
+  { code: 'en', label: 'English' },
+]
+
 export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { role } = useAuth()
   const { totalNew } = useSavedSearchAlerts()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [langOpen, setLangOpen] = useState(false)
+  const langRef = useRef(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!langOpen) return
+    const onClick = (e) => { if (langRef.current && !langRef.current.contains(e.target)) setLangOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') setLangOpen(false) }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [langOpen])
 
   return (
     <>
@@ -72,6 +92,46 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
                 )}
               </button>
             )}
+
+            <div className="relative" ref={langRef}>
+              <button
+                type="button"
+                onClick={() => setLangOpen((o) => !o)}
+                className="p-2 rounded-xl text-brand-muted hover:bg-brand-bg hover:text-brand-text transition-colors flex items-center gap-1"
+                aria-label={t('navbar.language')}
+                title={t('navbar.language')}
+              >
+                <Globe size={20} />
+                <span className="hidden md:inline text-xs font-semibold uppercase">{i18n.language}</span>
+              </button>
+              {langOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-brand-surface border border-brand-border rounded-xl shadow-lg py-1.5 z-50 animate-fadeIn">
+                  {LANGUAGES.map((lang) => {
+                    const active = lang.code === i18n.language
+                    return (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => { i18n.changeLanguage(lang.code); setLangOpen(false) }}
+                        className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition-colors ${
+                          active ? 'text-brand-primary font-semibold' : 'text-brand-muted hover:text-brand-text hover:bg-brand-highlight'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className={`uppercase text-[10px] font-bold w-6 h-6 rounded-md flex items-center justify-center ${
+                            active ? 'bg-brand-primary text-white' : 'bg-brand-bg text-brand-muted'
+                          }`}>
+                            {lang.code}
+                          </span>
+                          {lang.label}
+                        </span>
+                        {active && <Check size={14} className="shrink-0 text-brand-primary" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             <button
               type="button"
