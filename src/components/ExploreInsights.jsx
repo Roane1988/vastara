@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -15,9 +15,11 @@ import {
   Heart,
   Share2,
   ArrowLeftRight,
+  MessageCircle,
 } from 'lucide-react'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
-import { formatPrice, formatPriceDisplay } from '../utils/format'
+import { formatPrice, formatPriceDisplay, formatCount } from '../utils/format'
+import { supabase } from '../supabaseClient'
 import { getFavorites, toggleFavorite } from '../utils/favorites'
 import { estimateMonthlyInstallment } from '../utils/financialProfile'
 import { useAuth } from '../context/AuthContext'
@@ -292,8 +294,92 @@ function CollectionRow({ title, sub, icon: Icon, to, items, t }) {
   )
 }
 
+function StatCard({ icon: Icon, label, value }) {
+  return (
+    <div className="bg-white rounded-2xl border border-brand-border px-4 py-4 flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-2xl font-extrabold text-brand-primary">{formatCount(value)}</span>
+        <Icon size={18} className="text-brand-muted/60 shrink-0" />
+      </div>
+      <span className="text-xs text-brand-muted">{label}</span>
+    </div>
+  )
+}
+
+function TrustSection({ available, cities, stats }) {
+  const cards = [
+    { icon: Building2, label: 'Properti', value: available.length },
+    { icon: MapPin, label: 'Kota', value: cities },
+    { icon: BadgeCheck, label: 'Agen Terverifikasi', value: stats?.agents || 0 },
+    { icon: Users, label: 'Pengguna', value: stats?.users || 0 },
+    { icon: MessageCircle, label: 'Diskusi Forum', value: stats?.forum || 0 },
+  ]
+  return (
+    <section className="max-w-7xl mx-auto px-4 mb-8">
+      <SectionHeader
+        icon={Building2}
+        title="Kepercayaan HuniOne"
+        sub="komunitas yang tumbuh"
+        action={
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-muted">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Live
+          </span>
+        }
+      />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {stats ? (
+          <>
+            {cards.map((s) => <StatCard key={s.label} icon={s.icon} label={s.label} value={s.value} />)}
+            <div className="bg-brand-primary rounded-2xl px-4 py-4 flex flex-col gap-1.5 text-white">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-2xl font-extrabold">100%</span>
+                <ShieldCheck size={18} className="text-white/70 shrink-0" />
+              </div>
+              <span className="text-xs text-white/80">Listing terverifikasi</span>
+            </div>
+          </>
+        ) : (
+          Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-brand-border px-4 py-4 animate-pulse">
+              <div className="h-7 w-14 bg-brand-bg rounded-md" />
+              <div className="h-3 w-20 bg-brand-bg rounded-md mt-2" />
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  )
+}
+
 export default function ExploreInsights({ properties, excludeIds }) {
   const { t } = useTranslation()
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchStats = async () => {
+      try {
+        const [agents, users, forum] = await Promise.all([
+          supabase.from('agent_profiles').select('id', { count: 'exact', head: true }).eq('is_visible', true),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
+          supabase.from('forum_posts').select('id', { count: 'exact', head: true }),
+        ])
+        if (!cancelled) setStats({ agents: agents.count ?? 0, users: users.count ?? 0, forum: forum.count ?? 0 })
+      } catch {
+        if (!cancelled) setStats({ agents: 0, users: 0, forum: 0 })
+      }
+    }
+    fetchStats()
+    const onRefresh = () => fetchStats()
+    window.addEventListener('focus', onRefresh)
+    window.addEventListener('kepercayaan-updated', onRefresh)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', onRefresh)
+      window.removeEventListener('kepercayaan-updated', onRefresh)
+    }
+  }, [])
 
   const available = useMemo(
     () => properties.filter((p) => !excludeIds?.has(p.id)),
@@ -358,25 +444,7 @@ export default function ExploreInsights({ properties, excludeIds }) {
       />
 
       {(available.length > 0 || cities > 0) && (
-        <section className="max-w-7xl mx-auto px-4 mb-8">
-          <SectionHeader icon={Building2} title="Kepercayaan HuniOne" sub="komunitas yang tumbuh" />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { icon: Building2, label: 'Properti', value: available.length },
-              { icon: MapPin, label: 'Kota', value: cities },
-              { icon: Users, label: 'Agen & Pengembang', value: 0 },
-            ].map((s) => (
-              <div key={s.label} className="bg-white rounded-2xl border border-brand-border px-4 py-4 flex flex-col gap-1">
-                <span className="text-2xl font-extrabold text-brand-primary">{s.value || '–'}</span>
-                <span className="text-xs text-brand-muted">{s.label}</span>
-              </div>
-            ))}
-            <div className="bg-brand-primary rounded-2xl px-4 py-4 flex flex-col gap-1 text-white">
-              <span className="text-2xl font-extrabold">100%</span>
-              <span className="text-xs text-white/80">Terverifikasi</span>
-            </div>
-          </div>
-        </section>
+        <TrustSection available={available} cities={cities} stats={stats} />
       )}
     </>
   )
