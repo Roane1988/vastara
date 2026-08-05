@@ -288,8 +288,12 @@ export default function ExplorePage() {
   }
 
   function scrollToSearch() {
-    searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setTimeout(() => searchInputRef.current?.focus(), 500)
+    const el = searchCardRef.current
+    const top = el?.getBoundingClientRect().top ?? 0
+    if (el && top < 80) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+    setTimeout(() => searchInputRef.current?.focus(), 300)
   }
 
   function resetAllSearch() {
