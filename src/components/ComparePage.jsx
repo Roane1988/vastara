@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, ArrowLeftRight, CheckCircle2, Info, Plus, X } from 'lucide-react'
+import { ArrowLeft, ArrowLeftRight, CheckCircle2, Info, Plus, Share2, Sparkles, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { formatPriceDisplay } from '../utils/format'
+import { formatPriceDisplay, formatPrice } from '../utils/format'
 import { usePropertyStore, MAX_ITEMS } from '../store/usePropertyStore'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import {
@@ -37,10 +37,12 @@ function CompareSkeleton() {
 export default function ComparePage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const { user, showToast } = useAuth()
   const items = usePropertyStore((s) => s.compareList)
   const removeFromCompare = usePropertyStore((s) => s.removeFromCompare)
   const clearCompare = usePropertyStore((s) => s.clearCompare)
+  const addToCompare = usePropertyStore((s) => s.addToCompare)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [fullData, setFullData] = useState([])
   const [loading, setLoading] = useState(true)
   const [finState, setFinState] = useState('loading')
@@ -86,6 +88,38 @@ export default function ComparePage() {
   const openFinancialProfile = () => {
     if (!user) { navigate('/login'); return }
     window.dispatchEvent(new Event('open-financial-profile'))
+  }
+
+  useEffect(() => {
+    const raw = searchParams.get('ids')
+    if (!raw) return
+    const ids = raw.split(',').map((s) => s.trim()).filter(Boolean)
+    setSearchParams({}, { replace: true })
+    if (ids.length === 0) return
+    ;(async () => {
+      const { data } = await supabase
+        .from('properties')
+        .select('id, title, price, image_url')
+        .in('id', ids)
+      if (!data || data.length === 0) return
+      data.forEach((p) => addToCompare(p))
+    })()
+  }, [searchParams, setSearchParams, addToCompare])
+
+  const shareCompare = async () => {
+    const ids = fullData.map((p) => p.id)
+    if (ids.length === 0) return
+    const url = `${window.location.origin}/compare?ids=${ids.join(',')}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Bandingkan properti HuniOne', url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        showToast('Link compare disalin', 'success')
+      }
+    } catch {
+      /* user cancelled share sheet */
+    }
   }
 
   useEffect(() => {
@@ -164,6 +198,32 @@ export default function ComparePage() {
     .map(p => Number(p.price))
     .filter(n => Number.isFinite(n) && n > 0)
   const minPrice = validPrices.length ? Math.min(...validPrices) : null
+  const maxPrice = validPrices.length ? Math.max(...validPrices) : 0
+
+  const sqmValues = fullData
+    .filter(p => !isRent(p))
+    .map((p) => {
+      const area = Number(p.area_sqm || p.sqm)
+      const price = Number(p.price)
+      return area > 0 && price > 0 ? Math.round(price / area) : null
+    })
+    .filter((n) => n !== null)
+  const sqmMin = sqmValues.length ? Math.min(...sqmValues) : null
+
+  const recommendation = useMemo(() => {
+    if (fullData.length < 2) return null
+    let best = null
+    let bestPer = Infinity
+    for (const p of fullData) {
+      const area = Number(p.area_sqm || p.sqm)
+      const price = Number(p.price)
+      if (isRent(p) || !(area > 0 && price > 0)) continue
+      const per = price / area
+      if (per < bestPer) { bestPer = per; best = p }
+    }
+    if (!best) return null
+    return { property: best, perSqm: Math.round(bestPer) }
+  }, [fullData])
 
   const rows = [
     {
@@ -178,6 +238,27 @@ export default function ComparePage() {
               <span className="ml-1.5 inline-flex align-middle items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-verified-bg text-brand-verified text-[9px] font-bold uppercase tracking-wide">
                 <CheckCircle2 size={9} />
                 {t('compare.cheapest')}
+              </span>
+            )}
+          </span>
+        )
+      },
+    },
+    {
+      label: t('compare.row.price_per_sqm'),
+      render: (p) => {
+        const area = Number(p.area_sqm || p.sqm)
+        const price = Number(p.price)
+        if (isRent(p) || !(area > 0 && price > 0)) return '-'
+        const per = Math.round(price / area)
+        const isMin = sqmMin !== null && per === sqmMin
+        return (
+          <span className={isMin ? 'font-bold text-brand-verified' : 'text-brand-text'}>
+            {formatPrice(per)}/m²
+            {isMin && (
+              <span className="ml-1.5 inline-flex align-middle items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-brand-verified-bg text-brand-verified text-[9px] font-bold uppercase tracking-wide">
+                <CheckCircle2 size={9} />
+                {t('compare.best_value')}
               </span>
             )}
           </span>
@@ -202,7 +283,9 @@ export default function ComparePage() {
     { label: t('compare.row.bathrooms'), render: (p) => (p.bathrooms ? `${p.bathrooms} KM` : '-') },
     { label: t('compare.row.area'), render: (p) => (p.area_sqm || p.sqm ? `${p.area_sqm || p.sqm} m²` : '-') },
     { label: t('compare.row.city'), render: (p) => p.city || p.location?.split(',').pop()?.trim() || '-' },
+    { label: t('compare.row.district'), render: (p) => p.district || '-' },
     { label: t('compare.row.address'), render: (p) => p.address || p.location || '-' },
+    { label: t('compare.row.facilities'), render: (p) => (p.facilities ? <span className="text-xs leading-snug block max-w-[160px] mx-auto">{p.facilities}</span> : '-') },
     { label: t('compare.row.certificate_status'), render: (p) => p.certificate_status || '-' },
   ]
 
@@ -241,13 +324,24 @@ export default function ComparePage() {
         </button>
         <h1 className="text-lg font-bold text-brand-text flex-1">{t('compare.title')}</h1>
         {fullData.length > 0 && (
-          <button
-            type="button"
-            onClick={handleClearAll}
-            className="text-xs text-brand-danger hover:text-red-600 font-semibold"
-          >
-            {t('compare.clear_all')}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={shareCompare}
+              aria-label={t('compare.share_aria')}
+              className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent font-semibold transition-colors"
+            >
+              <Share2 size={14} />
+              <span className="hidden sm:inline">{t('compare.share')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="text-xs text-brand-danger hover:text-red-600 font-semibold"
+            >
+              {t('compare.clear_all')}
+            </button>
+          </div>
         )}
       </div>
 
@@ -314,6 +408,37 @@ export default function ComparePage() {
         </div>
       )}
 
+      {recommendation && fullData.length >= 2 && (
+        <div className="px-4 pt-3">
+          <div className="max-w-5xl mx-auto flex flex-wrap items-center gap-3 rounded-xl border border-brand-verified/20 bg-brand-verified-bg/60 px-4 py-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 font-bold text-brand-verified mb-1">
+                <Sparkles size={15} />
+                {t('compare.recommend_title')}
+              </div>
+              <p className="text-xs text-brand-text leading-snug">
+                {t('compare.recommend_body', {
+                  title: recommendation.property.title,
+                  price: formatPrice(recommendation.perSqm),
+                })}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent('open-hunibot-question', {
+                  detail: { question: `Bandingkan ${fullData.map((p) => p.title).join(' vs ')} — mana yang lebih baik untuk dibeli dan mengapa?` },
+                }))
+              }
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary text-white text-xs font-bold hover:brightness-90 active:scale-[0.97] transition-all"
+            >
+              <Sparkles size={13} />
+              {t('compare.ask_bot')}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-x-auto">
         <div className="min-w-[640px] max-w-5xl mx-auto p-4">
           {loading ? (
@@ -323,7 +448,7 @@ export default function ComparePage() {
               <caption className="sr-only">{t('compare.title')}</caption>
               <thead>
                 <tr>
-                  <th scope="col" className="w-32 p-3 text-left text-xs font-bold text-brand-muted uppercase" />
+                  <th scope="col" className="w-32 p-3 text-left text-xs font-bold text-brand-muted uppercase sticky left-0 z-20 bg-brand-bg border-r border-brand-border/50" />
                   {fullData.map(p => (
                     <th key={p.id} scope="col" className="p-3 text-center relative">
                       <button
@@ -369,9 +494,31 @@ export default function ComparePage() {
                 </tr>
               </thead>
               <tbody>
+                <tr>
+                  <td className="p-3 border-t border-brand-border/50 text-xs font-bold text-brand-muted sticky left-0 z-10 bg-brand-bg border-r border-brand-border/50">
+                    {t('compare.row.price_scale')}
+                  </td>
+                  {fullData.map(p => {
+                    const price = Number(p.price)
+                    const ratio = price > 0 && maxPrice > 0 ? Math.min(100, Math.round((price / maxPrice) * 100)) : 0
+                    const isMax = maxPrice > 0 && price === maxPrice
+                    return (
+                      <td key={p.id} className="p-3 border-t border-brand-border/50 text-center">
+                        <div className="max-w-[160px] mx-auto">
+                          <div className="h-2.5 w-full rounded-full bg-brand-border/40 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${isMax ? 'bg-brand-accent' : 'bg-gradient-to-r from-brand-accent to-brand-primary'}`}
+                              style={{ width: `${ratio}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    )
+                  })}
+                </tr>
                 {rows.map(r => (
                   <tr key={r.label}>
-                    <td className="p-3 border-t border-brand-border/50 text-xs font-bold text-brand-muted">{r.label}</td>
+                    <td className="p-3 border-t border-brand-border/50 text-xs font-bold text-brand-muted sticky left-0 z-10 bg-brand-bg border-r border-brand-border/50">{r.label}</td>
                     {fullData.map(p => (
                       <td key={p.id} className="p-3 border-t border-brand-border/50 text-sm text-brand-text text-center">
                         {r.render(p)}
