@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Loader2, MapPin } from 'lucide-react'
 import { loadRegencies, loadDistricts, cleanCityName } from '../utils/wilayah'
 
+const BASE_INPUT_CLASS =
+  'w-full py-4 px-4 pr-9 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors'
+
 export default function LocationAutocomplete({
   mode,
   value,
@@ -10,6 +13,7 @@ export default function LocationAutocomplete({
   selectedCityCode,
   placeholder,
   required,
+  inputClassName,
 }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -98,7 +102,7 @@ export default function LocationAutocomplete({
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
-        className="w-full py-4 px-4 pr-9 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+        className={`${inputClassName || BASE_INPUT_CLASS} ${inputClassName ? 'pr-9' : ''}`}
       />
       <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-muted pointer-events-none" />
 

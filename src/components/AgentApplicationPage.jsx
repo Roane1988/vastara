@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, UserCheck, Building2, CheckCircle2, AlertCircle, Lock } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import FormErrorSummary from './FormErrorSummary'
+import LocationAutocomplete from './LocationAutocomplete'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { createAgentApplicationSchema, EXPERIENCE_OPTIONS, buildAgentApplicationPayload } from '../utils/agentApplicationSchema'
@@ -20,6 +21,8 @@ export default function AgentApplicationPage() {
   const {
     register,
     handleSubmit,
+    setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(schema),
@@ -36,6 +39,8 @@ export default function AgentApplicationPage() {
   })
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+
+  const regionValue = useWatch({ control, name: 'region', defaultValue: '' })
 
   if (!user) {
     return (
@@ -191,7 +196,13 @@ export default function AgentApplicationPage() {
 
               <div>
                 <label htmlFor="region" className={labelClass}>{t('agentApply.region')}</label>
-                <input id="region" type="text" {...register('region')} placeholder={t('agentApply.region_placeholder')} className={inputClass} />
+                <LocationAutocomplete
+                  mode="kota"
+                  value={regionValue}
+                  onChange={(v) => setValue('region', v, { shouldValidate: true, shouldDirty: true })}
+                  placeholder={t('agentApply.region_placeholder')}
+                  inputClassName={inputClass}
+                />
               </div>
 
               <div>

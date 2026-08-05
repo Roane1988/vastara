@@ -5,6 +5,7 @@ import { ArrowLeft, UserCheck, CheckCircle2, AlertCircle, Lock, Save, Eye, EyeOf
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
+import LocationAutocomplete from './LocationAutocomplete'
 
 const inputClass =
   'w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors'
@@ -259,7 +260,13 @@ export default function AgentProfilePage() {
                 </div>
                 <div>
                   <label htmlFor="ap_region" className={labelClass}>{t('agentProfile.region')}</label>
-                  <input id="ap_region" type="text" value={form.region} onChange={updateField('region')} placeholder={t('agentProfile.region_placeholder')} className={inputClass} />
+                  <LocationAutocomplete
+                    mode="kota"
+                    value={form.region}
+                    onChange={(v) => setForm((prev) => ({ ...prev, region: v }))}
+                    placeholder={t('agentProfile.region_placeholder')}
+                    inputClassName={inputClass}
+                  />
                 </div>
               </div>
 
