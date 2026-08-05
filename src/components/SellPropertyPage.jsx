@@ -8,6 +8,8 @@ import useSEO from '../hooks/useSEO'
 import { getAuthHeaders } from '../utils/groqClient'
 import { compressImage } from '../utils/imageCompression'
 import FormErrorSummary from './FormErrorSummary'
+import LocationAutocomplete from './LocationAutocomplete'
+import { cleanCityName, loadRegencies } from '../utils/wilayah'
 
 const DRAFT_KEY = 'hunione_sell_draft'
 const MAX_IMAGES = 10
@@ -181,6 +183,7 @@ export default function SellPropertyPage() {
     const draft = loadDraft()
     return draft?.form || EMPTY_FORM
   })
+  const [cityCode, setCityCode] = useState('')
   const [imageFiles, setImageFiles] = useState(() => {
     if (editId) return []
     const draft = loadDraft()
@@ -260,6 +263,19 @@ export default function SellPropertyPage() {
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId])
+
+  useEffect(() => {
+    if (cityCode || !form.city) return
+    let cancelled = false
+    loadRegencies()
+      .then((regencies) => {
+        if (cancelled) return
+        const hit = regencies.find((r) => cleanCityName(r.name).toLowerCase() === form.city.trim().toLowerCase())
+        if (hit) setCityCode(hit.code)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [form.city, cityCode])
 
   useEffect(() => {
     if (!isSubmitted) {
@@ -643,11 +659,24 @@ export default function SellPropertyPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kota/Kabupaten <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Tangerang Selatan" value={form.city} onChange={updateForm('city')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                <LocationAutocomplete
+                  mode="kota"
+                  value={form.city}
+                  onChange={(v) => updateFormValue('city', v)}
+                  onPickCity={(code) => setCityCode(code || '')}
+                  placeholder="Tangerang Selatan"
+                  required
+                />
               </div>
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kecamatan</label>
-                <input type="text" placeholder="Serpong" value={form.kecamatan} onChange={updateForm('kecamatan')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                <LocationAutocomplete
+                  mode="kecamatan"
+                  value={form.kecamatan}
+                  onChange={(v) => updateFormValue('kecamatan', v)}
+                  selectedCityCode={cityCode}
+                  placeholder="Serpong"
+                />
               </div>
             </div>
           </div>
