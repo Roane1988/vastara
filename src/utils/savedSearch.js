@@ -9,14 +9,27 @@ export function serializeFilters({ searchCategory, searchText, filterType, filte
   return f
 }
 
+export const NEW_LISTING_DAYS = 30
+
+export function getListingTimestamp(p) {
+  const ts = new Date(p.published_at || p.created_at)
+  return isNaN(ts.getTime()) ? 0 : ts.getTime()
+}
+
+export function isNewListing(p, days = NEW_LISTING_DAYS) {
+  if (getListingTimestamp(p) <= Date.now() - days * 24 * 60 * 60 * 1000) return false
+  const price = Number(p.price) || 0
+  const original = Number(p.original_price) || 0
+  if (original > 0 && original > price) return false
+  return true
+}
+
 export function matchesFilters(p, filters = {}) {
   const f = filters || {}
 
   if (f.category === 'dijual' && p.category !== 'Dijual') return false
   if (f.category === 'disewa' && p.category !== 'Disewa') return false
-  if (f.category === 'baru') {
-    if (new Date(p.created_at).getTime() <= Date.now() - 7 * 24 * 60 * 60 * 1000) return false
-  }
+  if (f.category === 'baru' && !isNewListing(p)) return false
 
   if (f.search) {
     const q = String(f.search).toLowerCase()

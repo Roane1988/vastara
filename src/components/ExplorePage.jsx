@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
 import { useCompare } from '../hooks/useCompare'
-import { serializeFilters } from '../utils/savedSearch'
+import { serializeFilters, isNewListing, getListingTimestamp } from '../utils/savedSearch'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
 import CompareBar from './CompareBar'
@@ -22,7 +22,7 @@ import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
 import { getFinancialProfile, computeAffordability, maxAffordablePrice, estimateMonthlyInstallment } from '../utils/financialProfile'
 import { getAuthHeaders } from '../utils/groqClient'
 
-const NEW_WEEK_CUTOFF = Date.now() - 7 * 24 * 60 * 60 * 1000
+
 
 const QUICK_MENU = [
   { icon: Search, tKey: 'explore.quick_menu.find_property', action: 'search' },
@@ -387,7 +387,7 @@ export default function ExplorePage() {
 
   const startOfToday = useMemo(() => new Date().setHours(0, 0, 0, 0), [])
   const newToday = useMemo(
-    () => properties.filter((p) => p.created_at && new Date(p.created_at).getTime() >= startOfToday).length,
+    () => properties.filter((p) => getListingTimestamp(p) >= startOfToday).length,
     [properties, startOfToday]
   )
   const priceDrops = useMemo(
@@ -399,9 +399,7 @@ export default function ExplorePage() {
     return [...properties].filter((p) => {
       if (searchCategory === 'dijual' && p.category !== 'Dijual') return false
       if (searchCategory === 'disewa' && p.category !== 'Disewa') return false
-      if (searchCategory === 'baru') {
-        if (new Date(p.created_at).getTime() <= NEW_WEEK_CUTOFF) return false
-      }
+      if (searchCategory === 'baru' && !isNewListing(p)) return false
 
       if (searchText.trim()) {
         const q = searchText.trim().toLowerCase()
