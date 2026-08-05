@@ -288,7 +288,7 @@ export default function ExplorePage() {
   }
 
   function scrollToSearch() {
-    searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setTimeout(() => searchInputRef.current?.focus(), 500)
   }
 
@@ -503,7 +503,7 @@ export default function ExplorePage() {
   }, [lang, translations])
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-32">
+    <div className="min-h-screen bg-brand-bg pb-36">
       {/* ─── STICKY SEARCH ─── */}
       {stickySearch && !isSearching && (
         <div className="fixed top-14 inset-x-0 z-[60] bg-white/95 backdrop-blur border-b border-brand-border px-4 py-2.5 shadow-sm">
@@ -625,7 +625,7 @@ export default function ExplorePage() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.2, ease: 'easeOut' }}
-            className="bg-white/95 backdrop-blur rounded-3xl shadow-xl shadow-brand-primary/15 border border-white/60 p-4 sm:p-5 mt-7"
+            className="bg-white/95 backdrop-blur rounded-3xl shadow-xl shadow-brand-primary/15 border border-white/60 p-4 sm:p-5 mt-7 scroll-mt-24"
           >
             <div className="flex gap-5 sm:gap-6 mb-4 border-b border-brand-border/70">
               {[
