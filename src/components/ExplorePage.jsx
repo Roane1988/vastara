@@ -480,6 +480,8 @@ export default function ExplorePage() {
     [sorted]
   )
 
+  const featuredIds = useMemo(() => new Set(recommended.map((p) => p.id)), [recommended])
+
   const [translations, setTranslations] = useState({})
   const lang = i18n.language
 
@@ -755,10 +757,10 @@ export default function ExplorePage() {
       </section>
 
       {/* ─── MARKET PULSE / COLLECTIONS / TRUST ─── */}
-      {!isSearching && <ExploreInsights properties={properties} />}
+      {!isSearching && <ExploreInsights properties={properties} excludeIds={featuredIds} />}
 
       {/* ─── AGEN / FORUM / INVESTASI ─── */}
-      {!isSearching && <ExplorePhase2 properties={properties} />}
+      {!isSearching && <ExplorePhase2 properties={properties} excludeIds={featuredIds} />}
 
       {/* ─── REKOMENDASI SESUAI PENCARIANMU ─── */}
       {showSkeleton ? (

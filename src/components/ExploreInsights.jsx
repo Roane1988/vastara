@@ -171,32 +171,43 @@ function CollectionRow({ title, sub, icon: Icon, to, items, t }) {
   )
 }
 
-export default function ExploreInsights({ properties }) {
+export default function ExploreInsights({ properties, excludeIds }) {
   const { t } = useTranslation()
 
+  const available = useMemo(
+    () => properties.filter((p) => !excludeIds?.has(p.id)),
+    [properties, excludeIds]
+  )
+
   const drops = useMemo(() =>
-    properties
+    available
       .filter((p) => p.original_price && Number(p.original_price) > Number(p.price))
       .sort((a, b) => Number(b.original_price) / Number(b.price) - Number(a.original_price) / Number(a.price))
       .slice(0, 8),
-  [properties])
+  [available])
+
+  const dropIds = useMemo(() => new Set(drops.map((p) => p.id)), [drops])
 
   const starter = useMemo(() =>
-    properties
-      .filter((p) => p.property_type === 'Rumah' && (Number(p.price) || 0) <= 1_500_000_000)
+    available
+      .filter((p) => p.property_type === 'Rumah' && (Number(p.price) || 0) <= 1_500_000_000 && !dropIds.has(p.id))
       .sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0))
       .slice(0, 8),
-  [properties])
+  [available, dropIds])
+
+  const starterIds = useMemo(() => new Set(starter.map((p) => p.id)), [starter])
 
   const premium = useMemo(() =>
-    properties.filter((p) => p.is_premium).slice(0, 8),
-  [properties])
+    available
+      .filter((p) => p.is_premium && !dropIds.has(p.id) && !starterIds.has(p.id))
+      .slice(0, 8),
+  [available, dropIds, starterIds])
 
-  const cities = useMemo(() => new Set(properties.map((p) => p.city).filter(Boolean)).size, [properties])
+  const cities = useMemo(() => new Set(available.map((p) => p.city).filter(Boolean)).size, [available])
 
   return (
     <>
-      <MarketPulse properties={properties} />
+      <MarketPulse properties={available} />
 
       <CollectionRow
         title="Baru Turun Harga"
@@ -225,12 +236,12 @@ export default function ExploreInsights({ properties }) {
         t={t}
       />
 
-      {(properties.length > 0 || cities > 0) && (
+      {(available.length > 0 || cities > 0) && (
         <section className="max-w-7xl mx-auto px-4 mb-8">
           <SectionHeader icon={Building2} title="Kepercayaan HuniOne" sub="komunitas yang tumbuh" />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { icon: Building2, label: 'Properti', value: properties.length },
+              { icon: Building2, label: 'Properti', value: available.length },
               { icon: MapPin, label: 'Kota', value: cities },
               { icon: Users, label: 'Agen & Pengembang', value: 0 },
             ].map((s) => (

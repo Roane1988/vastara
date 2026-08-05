@@ -173,10 +173,14 @@ function ForumHighlights() {
   )
 }
 
-function InvestmentPicks({ properties }) {
+function InvestmentPicks({ properties, excludeIds }) {
   const { t } = useTranslation()
+  const available = useMemo(
+    () => properties.filter((p) => !excludeIds?.has(p.id)),
+    [properties, excludeIds]
+  )
   const picks = useMemo(() =>
-    [...properties]
+    [...available]
       .map((p) => {
         const area = Number(p.area_sqm || p.sqm) || 0
         const price = Number(p.price) || 0
@@ -185,7 +189,7 @@ function InvestmentPicks({ properties }) {
       .filter((p) => p.perSqm > 0)
       .sort((a, b) => a.perSqm - b.perSqm)
       .slice(0, 8),
-  [properties])
+  [available])
 
   if (picks.length === 0) return null
 
@@ -214,12 +218,12 @@ function InvestmentPicks({ properties }) {
   )
 }
 
-export default function ExplorePhase2({ properties }) {
+export default function ExplorePhase2({ properties, excludeIds }) {
   return (
     <>
       <TopAgents />
       <ForumHighlights />
-      <InvestmentPicks properties={properties} />
+      <InvestmentPicks properties={properties} excludeIds={excludeIds} />
     </>
   )
 }
