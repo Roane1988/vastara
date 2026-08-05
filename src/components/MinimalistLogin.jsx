@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
+import { isRateLimitError } from '../utils/authErrors'
 import FormErrorSummary from './FormErrorSummary'
 
 function EyeIcon({ visible }) {
@@ -44,6 +46,7 @@ function SpinnerIcon() {
 
 export default function MinimalistLogin({ onLoginSuccess }) {
   const { t } = useTranslation()
+  const { showToast } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [email, setEmail] = useState('')
@@ -70,7 +73,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
       if (isLogin) {
         const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
         if (authError) {
-          setError(authError.message)
+          handleAuthError(authError)
           return
         }
       } else {
@@ -79,7 +82,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
           options: { data: { first_name: firstName, whatsapp } },
         })
         if (authError) {
-          setError(authError.message)
+          handleAuthError(authError)
           return
         }
       }
@@ -88,6 +91,16 @@ export default function MinimalistLogin({ onLoginSuccess }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleAuthError(authError) {
+    if (isRateLimitError(authError)) {
+      const message = t('login.too_many_attempts')
+      showToast(message, 'error')
+      setError(message)
+      return
+    }
+    setError(authError.message)
   }
 
   const loadingBtnClass = loading

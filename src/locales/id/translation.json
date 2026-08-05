@@ -226,7 +226,8 @@
     "register_processing": "Memproses...",
     "has_account": "Sudah punya akun?",
     "login_link": "Masuk",
-    "error_password_mismatch": "Konfirmasi password tidak cocok"
+    "error_password_mismatch": "Konfirmasi password tidak cocok",
+    "too_many_attempts": "Terlalu banyak percobaan login. Silakan tunggu beberapa saat lalu coba lagi."
   },
   "comingSoon": {
     "title": "Fitur Sedang Dibuat!",

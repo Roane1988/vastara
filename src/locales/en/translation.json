@@ -226,7 +226,8 @@
     "register_processing": "Processing...",
     "has_account": "Already have an account?",
     "login_link": "Sign In",
-    "error_password_mismatch": "Password confirmation does not match"
+    "error_password_mismatch": "Password confirmation does not match",
+    "too_many_attempts": "Too many login attempts. Please wait a moment and try again."
   },
   "comingSoon": {
     "title": "Feature Coming Soon!",

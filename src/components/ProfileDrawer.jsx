@@ -20,6 +20,8 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
+import { isRateLimitError } from '../utils/authErrors'
 import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
 import FinancialProfileForm from './FinancialProfileForm'
 import SlideOver from './SlideOver'
@@ -59,6 +61,7 @@ function Collapsible({ title, icon, defaultOpen = false, children }) {
 export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { showToast } = useAuth()
   const { totalNew } = useSavedSearchAlerts()
 
   const [name, setName] = useState(userName || '')
@@ -183,7 +186,11 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
         })
 
         if (signInError) {
-          notify(t('profileDrawer.wrong_password'), 'error')
+          if (isRateLimitError(signInError)) {
+            showToast(t('login.too_many_attempts'), 'error')
+          } else {
+            notify(t('profileDrawer.wrong_password'), 'error')
+          }
           return
         }
 
@@ -252,7 +259,11 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
         password: pwCurrent,
       })
       if (signInError) {
-        setPwError(t('profileDrawer.pw_wrong_current'))
+        if (isRateLimitError(signInError)) {
+          showToast(t('login.too_many_attempts'), 'error')
+        } else {
+          setPwError(t('profileDrawer.pw_wrong_current'))
+        }
         return
       }
 
