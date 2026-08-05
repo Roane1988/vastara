@@ -503,7 +503,7 @@ export default function ExplorePage() {
   }, [lang, translations])
 
   return (
-    <div className="min-h-screen bg-brand-bg">
+    <div className="min-h-screen bg-brand-bg pb-32">
       {/* ─── STICKY SEARCH ─── */}
       {stickySearch && !isSearching && (
         <div className="fixed top-14 inset-x-0 z-[60] bg-white/95 backdrop-blur border-b border-brand-border px-4 py-2.5 shadow-sm">
