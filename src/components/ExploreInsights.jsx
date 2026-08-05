@@ -175,6 +175,14 @@ function SectionHeader({ icon: Icon, title, sub, to, action }) {
   )
 }
 
+const MIN_CITY_LISTINGS = 2
+
+function median(nums) {
+  const sorted = [...nums].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+}
+
 function MarketPulse({ properties }) {
   const pulse = useMemo(() => {
     const byCity = {}
@@ -186,17 +194,19 @@ function MarketPulse({ properties }) {
       byCity[city].push(price)
     }
     const cities = Object.entries(byCity)
+      .filter(([, prices]) => prices.length >= MIN_CITY_LISTINGS)
       .map(([name, prices]) => ({
         name,
-        avg: prices.reduce((a, b) => a + b, 0) / prices.length,
+        median: median(prices),
         count: prices.length,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 3)
-    const overall = cities.length ? cities.reduce((s, c) => s + c.avg, 0) / cities.length : 0
+    if (cities.length === 0) return []
+    const overall = cities.reduce((s, c) => s + c.median, 0) / cities.length
     return cities.map((c) => ({
       ...c,
-      delta: overall ? Math.round(((c.avg - overall) / overall) * 1000) / 10 : 0,
+      delta: overall ? Math.round(((c.median - overall) / overall) * 1000) / 10 : 0,
     }))
   }, [properties])
 
@@ -204,7 +214,7 @@ function MarketPulse({ properties }) {
 
   return (
     <section className="max-w-7xl mx-auto px-4 mb-8">
-      <SectionHeader icon={TrendingUp} title="Market Pulse" sub="tren harga per kota" action="Analisis penuh" to="/price-trends" />
+      <SectionHeader icon={TrendingUp} title="Market Pulse" sub="harga median per kota · perbandingan, bukan tren" action="Analisis penuh" to="/price-trends" />
       <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4">
         {pulse.map((c) => {
           const up = c.delta >= 0.1
@@ -216,9 +226,10 @@ function MarketPulse({ properties }) {
               className="min-w-[200px] w-[200px] shrink-0 bg-white rounded-2xl border border-brand-border p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <p className="text-sm font-bold text-brand-text">{c.name}</p>
-              <p className="text-lg font-extrabold text-brand-primary mt-1">{formatPrice(c.avg)}</p>
+              <p className="text-lg font-extrabold text-brand-primary mt-1">{formatPrice(c.median)}</p>
               <div className="flex items-center justify-between mt-2">
                 <span
+                  title={up ? 'Di atas rata-rata kota lain' : down ? 'Di bawah rata-rata kota lain' : 'Sekitar rata-rata kota lain'}
                   className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
                     up ? 'bg-emerald-50 text-emerald-700'
                       : down ? 'bg-red-50 text-red-600'
@@ -226,7 +237,7 @@ function MarketPulse({ properties }) {
                   }`}
                 >
                   {up ? <TrendingUp size={11} /> : down ? <TrendingDown size={11} /> : null}
-                  {up ? `+${c.delta}%` : down ? `${c.delta}%` : 'stabil'}
+                  {up ? `+${c.delta}%` : down ? `${c.delta}%` : 'rata-rata'}
                 </span>
                 <span className="text-[11px] text-brand-muted">{c.count} listing</span>
               </div>
@@ -288,7 +299,7 @@ export default function ExploreInsights({ properties, excludeIds }) {
 
   return (
     <>
-      <MarketPulse properties={available} />
+      <MarketPulse properties={properties} />
 
       <CollectionRow
         title="Baru Turun Harga"
