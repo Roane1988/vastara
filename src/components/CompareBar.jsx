@@ -15,7 +15,7 @@ export default function CompareBar() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-brand-surface border-t border-brand-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
           {items.map(p => (
             <div key={p.id} className="flex items-center gap-1.5 bg-brand-bg rounded-lg px-2.5 py-1.5 border border-brand-border/50">
               <img
