@@ -193,7 +193,8 @@
       "save": "Simpan",
       "saved": "Disimpan",
       "bed": "Kamar",
-      "bath": "Kamar Mandi"
+      "bath": "Kamar Mandi",
+      "price_drop": "Turun Harga"
     },
     "location_fallback": "Indonesia",
     "filter_badge": "Filter"

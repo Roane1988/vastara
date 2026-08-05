@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart, Bell, Check } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart, Bell, Check, Building2, Share2, Plus, Home, MessageSquare } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
-import { formatPriceDisplay } from '../utils/format'
+import { formatPriceDisplay, formatCount } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
@@ -16,7 +16,10 @@ import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
 import CompareBar from './CompareBar'
 import PopularSearches from './PopularSearches'
-import { getFinancialProfile } from '../utils/financialProfile'
+import ExploreInsights from './ExploreInsights'
+import ExplorePhase2 from './ExplorePhase2'
+import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
+import { getFinancialProfile, computeAffordability, maxAffordablePrice } from '../utils/financialProfile'
 import { getAuthHeaders } from '../utils/groqClient'
 
 const NEW_WEEK_CUTOFF = Date.now() - 7 * 24 * 60 * 60 * 1000
@@ -83,7 +86,12 @@ export default function ExplorePage() {
   const searchCardRef = useRef(null)
   const [isAiSearch, setIsAiSearch] = useState(false)
   const [showFinBanner, setShowFinBanner] = useState(false)
+  const [finProfile, setFinProfile] = useState(null)
+  const [activity, setActivity] = useState({ agents: 0, discussions: 0 })
+  const [stickySearch, setStickySearch] = useState(false)
   const { compareSet, toggleCompare } = useCompare(showToast)
+  const { totalNew } = useSavedSearchAlerts()
+  const [ctaOpen, setCtaOpen] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -93,12 +101,36 @@ export default function ExplorePage() {
       try {
         const { profile } = await getFinancialProfile()
         if (!cancelled && !profile) setShowFinBanner(true)
+        if (!cancelled && profile) setFinProfile(profile)
       } catch {
         /* keep banner hidden on error */
       }
     })()
     return () => { cancelled = true }
   }, [user])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const [agents, discussions] = await Promise.allSettled([
+        supabase.from('agent_profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('forum_posts').select('id', { count: 'exact', head: true }),
+      ])
+      if (cancelled) return
+      setActivity({
+        agents: agents.status === 'fulfilled' ? (agents.value.count ?? 0) : 0,
+        discussions: discussions.status === 'fulfilled' ? (discussions.value.count ?? 0) : 0,
+      })
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    const onScroll = () => setStickySearch(window.scrollY > 520)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const firstName = user?.user_metadata?.first_name || null
 
@@ -277,6 +309,20 @@ export default function ExplorePage() {
     setSaved(updated)
   }
 
+  async function shareProperty(p) {
+    const url = `${window.location.origin}/property/${p.id}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: p.title, text: p.title, url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        showToast('Link properti disalin', 'success')
+      }
+    } catch {
+      /* user cancelled share sheet */
+    }
+  }
+
   async function handleSaveSearch() {
     if (savingSearch) return
     if (!user) {
@@ -335,6 +381,16 @@ export default function ExplorePage() {
     return { total, cities, types }
   }, [properties])
 
+  const startOfToday = useMemo(() => new Date().setHours(0, 0, 0, 0), [])
+  const newToday = useMemo(
+    () => properties.filter((p) => p.created_at && new Date(p.created_at).getTime() >= startOfToday).length,
+    [properties, startOfToday]
+  )
+  const priceDrops = useMemo(
+    () => properties.filter((p) => p.original_price && Number(p.original_price) > Number(p.price)).length,
+    [properties]
+  )
+
   const sorted = useMemo(() => {
     return [...properties].filter((p) => {
       if (searchCategory === 'dijual' && p.category !== 'Dijual') return false
@@ -380,10 +436,45 @@ export default function ExplorePage() {
   const isSearching = hasActiveSearch || isAiSearch
   const isSearchEmpty = isSearching && sorted.length === 0
   const showSkeleton = loadingProperties && !isSearching
-  const displayRecommendations = useMemo(
-    () => (sorted.length > 0 ? sorted.slice(0, 4) : []),
-    [sorted]
-  )
+
+  const favCities = useMemo(() => {
+    const set = new Set()
+    for (const id of saved) {
+      const p = properties.find((x) => x.id === id)
+      if (p?.city) set.add(p.city.trim().toLowerCase())
+    }
+    return set
+  }, [saved, properties])
+
+  const maxAffordable = useMemo(() => {
+    if (!finProfile) return 0
+    const aff = computeAffordability(finProfile)
+    if (!aff || !aff.maxInstallment) return 0
+    return maxAffordablePrice(aff.maxInstallment, 5.5, 15, 20)
+  }, [finProfile])
+
+  const recommended = useMemo(() => {
+    const source = sorted.length > 0 ? sorted : properties
+    if (source.length === 0) return []
+    const ranked = source.map((p) => {
+      let score = 0
+      const price = Number(p.price) || 0
+      if (favCities.has((p.city || '').trim().toLowerCase())) score += 4
+      if (maxAffordable > 0 && price > 0 && price <= maxAffordable) score += 3
+      if (p.is_premium) score += 1
+      return { p, score }
+    })
+    ranked.sort((a, b) => b.score - a.score || new Date(b.p.created_at || 0) - new Date(a.p.created_at || 0))
+    return ranked.slice(0, 6).map((x) => x.p)
+  }, [sorted, properties, favCities, maxAffordable])
+
+  const recommendationChips = useMemo(() => {
+    const chips = []
+    if (favCities.size > 0) chips.push('Kota favoritmu')
+    if (maxAffordable > 0) chips.push('Cocok dengan budget')
+    return chips.slice(0, 3)
+  }, [favCities, maxAffordable])
+
   const displayListings = useMemo(
     () => (sorted.length > 0 ? sorted : []),
     [sorted]
@@ -394,7 +485,7 @@ export default function ExplorePage() {
 
   useEffect(() => {
     if (lang !== 'en') return
-    const allProps = [...new Map([...displayListings, ...displayRecommendations].map((p) => [p.id, p])).values()]
+    const allProps = [...new Map([...displayListings, ...recommended].map((p) => [p.id, p])).values()]
     const controller = new AbortController()
     batchTranslate(allProps, controller.signal)
       .then((result) => {
@@ -402,7 +493,7 @@ export default function ExplorePage() {
       })
       .catch(() => {})
     return () => controller.abort()
-  }, [lang, displayListings, displayRecommendations])
+  }, [lang, displayListings, recommended])
 
   const getTranslated = useCallback((prop, field, fallback) => {
     if (lang !== 'en') return fallback
@@ -411,6 +502,38 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
+      {/* ─── STICKY SEARCH ─── */}
+      {stickySearch && !isSearching && (
+        <div className="fixed top-14 inset-x-0 z-[60] bg-white/95 backdrop-blur border-b border-brand-border px-4 py-2.5 shadow-sm">
+          <div className="max-w-7xl mx-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={scrollToSearch}
+              className="flex-1 flex items-center gap-2 bg-brand-bg border border-brand-border rounded-xl px-3.5 py-2.5 text-sm text-brand-muted hover:border-brand-accent transition-colors min-w-0"
+            >
+              <Search size={16} className="shrink-0" />
+              <span className="truncate">Cari properti, kota, atau tipe...</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/price-trends')}
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-accent bg-brand-highlight hover:bg-brand-accent hover:text-white transition-colors rounded-xl px-3 py-2.5"
+            >
+              <TrendingUp size={14} />
+              <span className="hidden sm:inline">Analisis Harga</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/price-drop')}
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-danger bg-red-50 hover:bg-brand-danger hover:text-white transition-colors rounded-xl px-3 py-2.5"
+            >
+              <TrendingDown size={14} />
+              <span className="hidden sm:inline">Harga Turun</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ─── HERO BANNER ─── */}
       <div className="relative bg-gradient-to-br from-brand-primary via-brand-primary to-[#284D7A] overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-brand-accent/20 blur-3xl" />
@@ -457,6 +580,40 @@ export default function ExplorePage() {
               <span><b className="text-white font-bold text-sm sm:text-base">{heroStats.cities}</b> kota</span>
               <span className="w-1 h-1 rounded-full bg-white/40" />
               <span><b className="text-white font-bold text-sm sm:text-base">{heroStats.types}</b> tipe</span>
+            </motion.div>
+          )}
+
+          {/* Activity Card */}
+          {!isSearching && (
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.16, ease: 'easeOut' }}
+              className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5"
+            >
+              {[
+                { icon: Building2, value: newToday || 0, label: 'properti baru hari ini', to: null, onClick: scrollToSearch },
+                { icon: TrendingDown, value: priceDrops || 0, label: 'harga turun', to: '/price-drop', onClick: null },
+                ...(activity.agents > 0 ? [{ icon: Users, value: activity.agents, label: 'agen siap bantu', to: '/agents', onClick: null }] : []),
+                ...(activity.discussions > 0 ? [{ icon: MessageCircle, value: activity.discussions, label: 'diskusi aktif', to: '/forum', onClick: null }] : []),
+              ].map((s) => {
+                const Inner = (
+                  <span className="w-full bg-white/10 hover:bg-white/20 backdrop-blur border border-white/15 rounded-2xl px-3 py-2.5 flex items-center gap-2.5 transition-colors">
+                    <span className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                      <s.icon size={16} className="text-white" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold text-white leading-tight">{s.value}</span>
+                      <span className="block text-[10px] text-white/70 truncate">{s.label}</span>
+                    </span>
+                  </span>
+                )
+                return s.to ? (
+                  <Link key={s.label} to={s.to} className="flex">{Inner}</Link>
+                ) : (
+                  <button key={s.label} type="button" onClick={s.onClick} className="flex">{Inner}</button>
+                )
+              })}
             </motion.div>
           )}
 
@@ -562,6 +719,9 @@ export default function ExplorePage() {
           transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
           className="bg-white/95 backdrop-blur rounded-2xl shadow-lg shadow-brand-primary/5 border border-brand-border p-4"
         >
+          <p className="text-[11px] font-bold uppercase tracking-wide text-brand-muted mb-3">
+            Layanan cepat
+          </p>
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-2">
             {QUICK_MENU.map((item) => {
               const Icon = item.icon
@@ -594,6 +754,12 @@ export default function ExplorePage() {
         <RecentlyViewed />
       </section>
 
+      {/* ─── MARKET PULSE / COLLECTIONS / TRUST ─── */}
+      {!isSearching && <ExploreInsights properties={properties} />}
+
+      {/* ─── AGEN / FORUM / INVESTASI ─── */}
+      {!isSearching && <ExplorePhase2 properties={properties} />}
+
       {/* ─── REKOMENDASI SESUAI PENCARIANMU ─── */}
       {showSkeleton ? (
       <section className="max-w-7xl mx-auto px-4 mt-8 mb-8">
@@ -608,7 +774,7 @@ export default function ExplorePage() {
           ))}
         </div>
       </section>
-      ) : displayRecommendations.length > 0 && (
+      ) : recommended.length > 0 && (
       <motion.section
         initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -616,8 +782,9 @@ export default function ExplorePage() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="max-w-7xl mx-auto px-4 mt-8 mb-8"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-brand-text">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
+            <Sparkles size={17} className="text-brand-accent" />
             {t('explore.recommendations.title')}
           </h2>
           <button
@@ -628,8 +795,17 @@ export default function ExplorePage() {
             {t('explore.recommendations.view_all')}
           </button>
         </div>
+        {recommendationChips.length > 0 && (
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {recommendationChips.map((c) => (
+              <span key={c} className="text-[11px] font-semibold text-brand-accent bg-brand-highlight border border-brand-accent/15 rounded-full px-3 py-1">
+                {c}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="flex gap-4 overflow-x-auto no-scrollbar">
-          {displayRecommendations.map((p) => (
+          {recommended.map((p) => (
             <Link
               key={p.id}
               to={`/property/${p.id}`}
@@ -723,6 +899,46 @@ export default function ExplorePage() {
         </div>
       )}
 
+      {/* ─── SAVED SEARCH REMINDER ─── */}
+      {user && totalNew > 0 && !isSearching && (
+        <div className="max-w-7xl mx-auto px-4 mb-4">
+          <Link
+            to="/saved-searches"
+            className="flex items-center gap-3 bg-white rounded-2xl border border-brand-accent/30 px-4 py-3 hover:border-brand-accent hover:shadow-md transition-all"
+          >
+            <span className="w-9 h-9 rounded-xl bg-brand-highlight flex items-center justify-center shrink-0">
+              <Bell size={16} className="text-brand-accent" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-bold text-brand-text">
+                Ada {formatCount(totalNew)} properti baru yang cocok dengan alert kamu
+              </span>
+              <span className="block text-xs text-brand-muted">Cek alert pencarianmu sekarang</span>
+            </span>
+            <span className="text-sm font-semibold text-brand-accent shrink-0">Lihat</span>
+          </Link>
+        </div>
+      )}
+
+      {/* ─── REALTIME FOOTER ─── */}
+      {!isSearching && properties.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 mb-4">
+          <div className="flex items-center justify-center gap-x-4 gap-y-1 flex-wrap text-[11px] text-brand-muted bg-brand-surface border border-brand-border rounded-full px-4 py-2">
+            <span className="flex items-center gap-1.5">
+              <span className="relative flex w-2 h-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full w-2 h-2 bg-emerald-500" />
+              </span>
+              {properties.length} properti tersedia
+            </span>
+            <span className="hidden sm:inline text-brand-border">•</span>
+            <span>{activity.agents > 0 ? `${activity.agents} agen siap bantu` : 'Agen siap bantu'}</span>
+            <span className="hidden sm:inline text-brand-border">•</span>
+            <span>Harga selalu diperbarui</span>
+          </div>
+        </div>
+      )}
+
       {/* ─── FULL PROPERTY LISTING ─── */}
       <motion.section
         ref={listingRef}
@@ -805,6 +1021,12 @@ export default function ExplorePage() {
             >
               Jual Properti
             </button>
+            <p className="text-xs text-brand-muted mt-3">
+              Punya pertanyaan?{" "}
+              <Link to="/forum" className="text-brand-accent font-semibold hover:underline">
+                Diskusikan di forum
+              </Link>
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -884,20 +1106,60 @@ export default function ExplorePage() {
                     <ArrowLeftRight size={14} />
                     {compareSet.has(p.id) ? 'Terseleksi' : 'Bandingkan'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleSave(p.id)}
-                    className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent transition-colors"
-                  >
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => shareProperty(p)}
+                      aria-label="Bagikan properti"
+                      title="Bagikan properti"
+                      className="text-brand-muted hover:text-brand-accent transition-colors"
+                    >
+                      <Share2 size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleSave(p.id)}
+                      className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent transition-colors"
+                    >
                      <Heart size={16} className={saved.includes(p.id) ? 'fill-[#4A90E2] text-[#4A90E2]' : 'text-current'} />
                     {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
-                  </button>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </motion.section>
+
+      {/* ─── COMPARE PROMPT ─── */}
+      {!isSearching && displayListings.length > 0 && compareSet.size === 0 && (
+        <section className="max-w-7xl mx-auto px-4 pb-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4 bg-white rounded-2xl border border-brand-border p-4">
+            <div className="flex-1 min-w-0 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-highlight flex items-center justify-center shrink-0">
+                <ArrowLeftRight size={18} className="text-brand-accent" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-brand-text">Cocokkan properti</p>
+                <p className="text-xs text-brand-muted truncate">
+                  Pilih hingga 3 properti untuk dibandingkan berdampingan.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                displayListings.slice(0, Math.min(3, displayListings.length)).forEach((p) => toggleCompare(p))
+              }}
+              className="shrink-0 w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-accent text-white text-sm font-bold hover:bg-brand-primary active:scale-[0.98] transition-all"
+            >
+              <ArrowLeftRight size={14} />
+              Pilih 3 teratas
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ─── DRAWERS ─── */}
       <MoreCategoriesDrawer
@@ -1083,6 +1345,39 @@ export default function ExplorePage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ─── FLOATING CTA ─── */}
+      {!isSearching && compareSet.size === 0 && (
+        <div className="fixed bottom-6 right-4 z-40 flex flex-col items-end gap-3">
+          {ctaOpen && (
+            <div className="flex flex-col items-stretch gap-2 animate-fadeIn">
+              {[
+                { icon: Home, label: 'Jual Properti', path: '/sell-role' },
+                { icon: Calculator, label: 'Simulasi KPR', path: '/kpr' },
+                { icon: MessageSquare, label: 'Tanya Forum', path: '/forum' },
+              ].map((m) => (
+                <button
+                  key={m.label}
+                  type="button"
+                  onClick={() => { setCtaOpen(false); navigate(m.path) }}
+                  className="flex items-center gap-2 bg-white border border-brand-border rounded-xl px-3.5 py-2.5 shadow-lg text-sm font-semibold text-brand-text hover:border-brand-accent hover:text-brand-accent transition-all"
+                >
+                  <m.icon size={16} className="text-brand-accent" />
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setCtaOpen(!ctaOpen)}
+            aria-label="Aksi cepat"
+            className="w-14 h-14 rounded-full bg-brand-primary text-white shadow-lg shadow-brand-primary/25 hover:bg-[#284D7A] transition-all active:scale-95 flex items-center justify-center"
+          >
+            <Plus size={22} className={`transition-transform duration-300 ${ctaOpen ? 'rotate-45' : ''}`} />
+          </button>
+        </div>
       )}
 
       <CompareBar />

@@ -193,7 +193,8 @@
       "save": "Save",
       "saved": "Saved",
       "bed": "Bed",
-      "bath": "Bath"
+      "bath": "Bath",
+      "price_drop": "Price Drop"
     },
     "location_fallback": "Indonesia",
     "filter_badge": "Filter"

@@ -2,6 +2,37 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 18 Agustus 2026.
 
+## Changelog — Redesign ExplorePage (Fase 1 & 2)
+Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningkatkan retention, engagement, lead, conversion, session time, dan returning user. Mobile-first, tanpa mengubah branding/warna.
+- **Fase 1 (struktur & discovery)**:
+  - `src/components/ExploreInsights.jsx` (baru): section **Market Pulse** (rata-rata harga per kota dengan pill naik/stabil/turun vs acuan), **collection carousel** "Baru Turun Harga", "Rumah Pertama" (≤1,5M), "Rumah Premium", dan **trust bar** (Properti/Kota/100% Terverifikasi). Semua menampilkan `null` bila data tak memadai.
+  - **Hero activity card**: statistik hidup (properti baru hari ini, harga turun, agen siap bantu, diskusi aktif) berbasis `properties` + count `agent_profiles`/`forum_posts`, tiap sel klik ke listing/`/price-drop`/`/agents`/`/forum`.
+  - **Section "Untuk Anda"** (personalized): ranking dari kota favorit (dari `getFavorites`) + budget KPR (`getFinancialProfile` → `maxAffordablePrice`, asumsi 5.5%/15th/DP20%), dengan chip sinyal ("Kota favoritmu", "Cocok dengan budget"). Menggantikan rekomendasi statis.
+  - **Sticky search bar** (fixed `top-14`, muncul saat scroll >520px) dengan fake-search + akses cepat Analisis Harga / Harga Turun.
+  - **Quick access** diberi judul "Layanan cepat".
+  - **Realtime footer strip** (properti tersedia, agen, "harga selalu diperbarui") di atas listing.
+  - **Compare prompt**: kartu ajakan bandingkan saat `compareList` kosong, CTA "Pilih 3 teratas" → toggle 3 properti pertama.
+  - **Onboarding empty state** diperkaya (link ke forum).
+  - Badge `explore.property_card.price_drop` di id & en.
+- **Fase 2 (komunitas & personalisasi)**:
+  - `src/components/ExplorePhase2.jsx` (baru): **Agen Terpercaya** (top 6 `agent_profiles.is_visible` merge `agent_stats`, urut skor terjual+rating), **Diskusi Trending** (4 post `forum_posts` pinned-first, badge kategori/Hot, author+`timeAgo`, balasan & views), **Pilihan Investasi** (ranking harga/m² + indikator "potensi sewa" untuk apartemen; reuse `CarouselPropertyCard` yang kini di-export).
+  - **Saved search reminder**: strip Bell via `useSavedSearchAlerts()` → `/saved-searches` saat ada properti baru yang cocok.
+  - **Floating CTA expandable**: tombol `+` bawah-kanan, memutar 45°, membuka Jual Properti / Simulasi KPR / Tanya Forum; otomatis sembunyi saat CompareBar aktif.
+  - **Property card upgrade (bagian 1)**: tombol `Share2` di kartu listing (native share, fallback salin link + toast).
+  - **Dilewati sengaja**: nearby geolocation (tidak ada kolom lat/lng di `properties`), AI Score (butuh panggilan AI per kartu, risiko 429).
+
+
+## Changelog — Perbaikan Favicon & Sinkronisasi Auth (satu batch)
+- **Favicon untuk Google Search**: `index.html` sebelumnya mendeklarasikan `type="image/svg+xml"` untuk file JPEG → MIME mismatch membuat Google/tab menampilkan ikon globe default. Diganti menjadi `<link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />` + `<link rel="apple-touch-icon" href="/apple-touch-icon.png" />`.
+  - Aset baru di `public/`: `favicon.png` (512×512 PNG, persegi 1:1 — memenuhi aturan Google) & `apple-touch-icon.png` (180×180 PNG untuk Home Screen iOS), digenerate dari logo persegi `favicon_hunione.jpeg` (1600×1600).
+  - Catatan: `huniOne.svg` ber-viewBox 1920×1080 (landscape/banner), tidak layak jadi favicon; logo persegi sudah tersedia sebagai JPEG.
+- **Handling error rate-limit (429) Supabase Auth** — tanpa menambah rate-limit backend baru (tetap mengandalkan default Supabase Auth untuk brute-force):
+  - `src/utils/authErrors.js` (baru): helper `isRateLimitError(error)` — deteksi via `status === 429`, `statusCode`, `code` (pattern `rate`/`over_request`), atau pola pesan (`rate limit`, `too many requests`, `too many attempts`).
+  - `MinimalistLogin.jsx`: login (`signInWithPassword`) & registrasi (`signUp`) kini lewat `handleAuthError()` → saat 429 tampilkan Toast + inline error ramah `login.too_many_attempts`, bukan pesan mentah Supabase.
+  - `ProfileDrawer.jsx`: semua panggilan `signInWithPassword` (verifikasi ganti email), `updateUser` (ganti email & ganti password) kini konsisten memakai `isRateLimitError` → Toast ramah `login.too_many_attempts` saat 429.
+  - Translasi: key `login.too_many_attempts` ditambahkan di `src/locales/id/translation.json` & `en/translation.json` — "Terlalu banyak percobaan login. Silakan tunggu beberapa saat lalu coba lagi."
+- **Bug pesan 429 salah tujuan**: `vite.config.js` — branch limit untuk `investment` & `fair_price` sebelumnya selalu menampilkan "Batas analisis harga tercapai". Kini *purpose-aware*: investasi → "Batas analisis investasi tercapai", fair price → "Batas analisis harga tercapai".
+
 ## Tech Stack
 - **React 19 + Vite 8** — JavaScript (JSX)
 - **Tailwind CSS v4** — konfigurasi via CSS `@theme` di `index.css` (tidak ada `tailwind.config.js`)
