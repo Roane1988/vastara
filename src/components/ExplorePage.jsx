@@ -113,7 +113,7 @@ export default function ExplorePage() {
     let cancelled = false
     ;(async () => {
       const [agents, discussions] = await Promise.allSettled([
-        supabase.from('agent_profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('agent_profiles').select('user_id', { count: 'exact', head: true }),
         supabase.from('forum_posts').select('id', { count: 'exact', head: true }),
       ])
       if (cancelled) return

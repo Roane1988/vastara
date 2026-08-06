@@ -362,7 +362,7 @@ export default function ExploreInsights({ properties, excludeIds }) {
     const fetchStats = async () => {
       try {
         const [agents, users, forum] = await Promise.all([
-          supabase.from('agent_profiles').select('id', { count: 'exact', head: true }).eq('is_visible', true),
+          supabase.from('agent_profiles').select('user_id', { count: 'exact', head: true }).eq('is_visible', true),
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('forum_posts').select('id', { count: 'exact', head: true }),
         ])
