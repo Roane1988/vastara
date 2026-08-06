@@ -608,6 +608,7 @@ export default function PropertyDetailPage() {
   const rawNumber = hasWhatsapp ? (property.seller_whatsapp || property.agent_whatsapp) : ''
   const waNumber = normalizeWhatsAppNumber(rawNumber)
   const displayPrice = formatPriceDisplay(property)
+  const isRent = property?.category === 'Disewa' || property?.typeLabel === 'Disewa'
   const locationText = [property.district, property.city].filter(Boolean).join(', ')
   const propertyLink = typeof window !== 'undefined' ? window.location.href : ''
   const waText = lang === 'en'
@@ -772,8 +773,29 @@ export default function PropertyDetailPage() {
             </div>
 
             <div className="mt-10 pt-8 border-t border-gray-200">
-              <h3 className="text-2xl font-bold text-brand-text mb-6">Simulasi KPR</h3>
-              <KprSimulator initialPrice={property?.price || 900000000} />
+              {isRent ? (
+                <>
+                  <h3 className="text-2xl font-bold text-brand-text mb-6">Simulasi Sewa</h3>
+                  <div className="bg-brand-bg/60 rounded-2xl border border-brand-border p-5">
+                    <p className="text-sm text-brand-muted leading-relaxed">
+                      Properti ini disewakan dengan biaya sewa{' '}
+                      <b className="text-brand-primary">{formatPriceDisplay(property)}</b>.
+                      Simulasi KPR tidak berlaku untuk properti sewa — KPR digunakan saat membeli properti.
+                    </p>
+                    <Link
+                      to="/kpr"
+                      className="mt-4 inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all"
+                    >
+                      Hitung kemampuan KPR untuk membeli
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-2xl font-bold text-brand-text mb-6">Simulasi KPR</h3>
+                  <KprSimulator initialPrice={property?.price || 900000000} />
+                </>
+              )}
             </div>
 
             <div className="mt-10 pt-8 border-t border-gray-200">
@@ -784,14 +806,27 @@ export default function PropertyDetailPage() {
               <FairPriceAnalyzer property={property} />
             </div>
 
-            <AccordionBlock id="panduan" title="Panduan Membeli Properti" isOpen={accordionState.panduan} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
+            <AccordionBlock id="panduan" title={isRent ? 'Panduan Menyewa Properti' : 'Panduan Membeli Properti'} isOpen={accordionState.panduan} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
               <ol className="list-decimal pl-4 space-y-1.5">
-                <li>Tentukan anggaran dan kebutuhan properti Anda.</li>
-                <li>Cari properti yang sesuai dengan kriteria Anda.</li>
-                <li>Lakukan survei langsung ke lokasi properti.</li>
-                <li>Periksa kelengkapan dokumen legalitas properti.</li>
-                <li>Lakukan negosiasi harga dengan penjual.</li>
-                <li>Proses akad jual beli di hadapan Pejabat Pembuat Akta Tanah (PPAT).</li>
+                {isRent ? (
+                  <>
+                    <li>Tentukan anggaran sewa dan kebutuhan Anda.</li>
+                    <li>Cari properti sewa yang sesuai dengan kriteria Anda.</li>
+                    <li>Lakukan survei langsung ke lokasi properti.</li>
+                    <li>Periksa kondisi properti dan kelengkapan dokumen.</li>
+                    <li>Negosiasikan harga sewa dan jangka waktu kontrak.</li>
+                    <li>Tandatangani perjanjian sewa-menyewa yang jelas.</li>
+                  </>
+                ) : (
+                  <>
+                    <li>Tentukan anggaran dan kebutuhan properti Anda.</li>
+                    <li>Cari properti yang sesuai dengan kriteria Anda.</li>
+                    <li>Lakukan survei langsung ke lokasi properti.</li>
+                    <li>Periksa kelengkapan dokumen legalitas properti.</li>
+                    <li>Lakukan negosiasi harga dengan penjual.</li>
+                    <li>Proses akad jual beli di hadapan Pejabat Pembuat Akta Tanah (PPAT).</li>
+                  </>
+                )}
               </ol>
             </AccordionBlock>
 
@@ -815,7 +850,7 @@ export default function PropertyDetailPage() {
                 <p className="text-2xl font-extrabold text-brand-primary leading-none">{displayPrice}</p>
                 {property.area_sqm > 0 && property.price > 0 && (
                   <p className="text-sm text-brand-muted mt-1.5">
-                    {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;
+                    {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;{isRent ? ' /bulan' : ''}
                   </p>
                 )}
                 <div className="mt-4">
