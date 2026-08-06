@@ -92,6 +92,19 @@ export function maxAffordablePrice(maxInstallment, interestRatePercent, tenorYea
   return dpRatio >= 1 ? principal : principal / (1 - dpRatio)
 }
 
+export function estimateMonthlyRent(property) {
+  const price = Number(property?.price) || 0
+  if (price <= 0) return 0
+  if ((property?.category === 'Disewa' || property?.typeLabel === 'Disewa') && property?.price_period === 'tahun') {
+    return price / 12
+  }
+  return price
+}
+
+export function isRentalProperty(property) {
+  return property?.category === 'Disewa' || property?.typeLabel === 'Disewa'
+}
+
 export function estimateMonthlyInstallment(price, interestRatePercent, tenorYears, dpPercentage) {
   const priceNum = Math.max(0, Number(price) || 0)
   const dpRatio = Math.min(100, Math.max(0, Number(dpPercentage) || 0)) / 100

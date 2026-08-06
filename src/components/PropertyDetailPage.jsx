@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MessageCircle, MessageSquare, Phone, ChevronDown, ChevronRight, X, ChevronLeft, Calendar, Share2, MapPin, Tag, TrendingDown, Flag } from 'lucide-react'
+import { MessageCircle, MessageSquare, Phone, ChevronDown, ChevronRight, X, ChevronLeft, Calendar, Share2, MapPin, Tag, TrendingDown, Flag, CheckCircle2, AlertTriangle, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice, formatPriceDisplay } from '../utils/format'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { parseImages, FALLBACK_IMAGE } from '../utils/images'
+import { getFinancialProfile, computeAffordability, estimateMonthlyRent } from '../utils/financialProfile'
 import { useGroqTranslation } from '../hooks/useGroqTranslation'
 import useSEO from '../hooks/useSEO'
 import { usePropertyStore } from '../store/usePropertyStore'
@@ -606,6 +607,27 @@ export default function PropertyDetailPage() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  const isRent = property?.category === 'Disewa' || property?.typeLabel === 'Disewa'
+  const [rentAfford, setRentAfford] = useState(null)
+  useEffect(() => {
+    if (!isRent) return
+    let cancelled = false
+    getFinancialProfile().then(({ profile, isAuthenticated }) => {
+      if (cancelled) return
+      if (!isAuthenticated || !profile) { setRentAfford(null); return }
+      const maxRent = computeAffordability(profile)?.maxInstallment || 0
+      const monthlyRent = estimateMonthlyRent(property)
+      setRentAfford({
+        maxRent,
+        monthlyRent,
+        affordable: maxRent > 0 && monthlyRent > 0 && monthlyRent <= maxRent,
+        hasProfile: maxRent > 0,
+      })
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRent, property?.id, property?.price, property?.price_period])
+
   if (loading) return <LoadingSkeleton />
 
   if (error) {
@@ -616,7 +638,6 @@ export default function PropertyDetailPage() {
   const rawNumber = hasWhatsapp ? (property.seller_whatsapp || property.agent_whatsapp) : ''
   const waNumber = normalizeWhatsAppNumber(rawNumber)
   const displayPrice = formatPriceDisplay(property)
-  const isRent = property?.category === 'Disewa' || property?.typeLabel === 'Disewa'
   const locationText = [property.district, property.city].filter(Boolean).join(', ')
   const propertyLink = typeof window !== 'undefined' ? window.location.href : ''
   const waText = lang === 'en'
@@ -790,6 +811,33 @@ export default function PropertyDetailPage() {
                       <b className="text-brand-primary">{formatPriceDisplay(property)}</b>.
                       Simulasi KPR tidak berlaku untuk properti sewa — KPR digunakan saat membeli properti.
                     </p>
+                    {rentAfford?.hasProfile ? (
+                      <div className={`mt-4 rounded-xl border px-4 py-3.5 ${rentAfford.affordable ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                        <p className={`flex items-center gap-2 text-sm font-bold ${rentAfford.affordable ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          {rentAfford.affordable ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                          {rentAfford.affordable ? 'Sewa dalam jangkauan budgetmu' : 'Sewa ini di atas budget idealmu'}
+                        </p>
+                        <p className="text-xs text-brand-muted mt-1.5 leading-relaxed">
+                          Sewa <b>{formatPrice(rentAfford.monthlyRent)}</b>/bulan vs budget ideal{' '}
+                          <b>{formatPrice(rentAfford.maxRent)}</b>/bulan (dari profil keuanganmu).
+                        </p>
+                        <div className="mt-3 h-1.5 rounded-full bg-white/70 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${rentAfford.affordable ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                            style={{ width: `${Math.min(100, Math.round((rentAfford.monthlyRent / rentAfford.maxRent) * 100))}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => { if (!user) { navigate('/login'); return } window.dispatchEvent(new Event('open-financial-profile')) }}
+                        className="mt-4 inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-brand-accent/10 text-brand-accent border border-brand-accent/20 text-sm font-bold hover:bg-brand-accent/20 transition-all"
+                      >
+                        <Wallet size={16} />
+                        Isi profil keuangan untuk lihat jangkauan sewa
+                      </button>
+                    )}
                     <Link
                       to="/kpr"
                       className="mt-4 inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all"

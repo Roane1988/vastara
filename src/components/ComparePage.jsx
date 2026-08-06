@@ -12,11 +12,13 @@ import {
   computeAffordability,
   maxAffordablePrice,
   estimateMonthlyInstallment,
+  estimateMonthlyRent,
+  isRentalProperty,
   BUYING_POWER_ASSUMPTION,
   formatRupiah,
 } from '../utils/financialProfile'
 
-const isRent = (p) => p.typeLabel === 'Disewa'
+const isRent = (p) => isRentalProperty(p)
 
 function CompareSkeleton() {
   return (
@@ -225,6 +227,8 @@ export default function ComparePage() {
     return { property: best, perSqm: Math.round(bestPer) }
   }, [fullData])
 
+  const hasRent = fullData.some(isRent)
+
   const rows = [
     {
       label: t('compare.row.price'),
@@ -266,9 +270,18 @@ export default function ComparePage() {
       },
     },
     {
-      label: t('compare.row.installment'),
+      label: hasRent ? 'Sewa/bln' : t('compare.row.installment'),
       render: (p) => {
-        if (isRent(p) || !Number(p.price)) return '-'
+        if (!Number(p.price)) return '-'
+        if (isRent(p)) {
+          const rent = estimateMonthlyRent(p)
+          const over = finState === 'ready' && affordability.maxInstallment > 0 && rent > affordability.maxInstallment
+          return (
+            <span className={over ? 'text-brand-danger font-semibold' : 'text-brand-text'}>
+              {formatRupiah(rent)}<span className="text-brand-muted text-xs">/bln</span>
+            </span>
+          )
+        }
         const inst = estimateMonthlyInstallment(Number(p.price), BUYING_POWER_ASSUMPTION.interestRate, BUYING_POWER_ASSUMPTION.tenorYears, BUYING_POWER_ASSUMPTION.dpPercentage)
         const over = finState === 'ready' && affordability.maxInstallment > 0 && inst > affordability.maxInstallment
         return (

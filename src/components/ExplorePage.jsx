@@ -19,7 +19,7 @@ import PopularSearches from './PopularSearches'
 import ExploreInsights from './ExploreInsights'
 import ExplorePhase2 from './ExplorePhase2'
 import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
-import { getFinancialProfile, computeAffordability, maxAffordablePrice, estimateMonthlyInstallment } from '../utils/financialProfile'
+import { getFinancialProfile, computeAffordability, maxAffordablePrice, estimateMonthlyInstallment, estimateMonthlyRent, isRentalProperty } from '../utils/financialProfile'
 import { getAuthHeaders } from '../utils/groqClient'
 
 
@@ -455,6 +455,11 @@ export default function ExplorePage() {
     return maxAffordablePrice(aff.maxInstallment, 5.5, 15, 20)
   }, [finProfile])
 
+  const maxRent = useMemo(() => {
+    if (!finProfile) return 0
+    return computeAffordability(finProfile)?.maxInstallment || 0
+  }, [finProfile])
+
   const recommended = useMemo(() => {
     const source = sorted.length > 0 ? sorted : properties
     if (source.length === 0) return []
@@ -838,6 +843,14 @@ export default function ExplorePage() {
                       {t('explore.property_card.seller_developer')}
                     </span>
                   )}
+                  {isRentalProperty(p) && maxRent > 0 && estimateMonthlyRent(p) > 0 && (
+                    <span className={`absolute bottom-2 left-2 inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm ${
+                      estimateMonthlyRent(p) <= maxRent ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                    }`}>
+                      {estimateMonthlyRent(p) <= maxRent ? <Check size={10} /> : <X size={10} />}
+                      {estimateMonthlyRent(p) <= maxRent ? 'Sewa Terjangkau' : 'Sewa di Atas Budget'}
+                    </span>
+                  )}
                 </div>
                 <div className="p-3">
                   <p className="text-base font-extrabold text-brand-primary">
@@ -1036,9 +1049,11 @@ export default function ExplorePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {displayListings.map((p) => {
               const drop = p.original_price && Number(p.original_price) > Number(p.price)
-              const isRent = p.category === 'Disewa' || p.typeLabel === 'Disewa'
+              const isRent = isRentalProperty(p)
               const installment =
                 !isRent && Number(p.price) > 0 ? estimateMonthlyInstallment(p.price, 5.5, 20, 20) : 0
+              const rentPerMonth = isRent && Number(p.price) > 0 ? estimateMonthlyRent(p) : 0
+              const rentAffordable = rentPerMonth > 0 && maxRent > 0 && rentPerMonth <= maxRent
               return (
               <div key={p.id} className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand-primary/5">
                 <Link to={`/property/${p.id}`} className="block group flex-1">
@@ -1085,6 +1100,16 @@ export default function ExplorePage() {
                       <p className="text-[11px] text-brand-muted mt-0.5">
                         Estimasi cicilan <b className="text-brand-accent">{formatPrice(installment)}</b>/bulan
                       </p>
+                    )}
+                    {isRent && rentPerMonth > 0 && maxRent > 0 && (
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg mt-1.5 border ${
+                        rentAffordable
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}>
+                        {rentAffordable ? <Check size={12} /> : <X size={12} />}
+                        {rentAffordable ? 'Sewa dalam jangkauan' : 'Sewa di atas budget'}
+                      </span>
                     )}
                     <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-accent transition-colors">
                       {getTranslated(p, 'title', p.title)}
