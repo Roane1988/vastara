@@ -8,7 +8,24 @@ import { formatPrice } from '../utils/format'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import ConfirmModal from './ConfirmModal'
-import { Check, Clock, X, Users, MessageCircle } from 'lucide-react'
+import { Check, Clock, X, Users, MessageCircle, CalendarClock, Loader2 } from 'lucide-react'
+
+const VISIT_STATUS = {
+  pending: { label: 'Menunggu', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  confirmed: { label: 'Dikonfirmasi', cls: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+  cancelled: { label: 'Dibatalkan', cls: 'bg-red-50 text-red-600 border-red-100' },
+  completed: { label: 'Selesai', cls: 'bg-gray-100 text-gray-600 border-gray-200' },
+}
+
+function formatVisitDate(dateStr) {
+  if (!dateStr) return ''
+  try {
+    const d = new Date(`${dateStr}T00:00:00`)
+    return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  } catch {
+    return dateStr
+  }
+}
 
 function ArrowLeftIcon() {
   return (
@@ -93,6 +110,10 @@ export default function MyListingsPage() {
   const [leadModal, setLeadModal] = useState(null)
   const [leads, setLeads] = useState([])
   const [leadsLoading, setLeadsLoading] = useState(false)
+  const [visits, setVisits] = useState([])
+  const [visitCounts, setVisitCounts] = useState({})
+  const [visitsModal, setVisitsModal] = useState(null)
+  const [updatingVisitId, setUpdatingVisitId] = useState(null)
 
   const openLeadModal = async (p) => {
     setLeadModal({ propertyId: p.id, title: p.title })
@@ -138,6 +159,52 @@ export default function MyListingsPage() {
     }
   }
 
+  const handleVisitStatus = async (visit, status) => {
+    setUpdatingVisitId(visit.id)
+    try {
+      const { error } = await supabase
+        .from('site_visits')
+        .update({ status })
+        .eq('id', visit.id)
+      if (error) throw error
+      setVisits((prev) => prev.map((v) => (v.id === visit.id ? { ...v, status } : v)))
+      const label = VISIT_STATUS[status]?.label || status
+      showToast(`Jadwal survei ditandai "${label}"`, 'success')
+    } catch {
+      showToast('Gagal mengubah status jadwal. Coba lagi.', 'error')
+    }
+    setUpdatingVisitId(null)
+  }
+
+  useEffect(() => {
+    const ids = listings.map((p) => p.id)
+    if (!user || ids.length === 0) return
+
+    const channel = supabase
+      .channel('seller-visits')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'site_visits', filter: `property_id=in.(${ids.join(',')})` },
+        async (payload) => {
+          const v = payload.new
+          showToast('Ada permintaan jadwal survei baru untuk properti Anda.', 'info')
+          const { data: full, error } = await supabase
+            .from('site_visits')
+            .select('id, property_id, scheduled_date, scheduled_time, notes, status, created_at, profiles!buyer_id(first_name)')
+            .eq('id', v.id)
+          if (!error && full?.[0]) {
+            setVisits((prev) => [full[0], ...prev])
+            setVisitCounts((prev) => ({ ...prev, [v.property_id]: (prev[v.property_id] || 0) + 1 }))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [listings, user, showToast])
+
   useEffect(() => {
     let cancelled = false
 
@@ -172,6 +239,20 @@ export default function MyListingsPage() {
                   counts[l.property_id] = (counts[l.property_id] || 0) + 1
                 })
                 setLeadCounts(counts)
+              }
+
+              const { data: visitData, error: visitError } = await supabase
+                .from('site_visits')
+                .select('id, property_id, scheduled_date, scheduled_time, notes, status, created_at, profiles!buyer_id(first_name)')
+                .in('property_id', ids)
+                .order('scheduled_date', { ascending: false })
+              if (!cancelled && !visitError && visitData) {
+                setVisits(visitData)
+                const counts = {}
+                visitData.forEach((v) => {
+                  counts[v.property_id] = (counts[v.property_id] || 0) + 1
+                })
+                setVisitCounts(counts)
               }
             }
           }
@@ -296,6 +377,16 @@ export default function MyListingsPage() {
                     >
                       <Users size={12} />
                       {leadCounts[p.id]} orang tertarik
+                    </button>
+                  )}
+                  {(visitCounts[p.id] || 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setVisitsModal(p) }}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-primary bg-brand-primary/5 border border-brand-primary/20 rounded-lg px-2 py-0.5 mt-2 w-fit hover:bg-brand-primary/10 transition-colors"
+                    >
+                      <CalendarClock size={12} />
+                      Jadwal Survei ({visitCounts[p.id]})
                     </button>
                   )}
                   {p.status !== 'sold' && <StatusTimeline status={p.status} />}
@@ -431,6 +522,131 @@ export default function MyListingsPage() {
                 >
                   Tutup
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {visitsModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
+            onClick={() => setVisitsModal(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 24, scale: 0.97 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Jadwal survei"
+              className="w-full sm:max-w-md bg-brand-surface rounded-t-3xl sm:rounded-3xl shadow-2xl border border-brand-border overflow-hidden max-h-[80vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-brand-border">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-brand-text flex items-center gap-2">
+                    <CalendarClock size={18} className="text-brand-primary" />
+                    Jadwal Survei
+                  </h3>
+                  <p className="text-xs text-brand-muted truncate mt-0.5">{visitsModal.title}</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Tutup"
+                  onClick={() => setVisitsModal(null)}
+                  className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                {visits.filter((v) => v.property_id === visitsModal.id).length === 0 ? (
+                  <div className="text-center py-14">
+                    <CalendarClock size={32} className="mx-auto text-brand-muted/40 mb-3" />
+                    <p className="text-sm font-semibold text-brand-text">Belum ada jadwal survei</p>
+                    <p className="text-xs text-brand-muted mt-1">Pembeli yang memesan kunjungan akan muncul di sini.</p>
+                  </div>
+                ) : (
+                  <ul className="space-y-3">
+                    {visits
+                      .filter((v) => v.property_id === visitsModal.id)
+                      .map((visit) => {
+                        const buyerName = visit.profiles?.first_name || null
+                        const st = VISIT_STATUS[visit.status] || VISIT_STATUS.pending
+                        const busy = updatingVisitId === visit.id
+                        return (
+                          <li key={visit.id} className="rounded-2xl border border-brand-border bg-brand-bg/50 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <span
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                                style={{ backgroundColor: getAvatarColor(visit.buyer_id || visit.id) }}
+                              >
+                                {getInitials(buyerName || 'P')}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-sm font-semibold text-brand-text truncate">
+                                    {buyerName || 'Calon pembeli'}
+                                  </p>
+                                  <span className={`shrink-0 text-[10px] font-bold border rounded-full px-2 py-0.5 ${st.cls}`}>
+                                    {st.label}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-brand-muted mt-1 flex items-center gap-1.5">
+                                  <CalendarClock size={11} />
+                                  {formatVisitDate(visit.scheduled_date)} · {visit.scheduled_time?.slice(0, 5)}
+                                </p>
+                                {visit.notes && (
+                                  <p className="text-xs text-brand-muted mt-1 italic truncate">“{visit.notes}”</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {visit.status === 'pending' && (
+                              <div className="flex items-center gap-2 mt-3">
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => handleVisitStatus(visit, 'confirmed')}
+                                  className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-brand-primary hover:brightness-90 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                >
+                                  {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                                  Terima
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => handleVisitStatus(visit, 'cancelled')}
+                                  className="flex-1 py-2 rounded-lg text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                >
+                                  <X size={13} />
+                                  Tolak
+                                </button>
+                              </div>
+                            )}
+                            {visit.status === 'confirmed' && (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => handleVisitStatus(visit, 'completed')}
+                                className="w-full mt-3 py-2 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                              >
+                                {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                                Tandai Selesai
+                              </button>
+                            )}
+                          </li>
+                        )
+                      })}
+                  </ul>
+                )}
               </div>
             </motion.div>
           </motion.div>
