@@ -98,9 +98,17 @@ function SpecGrid({ property }) {
   const tiles = [
     { icon: <BedIcon />, label: 'Kamar', value: property?.bedrooms ?? '-' },
     { icon: <BathIcon />, label: 'Kamar Mandi', value: property?.bathrooms ?? '-' },
-    { icon: <SqmIcon />, label: 'Luas', value: `${property?.area_sqm || property?.sqm || '-'} m²` },
-    { icon: <Tag size={18} />, label: 'Harga /m²', value: pricePerSqmText },
+    { icon: <SqmIcon />, label: 'Luas Bangunan', value: `${property?.area_sqm || property?.sqm || '-'} m²` },
   ]
+  if (Number(property?.land_area_sqm) > 0) {
+    tiles.push({ icon: <SqmIcon />, label: 'Luas Tanah', value: `${property.land_area_sqm} m²` })
+  }
+  const furnishedMap = { furnished: 'Furnished', semi_furnished: 'Semi Furnished', unfurnished: 'Kosong' }
+  const furnishedLabel = property?.category === 'Disewa' ? furnishedMap[property?.furnished] : null
+  if (furnishedLabel) {
+    tiles.push({ icon: <Tag size={18} />, label: 'Kondisi Isi', value: furnishedLabel })
+  }
+  tiles.push({ icon: <Tag size={18} />, label: 'Harga /m²', value: pricePerSqmText })
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
       {tiles.map((t) => (

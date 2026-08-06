@@ -26,6 +26,8 @@ const EMPTY_FORM = {
   bedrooms: '',
   bathrooms: '',
   sqm: '',
+  land_sqm: '',
+  furnished: '',
   status_sertifikat: '',
   description: '',
   description_en: '',
@@ -180,7 +182,8 @@ function PreviewCard({ form, image }) {
         <div className="flex gap-3 text-xs text-brand-muted mt-2 pt-2 border-t border-brand-border">
           <span>{form.bedrooms || '0'} KT</span>
           <span>{form.bathrooms || '0'} KM</span>
-          <span>{form.sqm || '-'} m&sup2;</span>
+          <span>{form.sqm || '-'} m&sup2; bangunan</span>
+          {form.land_sqm && <span>{form.land_sqm} m&sup2; tanah</span>}
         </div>
       </div>
     </div>
@@ -223,6 +226,8 @@ export default function SellPropertyPage() {
   const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [touched, setTouched] = useState({})
+  const [draftSavedSnapshot, setDraftSavedSnapshot] = useState(() => JSON.stringify(form))
 
   const hasUnsaved = editId ? false : (step > 0 || form.title || form.estimasi_harga || form.description || imageFiles.length > 0)
 
@@ -254,6 +259,8 @@ export default function SellPropertyPage() {
           bedrooms: data.bedrooms ? String(data.bedrooms) : '',
           bathrooms: data.bathrooms ? String(data.bathrooms) : '',
           sqm: data.area_sqm ? String(data.area_sqm) : '',
+          land_sqm: data.land_area_sqm ? String(data.land_area_sqm) : '',
+          furnished: data.furnished || '',
           status_sertifikat: data.certificate_status || '',
           description: data.description_id || '',
           description_en: data.description_en || '',
@@ -310,10 +317,12 @@ export default function SellPropertyPage() {
   }, [form.city, cityCode])
 
   useEffect(() => {
-    if (!isSubmitted) {
-      const id = setTimeout(() => saveDraft(form, imageFiles.map((f) => f.name)), 500)
-      return () => clearTimeout(id)
-    }
+    if (isSubmitted) return
+    const id = setTimeout(() => {
+      saveDraft(form, imageFiles.map((f) => f.name))
+      setDraftSavedSnapshot(JSON.stringify(form))
+    }, 600)
+    return () => clearTimeout(id)
   }, [form, imageFiles, isSubmitted])
 
   useEffect(() => {
@@ -342,22 +351,27 @@ export default function SellPropertyPage() {
     }
   }, [step, form, imageFiles.length])
 
-  const stepErrors = useMemo(() => {
-    const errs = []
+  const fieldErrors = useMemo(() => {
+    const errs = {}
     if (step === 0) {
-      if (form.title.trim().length < 3) errs.push('Judul minimal 3 karakter')
-      if (!form.jenis_properti) errs.push('Pilih tipe properti')
-      if (!Number(form.estimasi_harga)) errs.push('Masukkan harga yang valid')
-      if (form.description.trim().length < 10) errs.push('Deskripsi minimal 10 karakter')
-      if (form.address.trim().length < 5) errs.push('Alamat minimal 5 karakter')
-      if (form.city.trim().length < 2) errs.push('Kota wajib diisi')
+      if (form.title.trim().length < 3) errs.title = 'Judul minimal 3 karakter'
+      if (!form.jenis_properti) errs.jenis_properti = 'Pilih tipe properti'
+      if (!Number(form.estimasi_harga)) errs.estimasi_harga = 'Masukkan harga yang valid'
+      if (form.description.trim().length < 10) errs.description = 'Deskripsi minimal 10 karakter'
+      if (form.address.trim().length < 5) errs.address = 'Alamat minimal 5 karakter'
+      if (form.city.trim().length < 2) errs.city = 'Kota wajib diisi'
     } else if (step === 1) {
-      if (imageFiles.length === 0) errs.push('Unggah minimal 1 foto')
+      if (imageFiles.length === 0) errs.foto = 'Unggah minimal 1 foto'
     } else if (step === 2) {
-      if (form.whatsapp.replace(/\D/g, '').length < 10) errs.push('Nomor WhatsApp minimal 10 digit')
+      if (form.whatsapp.replace(/\D/g, '').length < 10) errs.whatsapp = 'Nomor WhatsApp minimal 10 digit'
     }
     return errs
   }, [step, form, imageFiles.length])
+
+  const stepErrors = useMemo(() => Object.values(fieldErrors), [fieldErrors])
+
+  const showFieldError = (key) => (touched[key] && fieldErrors[key] ? fieldErrors[key] : '')
+  const touch = (key) => () => setTouched((t) => (t[key] ? t : { ...t, [key]: true }))
 
   const nextStep = () => { if (step < STEPS.length - 1) setStep((s) => s + 1) }
   const prevStep = () => { if (step > 0) setStep((s) => s - 1) }
@@ -525,6 +539,8 @@ export default function SellPropertyPage() {
         bedrooms: Number(form.bedrooms) || 0,
         bathrooms: Number(form.bathrooms) || 0,
         area_sqm: Number(form.sqm) || 0,
+        land_area_sqm: Number(form.land_sqm) || null,
+        furnished: form.category === 'Disewa' ? form.furnished : '',
         certificate_status: form.status_sertifikat,
         status: editId ? undefined : 'pending',
       }
@@ -596,27 +612,31 @@ export default function SellPropertyPage() {
               </div>
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Tipe Properti <span className="text-red-500">*</span></label>
-                <select value={form.jenis_properti} onChange={updateForm('jenis_properti')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none">
+                <select value={form.jenis_properti} onChange={updateForm('jenis_properti')} onBlur={touch('jenis_properti')} className={`w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none ${fieldErrors.jenis_properti ? 'border-red-400' : 'border-brand-border'}`}>
                   <option value="">Pilih tipe</option>
                   {PROPERTY_TYPE_OPTIONS.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
+                {showFieldError('jenis_properti') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('jenis_properti')}</p>}
               </div>
             </div>
 
             <div>
               <label className="text-sm font-semibold text-brand-text mb-1.5 block">Judul Properti <span className="text-red-500">*</span></label>
-              <input type="text" placeholder="Contoh: Rumah Minimalis 2 Lantai di BSD" value={form.title} onChange={updateForm('title')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+              <input type="text" placeholder="Contoh: Rumah Minimalis 2 Lantai di BSD" value={form.title} onChange={updateForm('title')} onBlur={touch('title')} className={`w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${fieldErrors.title ? 'border-red-400' : 'border-brand-border'}`} />
+              {showFieldError('title') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('title')}</p>}
             </div>
 
             <div>
               <label className="text-sm font-semibold text-brand-text mb-1.5 block">Harga <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-brand-muted font-medium">Rp</span>
-                <input type="text" inputMode="numeric" placeholder="500.000.000" value={form.estimasi_harga} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setForm((p) => ({ ...p, estimasi_harga: raw })) }} className="w-full py-4 pl-10 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                <input type="text" inputMode="numeric" placeholder="500.000.000" value={form.estimasi_harga} onBlur={touch('estimasi_harga')} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setForm((p) => ({ ...p, estimasi_harga: raw })) }} className={`w-full py-4 pl-10 pr-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${fieldErrors.estimasi_harga ? 'border-red-400' : 'border-brand-border'}`} />
               </div>
+              {showFieldError('estimasi_harga') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('estimasi_harga')}</p>}
               {form.category === 'Disewa' && (
+                <>
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   {[
                     { value: 'bulan', label: 'per bulan' },
@@ -636,7 +656,30 @@ export default function SellPropertyPage() {
                     </button>
                   ))}
                 </div>
-              )}
+                <div className="mt-3">
+                  <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kondisi Isi</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'furnished', label: 'Furnished' },
+                      { value: 'semi_furnished', label: 'Semi' },
+                      { value: 'unfurnished', label: 'Kosong' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => updateFormValue('furnished', opt.value)}
+                        className={`py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                          form.furnished === opt.value
+                            ? 'bg-brand-primary text-white border-brand-primary'
+                            : 'bg-brand-surface text-brand-muted border-brand-border hover:border-brand-accent'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>)}
               {form.estimasi_harga && (
                 <p className="text-xs text-brand-muted mt-1.5">
                   Rp {Number(form.estimasi_harga).toLocaleString('id-ID')}
@@ -651,7 +694,7 @@ export default function SellPropertyPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kamar Tidur</label>
                 <input type="number" min="0" placeholder="2" value={form.bedrooms} onChange={updateForm('bedrooms')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
@@ -661,8 +704,12 @@ export default function SellPropertyPage() {
                 <input type="number" min="0" placeholder="1" value={form.bathrooms} onChange={updateForm('bathrooms')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
               </div>
               <div>
-                <label className="text-sm font-semibold text-brand-text mb-1.5 block">Luas (m&sup2;)</label>
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">Luas Bangunan (m&sup2;)</label>
                 <input type="number" min="1" placeholder="60" value={form.sqm} onChange={updateForm('sqm')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">Luas Tanah (m&sup2;)</label>
+                <input type="number" min="0" placeholder="90" value={form.land_sqm} onChange={updateForm('land_sqm')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
               </div>
             </div>
 
@@ -702,7 +749,8 @@ export default function SellPropertyPage() {
                   {generatingDesc ? 'Memproses...' : 'Saran AI'}
                 </button>
               </div>
-              <textarea rows={4} placeholder="Jelaskan properti Anda secara detail..." value={form.description} onChange={updateForm('description')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none" />
+              <textarea rows={4} placeholder="Jelaskan properti Anda secara detail..." value={form.description} onChange={updateForm('description')} onBlur={touch('description')} className={`w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none ${fieldErrors.description ? 'border-red-400' : 'border-brand-border'}`} />
+              {showFieldError('description') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('description')}</p>}
             </div>
 
             <div>
@@ -712,7 +760,8 @@ export default function SellPropertyPage() {
 
             <div>
               <label className="text-sm font-semibold text-brand-text mb-1.5 block">Alamat <span className="text-red-500">*</span></label>
-              <textarea rows={2} placeholder="Contoh: Jl. Merpati No. 10, RT 05 RW 02" value={form.address} onChange={updateForm('address')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none" />
+              <textarea rows={2} placeholder="Contoh: Jl. Merpati No. 10, RT 05 RW 02" value={form.address} onChange={updateForm('address')} onBlur={touch('address')} className={`w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none ${fieldErrors.address ? 'border-red-400' : 'border-brand-border'}`} />
+              {showFieldError('address') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('address')}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -789,6 +838,7 @@ export default function SellPropertyPage() {
               )}
 
               {imageUploadError && <p className="text-xs text-red-500 mt-2">{imageUploadError}</p>}
+              {showFieldError('foto') && <p className="text-xs text-red-500 mt-2">{showFieldError('foto')}</p>}
             </div>
           </div>
         )
@@ -805,7 +855,9 @@ export default function SellPropertyPage() {
                 <p>Tipe: {form.jenis_properti}</p>
                 <p>Sertifikat: {form.status_sertifikat || '-'}</p>
                 <p>Lokasi: {[form.city, form.kecamatan].filter(Boolean).join(', ') || form.address?.slice(0, 30)}</p>
-                <p>Kamar: {form.bedrooms || 0} KT / {form.bathrooms || 0} KM / {form.sqm || '-'} m&sup2;</p>
+                <p>Kamar: {form.bedrooms || 0} KT / {form.bathrooms || 0} KM</p>
+                <p>Luas: {form.sqm ? `${form.sqm} m² bangunan` : '-'}{form.land_sqm ? ` · ${form.land_sqm} m² tanah` : ''}</p>
+                {form.category === 'Disewa' && form.furnished && <p>Kondisi: {form.furnished === 'semi_furnished' ? 'Semi Furnished' : form.furnished === 'unfurnished' ? 'Kosong' : 'Furnished'}</p>}
                 <p>Foto: {imageFiles.length} file</p>
                 {form.is_premium && <p className="text-brand-primary font-semibold">Iklan Premium</p>}
               </div>
@@ -815,8 +867,9 @@ export default function SellPropertyPage() {
               <label className="text-sm font-semibold text-brand-text mb-1.5 block">Nomor WhatsApp <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-brand-muted font-medium">+62</span>
-                <input type="tel" placeholder="81234567890" value={form.whatsapp} onChange={updateForm('whatsapp')} className="w-full py-4 pl-12 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                <input type="tel" placeholder="81234567890" value={form.whatsapp} onChange={updateForm('whatsapp')} onBlur={touch('whatsapp')} className={`w-full py-4 pl-12 pr-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${fieldErrors.whatsapp ? 'border-red-400' : 'border-brand-border'}`} />
               </div>
+              {showFieldError('whatsapp') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('whatsapp')}</p>}
               <p className="text-xs text-brand-muted mt-1.5">Calon pembeli akan menghubungi Anda via nomor ini</p>
             </div>
           </div>
@@ -854,7 +907,14 @@ export default function SellPropertyPage() {
             <div className="flex items-center justify-between px-4 h-14">
               <button type="button" onClick={() => navigate(-1)} className="text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1 shrink-0"><ArrowLeftIcon /></button>
               <h1 className="text-lg font-bold text-brand-text">{editId ? 'Edit Properti' : 'Iklankan Properti'}</h1>
-              <span className="text-sm text-brand-muted w-5" />
+              {!editId && !isSubmitted ? (
+                <span className="flex items-center gap-1 text-[11px] text-brand-muted">
+                  {JSON.stringify(form) !== draftSavedSnapshot ? <SpinnerIcon /> : <CheckIcon />}
+                  {JSON.stringify(form) !== draftSavedSnapshot ? 'Menyimpan draft...' : 'Draft tersimpan'}
+                </span>
+              ) : (
+                <span className="text-sm text-brand-muted w-5" />
+              )}
             </div>
           </header>
 
