@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Globe, Check } from 'lucide-react'
+import { Globe, Check, MessageCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
+import { useChatUnread } from '../hooks/useChatUnread'
 
 const HamburgerMenu = lazy(() => import('./HamburgerMenu'))
 
@@ -14,8 +15,9 @@ const LANGUAGES = [
 
 export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout }) {
   const { t, i18n } = useTranslation()
-  const { role } = useAuth()
+  const { role, user } = useAuth()
   const { totalNew } = useSavedSearchAlerts()
+  const { unread: chatUnread, markRead: markChatRead } = useChatUnread(user?.id, 'navbar')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const langRef = useRef(null)
@@ -72,6 +74,23 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
               </svg>
               {t('navbar.sell_property')}
             </button>
+
+            {isAuth && (
+              <button
+                type="button"
+                onClick={() => { markChatRead(); navigate('/chat') }}
+                className="relative p-2 rounded-xl text-brand-muted hover:bg-brand-bg hover:text-brand-text transition-colors"
+                aria-label={t('navbar.chat')}
+                title={t('navbar.chat')}
+              >
+                <MessageCircle size={20} />
+                {chatUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-brand-danger text-white text-[10px] font-bold flex items-center justify-center shadow">
+                    {chatUnread > 99 ? '99+' : chatUnread}
+                  </span>
+                )}
+              </button>
+            )}
 
             {isAuth && (
               <button

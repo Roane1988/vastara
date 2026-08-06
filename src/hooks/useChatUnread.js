@@ -13,7 +13,7 @@ function getLastRead() {
   return now
 }
 
-export function useChatUnread(userId) {
+export function useChatUnread(userId, scope = 'default') {
   const [unread, setUnread] = useState(0)
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export function useChatUnread(userId) {
     })()
 
     const channel = supabase
-      .channel(`hamburger-unread-${userId}`)
+      .channel(`unread-${scope}-${userId}`)
       .on(
         'postgres_changes',
         {
@@ -56,7 +56,7 @@ export function useChatUnread(userId) {
       cancelled = true
       supabase.removeChannel(channel)
     }
-  }, [userId])
+  }, [userId, scope])
 
   const markRead = useCallback(() => {
     const now = new Date().toISOString()
