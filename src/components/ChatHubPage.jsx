@@ -9,9 +9,46 @@ import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X } from 'lucide-
 import ConfirmModal from './ConfirmModal'
 
 
-function MessageBubble({ message, isOwn, onDelete, lang }) {
+function dayLabel(ts) {
+  try {
+    const d = new Date(ts)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    const diff = Math.round((today - day) / 86400000)
+    if (diff === 0) return 'Hari Ini'
+    if (diff === 1) return 'Kemarin'
+    return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  } catch {
+    return ''
+  }
+}
+
+function DateSeparator({ date }) {
   return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 px-4 group`}>
+    <div className="flex items-center justify-center my-4 px-4">
+      <span className="text-[10px] font-semibold text-brand-muted bg-brand-surface border border-brand-border rounded-full px-3 py-1">
+        {date}
+      </span>
+    </div>
+  )
+}
+
+function MessageBubble({ message, isOwn, onDelete, lang, firstInGroup, lastInGroup, otherName, otherColor }) {
+  return (
+    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
+      {!isOwn && (
+        <div className="w-7 shrink-0 mr-2 self-end flex justify-center">
+          {lastInGroup && (
+            <span
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+              style={{ backgroundColor: otherColor }}
+            >
+              {getInitials(otherName || '?')}
+            </span>
+          )}
+        </div>
+      )}
       <div className="relative max-w-[80%] sm:max-w-[70%]">
         {isOwn && (
           <button
@@ -29,9 +66,14 @@ function MessageBubble({ message, isOwn, onDelete, lang }) {
             : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
         }`}>
           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-          <p className={`text-[10px] mt-1 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
-            {timeAgo(message.created_at, lang)}
-          </p>
+          <div className={`text-[10px] mt-1 flex items-center justify-end gap-1.5 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
+            <span>{timeAgo(message.created_at, lang)}</span>
+            {isOwn && (
+              <span className="font-bold tracking-tighter">
+                {message.read_at ? '✓✓' : '✓'}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -167,6 +209,13 @@ export default function ChatHubPage() {
   const [allUsers, setAllUsers] = useState([])
   const [userSearch, setUserSearch] = useState('')
   const [unreadMap, setUnreadMap] = useState({})
+  const [messagesLoading, setMessagesLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingEarlier, setLoadingEarlier] = useState(false)
+  const [otherTyping, setOtherTyping] = useState(false)
+  const typingChannelRef = useRef(null)
+  const typingTimeoutRef = useRef(null)
+  const PAGE_SIZE = 50
 
   const activeContact = contacts.find((c) => c.id === activeContactId) || null
 
@@ -191,10 +240,10 @@ export default function ChatHubPage() {
       try {
         const { data: allMessages, error: msgErr } = await supabase
           .from('direct_messages')
-          .select('sender_id, receiver_id, content, created_at')
+          .select('sender_id, receiver_id, content, created_at, read_at')
           .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
           .order('created_at', { ascending: false })
-          .limit(200)
+          .limit(500)
 
         if (cancelledRef.current) return
 
@@ -204,11 +253,15 @@ export default function ChatHubPage() {
 
         const contactIds = new Set()
         const lastMessageMap = {}
+        const unreadCounts = {}
         ;(allMessages || []).forEach((m) => {
           const otherId = getOtherId(m, userId)
           contactIds.add(otherId)
           if (!lastMessageMap[otherId]) {
             lastMessageMap[otherId] = { content: m.content, created_at: m.created_at }
+          }
+          if (m.receiver_id === userId && !m.read_at) {
+            unreadCounts[otherId] = (unreadCounts[otherId] || 0) + 1
           }
         })
 
@@ -260,7 +313,10 @@ export default function ChatHubPage() {
           return (a.first_name || '').localeCompare(b.first_name || '')
         })
 
-        if (!cancelledRef.current) setContacts(merged)
+        if (!cancelledRef.current) {
+          setContacts(merged)
+          setUnreadMap(unreadCounts)
+        }
       } catch (err) {
         if (!cancelledRef.current) console.warn('Gagal memuat kontak:', err.message)
       }
@@ -287,12 +343,14 @@ export default function ChatHubPage() {
     if (!activeContactId || !userId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([])
+      setHasMore(false)
       return
     }
 
     cancelledRef.current = false
 
     async function fetchMessages() {
+      setMessagesLoading(true)
       try {
         const { data, error } = await supabase
           .from('direct_messages')
@@ -300,24 +358,91 @@ export default function ChatHubPage() {
           .or(
             `and(sender_id.eq.${userId},receiver_id.eq.${activeContactId}),and(sender_id.eq.${activeContactId},receiver_id.eq.${userId})`
           )
-          .order('created_at', { ascending: true })
-          .limit(200)
+          .order('created_at', { ascending: false })
+          .limit(PAGE_SIZE)
 
         if (cancelledRef.current) return
 
         if (error) {
           console.warn('Gagal memuat pesan:', error.message)
         } else if (data) {
-          setMessages(data)
+          setMessages(data.slice().reverse())
+          setHasMore(data.length === PAGE_SIZE)
         }
       } catch (err) {
         if (!cancelledRef.current) console.warn('Gagal memuat pesan:', err.message)
       }
+      if (!cancelledRef.current) setMessagesLoading(false)
     }
 
     fetchMessages()
     return () => { cancelledRef.current = true }
   }, [activeContactId, userId])
+
+  async function loadEarlier() {
+    if (!activeContactId || !userId || loadingEarlier || !messages[0]) return
+    setLoadingEarlier(true)
+    try {
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .select('*')
+        .or(
+          `and(sender_id.eq.${userId},receiver_id.eq.${activeContactId}),and(sender_id.eq.${activeContactId},receiver_id.eq.${userId})`
+        )
+        .lt('created_at', messages[0].created_at)
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE)
+      if (error) {
+        console.warn('Gagal memuat pesan sebelumnya:', error.message)
+      } else if (data) {
+        setMessages((prev) => [...data.slice().reverse(), ...prev])
+        setHasMore(data.length === PAGE_SIZE)
+      }
+    } catch (err) {
+      console.warn('Gagal memuat pesan sebelumnya:', err.message)
+    }
+    setLoadingEarlier(false)
+  }
+
+  useEffect(() => {
+    if (!activeContactId || !userId) return
+    const markRead = async () => {
+      setMessages((prev) => prev.map((m) => (m.sender_id === activeContactId && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m)))
+      const { error } = await supabase
+        .from('direct_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('receiver_id', userId)
+        .eq('sender_id', activeContactId)
+        .is('read_at', null)
+      if (!error) {
+        setUnreadMap((prev) => ({ ...prev, [activeContactId]: 0 }))
+      }
+    }
+    markRead()
+  }, [activeContactId, userId])
+
+  useEffect(() => {
+    if (!userId || !activeContactId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOtherTyping(false)
+      return
+    }
+    const room = [userId, activeContactId].sort().join('-')
+    const ch = supabase.channel(`chat-typing-${room}`)
+    typingChannelRef.current = ch
+    ch.on('presence', { event: 'sync' }, () => {
+      const others = Object.values(ch.presenceState() || {})
+        .flat()
+        .filter((p) => p.userId !== userId && p.typing)
+      setOtherTyping(others.length > 0)
+    }).subscribe()
+
+    return () => {
+      supabase.removeChannel(ch)
+      typingChannelRef.current = null
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    }
+  }, [userId, activeContactId])
 
   useEffect(() => {
     if (!userId) return
@@ -347,13 +472,16 @@ export default function ChatHubPage() {
             setUnreadMap(prev => ({ ...prev, [otherId]: (prev[otherId] || 0) + 1 }))
             const senderName = contactsRef.current.find(c => c.id === otherId)?.first_name || 'Seseorang'
             if (msg.content) showToast(`${senderName}: ${msg.content.slice(0, 80)}`, 'info')
+          } else {
+            supabase.from('direct_messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id).then(() => {})
+            setUnreadMap(prev => ({ ...prev, [otherId]: 0 }))
           }
 
           setContacts((prev) => {
             const idx = prev.findIndex((c) => c.id === otherId)
             if (idx >= 0) {
               const updated = [...prev]
-              updated[idx] = { ...updated[idx], last_message: msg.content, last_message_at: msg.created_at }
+              updated[idx] = { ...updated[idx], last_message: msg.content, last_message_at: msg.created_at, unread: undefined }
               const [item] = updated.splice(idx, 1)
               return [item, ...updated]
             }
@@ -370,6 +498,20 @@ export default function ChatHubPage() {
             }
             return prev
           })
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `or(sender_id.eq.${userId},receiver_id.eq.${userId})`,
+        },
+        (payload) => {
+          if (cancelledRef.current) return
+          const msg = payload.new
+          setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, read_at: msg.read_at } : m)))
         }
       )
       .subscribe()
@@ -397,6 +539,9 @@ export default function ChatHubPage() {
     e?.preventDefault()
     const text = inputValue.trim()
     if (!text || !userId || !activeContactId || sending) return
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    typingChannelRef.current?.untrack()
 
     setSending(true)
     const optimisticMsg = {
@@ -432,6 +577,21 @@ export default function ChatHubPage() {
       }
     }
     if (!cancelledRef.current) setSending(false)
+  }
+
+  function handleInputChange(e) {
+    const val = e.target.value
+    setInputValue(val)
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    if (!typingChannelRef.current) return
+    if (val.trim()) {
+      typingChannelRef.current.track({ userId, typing: true })
+      typingTimeoutRef.current = setTimeout(() => {
+        typingChannelRef.current?.untrack()
+      }, 2500)
+    } else {
+      typingChannelRef.current.untrack()
+    }
   }
 
   async function handleDeleteMessage() {
@@ -481,11 +641,11 @@ export default function ChatHubPage() {
             showMobileList ? 'flex' : 'hidden'
           } lg:flex flex-col w-full lg:w-80 lg:border-r lg:border-brand-border bg-brand-surface`}
         >
-          <div className="flex items-center gap-3 px-4 pt-12 pb-4 border-b border-brand-border">
+          <div className="flex items-center gap-3 px-4 h-14 border-b border-brand-border">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="lg:hidden w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+              className="lg:hidden text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1 shrink-0"
             >
               <ArrowLeft size={20} />
             </button>
@@ -559,11 +719,11 @@ export default function ChatHubPage() {
           {activeContact ? (
             <>
               {/* Chat Header */}
-              <div className="flex items-center gap-3 px-4 pt-12 pb-4 border-b border-brand-border bg-brand-surface">
+              <div className="flex items-center gap-3 px-4 h-14 border-b border-brand-border bg-brand-surface">
                 <button
                   type="button"
                   onClick={handleBackToList}
-                  className="lg:hidden w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+                  className="lg:hidden text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1 shrink-0"
                 >
                   <ArrowLeft size={18} />
                 </button>
@@ -577,7 +737,9 @@ export default function ChatHubPage() {
                   <p className="text-sm font-bold text-brand-text truncate">
                     {activeContact.first_name || 'User'}
                   </p>
-                  {activeContact.role && (
+                  {otherTyping ? (
+                    <p className="text-xs text-brand-accent font-medium">sedang mengetik...</p>
+                  ) : activeContact.role ? (
                     <p className="text-xs text-brand-muted">
                       {activeContact.role === 'admin' ? 'Admin Internal'
                         : activeContact.role === 'agent' ? 'Agent'
@@ -585,25 +747,57 @@ export default function ChatHubPage() {
                         : activeContact.role === 'owner' ? 'Owner'
                         : 'Pembeli'}
                     </p>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto py-4 space-y-1">
-                  {messages.length === 0 ? (
-                    <EmptyChat contactName={activeContact.first_name} />
-                  ) : (
-                    messages.map((msg) => (
-                      <MessageBubble
-                        key={msg.id}
-                        message={msg}
-                        isOwn={msg.sender_id === userId}
-                        onDelete={setDeleteTarget}
-                        lang={i18n.language}
-                      />
-                    ))
-                  )}
+              <div className="flex-1 overflow-y-auto py-2">
+                {messagesLoading ? (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="w-7 h-7 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : messages.length === 0 ? (
+                  <EmptyChat contactName={activeContact.first_name} />
+                ) : (
+                  <>
+                    {hasMore && (
+                      <div className="px-4 py-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={loadEarlier}
+                          disabled={loadingEarlier}
+                          className="text-xs font-semibold text-brand-accent hover:text-brand-primary disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          {loadingEarlier && <div className="w-3.5 h-3.5 border-2 border-brand-accent border-t-transparent rounded-full animate-spin" />}
+                          Muat pesan sebelumnya
+                        </button>
+                      </div>
+                    )}
+                    {messages.map((msg, i) => {
+                      const prev = messages[i - 1]
+                      const next = messages[i + 1]
+                      const newDay = !prev || dayLabel(prev.created_at) !== dayLabel(msg.created_at)
+                      const firstInGroup = !prev || prev.sender_id !== msg.sender_id || newDay
+                      const lastInGroup = !next || next.sender_id !== msg.sender_id || dayLabel(next.created_at) !== dayLabel(msg.created_at)
+                      return (
+                        <div key={msg.id}>
+                          {newDay && i > 0 && <DateSeparator date={dayLabel(msg.created_at)} />}
+                          <MessageBubble
+                            message={msg}
+                            isOwn={msg.sender_id === userId}
+                            onDelete={setDeleteTarget}
+                            lang={i18n.language}
+                            firstInGroup={firstInGroup}
+                            lastInGroup={lastInGroup}
+                            otherName={activeContact.first_name}
+                            otherColor={getAvatarColor(activeContact.id)}
+                          />
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
                 <div ref={messagesEndRef} />
               </div>
 
@@ -617,7 +811,7 @@ export default function ChatHubPage() {
                     ref={inputRef}
                     type="text"
                     value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
+                    onChange={handleInputChange}
                     placeholder="Tulis pesan..."
                     className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted"
                     disabled={sending}
