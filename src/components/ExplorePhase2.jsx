@@ -176,7 +176,7 @@ function ForumHighlights() {
 function InvestmentPicks({ properties, excludeIds }) {
   const { t } = useTranslation()
   const available = useMemo(
-    () => properties.filter((p) => !excludeIds?.has(p.id)),
+    () => properties.filter((p) => !excludeIds?.has(p.id) && p.category !== 'Disewa' && p.typeLabel !== 'Disewa'),
     [properties, excludeIds]
   )
   const picks = useMemo(() =>

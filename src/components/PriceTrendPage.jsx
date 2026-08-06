@@ -4,6 +4,7 @@ import { ArrowLeft, TrendingUp, TrendingDown, SlidersHorizontal, MapPin, Trophy,
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../supabaseClient'
 import { formatPrice } from '../utils/format'
+import { estimateMonthlyRent } from '../utils/financialProfile'
 
 const PROPERTY_TYPES = [
   { value: 'all', label: 'Semua' },
@@ -124,8 +125,14 @@ export default function PriceTrendPage() {
     })
   }, [properties, category, city, type])
 
+  const normPrice = useMemo(() => (p) => {
+    const price = Number(p?.price) || 0
+    if (category !== 'Disewa' || price <= 0) return price
+    return estimateMonthlyRent(p) || price
+  }, [category])
+
   const summary = useMemo(() => {
-    const prices = filtered.map((p) => Number(p.price) || 0).filter(Boolean)
+    const prices = filtered.map(normPrice).filter(Boolean)
     const dropped = filtered.filter((p) => p.original_price && p.price && Number(p.original_price) > Number(p.price))
     return {
       count: filtered.length,
@@ -134,7 +141,7 @@ export default function PriceTrendPage() {
       min: prices.length ? Math.min(...prices) : 0,
       dropped,
     }
-  }, [filtered])
+  }, [filtered, normPrice])
 
   const monthly = useMemo(() => {
     const map = new Map()
@@ -143,7 +150,7 @@ export default function PriceTrendPage() {
       if (isNaN(d)) return
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       if (!map.has(key)) map.set(key, [])
-      map.get(key).push(Number(p.price) || 0)
+      map.get(key).push(normPrice(p))
     })
     const rows = [...map.entries()]
       .sort((a, b) => (a[0] < b[0] ? -1 : 1))
@@ -160,7 +167,7 @@ export default function PriceTrendPage() {
         }
       })
     return rows
-  }, [filtered])
+  }, [filtered, normPrice])
 
   const byDistrict = useMemo(() => {
     const recentCut = RECENT_CUT
@@ -173,14 +180,14 @@ export default function PriceTrendPage() {
     })
     return [...map.entries()]
       .map(([district, list]) => {
-        const prices = list.map((p) => Number(p.price) || 0).filter(Boolean)
+        const prices = list.map(normPrice).filter(Boolean)
         const recent = list.filter((p) => new Date(p.created_at).getTime() >= recentCut)
         const prior = list.filter((p) => {
           const t = new Date(p.created_at).getTime()
           return t >= priorCut && t < recentCut
         })
-        const recentAvg = avg(recent.map((p) => Number(p.price) || 0).filter(Boolean))
-        const priorAvg = avg(prior.map((p) => Number(p.price) || 0).filter(Boolean))
+        const recentAvg = avg(recent.map(normPrice).filter(Boolean))
+        const priorAvg = avg(prior.map(normPrice).filter(Boolean))
         const change = priorAvg > 0 ? ((recentAvg - priorAvg) / priorAvg) * 100 : null
         return {
           district,
@@ -192,7 +199,7 @@ export default function PriceTrendPage() {
         }
       })
       .sort((a, b) => b.count - a.count)
-  }, [filtered])
+  }, [filtered, normPrice])
 
   const cityRanking = useMemo(() => {
     const map = new Map()
@@ -202,7 +209,7 @@ export default function PriceTrendPage() {
       const key = normCity(p.city)
       const label = (p.city || 'Lainnya').trim()
       if (!map.has(key)) map.set(key, { label, prices: [] })
-      map.get(key).prices.push(Number(p.price) || 0)
+      map.get(key).push(normPrice(p))
     })
     const rows = [...map.values()]
       .map((r) => {
@@ -214,7 +221,7 @@ export default function PriceTrendPage() {
     rows.forEach((r) => { r.barPct = Math.round((r.avgPrice / max) * 100) })
     rows.sort((a, b) => (rankMode === 'highest' ? b.avgPrice - a.avgPrice : a.avgPrice - b.avgPrice))
     return rows.slice(0, 6)
-  }, [properties, category, type, rankMode])
+  }, [properties, category, type, rankMode, normPrice])
 
   const hasArea = filtered.length > 0
 
@@ -315,11 +322,11 @@ export default function PriceTrendPage() {
                 <p className="text-xl font-extrabold text-brand-text mt-1">{summary.count}</p>
               </div>
               <div className="bg-white rounded-2xl border border-brand-border p-4">
-                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide">Harga Rata-rata</p>
+                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide">Harga Rata-rata{category === 'Disewa' ? ' (/bulan)' : ''}</p>
                 <p className="text-xl font-extrabold text-brand-primary mt-1">{formatPrice(summary.avg)}</p>
               </div>
               <div className="bg-white rounded-2xl border border-brand-border p-4">
-                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide">Median</p>
+                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide">Median{category === 'Disewa' ? ' (/bulan)' : ''}</p>
                 <p className="text-xl font-extrabold text-brand-text mt-1">{formatPrice(summary.median)}</p>
               </div>
               <div className="bg-white rounded-2xl border border-brand-border p-4">
@@ -448,7 +455,7 @@ export default function PriceTrendPage() {
                     Perbandingan per Kecamatan
                   </h2>
                   <p className="text-xs text-brand-muted mt-0.5">
-                    {city === 'all' ? 'Semua kota' : city} · {category} · {type === 'all' ? 'semua tipe' : type} · perubahan 60 hari terakhir vs 60 hari sebelumnya
+                    {city === 'all' ? 'Semua kota' : city} · {category}{category === 'Disewa' ? ' (harga/bulan)' : ''} · {type === 'all' ? 'semua tipe' : type} · perubahan 60 hari terakhir vs 60 hari sebelumnya
                   </p>
                 </div>
                 <div className="divide-y divide-brand-border">

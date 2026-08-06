@@ -21,7 +21,7 @@ import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { formatPrice, formatPriceDisplay, formatCount } from '../utils/format'
 import { supabase } from '../supabaseClient'
 import { getFavorites, toggleFavorite } from '../utils/favorites'
-import { estimateMonthlyInstallment } from '../utils/financialProfile'
+import { estimateMonthlyInstallment, isRentalProperty } from '../utils/financialProfile'
 import { useAuth } from '../context/AuthContext'
 import { useCompare } from '../hooks/useCompare'
 
@@ -189,6 +189,7 @@ function MarketPulse({ properties }) {
   const pulse = useMemo(() => {
     const byCity = {}
     for (const p of properties) {
+      if (isRentalProperty(p)) continue
       const city = (p.city || '').trim()
       const price = Number(p.price)
       if (!city || !(price > 0)) continue

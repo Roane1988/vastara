@@ -420,7 +420,7 @@ export default function ExplorePage() {
         if (!match) return false
       }
 
-      if (filterPrice) {
+      if (filterPrice && !isRentalProperty(p)) {
         const price = Number(p.price) || 0
         if (filterPrice === '0-1M' && price >= 1_000_000_000) return false
         if (filterPrice === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false
@@ -465,15 +465,21 @@ export default function ExplorePage() {
     if (source.length === 0) return []
     const ranked = source.map((p) => {
       let score = 0
+      const isRentProp = isRentalProperty(p)
       const price = Number(p.price) || 0
+      const monthlyRent = isRentProp ? estimateMonthlyRent(p) : 0
       if (favCities.has((p.city || '').trim().toLowerCase())) score += 4
-      if (maxAffordable > 0 && price > 0 && price <= maxAffordable) score += 3
+      if (isRentProp) {
+        if (maxRent > 0 && monthlyRent > 0 && monthlyRent <= maxRent) score += 3
+      } else if (maxAffordable > 0 && price > 0 && price <= maxAffordable) {
+        score += 3
+      }
       if (p.is_premium) score += 1
       return { p, score }
     })
     ranked.sort((a, b) => b.score - a.score || new Date(b.p.created_at || 0) - new Date(a.p.created_at || 0))
     return ranked.slice(0, 6).map((x) => x.p)
-  }, [sorted, properties, favCities, maxAffordable])
+  }, [sorted, properties, favCities, maxAffordable, maxRent])
 
   const recommendationChips = useMemo(() => {
     const chips = []

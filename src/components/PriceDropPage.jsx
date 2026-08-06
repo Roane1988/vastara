@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { TrendingDown, TrendingUp, MapPin, Search, ArrowLeft, SlidersHorizontal } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatPriceDisplay } from '../utils/format'
 
 const PROPERTY_TYPES = [
   { value: 'all', label: 'Semua' },
@@ -26,6 +26,7 @@ export default function PriceDropPage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [type, setType] = useState('all')
+  const [category, setCategory] = useState('all')
   const [sort, setSort] = useState('pct')
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function PriceDropPage() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, original_price, property_type, category, address, city, district, bedrooms, bathrooms, area_sqm, image_url, status, price_change_status, created_at')
+          .select('id, title, price, original_price, property_type, category, price_period, address, city, district, bedrooms, bathrooms, area_sqm, image_url, status, price_change_status, created_at')
           .neq('price_change_status', 'pending')
           .neq('status', 'sold')
           .not('original_price', 'is', null)
@@ -55,6 +56,7 @@ export default function PriceDropPage() {
 
   const dropped = properties
     .filter((p) => dropPct(p) > 0)
+    .filter((p) => category === 'all' || p.category === category)
     .filter((p) => type === 'all' || p.property_type === type)
     .filter((p) => {
       if (!query.trim()) return true
@@ -128,6 +130,28 @@ export default function PriceDropPage() {
           </div>
         </div>
 
+        {/* CHIP KATEGORI */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3">
+          {[
+            { value: 'all', label: 'Semua' },
+            { value: 'Dijual', label: 'Dijual' },
+            { value: 'Disewa', label: 'Disewa' },
+          ].map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => setCategory(c.value)}
+              className={`shrink-0 text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-colors ${
+                category === c.value
+                  ? 'bg-brand-primary text-white border-brand-primary'
+                  : 'bg-brand-surface text-brand-muted border-brand-border hover:text-brand-text'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
         {/* CHIP TYPE */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6">
           {PROPERTY_TYPES.map((t) => (
@@ -189,10 +213,15 @@ export default function PriceDropPage() {
                         {p.property_type}
                       </span>
                     )}
+                    {(p.category === 'Disewa' || p.typeLabel === 'Disewa') && (
+                      <span className="absolute bottom-2 left-2 bg-blue-600/90 text-white text-[10px] font-semibold px-2 py-1 rounded-md">
+                        Disewa
+                      </span>
+                    )}
                   </div>
                   <div className="p-3.5">
                     <div className="flex items-baseline gap-2">
-                      <p className="text-base font-extrabold text-brand-primary">{formatPrice(p.price)}</p>
+                      <p className="text-base font-extrabold text-brand-primary">{formatPriceDisplay(p)}</p>
                       <p className="text-xs text-brand-muted line-through">{formatPrice(p.original_price)}</p>
                     </div>
                     <p className="text-sm font-semibold text-brand-text mt-0.5 truncate">{p.title}</p>

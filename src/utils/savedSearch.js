@@ -52,7 +52,9 @@ export function matchesFilters(p, filters = {}) {
     }
   }
 
-  if (f.price) {
+  const isRent = p.category === 'Disewa' || p.typeLabel === 'Disewa'
+
+  if (f.price && !isRent) {
     const price = Number(p.price) || 0
     if (f.price === '0-1M' && price >= 1_000_000_000) return false
     if (f.price === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false

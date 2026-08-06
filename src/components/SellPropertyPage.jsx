@@ -723,17 +723,19 @@ export default function SellPropertyPage() {
               </div>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-brand-text mb-1.5 block">Status Sertifikat</label>
-              <select value={form.status_sertifikat} onChange={updateForm('status_sertifikat')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none">
-                <option value="">Pilih status</option>
-                <option value="SHM">SHM</option>
-                <option value="SHGB">SHGB</option>
-                <option value="PPJB">PPJB</option>
-                <option value="Belum Bersertifikat">Belum Bersertifikat</option>
-                <option value="Lainnya">Lainnya</option>
-              </select>
-            </div>
+            {form.category !== 'Disewa' && (
+              <div>
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">Status Sertifikat</label>
+                <select value={form.status_sertifikat} onChange={updateForm('status_sertifikat')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none">
+                  <option value="">Pilih status</option>
+                  <option value="SHM">SHM</option>
+                  <option value="SHGB">SHGB</option>
+                  <option value="PPJB">PPJB</option>
+                  <option value="Belum Bersertifikat">Belum Bersertifikat</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+            )}
 
             <div className="flex items-center justify-between gap-3 p-4 rounded-xl border border-brand-border bg-white">
               <div>
@@ -863,7 +865,7 @@ export default function SellPropertyPage() {
               <div className="text-xs text-brand-muted space-y-1">
                 <p>Kategori: {form.category}</p>
                 <p>Tipe: {form.jenis_properti}</p>
-                <p>Sertifikat: {form.status_sertifikat || '-'}</p>
+                {form.category !== 'Disewa' && <p>Sertifikat: {form.status_sertifikat || '-'}</p>}
                 <p>Lokasi: {[form.city, form.kecamatan].filter(Boolean).join(', ') || form.address?.slice(0, 30)}</p>
                 <p>Kamar: {form.bedrooms || 0} KT / {form.bathrooms || 0} KM</p>
                 <p>Luas: {form.sqm ? `${form.sqm} m² bangunan` : '-'}{form.land_sqm ? ` · ${form.land_sqm} m² tanah` : ''}</p>
@@ -880,7 +882,7 @@ export default function SellPropertyPage() {
                 <input type="tel" placeholder="81234567890" value={form.whatsapp} onChange={updateForm('whatsapp')} onBlur={touch('whatsapp')} className={`w-full py-4 pl-12 pr-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${fieldErrors.whatsapp ? 'border-red-400' : 'border-brand-border'}`} />
               </div>
               {showFieldError('whatsapp') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('whatsapp')}</p>}
-              <p className="text-xs text-brand-muted mt-1.5">Calon pembeli akan menghubungi Anda via nomor ini</p>
+              <p className="text-xs text-brand-muted mt-1.5">{form.category === 'Disewa' ? 'Calon penyewa akan menghubungi Anda via nomor ini' : 'Calon pembeli akan menghubungi Anda via nomor ini'}</p>
             </div>
           </div>
         )

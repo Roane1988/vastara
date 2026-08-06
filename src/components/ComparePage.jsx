@@ -300,7 +300,7 @@ export default function ComparePage() {
     { label: t('compare.row.district'), render: (p) => p.district || '-' },
     { label: t('compare.row.address'), render: (p) => p.address || p.location || '-' },
     { label: t('compare.row.facilities'), render: (p) => (p.facilities ? <span className="text-xs leading-snug block max-w-[160px] mx-auto">{p.facilities}</span> : '-') },
-    { label: t('compare.row.certificate_status'), render: (p) => p.certificate_status || '-' },
+    { label: t('compare.row.certificate_status'), render: (p) => (isRent(p) ? '-' : p.certificate_status || '-') },
   ]
 
   if (items.length === 0 && !loading) {

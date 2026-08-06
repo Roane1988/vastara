@@ -51,6 +51,10 @@ export default function ScheduleVisit({ property, onClose }) {
     )
   }
 
+  const isRent = property?.category === 'Disewa' || property?.typeLabel === 'Disewa'
+  const visitTerm = isRent ? 'inspeksi' : 'survei'
+  const visitorLabel = isRent ? 'Calon penyewa' : 'Calon pembeli'
+
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
@@ -69,8 +73,8 @@ export default function ScheduleVisit({ property, onClose }) {
         const rawNumber = property?.seller_whatsapp || property?.agent_whatsapp
         const number = normalizeWhatsAppNumber(rawNumber)
         if (number) {
-          const buyerName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Calon pembeli'
-          const msg = `Halo, saya ${buyerName} ingin mengatur jadwal survei untuk "${property?.title || 'properti'}" pada ${formatDateForMessage(date)} pukul ${time}.${notes ? ` Catatan: ${notes}` : ''}`
+          const buyerName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || visitorLabel
+          const msg = `Halo, saya ${buyerName} ingin mengatur jadwal ${visitTerm} untuk "${property?.title || 'properti'}" pada ${formatDateForMessage(date)} pukul ${time}.${notes ? ` Catatan: ${notes}` : ''}`
           const link = `https://wa.me/${number}?text=${encodeURIComponent(msg)}`
           setWaLink(link)
           window.open(link, '_blank', 'noopener')
@@ -99,7 +103,7 @@ export default function ScheduleVisit({ property, onClose }) {
             </div>
             <p className="text-base font-bold text-brand-text mb-1">Permintaan Terkirim!</p>
             <p className="text-sm text-brand-muted max-w-xs">
-              Jadwal survei kamu sudah dikirim. Agen akan mengonfirmasi melalui WhatsApp.
+              Jadwal {visitTerm} kamu sudah dikirim. Agen akan mengonfirmasi melalui WhatsApp.
             </p>
             {waLink && (
               <a

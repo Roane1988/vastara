@@ -109,7 +109,9 @@ function SpecGrid({ property }) {
   if (furnishedLabel) {
     tiles.push({ icon: <Tag size={18} />, label: 'Kondisi Isi', value: furnishedLabel })
   }
-  tiles.push({ icon: <Tag size={18} />, label: 'Harga /m²', value: pricePerSqmText })
+  if (property?.category !== 'Disewa') {
+    tiles.push({ icon: <Tag size={18} />, label: 'Harga /m²', value: pricePerSqmText })
+  }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
       {tiles.map((t) => (
@@ -721,7 +723,7 @@ export default function PropertyDetailPage() {
               <p className="text-2xl font-extrabold text-brand-primary">
                 {displayPrice}
               </p>
-              {property.area_sqm > 0 && property.price > 0 && (
+              {property.area_sqm > 0 && property.price > 0 && !isRent && (
                 <p className="text-sm text-brand-muted mt-0.5">
                   {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;
                 </p>
@@ -734,7 +736,7 @@ export default function PropertyDetailPage() {
                   {lang === 'en' ? 'Premium' : 'Premium'}
                 </span>
               )}
-              {property.certificate_status && (
+              {property.certificate_status && !isRent && (
                 <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   {property.certificate_status}
                 </span>
@@ -838,12 +840,14 @@ export default function PropertyDetailPage() {
                         Isi profil keuangan untuk lihat jangkauan sewa
                       </button>
                     )}
-                    <Link
-                      to="/kpr"
+                    <button
+                      type="button"
+                      onClick={() => setShowScheduleVisit(true)}
                       className="mt-4 inline-flex items-center gap-2 py-2.5 px-4 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all"
                     >
-                      Hitung kemampuan KPR untuk membeli
-                    </Link>
+                      <Calendar size={16} />
+                      Atur Jadwal Inspeksi
+                    </button>
                   </div>
                 </>
               ) : (
@@ -908,9 +912,9 @@ export default function PropertyDetailPage() {
             <div className="sticky top-24 space-y-6">
               <div className="bg-white rounded-xl shadow-md border border-brand-border p-5">
                 <p className="text-2xl font-extrabold text-brand-primary leading-none">{displayPrice}</p>
-                {property.area_sqm > 0 && property.price > 0 && (
+                {property.area_sqm > 0 && property.price > 0 && !isRent && (
                   <p className="text-sm text-brand-muted mt-1.5">
-                    {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;{isRent ? ' /bulan' : ''}
+                    {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;
                   </p>
                 )}
                 <div className="mt-4">
@@ -969,7 +973,7 @@ export default function PropertyDetailPage() {
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
                   >
                     <Calendar size={16} className="text-brand-muted" />
-                    Jadwal Survei
+                    {isRent ? 'Jadwal Inspeksi' : 'Jadwal Survei'}
                   </button>
                   {waLink && (
                     <a
@@ -1061,7 +1065,7 @@ export default function PropertyDetailPage() {
             <div className="min-w-0 shrink">
               <p className="text-[10px] font-medium uppercase tracking-wide text-brand-muted">{lang === 'en' ? 'Price' : 'Harga'}</p>
               <p className="text-lg font-extrabold text-brand-text leading-tight truncate">{displayPrice}</p>
-              {Number(property?.price) > 0 && Number(property?.area_sqm) > 0 && (
+              {Number(property?.price) > 0 && Number(property?.area_sqm) > 0 && !isRent && (
                 <p className="text-[11px] text-brand-muted truncate">{formatPrice(Math.round(Number(property.price) / Number(property.area_sqm)))} /m²</p>
               )}
             </div>
