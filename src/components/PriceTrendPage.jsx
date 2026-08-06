@@ -89,7 +89,7 @@ export default function PriceTrendPage() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, original_price, property_type, category, address, city, district, bedrooms, bathrooms, area_sqm, image_url, created_at')
+          .select('id, title, price, original_price, property_type, category, price_period, address, city, district, bedrooms, bathrooms, area_sqm, image_url, created_at')
           .eq('status', 'verified')
           .neq('price_change_status', 'pending')
           .order('created_at', { ascending: false })
@@ -209,7 +209,7 @@ export default function PriceTrendPage() {
       const key = normCity(p.city)
       const label = (p.city || 'Lainnya').trim()
       if (!map.has(key)) map.set(key, { label, prices: [] })
-      map.get(key).push(normPrice(p))
+      map.get(key).prices.push(normPrice(p))
     })
     const rows = [...map.values()]
       .map((r) => {
