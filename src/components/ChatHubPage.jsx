@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
-import { formatPrice } from '../utils/format'
+import { formatPriceDisplay } from '../utils/format'
 import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 
@@ -339,7 +339,7 @@ export default function ChatHubPage() {
     let cancelled = false
     supabase
       .from('properties')
-      .select('id, title, price, image_url, address, city, status')
+      .select('id, title, price, category, price_period, image_url, address, city, status')
       .eq('id', propertyId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -794,7 +794,7 @@ export default function ChatHubPage() {
                           {contextProperty.title || 'Properti'}
                         </p>
                         <p className="text-xs font-bold text-brand-primary mt-0.5">
-                          {Number(contextProperty.price) > 0 ? formatPrice(Number(contextProperty.price)) : 'Harga Hubungi'}
+                          {Number(contextProperty.price) > 0 ? formatPriceDisplay(contextProperty) : 'Harga Hubungi'}
                         </p>
                         <p className="text-[10px] text-brand-muted truncate mt-0.5">
                           {contextProperty.address || [contextProperty.city].filter(Boolean).join(', ') || 'Lokasi tersedia'}

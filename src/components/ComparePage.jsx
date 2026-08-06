@@ -99,7 +99,7 @@ export default function ComparePage() {
     ;(async () => {
       const { data } = await supabase
         .from('properties')
-        .select('id, title, price, image_url')
+        .select('id, title, price, image_url, category, price_period')
         .in('id', ids)
       if (!data || data.length === 0) return
       data.forEach((p) => addToCompare(p))

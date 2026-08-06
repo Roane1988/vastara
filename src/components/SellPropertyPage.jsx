@@ -22,6 +22,7 @@ const EMPTY_FORM = {
   category: 'Dijual',
   jenis_properti: '',
   estimasi_harga: '',
+  price_period: 'total',
   bedrooms: '',
   bathrooms: '',
   sqm: '',
@@ -168,7 +169,9 @@ function PreviewCard({ form, image }) {
         )}
       </div>
       <div className="p-4">
-        <p className="text-lg font-extrabold text-brand-primary">{form.estimasi_harga ? formatPrice(Number(form.estimasi_harga)) : 'Rp 0'}</p>
+        <p className="text-lg font-extrabold text-brand-primary">
+          {form.estimasi_harga ? `${formatPrice(Number(form.estimasi_harga))}${form.category === 'Disewa' ? (form.price_period === 'tahun' ? ' /tahun' : ' /bulan') : ''}` : 'Rp 0'}
+        </p>
         <p className="text-sm font-semibold text-brand-text mt-0.5">{form.title || 'Judul Properti'}</p>
         <p className="text-xs text-brand-muted mt-0.5 flex items-center gap-1">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
@@ -247,6 +250,7 @@ export default function SellPropertyPage() {
           category: data.category || 'Dijual',
           jenis_properti: data.property_type || '',
           estimasi_harga: data.price ? String(data.price) : '',
+          price_period: data.price_period || (data.category === 'Disewa' ? 'bulan' : 'total'),
           bedrooms: data.bedrooms ? String(data.bedrooms) : '',
           bathrooms: data.bathrooms ? String(data.bathrooms) : '',
           sqm: data.area_sqm ? String(data.area_sqm) : '',
@@ -517,6 +521,7 @@ export default function SellPropertyPage() {
         city: form.city,
         district: form.kecamatan,
         price: Number(form.estimasi_harga) || null,
+        price_period: form.category === 'Disewa' ? form.price_period : 'total',
         bedrooms: Number(form.bedrooms) || 0,
         bathrooms: Number(form.bathrooms) || 0,
         area_sqm: Number(form.sqm) || 0,
@@ -584,7 +589,7 @@ export default function SellPropertyPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kategori <span className="text-red-500">*</span></label>
-                <select value={form.category} onChange={updateForm('category')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none">
+                <select value={form.category} onChange={(e) => { updateFormValue('category', e.target.value); if (e.target.value !== 'Disewa') updateFormValue('price_period', 'total') }} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none">
                   <option value="Dijual">Dijual</option>
                   <option value="Disewa">Disewa</option>
                 </select>
@@ -611,7 +616,33 @@ export default function SellPropertyPage() {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-brand-muted font-medium">Rp</span>
                 <input type="text" inputMode="numeric" placeholder="500.000.000" value={form.estimasi_harga} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setForm((p) => ({ ...p, estimasi_harga: raw })) }} className="w-full py-4 pl-10 pr-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
               </div>
-              {form.estimasi_harga && <p className="text-xs text-brand-muted mt-1.5">Rp {Number(form.estimasi_harga).toLocaleString('id-ID')}</p>}
+              {form.category === 'Disewa' && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {[
+                    { value: 'bulan', label: 'per bulan' },
+                    { value: 'tahun', label: 'per tahun' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateFormValue('price_period', opt.value)}
+                      className={`py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                        form.price_period === opt.value
+                          ? 'bg-brand-primary text-white border-brand-primary'
+                          : 'bg-brand-surface text-brand-muted border-brand-border hover:border-brand-accent'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {form.estimasi_harga && (
+                <p className="text-xs text-brand-muted mt-1.5">
+                  Rp {Number(form.estimasi_harga).toLocaleString('id-ID')}
+                  {form.category === 'Disewa' ? ` /${form.price_period === 'tahun' ? 'tahun' : 'bulan'}` : ''}
+                </p>
+              )}
               {editId && (
                 <p className="text-[11px] text-brand-muted mt-1.5 flex items-start gap-1">
                   <Info size={12} className="shrink-0 mt-0.5" />

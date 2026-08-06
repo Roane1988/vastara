@@ -563,7 +563,7 @@ export default function PropertyDetailPage() {
     if (propCity) orFilters.push(`city.ilike.%${propCity}%`)
     let query = supabase
       .from('properties')
-      .select('id, title, price, category, bedrooms, bathrooms, area_sqm, address, city, image_url')
+      .select('id, title, price, category, price_period, bedrooms, bathrooms, area_sqm, address, city, image_url')
       .neq('id', propId)
       .eq('status', 'verified')
       .limit(6)

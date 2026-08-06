@@ -37,7 +37,10 @@ export function formatCompact(value) {
 export function formatPriceDisplay(property) {
   if (property?.priceDisplay) return property.priceDisplay
   const isRent = property?.category === 'Disewa' || property?.typeLabel === 'Disewa'
-  if (isRent && property?.price) return `${formatPrice(property.price)} /bulan`
+  if (isRent && property?.price) {
+    if (property.price_period === 'tahun') return `${formatPrice(property.price)} /tahun`
+    return `${formatPrice(property.price)} /bulan`
+  }
   return formatPrice(property?.price)
 }
 

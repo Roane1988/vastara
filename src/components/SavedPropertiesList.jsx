@@ -22,7 +22,7 @@ export default function SavedPropertiesList({ showAddress = false, emptyText, em
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, image_url')
+          .select('id, title, price, image_url, category, price_period')
           .in('id', favIds)
         if (!cancelled) {
           if (error) {

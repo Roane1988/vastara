@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getImageSrc } from '../utils/images'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatPriceDisplay } from '../utils/format'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import ConfirmModal from './ConfirmModal'
@@ -218,7 +218,7 @@ export default function MyListingsPage() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, status, image_url, address, bedrooms, bathrooms, area_sqm, created_at, price_requested, price_change_status, price_reviewed_at')
+          .select('id, title, price, price_period, category, status, image_url, address, bedrooms, bathrooms, area_sqm, created_at, price_requested, price_change_status, price_reviewed_at')
           .eq('seller_id', user.id)
           .order('created_at', { ascending: false })
 
@@ -339,7 +339,7 @@ export default function MyListingsPage() {
                     <StatusBadge status={p.status} />
                   </div>
                   <p className="text-base font-extrabold text-brand-primary mt-1">
-                    {formatPrice(p.price)}
+                    {formatPriceDisplay(p)}
                   </p>
                   {p.price_change_status === 'pending' && (
                     <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-0.5 mt-1.5 w-fit">
