@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
+import { getImageSrc } from '../utils/images'
+import { formatPrice } from '../utils/format'
 import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 
@@ -216,6 +218,8 @@ export default function ChatHubPage() {
   const typingChannelRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const PAGE_SIZE = 50
+  const [contextProperty, setContextProperty] = useState(null)
+  const [showContextCard, setShowContextCard] = useState(false)
 
   const activeContact = contacts.find((c) => c.id === activeContactId) || null
 
@@ -328,6 +332,25 @@ export default function ChatHubPage() {
   }, [userId])
 
   const openUserId = searchParams.get('user')
+  const propertyId = searchParams.get('property')
+
+  useEffect(() => {
+    if (!propertyId || contextProperty) return
+    let cancelled = false
+    supabase
+      .from('properties')
+      .select('id, title, price, image_url, address, city, status')
+      .eq('id', propertyId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled || error || !data) return
+        setContextProperty(data)
+        setShowContextCard(true)
+      })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyId])
+
   const didAutoSelectRef = useRef(false)
   useEffect(() => {
     if (!openUserId || didAutoSelectRef.current) return
@@ -750,6 +773,45 @@ export default function ChatHubPage() {
                   ) : null}
                 </div>
               </div>
+
+              {/* Property context card */}
+              {contextProperty && showContextCard && (
+                <div className="px-4 py-3 border-b border-brand-border bg-brand-bg/60">
+                  <div className="flex items-center gap-3 rounded-xl border border-brand-border bg-brand-surface p-2.5 pr-1">
+                    <Link
+                      to={`/property/${contextProperty.id}`}
+                      className="flex items-center gap-3 flex-1 min-w-0 group"
+                    >
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-brand-bg shrink-0">
+                        <img
+                          src={getImageSrc(contextProperty.image_url)}
+                          alt={contextProperty.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-brand-text truncate group-hover:text-brand-accent transition-colors">
+                          {contextProperty.title || 'Properti'}
+                        </p>
+                        <p className="text-xs font-bold text-brand-primary mt-0.5">
+                          {Number(contextProperty.price) > 0 ? formatPrice(Number(contextProperty.price)) : 'Harga Hubungi'}
+                        </p>
+                        <p className="text-[10px] text-brand-muted truncate mt-0.5">
+                          {contextProperty.address || [contextProperty.city].filter(Boolean).join(', ') || 'Lokasi tersedia'}
+                        </p>
+                      </div>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setShowContextCard(false)}
+                      className="p-2 rounded-full text-brand-muted hover:text-brand-text shrink-0"
+                      aria-label="Tutup konteks properti"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto py-2">

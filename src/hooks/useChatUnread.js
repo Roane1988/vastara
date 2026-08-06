@@ -1,32 +1,20 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../supabaseClient'
-
-const STORAGE_KEY = 'huniOne_last_chat_read'
-
-function getLastRead() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) return stored
-  } catch { /* storage unavailable */ }
-  const now = new Date().toISOString()
-  try { localStorage.setItem(STORAGE_KEY, now) } catch { /* storage unavailable */ }
-  return now
-}
 
 export function useChatUnread(userId, scope = 'default') {
   const [unread, setUnread] = useState(0)
+  const decrementedRef = useRef(new Set())
 
   useEffect(() => {
     if (!userId) return
     let cancelled = false
-    const lastRead = getLastRead()
 
     ;(async () => {
       const { count, error } = await supabase
         .from('direct_messages')
         .select('id', { count: 'exact', head: true })
         .eq('receiver_id', userId)
-        .gt('created_at', lastRead)
+        .is('read_at', null)
       if (!cancelled && !error && typeof count === 'number') {
         setUnread(count)
       }
@@ -50,6 +38,23 @@ export function useChatUnread(userId, scope = 'default') {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `receiver_id=eq.${userId}`,
+        },
+        (payload) => {
+          if (cancelled) return
+          const msg = payload.new
+          if (msg && msg.read_at && !decrementedRef.current.has(msg.id)) {
+            decrementedRef.current.add(msg.id)
+            setUnread((prev) => Math.max(0, prev - 1))
+          }
+        }
+      )
       .subscribe()
 
     return () => {
@@ -58,11 +63,19 @@ export function useChatUnread(userId, scope = 'default') {
     }
   }, [userId, scope])
 
-  const markRead = useCallback(() => {
-    const now = new Date().toISOString()
-    try { localStorage.setItem(STORAGE_KEY, now) } catch { /* storage unavailable */ }
+  const markRead = useCallback(async () => {
+    if (!userId) return
     setUnread(0)
-  }, [])
+    try {
+      await supabase
+        .from('direct_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('receiver_id', userId)
+        .is('read_at', null)
+    } catch {
+      /* non-blocking */
+    }
+  }, [userId])
 
   return { unread, markRead }
 }
