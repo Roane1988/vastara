@@ -126,6 +126,34 @@ function VerticalStepper({ steps, current }) {
   )
 }
 
+function HorizontalStepper({ steps, current }) {
+  return (
+    <div className="md:hidden px-4 pt-4 pb-2 border-b border-brand-border">
+      <div className="flex items-center">
+        {steps.map((s, i) => {
+          const isCompleted = i < current
+          const isActive = i === current
+          return (
+            <div key={s.id} className="flex items-center flex-1 min-w-0">
+              <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all duration-300 ${
+                  isCompleted ? 'bg-brand-primary text-white' : isActive ? 'bg-brand-primary text-white ring-4 ring-brand-accent/30' : 'bg-brand-bg border border-brand-border text-brand-muted'
+                }`}>
+                  {isCompleted ? <CheckIcon /> : i + 1}
+                </div>
+                <span className={`text-[10px] text-center truncate max-w-full leading-tight ${isActive ? 'text-brand-text font-semibold' : isCompleted ? 'text-brand-accent' : 'text-brand-muted'}`}>{s.label}</span>
+              </div>
+              {i < steps.length - 1 && (
+                <div className={`h-0.5 flex-1 mb-5 mx-1.5 ${i < current ? 'bg-brand-primary' : 'bg-brand-border'}`} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function PreviewCard({ form, image }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-brand-border overflow-hidden">
@@ -791,10 +819,11 @@ export default function SellPropertyPage() {
         </div>
       ) : (
         <>
-          <header className="sticky top-0 bg-brand-surface/90 backdrop-blur-md z-30 pt-12 pb-3 px-5 border-b border-brand-border">
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"><ArrowLeftIcon /></button>
-              <h1 className="text-lg font-bold text-brand-text">Iklankan Properti</h1>
+          <header className="sticky top-0 bg-brand-surface/90 backdrop-blur-md z-30 border-b border-brand-border">
+            <div className="flex items-center justify-between px-4 h-14">
+              <button type="button" onClick={() => navigate(-1)} className="text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1 shrink-0"><ArrowLeftIcon /></button>
+              <h1 className="text-lg font-bold text-brand-text">{editId ? 'Edit Properti' : 'Iklankan Properti'}</h1>
+              <span className="text-sm text-brand-muted w-5" />
             </div>
           </header>
 
@@ -826,14 +855,15 @@ export default function SellPropertyPage() {
           )}
 
           <div className="flex-1 flex flex-col md:flex-row">
-            <aside className="md:w-64 md:min-h-screen md:border-r md:border-brand-border md:bg-brand-bg md:sticky md:top-0">
+            <aside className="hidden md:block md:w-64 md:min-h-screen md:border-r md:border-brand-border md:bg-brand-bg md:sticky md:top-0">
               <div className="px-5 py-6 md:py-10 md:px-6">
                 <VerticalStepper steps={STEPS} current={step} />
               </div>
             </aside>
 
             <div className="flex-1 flex flex-col">
-              <div className="flex-1 px-5 pt-6 pb-28 overflow-y-auto">{renderStep()}</div>
+              <HorizontalStepper steps={STEPS} current={step} />
+              <div className="flex-1 px-5 pt-6 pb-28 overflow-y-auto w-full max-w-2xl mx-auto">{renderStep()}</div>
 
               <div className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-border px-5 py-4 z-40">
                 {stepErrors.length > 0 && (
