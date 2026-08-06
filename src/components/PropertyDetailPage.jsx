@@ -806,13 +806,17 @@ export default function PropertyDetailPage() {
               )}
             </div>
 
-            <div className="mt-10 pt-8 border-t border-gray-200">
-              <InvestmentAnalyzer property={property} />
-            </div>
+            {!isRent && (
+              <div className="mt-10 pt-8 border-t border-gray-200">
+                <InvestmentAnalyzer property={property} />
+              </div>
+            )}
 
-            <div className="mt-10 pt-8 border-t border-gray-200">
-              <FairPriceAnalyzer property={property} />
-            </div>
+            {!isRent && (
+              <div className="mt-10 pt-8 border-t border-gray-200">
+                <FairPriceAnalyzer property={property} />
+              </div>
+            )}
 
             <AccordionBlock id="panduan" title={isRent ? 'Panduan Menyewa Properti' : 'Panduan Membeli Properti'} isOpen={accordionState.panduan} onToggle={(id) => setAccordionState((prev) => ({ ...prev, [id]: !prev[id] }))}>
               <ol className="list-decimal pl-4 space-y-1.5">
