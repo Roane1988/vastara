@@ -60,6 +60,8 @@
     "count": "Comparing {{count}} of {{max}} properties",
     "hint_few": "Add at least 2 properties for a more meaningful comparison.",
     "toast_max": "You can compare up to {{max}} properties.",
+    "toast_type_mismatch": "You can't compare a rental with a for-sale property. Compare properties of the same type.",
+    "mixed_warning": "Comparison is only allowed between properties of the same type (rental with rental, or for-sale with for-sale).",
     "bar_compare": "Compare",
     "remove_aria": "Remove from comparison",
     "verified": "Verified",

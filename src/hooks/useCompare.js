@@ -13,11 +13,13 @@ export function useCompare(showToast) {
   const toggleCompare = useCallback((property) => {
     if (compareSet.has(property.id)) {
       removeFromCompare(property.id)
-    } else {
-      const added = addToCompare(property)
-      if (!added) {
-        showToast?.(t('compare.toast_max', { max: MAX_ITEMS }), 'error')
-      }
+      return
+    }
+    const result = addToCompare(property)
+    if (result === 'max') {
+      showToast?.(t('compare.toast_max', { max: MAX_ITEMS }), 'error')
+    } else if (result === 'type_mismatch') {
+      showToast?.(t('compare.toast_type_mismatch'), 'error')
     }
   }, [compareSet, addToCompare, removeFromCompare, showToast, t])
 

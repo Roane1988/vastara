@@ -60,6 +60,8 @@
     "count": "Membandingkan {{count}} dari {{max}} properti",
     "hint_few": "Pilih minimal 2 properti agar perbandingan lebih bermakna.",
     "toast_max": "Maksimal {{max}} properti dapat dibandingkan.",
+    "toast_type_mismatch": "Tidak bisa membandingkan properti sewa dengan properti jual. Bandingkan dengan jenis properti yang sama.",
+    "mixed_warning": "Perbandingan hanya bisa dilakukan antara jenis properti yang sama (sewa dengan sewa, atau jual dengan jual).",
     "bar_compare": "Bandingkan",
     "remove_aria": "Hapus dari perbandingan",
     "verified": "Terverifikasi",

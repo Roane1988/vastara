@@ -17,12 +17,15 @@ function readLegacy(key) {
   }
 }
 
+const isRentCategory = (category) => category === 'Disewa'
+
 function normalizeCompareItem(property) {
   return {
     id: property.id,
     title: property.title || '',
     price: property.price || 0,
     image_url: property.image_url || '',
+    category: property.category || property.typeLabel || '',
   }
 }
 
@@ -48,11 +51,16 @@ export const usePropertyStore = create(
       recentlyViewed: [],
 
       addToCompare: (property) => {
-        if (!property?.id) return false
+        if (!property?.id) return 'invalid'
         const list = get().compareList.filter((p) => p.id !== property.id)
-        if (list.length >= MAX_ITEMS) return false
+        if (list.length >= MAX_ITEMS) return 'max'
+        const newIsRent = isRentCategory(property.category) || isRentCategory(property.typeLabel)
+        const firstCategory = list[0]?.category
+        if (list.length > 0 && firstCategory && isRentCategory(firstCategory) !== newIsRent) {
+          return 'type_mismatch'
+        }
         set({ compareList: [...list, normalizeCompareItem(property)] })
-        return true
+        return 'added'
       },
 
       removeFromCompare: (propertyId) => {

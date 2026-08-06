@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, ArrowLeftRight, CheckCircle2, Info, Plus, Share2, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, ArrowLeftRight, CheckCircle2, Info, Plus, Share2, Sparkles, X, AlertTriangle } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPriceDisplay, formatPrice } from '../utils/format'
@@ -228,6 +228,7 @@ export default function ComparePage() {
   }, [fullData])
 
   const hasRent = fullData.some(isRent)
+  const isMixed = hasRent && !fullData.every(isRent)
 
   const rows = [
     {
@@ -378,6 +379,24 @@ export default function ComparePage() {
           )}
         </div>
       </div>
+
+      {isMixed && fullData.length > 0 && (
+        <div className="px-4 pt-3">
+          <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-amber-800">
+              <AlertTriangle size={15} className="shrink-0" />
+              <span>{t('compare.mixed_warning')}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold hover:brightness-95 active:scale-[0.97] transition-all"
+            >
+              {t('compare.clear_all')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {finState === 'none' && fullData.length > 0 && (
         <div className="px-4 pt-3">
