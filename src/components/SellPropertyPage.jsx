@@ -483,6 +483,18 @@ export default function SellPropertyPage() {
 
       let uploadedImageUrls = []
       const realFiles = imageFiles.filter((f) => f.size > 0)
+      const isUrlLike = (s) => /^https?:\/\//i.test(s || '')
+      const existingImageNames = imageFiles
+        .filter((f) => f.size === 0)
+        .map((f) => f.name)
+        .filter(isUrlLike)
+
+      if (!editId && imageFiles.length > 0 && realFiles.length + existingImageNames.length === 0) {
+        showToast('Foto draft sudah tidak tersedia di perangkat ini — silakan unggah ulang foto properti.', 'error')
+        setSubmitting(false)
+        return
+      }
+
       if (realFiles.length > 0) {
         try {
           const uploads = realFiles.map(async (file, idx) => {
@@ -520,8 +532,6 @@ export default function SellPropertyPage() {
         }
       }
 
-      const existingImageNames = imageFiles.filter((f) => f.size === 0).map((f) => f.name)
-
       const payload = {
         seller_id: editId ? undefined : user.id,
         category: form.category,
@@ -535,7 +545,7 @@ export default function SellPropertyPage() {
         city: form.city,
         district: form.kecamatan,
         price: Number(form.estimasi_harga) || null,
-        price_period: form.category === 'Disewa' ? form.price_period : 'total',
+        price_period: form.category === 'Disewa' ? (form.price_period === 'tahun' ? 'tahun' : 'bulan') : 'total',
         bedrooms: Number(form.bedrooms) || 0,
         bathrooms: Number(form.bathrooms) || 0,
         area_sqm: Number(form.sqm) || 0,
@@ -605,7 +615,7 @@ export default function SellPropertyPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kategori <span className="text-red-500">*</span></label>
-                <select value={form.category} onChange={(e) => { updateFormValue('category', e.target.value); if (e.target.value !== 'Disewa') updateFormValue('price_period', 'total') }} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none">
+                <select value={form.category} onChange={(e) => { updateFormValue('category', e.target.value); updateFormValue('price_period', e.target.value === 'Disewa' ? 'bulan' : 'total') }} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors appearance-none">
                   <option value="Dijual">Dijual</option>
                   <option value="Disewa">Disewa</option>
                 </select>

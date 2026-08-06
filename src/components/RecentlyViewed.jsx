@@ -108,7 +108,7 @@ export default function RecentlyViewed() {
                   <div className="p-2">
                     <p className="text-[11px] font-semibold text-brand-text truncate leading-tight">{p.title}</p>
                     <p className="text-[10px] text-brand-muted mt-0.5">
-                      {p.bedrooms} KT &middot; {p.bathrooms} KM &middot; {p.area_sqm} m&sup2;
+                      {p.bedrooms} KT &middot; {p.bathrooms} KM &middot; {p.area_sqm ? `${p.area_sqm} m²` : '-'}
                     </p>
                     <p className="text-[11px] font-bold text-brand-primary mt-0.5 truncate">
                       {formatPriceDisplay(p)}

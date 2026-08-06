@@ -367,7 +367,7 @@ export default function MyListingsPage() {
                     <span className="text-brand-border">&bull;</span>
                     <span>{p.bathrooms} KM</span>
                     <span className="text-brand-border">&bull;</span>
-                    <span>{p.area_sqm} m&sup2;</span>
+                    <span>{p.area_sqm ? `${p.area_sqm} m²` : '-'}</span>
                   </div>
                   {leadCounts[p.id] > 0 && (
                     <button
