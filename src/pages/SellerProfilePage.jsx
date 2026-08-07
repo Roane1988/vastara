@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -16,17 +16,14 @@ import {
   ExternalLink,
   Pencil,
   MessageSquare,
-  Wand2,
   Sparkles,
   Lock,
   Check,
-  Loader2,
   Wallet,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
-import { getAuthHeaders } from '../utils/groqClient'
 import {
   getFinancialProfile,
   computeAffordability,
@@ -91,9 +88,6 @@ export default function SellerProfilePage() {
   const [showSticky, setShowSticky] = useState(false)
   const [finStatus, setFinStatus] = useState('loading')
   const [fin, setFin] = useState(null)
-  const [aiResult, setAiResult] = useState(null)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -258,7 +252,7 @@ export default function SellerProfilePage() {
     }
   }
 
-  const budgetHintFor = (p) => {
+  const budgetHintFor = useCallback((p) => {
     if (finStatus !== 'ready' || !fin) return null
     if (isRentalProperty(p)) {
       const rent = estimateMonthlyRent(p)
@@ -271,7 +265,7 @@ export default function SellerProfilePage() {
     if (price <= fin.maxPrice) return 'green'
     if (price <= fin.maxPrice * 1.15) return 'amber'
     return 'rose'
-  }
+  }, [finStatus, fin])
 
   const budgetLabelFor = (tone) =>
     tone === 'green'
@@ -280,82 +274,43 @@ export default function SellerProfilePage() {
         ? (lang === 'en' ? 'Slightly above budget' : 'Sedikit di atas budget')
         : (lang === 'en' ? 'Beyond your budget' : 'Di luar anggaranmu')
 
-  const buildAiPrompt = () => {
-    const goalLabel = fin?.goal || 'rumah_pertama'
-    const goalTxt = {
-      rumah_pertama: 'rumah pertama',
-      huni: 'huni sendiri',
-      investasi: 'investasi sewa',
-      sewa: 'sewa/fleksibel',
-      belum_tahu: 'masih mempertimbangkan',
-    }[goalLabel] || goalLabel
-    const budgetTxt = `${formatRupiah(fin.maxPrice)} (maks harga), cicilan ${formatRupiah(fin.maxInstallment)}/bln, budget bulanan ${formatRupiah(fin.budget)}`
-    const list = listings.slice().sort((a, b) => (b.is_premium - a.is_premium)).slice(0, 12).map((p) =>
-      `- ${p.title} | ${isRentalProperty(p) ? 'sewa' : 'jual'} | ${formatRupiah(p.price)}${isRentalProperty(p) && p.price_period === 'tahun' ? '/tahun' : ''} | ${p.city || ''} ${p.district || ''} | ${p.bedrooms}kt/${p.bathrooms}km | ${p.area_sqm || 0}m2${p.status === 'sold' ? ' [TERJUAL]' : ''}`
-    ).join('\n')
-    const langTxt = lang === 'en' ? 'English' : 'Bahasa Indonesia'
-    return [
-      `Kamu adalah asisten properti HuniOne. Respons SELALU bahasa ${langTxt}.`,
-      `Buyer: pendapatan ${formatRupiah(fin.income)}, komitmen ${formatRupiah(fin.commitments)}, tujuan beli: ${goalTxt}.`,
-      `Daya beli buyer: ${budgetTxt}.`,
-      `Portofolio dari profil penjual/agen ini (${displayName}):`,
-      list || '- (tidak ada listing)',
-      '',
-      `Pilih 1-3 properti dari daftar di atas yang PALING cocok dengan kondisi keuangan & tujuan buyer.`,
-      `JANGAN tulis kalimat apapun selain SATU objek JSON yang valid (tanpa markdown, tanpa \\\`\\\`\\\`), contoh:`,
-      `{"tips":"1 kalimat alasan penyematan","picks":[{"id":"<id properti>","title":"<judul>","reason":"<alasan singkat>"}],"skip":["<judul yang sengaja dilewati, paling banyak 2>"]}`,
-      `id harus benar-benar sesuai dengan id properti aktual dari daftar di atas (bukan '-'). skip hany judul, bukan id.`,
-      `Gunakan angka rupiah realistis yang konsisten dengan budget buyer. Jangan rekomen properti TERJUAL (status sold).`,
-    ].filter(Boolean).join('\n')
-  }
+  const [sortByBudget, setSortByBudget] = useState(false)
 
-  async function handleAiMatch() {
-    if (finStatus !== 'ready' || !fin) return
-    setAiLoading(true)
-    setAiError('')
-    try {
-      const res = await fetch('/api/groq', {
-        method: 'POST',
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({
-          model: 'openai/gpt-oss-120b',
-          purpose: 'chat',
-          messages: [{ role: 'user', content: buildAiPrompt() }],
-        }),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
-      const text = String(data?.choices?.[0]?.message?.content || '').trim()
+  const budgetScoreFor = useCallback((p) => {
+    const tone = budgetHintFor(p)
+    if (tone === 'green') return 0
+    if (tone === 'amber') return 1
+    if (tone === 'rose') return 2
+    return 3
+  }, [budgetHintFor])
 
-      const tryParse = (s) => { try { return JSON.parse(s) } catch { return null } }
-      let parsed = null
-      const noFence = text.replace(/```json/gi, '').replace(/```/g, '').trim()
-      parsed = tryParse(noFence)
-      if (!parsed) {
-        const start = text.indexOf('{')
-        const end = text.lastIndexOf('}')
-        if (start !== -1 && end > start) {
-          parsed = tryParse(text.slice(start, end + 1))
-          if (!parsed) {
-            const trailingCommaFixed = text.slice(start, end + 1).replace(/,\s*([}\]])/g, '$1')
-            parsed = tryParse(trailingCommaFixed)
-          }
-        }
-      }
-      if (!parsed) {
-        setAiResult({ fallbackText: text || 'Tidak ada respons AI.' })
-      } else if (!Array.isArray(parsed.picks)) {
-        setAiResult({ fallbackText: text || 'Tidak ada respons AI.' })
-      } else {
-        setAiResult(parsed)
-      }
-    } catch (e) {
-      setAiError(e?.message || 'Gagal memuat rekomendasi AI. Coba lagi nanti.')
-      setAiResult(null)
-    } finally {
-      setAiLoading(false)
-    }
-  }
+  const orderedShown = useMemo(() => {
+    if (!sortByBudget || finStatus !== 'ready') return shown
+    return [...shown].sort((a, b) => budgetScoreFor(a) - budgetScoreFor(b))
+  }, [shown, sortByBudget, finStatus, budgetScoreFor])
+
+  const withinBudgetCount = useMemo(
+    () => listings.filter((p) => budgetHintFor(p) === 'green').length,
+    [listings, budgetHintFor]
+  )
+
+  const affordableSale = useMemo(() => {
+    if (finStatus !== 'ready' || !fin) return null
+    return listings
+      .filter((p) => !isRentalProperty(p) && p.status === 'verified' && Number(p.price) > 0)
+      .filter((p) => Number(p.price) <= fin.maxPrice)
+      .sort((a, b) => Number(a.price) - Number(b.price))[0] || null
+  }, [finStatus, fin, listings])
+
+  const closestSale = useMemo(() => {
+    if (finStatus !== 'ready' || !fin) return null
+    const verified = listings.filter((p) => !isRentalProperty(p) && p.status === 'verified' && Number(p.price) > 0)
+    if (!verified.length) return null
+    return verified.reduce((best, p) =>
+      Math.abs(Number(p.price) - fin.maxPrice) < Math.abs(Number(best.price) - fin.maxPrice) ? p : best,
+      verified[0]
+    )
+  }, [finStatus, fin, listings])
 
   if (loading) return <SellerSkeleton />
 
@@ -610,7 +565,7 @@ export default function SellerProfilePage() {
             </div>
           )}
 
-          {finStatus === 'ready' && (
+          {finStatus === 'ready' && fin && (
             <div className="bg-white rounded-2xl border border-brand-border p-5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <span className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
@@ -618,90 +573,60 @@ export default function SellerProfilePage() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-brand-text">
-                    {lang === 'en' ? 'Daya beli perkiraan' : 'Perkiraan daya beli kamu'}:{' '}
-                    <span className="text-brand-accent">{formatRupiah(fin?.maxPrice)}</span>
+                    {lang === 'en' ? 'Estimated buying power' : 'Perkiraan daya beli kamu'}:{' '}
+                    <span className="text-brand-accent">{formatRupiah(fin.maxPrice)}</span>
                   </p>
                   <p className="text-xs text-brand-muted mt-0.5">
                     {lang === 'en'
-                      ? 'Listings marked Sesuai budget, AI can shortlist the few that fit you best.'
-                      : 'Listing di bawah diberi tanda sesuai budget. AI bisa memilihkan yang paling pas.'}
+                      ? 'Computed from your income, commitments & monthly budget. Matched listings are marked green below.'
+                      : 'Dihitung dari pendapatan, komitmen & budget bulananmu. Listing yang pas ditandai hijau di bawah.'}
                   </p>
                 </div>
-                {!aiResult && !aiLoading ? (
-                  <button
-                    type="button"
-                    onClick={handleAiMatch}
-                    className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all"
-                  >
-                    <Wand2 size={16} />
-                    {lang === 'en' ? 'Find my best matches' : 'Cari yang paling cocok'}
-                  </button>
-                ) : aiLoading ? (
-                  <span className="shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-brand-muted">
-                    <Loader2 size={16} className="animate-spin text-brand-accent" />
-                    {lang === 'en' ? 'Analyzing…' : 'Menganalisis…'}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => { setAiResult(null); setAiError('') }}
-                    className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-brand-border text-sm font-semibold text-brand-muted hover:text-brand-text transition-colors"
-                  >
-                    {lang === 'en' ? 'Generate again' : 'Buat lagi'}
-                  </button>
-                )}
               </div>
 
-              {aiError && (
-                <p className="text-xs text-brand-danger mt-3 bg-brand-danger/5 border border-brand-danger/20 rounded-lg px-3 py-2">{aiError}</p>
-              )}
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+                  <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">
+                    {lang === 'en' ? 'Within budget' : 'Dalam anggaran'}
+                  </p>
+                  <p className="text-lg font-extrabold text-emerald-700 mt-0.5">{withinBudgetCount}</p>
+                </div>
+                <div className="rounded-xl bg-brand-highlight border border-brand-border p-3">
+                  <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide">
+                    {lang === 'en' ? 'Max price' : 'Harga maks'}
+                  </p>
+                  <p className="text-sm font-extrabold text-brand-text mt-0.5">{formatRupiah(fin.maxPrice)}</p>
+                </div>
+              </div>
 
-              {aiResult && (
+              {(affordableSale || closestSale) && (
                 <div className="mt-4 border-t border-brand-border pt-4">
-                  {aiResult.fallbackText ? (
-                    <p className="text-sm text-brand-muted whitespace-pre-line leading-relaxed">{aiResult.fallbackText}</p>
-                  ) : (
-                    <>
-                      {aiResult.tips && (
-                        <p className="text-sm text-brand-muted mb-3 italic">"{aiResult.tips}"</p>
-                      )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {aiResult.picks?.map((pick, idx) => {
-                          const matched = listings.find((l) => String(l.id) === String(pick.id))
-                          return (
-                            <div key={idx} className="rounded-xl border border-brand-accent/25 bg-brand-highlight/40 p-3.5">
-                              <p className="text-sm font-bold text-brand-accent">{pick.title || 'Properi terpilih'}</p>
-                              {matched && (() => {
-                                const tone = budgetHintFor(matched)
-                                return tone ? (
-                                  <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                    tone === 'green'
-                                      ? 'bg-emerald-50 text-emerald-700'
-                                      : tone === 'amber'
-                                        ? 'bg-amber-50 text-amber-700'
-                                        : 'bg-rose-50 text-rose-700'
-                                  }`}>
-                                    {budgetLabelFor(tone)}
-                                  </span>
-                                ) : null
-                              })()}
-                              {pick.reason && <p className="text-xs text-brand-muted mt-1.5 leading-relaxed">{pick.reason}</p>}
-                              {matched && (
-                                <Link to={`/property/${matched.id}`} className="text-xs font-semibold text-brand-accent hover:text-brand-primary mt-2 inline-block">
-                                  {lang === 'en' ? 'View' : 'Lihat'} →
-                                </Link>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                      {Array.isArray(aiResult.skip) && aiResult.skip.length > 0 && (
-                        <p className="text-[11px] text-brand-muted mt-3">
-                          {lang === 'en' ? 'Less fit' : 'Kurang cocok'}: {aiResult.skip.join(', ')}
-                        </p>
-                      )}
-                    </>
-                  )}
+                  <p className="text-xs font-bold text-brand-text uppercase tracking-wide mb-2">
+                    {affordableSale
+                      ? (lang === 'en' ? 'Best match for your budget' : 'Paling pas untuk budgetmu')
+                      : (lang === 'en' ? 'Closest to your budget' : 'Paling dekat dengan budgetmu')}
+                  </p>
+                  <Link
+                    to={`/property/${(affordableSale || closestSale).id}`}
+                    className="block bg-brand-highlight/40 border border-brand-accent/25 rounded-xl p-3.5 hover:border-brand-accent transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-bold text-brand-text truncate">{(affordableSale || closestSale).title}</p>
+                      <span className="text-sm font-extrabold text-brand-primary shrink-0">
+                        {formatRupiah(Number((affordableSale || closestSale).price) || 0)}
+                      </span>
+                    </div>
+                    <span className={`mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      budgetHintFor(affordableSale || closestSale) === 'green'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : 'bg-amber-50 text-amber-700'
+                    }`}>
+                      {budgetLabelFor(budgetHintFor(affordableSale || closestSale))}
+                    </span>
+                    <p className="text-xs text-brand-muted mt-1.5">
+                      {lang === 'en' ? 'View this listing' : 'Lihat properti ini'} →
+                    </p>
+                  </Link>
                 </div>
               )}
             </div>
@@ -747,34 +672,52 @@ export default function SellerProfilePage() {
         {/* Portfolio */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <h2 className="text-lg font-bold text-brand-text">
-              {lang === 'en' ? 'Portfolio' : 'Portofolio'}
-            </h2>
-            {finStatus === 'ready' && fin && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
-                <Check size={11} />
-                {lang === 'en' ? 'Budget' : 'Budget'}: {formatRupiah(fin.maxPrice)}
-              </span>
-            )}
-            <div className="inline-flex rounded-xl bg-white border border-brand-border p-1 gap-1">
-              <button
-                type="button"
-                onClick={() => setCategory('dijual')}
-                className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                  category === 'dijual' ? 'bg-brand-accent text-white' : 'text-brand-muted hover:text-brand-text'
-                }`}
-              >
-                {lang === 'en' ? 'For Sale' : 'Dijual'} ({soldCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setCategory('disewa')}
-                className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                  category === 'disewa' ? 'bg-brand-accent text-white' : 'text-brand-muted hover:text-brand-text'
-                }`}
-              >
-                {lang === 'en' ? 'For Rent' : 'Disewa'} ({rentCount})
-              </button>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-lg font-bold text-brand-text">
+                {lang === 'en' ? 'Portfolio' : 'Portofolio'}
+              </h2>
+              {finStatus === 'ready' && fin && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
+                  <Check size={11} />
+                  {lang === 'en' ? 'Budget' : 'Budget'}: {formatRupiah(fin.maxPrice)}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {finStatus === 'ready' && (
+                <button
+                  type="button"
+                  onClick={() => setSortByBudget((v) => !v)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    sortByBudget
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-white text-brand-muted border-brand-border hover:text-brand-text'
+                  }`}
+                >
+                  <Check size={13} />
+                  {lang === 'en' ? 'Budget first' : 'Sesuai budget dulu'}
+                </button>
+              )}
+              <div className="inline-flex rounded-xl bg-white border border-brand-border p-1 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setCategory('dijual')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                    category === 'dijual' ? 'bg-brand-accent text-white' : 'text-brand-muted hover:text-brand-text'
+                  }`}
+                >
+                  {lang === 'en' ? 'For Sale' : 'Dijual'} ({soldCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCategory('disewa')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                    category === 'disewa' ? 'bg-brand-accent text-white' : 'text-brand-muted hover:text-brand-text'
+                  }`}
+                >
+                  {lang === 'en' ? 'For Rent' : 'Disewa'} ({rentCount})
+                </button>
+              </div>
             </div>
           </div>
 
@@ -794,7 +737,7 @@ export default function SellerProfilePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {shown.map((p) => (
+              {orderedShown.map((p) => (
                 <PropertyGridCard key={p.id} p={p} budgetHint={budgetHintFor(p)} budgetLabel={budgetLabelFor(budgetHintFor(p))} />
               ))}
             </div>
