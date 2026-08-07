@@ -12,6 +12,7 @@ import {
   Crown,
   ShieldCheck,
   Home,
+  Share2,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getAvatarColor, getInitials } from '../utils/avatar'
@@ -56,7 +57,7 @@ export default function SellerProfilePage() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const lang = i18n.language
-  const { user } = useAuth()
+  const { user, showToast } = useAuth()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -90,7 +91,7 @@ export default function SellerProfilePage() {
             : Promise.resolve({ data: null, error: null }),
           supabase
             .from('properties')
-            .select('id, title, price, original_price, price_period, property_type, category, address, city, district, bedrooms, bathrooms, area_sqm, image_url, is_premium, created_at')
+            .select('id, title, price, original_price, price_period, property_type, category, address, city, district, bedrooms, bathrooms, area_sqm, image_url, is_premium, seller_whatsapp, created_at')
             .eq('seller_id', id)
             .eq('status', 'verified')
             .order('created_at', { ascending: false }),
@@ -124,7 +125,9 @@ export default function SellerProfilePage() {
     return null
   }, [agentProfile, listings])
 
-  const waNumber = isAgent ? cleanWaNumber(agentProfile?.whatsapp) : null
+  const waNumber = isAgent
+    ? cleanWaNumber(agentProfile?.whatsapp)
+    : cleanWaNumber(listings[0]?.seller_whatsapp)
   const waLink = waNumber
     ? `https://wa.me/${waNumber}?text=${encodeURIComponent(
         lang === 'en'
@@ -155,6 +158,31 @@ export default function SellerProfilePage() {
       /* best-effort lead */
     }
     window.open(waLink, '_blank', 'noopener,noreferrer')
+  }
+
+  const profileUrl = typeof window !== 'undefined' ? `${window.location.origin}/seller/${id}` : ''
+
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${displayName} — Profil Penjual | HuniOne`,
+          text: `${displayName} — ${listings.length} properti terverifikasi di HuniOne.`,
+          url: profileUrl,
+        })
+      } catch {
+        /* user cancelled share sheet */
+      }
+      return
+    }
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(profileUrl)
+        showToast('Link profil disalin', 'success')
+      } catch {
+        showToast('Gagal menyalin link. Coba lagi.', 'error')
+      }
+    }
   }
 
   if (loading) return <SellerSkeleton />
@@ -231,11 +259,19 @@ export default function SellerProfilePage() {
                 </span>
               )}
             </div>
-            <div className="sm:ml-auto flex gap-2.5 flex-wrap">
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2.5 sm:ml-auto">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/15 text-white border border-white/25 px-5 py-3 rounded-xl text-sm font-semibold hover:bg-white/25 active:scale-[0.98] transition-all"
+              >
+                <Share2 size={16} />
+                {lang === 'en' ? 'Share' : 'Bagikan'}
+              </button>
               <button
                 type="button"
                 onClick={() => navigate(`/chat?user=${id}`)}
-                className="inline-flex items-center gap-2 bg-white text-brand-primary px-5 py-3 rounded-xl text-sm font-semibold hover:brightness-95 active:scale-[0.98] transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-brand-primary px-5 py-3 rounded-xl text-sm font-semibold hover:brightness-95 active:scale-[0.98] transition-all"
               >
                 <MessageCircle size={16} />
                 {t('agents.chat')}
@@ -244,7 +280,7 @@ export default function SellerProfilePage() {
                 <button
                   type="button"
                   onClick={handleWhatsApp}
-                  className="inline-flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-green-700 active:scale-[0.98] transition-all"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-green-600 text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-green-700 active:scale-[0.98] transition-all"
                 >
                   <Phone size={16} />
                   WhatsApp
