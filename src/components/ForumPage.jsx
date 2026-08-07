@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import {
   MessageCircle, ArrowLeft, Send, Trash2, Search, Edit3, Check, AlertTriangle,
-  Pin, Flame, Eye, BarChart2, Share2, Plus, X, Users, MessageSquare, Sparkles,
+  Pin, Flame, Eye, BarChart2, Share2, Plus, X, Users, User, MessageSquare, Sparkles,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getAvatarColor, getInitials } from '../utils/avatar'
@@ -70,6 +70,8 @@ export default function ForumPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterTag, setFilterTag] = useState(() => searchParams.get('tag') || '')
+  const [filterAuthor, setFilterAuthor] = useState(() => searchParams.get('author') || '')
+  const [authorName, setAuthorName] = useState('')
   const [sortMode, setSortMode] = useState('terbaru')
   const [visibleCount, setVisibleCount] = useState(POSTS_PER_PAGE)
   const [editingPostId, setEditingPostId] = useState(null)
@@ -90,6 +92,18 @@ export default function ForumPage() {
   }, [])
 
   const resetPagination = () => setVisibleCount(POSTS_PER_PAGE)
+
+  useEffect(() => {
+    if (!filterAuthor) return
+    let cancelled = false
+    supabase.from('profiles')
+      .select('first_name')
+      .eq('id', filterAuthor)
+      .maybeSingle()
+      .then(({ data }) => { if (!cancelled) setAuthorName(data?.first_name || '') })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [filterAuthor])
 
   async function fetchStats() {
     try {
@@ -291,7 +305,8 @@ export default function ForumPage() {
           (post.tags || []).some(tag => tag.toLowerCase().includes(q))
         const matchesCategory = !filterCategory || post.category === filterCategory
         const matchesTag = !filterTag || (post.tags || []).includes(filterTag)
-        return matchesSearch && matchesCategory && matchesTag
+        const matchesAuthor = !filterAuthor || post.author_id === filterAuthor
+        return matchesSearch && matchesCategory && matchesTag && matchesAuthor
       })
       .sort((a, b) => {
         if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1
@@ -309,10 +324,11 @@ export default function ForumPage() {
         }
         return new Date(b.created_at) - new Date(a.created_at)
       })
-  }, [posts, reactionTotals, searchQuery, filterCategory, filterTag, sortMode])
+  }, [posts, reactionTotals, searchQuery, filterCategory, filterTag, filterAuthor, sortMode])
 
   const visiblePosts = filteredPosts.slice(0, visibleCount)
   const activeTag = filterTag
+  const activeAuthor = filterAuthor
 
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
@@ -552,8 +568,8 @@ export default function ForumPage() {
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5 scrollbar-hide">
           <button
             type="button"
-            onClick={() => { setFilterCategory(''); setFilterTag(''); resetPagination() }}
-            className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all ${!filterCategory && !filterTag
+            onClick={() => { setFilterCategory(''); setFilterTag(''); setFilterAuthor(''); resetPagination() }}
+            className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all ${!filterCategory && !filterTag && !filterAuthor
               ? 'bg-[#1E3A5F] text-white shadow-sm'
               : 'bg-white border border-brand-border text-brand-muted hover:text-brand-text hover:border-brand-accent/30'}`}
           >
@@ -585,6 +601,22 @@ export default function ForumPage() {
               type="button"
               onClick={() => { setFilterTag(''); resetPagination() }}
               className="w-5 h-5 rounded-full flex items-center justify-center text-brand-accent hover:bg-brand-accent/20 transition-colors"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
+
+        {activeAuthor && (
+          <div className="flex items-center gap-2 bg-brand-accent/10 border border-brand-accent/20 rounded-xl px-3 py-2">
+            <User size={13} className="text-brand-accent shrink-0" />
+            <span className="text-xs font-semibold text-brand-accent">
+              {authorName || 'Author'}: {activeAuthor}
+            </span>
+            <button
+              type="button"
+              onClick={() => { setFilterAuthor(''); resetPagination() }}
+              className="w-5 h-5 rounded-full flex items-center justify-center text-brand-accent hover:bg-brand-accent/20 transition-colors ml-auto"
             >
               <X size={12} />
             </button>

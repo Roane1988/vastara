@@ -485,7 +485,7 @@ export default function SellerProfilePage() {
                 <MessageSquare size={17} className="text-brand-accent" />
                 {lang === 'en' ? 'Forum Discussions & Contributions' : 'Diskusi & Kontribusi Forum'}
               </h2>
-              <Link to="/forum" className="text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors shrink-0">
+              <Link to={`/forum?author=${id}`} className="text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors shrink-0">
                 {lang === 'en' ? 'All posts' : 'Semua utas'} →
               </Link>
             </div>
