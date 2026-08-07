@@ -13,9 +13,13 @@ import {
   ShieldCheck,
   Home,
   Share2,
+  ExternalLink,
+  Pencil,
+  MessageSquare,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getAvatarColor, getInitials } from '../utils/avatar'
+import { timeAgo } from '../utils/time'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import NotFoundPage from '../components/NotFoundPage'
@@ -66,6 +70,7 @@ export default function SellerProfilePage() {
   const [stats, setStats] = useState(null)
   const [listings, setListings] = useState([])
   const [reviews, setReviews] = useState([])
+  const [forumPosts, setForumPosts] = useState([])
   const [category, setCategory] = useState('dijual')
   const [showSticky, setShowSticky] = useState(false)
 
@@ -84,7 +89,7 @@ export default function SellerProfilePage() {
         const base = profileRes.data
         const isAgent = base.role === 'agent'
 
-        const [agentRes, statsRes, listingRes, reviewRes] = await Promise.all([
+        const [agentRes, statsRes, listingRes, reviewRes, forumRes] = await Promise.all([
           isAgent
             ? supabase.from('agent_profiles').select('*').eq('user_id', id).eq('is_visible', true).maybeSingle()
             : Promise.resolve({ data: null, error: null }),
@@ -100,12 +105,14 @@ export default function SellerProfilePage() {
           isAgent
             ? supabase.from('agent_reviews').select('*, profiles!reviewer_id(first_name)').eq('agent_id', id).order('created_at', { ascending: false })
             : Promise.resolve({ data: null, error: null }),
+          supabase.from('forum_posts').select('id, title, category, created_at').eq('author_id', id).order('created_at', { ascending: false }).limit(3),
         ])
 
         if (isAgent && agentRes?.error) throw new Error(agentRes.error.message)
         if (isAgent && statsRes?.error) throw new Error(statsRes.error.message)
         if (listingRes.error) throw new Error(listingRes.error.message)
         if (isAgent && reviewRes?.error) throw new Error(reviewRes.error.message)
+        if (forumRes?.error) throw new Error(forumRes.error.message)
 
         if (!cancelled) {
           setProfile(base)
@@ -113,6 +120,7 @@ export default function SellerProfilePage() {
           setStats(statsRes?.data || null)
           setListings(listingRes.data || [])
           setReviews(reviewRes?.data || [])
+          setForumPosts(forumRes?.data || [])
         }
       } catch (e) {
         if (!cancelled) setError(e?.message || 'Gagal memuat profil.')
@@ -125,6 +133,7 @@ export default function SellerProfilePage() {
 
   const isAgent = profile?.role === 'agent'
   const displayName = isAgent ? (agentProfile?.full_name || profile?.first_name) : profile?.first_name
+  const isOwnProfile = !!user && user.id === profile?.id
 
   const joinedAt = useMemo(() => {
     if (agentProfile?.created_at) return agentProfile.created_at
@@ -275,6 +284,35 @@ export default function SellerProfilePage() {
               )}
             </div>
             <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2.5 sm:ml-auto">
+              {isOwnProfile && isAgent && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/agent-profile')}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/15 text-white border border-white/25 px-5 py-3 rounded-xl text-sm font-semibold hover:bg-white/25 active:scale-[0.98] transition-all"
+                >
+                  <Pencil size={16} />
+                  {lang === 'en' ? 'Edit Directory Profile' : 'Edit Profil Direktori'}
+                </button>
+              )}
+              {isOwnProfile && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/my-listings')}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-brand-primary px-5 py-3 rounded-xl text-sm font-semibold hover:brightness-95 active:scale-[0.98] transition-all"
+                >
+                  <Home size={16} />
+                  {lang === 'en' ? 'Manage My Listings' : 'Kelola Iklan Saya'}
+                </button>
+              )}
+              {isAgent && (
+                <Link
+                  to={`/agents/${id}`}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/15 text-white border border-white/25 px-5 py-3 rounded-xl text-sm font-semibold hover:bg-white/25 active:scale-[0.98] transition-all"
+                >
+                  <ExternalLink size={16} />
+                  {lang === 'en' ? 'Agent Directory' : 'Direktori Agen'}
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={handleShare}
@@ -439,6 +477,39 @@ export default function SellerProfilePage() {
             </div>
           )}
         </div>
+
+        {forumPosts.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
+                <MessageSquare size={17} className="text-brand-accent" />
+                {lang === 'en' ? 'Forum Discussions & Contributions' : 'Diskusi & Kontribusi Forum'}
+              </h2>
+              <Link to="/forum" className="text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors shrink-0">
+                {lang === 'en' ? 'All posts' : 'Semua utas'} →
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {forumPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  to={`/forum/${post.id}`}
+                  className="block bg-white rounded-2xl border border-brand-border p-4 hover:border-brand-accent hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-brand-text truncate group-hover:text-brand-accent">{post.title}</p>
+                    <span className="text-xs text-brand-muted shrink-0">{timeAgo(post.created_at, lang)}</span>
+                  </div>
+                  {post.category && (
+                    <span className="inline-block mt-1.5 text-[10px] font-bold text-brand-accent bg-brand-highlight px-2 py-0.5 rounded-full">
+                      {post.category}
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sticky action bar (mobile) */}
