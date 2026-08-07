@@ -23,7 +23,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useCompare } from '../hooks/useCompare'
 
-export default function PropertyGridCard({ p, getTranslated = null, maxRent = 0 }) {
+export default function PropertyGridCard({ p, getTranslated = null, maxRent = 0, budgetHint = null, budgetLabel = '' }) {
   const { showToast } = useAuth()
   const { t } = useTranslation()
   const [saved, setSaved] = useState(getFavorites())
@@ -116,6 +116,18 @@ export default function PropertyGridCard({ p, getTranslated = null, maxRent = 0 
             }`}>
               {rentAffordable ? <Check size={12} /> : <X size={12} />}
               {rentAffordable ? 'Sewa dalam jangkauan' : 'Sewa di atas budget'}
+            </span>
+          )}
+          {budgetHint && (
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg mt-1.5 border ${
+              budgetHint === 'green'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : budgetHint === 'amber'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
+            }`}>
+              {budgetHint === 'green' ? <Check size={12} /> : <X size={12} />}
+              {budgetLabel}
             </span>
           )}
           <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-accent transition-colors">

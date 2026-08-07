@@ -16,10 +16,26 @@ import {
   ExternalLink,
   Pencil,
   MessageSquare,
+  Wand2,
+  Sparkles,
+  Lock,
+  Check,
+  Loader2,
+  Wallet,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
+import { getAuthHeaders } from '../utils/groqClient'
+import {
+  getFinancialProfile,
+  computeAffordability,
+  maxAffordablePrice,
+  estimateMonthlyRent,
+  isRentalProperty,
+  formatRupiah,
+  BUYING_POWER_ASSUMPTION,
+} from '../utils/financialProfile'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import NotFoundPage from '../components/NotFoundPage'
@@ -73,6 +89,11 @@ export default function SellerProfilePage() {
   const [forumPosts, setForumPosts] = useState([])
   const [category, setCategory] = useState('dijual')
   const [showSticky, setShowSticky] = useState(false)
+  const [finStatus, setFinStatus] = useState('loading')
+  const [fin, setFin] = useState(null)
+  const [aiResult, setAiResult] = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -130,6 +151,34 @@ export default function SellerProfilePage() {
     })()
     return () => { cancelled = true }
   }, [id])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { profile, isAuthenticated } = await getFinancialProfile()
+        if (cancelled) return
+        if (!isAuthenticated) { setFinStatus('anonymous'); return }
+        if (!profile) { setFinStatus('no_profile'); return }
+        const aff = computeAffordability(profile)
+        if (!aff || aff.maxInstallment <= 0) { setFinStatus('no_profile'); return }
+        setFin({
+          ...aff,
+          maxPrice: maxAffordablePrice(
+            aff.maxInstallment,
+            BUYING_POWER_ASSUMPTION.interestRate,
+            BUYING_POWER_ASSUMPTION.tenorYears,
+            BUYING_POWER_ASSUMPTION.dpPercentage
+          ),
+          goal: profile.purchase_goal,
+        })
+        setFinStatus('ready')
+      } catch {
+        if (!cancelled) setFinStatus('anonymous')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   const isAgent = profile?.role === 'agent'
   const displayName = isAgent ? (agentProfile?.full_name || profile?.first_name) : profile?.first_name
@@ -206,6 +255,90 @@ export default function SellerProfilePage() {
       } catch {
         showToast('Gagal menyalin link. Coba lagi.', 'error')
       }
+    }
+  }
+
+  const budgetHintFor = (p) => {
+    if (finStatus !== 'ready' || !fin) return null
+    if (isRentalProperty(p)) {
+      const rent = estimateMonthlyRent(p)
+      const limit = fin.budget || fin.maxInstallment
+      if (rent <= 0 || limit <= 0) return null
+      return rent <= limit ? 'green' : 'rose'
+    }
+    const price = Number(p.price) || 0
+    if (price <= 0 || fin.maxPrice <= 0) return null
+    if (price <= fin.maxPrice) return 'green'
+    if (price <= fin.maxPrice * 1.15) return 'amber'
+    return 'rose'
+  }
+
+  const budgetLabelFor = (tone) =>
+    tone === 'green'
+      ? (lang === 'en' ? 'Within your budget' : 'Dalam anggaranmu')
+      : tone === 'amber'
+        ? (lang === 'en' ? 'Slightly above budget' : 'Sedikit di atas budget')
+        : (lang === 'en' ? 'Beyond your budget' : 'Di luar anggaranmu')
+
+  const buildAiPrompt = () => {
+    const goalLabel = fin?.goal || 'rumah_pertama'
+    const goalTxt = {
+      rumah_pertama: 'rumah pertama',
+      huni: 'huni sendiri',
+      investasi: 'investasi sewa',
+      sewa: 'sewa/fleksibel',
+      belum_tahu: 'masih mempertimbangkan',
+    }[goalLabel] || goalLabel
+    const budgetTxt = `${formatRupiah(fin.maxPrice)} (maks harga), cicilan ${formatRupiah(fin.maxInstallment)}/bln, budget bulanan ${formatRupiah(fin.budget)}`
+    const list = listings.slice().sort((a, b) => (b.is_premium - a.is_premium)).slice(0, 12).map((p) =>
+      `- ${p.title} | ${isRentalProperty(p) ? 'sewa' : 'jual'} | ${formatRupiah(p.price)}${isRentalProperty(p) && p.price_period === 'tahun' ? '/tahun' : ''} | ${p.city || ''} ${p.district || ''} | ${p.bedrooms}kt/${p.bathrooms}km | ${p.area_sqm || 0}m2${p.status === 'sold' ? ' [TERJUAL]' : ''}`
+    ).join('\n')
+    const langTxt = lang === 'en' ? 'English' : 'Bahasa Indonesia'
+    return [
+      `Kamu adalah asisten properti HuniOne. Respons SELALU bahasa ${langTxt}.`,
+      `Buyer: pendapatan ${formatRupiah(fin.income)}, komitmen ${formatRupiah(fin.commitments)}, tujuan beli: ${goalTxt}.`,
+      `Daya beli buyer: ${budgetTxt}.`,
+      `Portofolio dari profil penjual/agen ini (${displayName}):`,
+      list || '- (tidak ada listing)',
+      '',
+      `Pilih 1-3 properti dari daftar di atas yang PALING cocok dengan kondisi keuangan & tujuan buyer.`,
+      `Output HANYA JSON tanpa markdown, format: {"tips":"1 kalimat menyatu tracking","picks":[{"id":"-","title":"-","reason":"-"}],"skip":["-"]}.`,
+      `Menggunakan angka rupiah realistis yang konsisten dengan budget buyer. Jangan rekomen properti TERJUAL (status sold).`,
+    ].filter(Boolean).join('\n')
+  }
+
+  async function handleAiMatch() {
+    if (finStatus !== 'ready' || !fin) return
+    setAiLoading(true)
+    setAiError('')
+    try {
+      const res = await fetch('/api/groq', {
+        method: 'POST',
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-120b',
+          purpose: 'chat',
+          messages: [{ role: 'user', content: buildAiPrompt() }],
+        }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      const text = data?.choices?.[0]?.message?.content || ''
+      let parsed = null
+      try {
+        const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim()
+        parsed = JSON.parse(cleaned)
+      } catch {
+        const m = text.match(/\{[\s\S]*\}/)
+        if (m) parsed = JSON.parse(m[0])
+      }
+      if (!parsed || !Array.isArray(parsed.picks)) throw new Error('Format AI tidak valid')
+      setAiResult(parsed)
+    } catch (e) {
+      setAiError(e?.message || 'Gagal memuat rekomendasi AI. Coba lagi nanti.')
+      setAiResult(null)
+    } finally {
+      setAiLoading(false)
     }
   }
 
@@ -391,6 +524,169 @@ export default function SellerProfilePage() {
           </div>
         )}
 
+        {isAgent && agentProfile?.bio && (
+          <div className="bg-white rounded-2xl border border-brand-border p-5 mb-6">
+            <p className="text-sm text-brand-text leading-relaxed whitespace-pre-line">{agentProfile.bio}</p>
+          </div>
+        )}
+
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={16} className="text-brand-accent" />
+            <h2 className="text-sm font-bold text-brand-text">
+              {lang === 'en' ? 'Personalized for you' : 'Dipersonalisasi untuk Kamu'}
+            </h2>
+          </div>
+
+          {finStatus === 'loading' && (
+            <div className="bg-white rounded-2xl border border-brand-border p-5 animate-pulse">
+              <div className="h-4 w-56 bg-brand-border rounded" />
+              <div className="h-4 w-80 bg-brand-border rounded mt-3" />
+            </div>
+          )}
+
+          {finStatus === 'anonymous' && (
+            <div className="bg-white rounded-2xl border border-brand-border p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <span className="w-11 h-11 rounded-xl bg-brand-highlight flex items-center justify-center shrink-0">
+                <Lock size={20} className="text-brand-muted" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-brand-text">
+                  {lang === 'en' ? 'Personalized recommendations require login' : 'Rekomendasi personal butuh login'}
+                </p>
+                <p className="text-xs text-brand-muted mt-0.5">
+                  {lang === 'en'
+                    ? 'Log in and fill your financial profile to see which of these listings fit your budget.'
+                    : 'Masuk dan lengkapi profil keuangan untuk melihat properti mana yang sesuai budgetmu.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all"
+              >
+                {lang === 'en' ? 'Log in' : 'Masuk'}
+              </button>
+            </div>
+          )}
+
+          {finStatus === 'no_profile' && (
+            <div className="bg-white rounded-2xl border border-brand-border p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <span className="w-11 h-11 rounded-xl bg-brand-highlight flex items-center justify-center shrink-0">
+                <Wallet size={20} className="text-brand-accent" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-brand-text">
+                  {lang === 'en' ? 'Lengkapi profil keuanganmu' : 'Lengkapi profil keuanganmu'}
+                </p>
+                <p className="text-xs text-brand-muted mt-0.5">
+                  {lang === 'en'
+                    ? 'Add your income & budget to see which listings fit, and get AI. matched picks, '
+                    : 'Isi pendapatan & budget untuk melihat properti yang terjangkau, plus rekomendasi AI yang dipersonalisasi.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/financial-profile')}
+                className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-accent text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all"
+              >
+                {lang === 'en' ? 'Fill Profile' : 'Isi sekarang'}
+              </button>
+            </div>
+          )}
+
+          {finStatus === 'ready' && (
+            <div className="bg-white rounded-2xl border border-brand-border p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <span className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                  <Check size={20} className="text-emerald-600" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-brand-text">
+                    {lang === 'en' ? 'Daya beli perkiraan' : 'Perkiraan daya beli kamu'}:{' '}
+                    <span className="text-brand-accent">{formatRupiah(fin?.maxPrice)}</span>
+                  </p>
+                  <p className="text-xs text-brand-muted mt-0.5">
+                    {lang === 'en'
+                      ? 'Listings marked Sesuai budget, AI can shortlist the few that fit you best.'
+                      : 'Listing di bawah diberi tanda sesuai budget. AI bisa memilihkan yang paling pas.'}
+                  </p>
+                </div>
+                {!aiResult && !aiLoading ? (
+                  <button
+                    type="button"
+                    onClick={handleAiMatch}
+                    className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all"
+                  >
+                    <Wand2 size={16} />
+                    {lang === 'en' ? 'Find my best matches' : 'Cari yang paling cocok'}
+                  </button>
+                ) : aiLoading ? (
+                  <span className="shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-brand-muted">
+                    <Loader2 size={16} className="animate-spin text-brand-accent" />
+                    {lang === 'en' ? 'Analyzing…' : 'Menganalisis…'}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setAiResult(null); setAiError('') }}
+                    className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-brand-border text-sm font-semibold text-brand-muted hover:text-brand-text transition-colors"
+                  >
+                    {lang === 'en' ? 'Generate again' : 'Buat lagi'}
+                  </button>
+                )}
+              </div>
+
+              {aiError && (
+                <p className="text-xs text-brand-danger mt-3 bg-brand-danger/5 border border-brand-danger/20 rounded-lg px-3 py-2">{aiError}</p>
+              )}
+
+              {aiResult && (
+                <div className="mt-4 border-t border-brand-border pt-4">
+                  {aiResult.tips && (
+                    <p className="text-sm text-brand-muted mb-3 italic">"{aiResult.tips}"</p>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {aiResult.picks?.map((pick, idx) => {
+                      const matched = listings.find((l) => String(l.id) === String(pick.id))
+                      return (
+                        <div key={idx} className="rounded-xl border border-brand-accent/25 bg-brand-highlight/40 p-3.5">
+                          <p className="text-sm font-bold text-brand-accent">{pick.title || 'Properi terpilih'}</p>
+                          {matched && (() => {
+                            const tone = budgetHintFor(matched)
+                            return tone ? (
+                              <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                tone === 'green'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : tone === 'amber'
+                                    ? 'bg-amber-50 text-amber-700'
+                                    : 'bg-rose-50 text-rose-700'
+                              }`}>
+                                {budgetLabelFor(tone)}
+                              </span>
+                            ) : null
+                          })()}
+                          {pick.reason && <p className="text-xs text-brand-muted mt-1.5 leading-relaxed">{pick.reason}</p>}
+                          {matched && (
+                            <Link to={`/property/${matched.id}`} className="text-xs font-semibold text-brand-accent hover:text-brand-primary mt-2 inline-block">
+                              {lang === 'en' ? 'View' : 'Lihat'} →
+                            </Link>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {Array.isArray(aiResult.skip) && aiResult.skip.length > 0 && (
+                    <p className="text-[11px] text-brand-muted mt-3">
+                      {lang === 'en' ? 'Less fit' : 'Kurang cocok'}: {aiResult.skip.join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {isAgent && reviews.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -433,6 +729,12 @@ export default function SellerProfilePage() {
             <h2 className="text-lg font-bold text-brand-text">
               {lang === 'en' ? 'Portfolio' : 'Portofolio'}
             </h2>
+            {finStatus === 'ready' && fin && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
+                <Check size={11} />
+                {lang === 'en' ? 'Budget' : 'Budget'}: {formatRupiah(fin.maxPrice)}
+              </span>
+            )}
             <div className="inline-flex rounded-xl bg-white border border-brand-border p-1 gap-1">
               <button
                 type="button"
@@ -472,7 +774,7 @@ export default function SellerProfilePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {shown.map((p) => (
-                <PropertyGridCard key={p.id} p={p} />
+                <PropertyGridCard key={p.id} p={p} budgetHint={budgetHintFor(p)} budgetLabel={budgetLabelFor(budgetHintFor(p))} />
               ))}
             </div>
           )}
