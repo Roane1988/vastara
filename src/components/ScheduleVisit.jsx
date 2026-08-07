@@ -45,7 +45,7 @@ export default function ScheduleVisit({ property, onClose }) {
     return (
       <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={onClose}>
         <div className="bg-white rounded-t-3xl p-6 pb-10 w-full max-w-lg" onClick={e => e.stopPropagation()}>
-          <p className="text-sm text-brand-muted text-center py-8">Silakan login untuk mengatur jadwal survei.</p>
+          <p className="text-sm text-brand-muted text-center py-8">Silakan login untuk mengatur jadwal kunjungan.</p>
         </div>
       </div>
     )
@@ -90,7 +90,7 @@ export default function ScheduleVisit({ property, onClose }) {
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={onClose}>
       <div className="bg-white rounded-t-3xl p-6 pb-10 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-brand-text">Atur Jadwal Survei</h2>
+          <h2 className="text-base font-bold text-brand-text">Atur Jadwal {visitTerm === 'inspeksi' ? 'Inspeksi' : 'Survei'}</h2>
           <button type="button" onClick={onClose} className="text-brand-muted hover:text-brand-text">
             <X size={20} />
           </button>
@@ -103,7 +103,7 @@ export default function ScheduleVisit({ property, onClose }) {
             </div>
             <p className="text-base font-bold text-brand-text mb-1">Permintaan Terkirim!</p>
             <p className="text-sm text-brand-muted max-w-xs">
-              Jadwal {visitTerm} kamu sudah dikirim. Agen akan mengonfirmasi melalui WhatsApp.
+              Jadwal {visitTerm} kamu sudah dikirim. Agen/penyedia akan mengonfirmasi melalui WhatsApp.
             </p>
             {waLink && (
               <a
@@ -164,14 +164,14 @@ export default function ScheduleVisit({ property, onClose }) {
               disabled={submitting}
               className="w-full py-3 rounded-xl bg-brand-primary text-white text-sm font-semibold flex items-center justify-center gap-2 hover:brightness-90 disabled:opacity-50 transition-all"
             >
-              {submitting ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Mengirim...
-                </>
-              ) : (
-                'Kirim Permintaan Survei'
-              )}
+                {submitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Mengirim...
+                  </>
+                ) : (
+                  visitTerm === 'inspeksi' ? 'Kirim Permintaan Inspeksi' : 'Kirim Permintaan Survei'
+                )}
             </button>
           </form>
         )}
