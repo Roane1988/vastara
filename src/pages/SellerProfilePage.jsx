@@ -198,9 +198,9 @@ export default function SellerProfilePage() {
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* Cover */}
-      <div className="bg-gradient-to-br from-brand-primary via-brand-primary to-[#284D7A] relative overflow-hidden">
+      <div className="bg-gradient-to-r from-brand-primary via-brand-primary to-blue-800 relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-brand-accent/20 blur-3xl" />
-        <div className="max-w-7xl mx-auto px-4 py-10">
+        <div className="max-w-7xl mx-auto px-4 pt-10 pb-24 sm:pb-20">
           <Link to="/" className="inline-flex items-center gap-1.5 text-white/80 hover:text-white text-sm mb-6 transition-colors">
             <ArrowLeft size={16} />
             {lang === 'en' ? 'Back to home' : 'Kembali ke beranda'}
@@ -293,28 +293,40 @@ export default function SellerProfilePage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-2xl border border-brand-border p-4">
-            <div className="flex items-center gap-1.5 text-brand-muted mb-1.5 text-xs">
-              <Home size={14} /> Listing Aktif
+        <div className="relative z-10 -mt-12 sm:-mt-16 grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-2xl border border-brand-border p-4 shadow-lg shadow-brand-primary/10">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <Home size={20} className="text-blue-600" />
+              </span>
+              <span className="text-xs text-brand-muted">Listing Aktif</span>
             </div>
             <p className="text-xl font-bold text-brand-text">{listings.length}</p>
           </div>
-          <div className="bg-white rounded-2xl border border-brand-border p-4">
-            <div className="flex items-center gap-1.5 text-brand-muted mb-1.5 text-xs">
-              <Building2 size={14} /> Dijual
+          <div className="bg-white rounded-2xl border border-brand-border p-4 shadow-lg shadow-brand-primary/10">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-10 h-10 rounded-xl bg-brand-highlight flex items-center justify-center shrink-0">
+                <Building2 size={20} className="text-brand-accent" />
+              </span>
+              <span className="text-xs text-brand-muted">Dijual</span>
             </div>
             <p className="text-xl font-bold text-brand-text">{soldCount}</p>
           </div>
-          <div className="bg-white rounded-2xl border border-brand-border p-4">
-            <div className="flex items-center gap-1.5 text-brand-muted mb-1.5 text-xs">
-              <ShieldCheck size={14} /> Disewa
+          <div className="bg-white rounded-2xl border border-brand-border p-4 shadow-lg shadow-brand-primary/10">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                <ShieldCheck size={20} className="text-green-600" />
+              </span>
+              <span className="text-xs text-brand-muted">Disewa</span>
             </div>
             <p className="text-xl font-bold text-brand-text">{rentCount}</p>
           </div>
-          <div className="bg-white rounded-2xl border border-brand-border p-4">
-            <div className="flex items-center gap-1.5 text-brand-muted mb-1.5 text-xs">
-              <Crown size={14} /> Premium
+          <div className="bg-white rounded-2xl border border-brand-border p-4 shadow-lg shadow-brand-primary/10">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+                <Crown size={20} className="text-orange-500" />
+              </span>
+              <span className="text-xs text-brand-muted">Premium</span>
             </div>
             <p className="text-xl font-bold text-brand-text">{listings.filter((p) => p.is_premium).length}</p>
           </div>
