@@ -378,6 +378,21 @@ export default function ExplorePage() {
   const filterCount = [filterType, filterPrice, filterBeds, filterPremium].filter(Boolean).length
   const hasActiveSearch = searchText.trim() !== '' || filterCount > 0
 
+  const priceBands = useMemo(() => {
+    if (searchCategory === 'disewa') {
+      return [
+        { labelKey: 'explore.filter.price_options.rent_under_1jt', value: '0-1jt', min: 0, max: 1_000_000 },
+        { labelKey: 'explore.filter.price_options.rent_1_3jt', value: '1-3jt', min: 1_000_000, max: 3_000_000 },
+        { labelKey: 'explore.filter.price_options.rent_above_3jt', value: '3jt+', min: 3_000_000, max: Infinity },
+      ]
+    }
+    return [
+      { labelKey: 'explore.filter.price_options.under_1b', value: '0-1M', min: 0, max: 1_000_000_000 },
+      { labelKey: 'explore.filter.price_options.one_to_3b', value: '1-3M', min: 1_000_000_000, max: 3_000_000_000 },
+      { labelKey: 'explore.filter.price_options.above_3b', value: '3M+', min: 3_000_000_000, max: Infinity },
+    ]
+  }, [searchCategory])
+
   const heroStats = useMemo(() => {
     const total = properties.length
     const cities = new Set(properties.map((p) => p.city || p.district).filter(Boolean)).size
@@ -420,20 +435,21 @@ export default function ExplorePage() {
         if (!match) return false
       }
 
-      if (filterPrice && !isRentalProperty(p)) {
-        const price = Number(p.price) || 0
-        if (filterPrice === '0-1M' && price >= 1_000_000_000) return false
-        if (filterPrice === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false
-        if (filterPrice === '3M+' && price <= 3_000_000_000) return false
+      if (filterPrice) {
+        const norm = isRentalProperty(p) ? estimateMonthlyRent(p) : Number(p.price) || 0
+        const band = priceBands.find((b) => b.value === filterPrice)
+        if (band && !(norm >= band.min && norm < band.max)) return false
       }
 
       return true
     }).sort((a, b) => {
-      if (sortIndex === 1) return (Number(a.price) || 0) - (Number(b.price) || 0)
-      if (sortIndex === 2) return (Number(b.price) || 0) - (Number(a.price) || 0)
-      return 0
+      if (sortIndex === 0) return 0
+      const normalized = (p) =>
+        isRentalProperty(p) ? estimateMonthlyRent(p) : Number(p.price) || 0
+      if (sortIndex === 1) return normalized(a) - normalized(b)
+      return normalized(b) - normalized(a)
     })
-  }, [properties, searchCategory, searchText, filterType, filterBeds, filterPrice, filterPremium, sortIndex])
+  }, [properties, searchCategory, searchText, filterType, filterBeds, filterPrice, filterPremium, sortIndex, priceBands])
 
   const isSearching = hasActiveSearch || isAiSearch
   const isSearchEmpty = isSearching && sorted.length === 0
@@ -1272,11 +1288,7 @@ export default function ExplorePage() {
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-2 block">{t('explore.filter.price_range')}</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { labelKey: 'explore.filter.price_options.under_1b', value: '0-1M' },
-                    { labelKey: 'explore.filter.price_options.one_to_3b', value: '1-3M' },
-                    { labelKey: 'explore.filter.price_options.above_3b', value: '3M+' },
-                  ].map((r) => (
+                  {priceBands.map((r) => (
                     <button
                       key={r.value}
                       type="button"
