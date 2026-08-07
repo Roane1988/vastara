@@ -1,6 +1,6 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat, forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 18 Agustus 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 7 Agustus 2026.
 
 ## Changelog — Redesign ExplorePage (Fase 1 & 2)
 Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningkatkan retention, engagement, lead, conversion, session time, dan returning user. Mobile-first, tanpa mengubah branding/warna.
@@ -38,6 +38,27 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
   - Translasi: key `login.too_many_attempts` ditambahkan di `src/locales/id/translation.json` & `en/translation.json` — "Terlalu banyak percobaan login. Silakan tunggu beberapa saat lalu coba lagi."
 - **Bug pesan 429 salah tujuan**: `vite.config.js` — branch limit untuk `investment` & `fair_price` sebelumnya selalu menampilkan "Batas analisis harga tercapai". Kini *purpose-aware*: investasi → "Batas analisis investasi tercapai", fair price → "Batas analisis harga tercapai".
 
+## Changelog — Sewa 360°, Chat Read Receipt, Survey Seller, Lapor Iklan (7 Agustus 2026)
+- **Dukungan properti sewa penuh (end-to-end)**:
+  - **Periode harga** (`properties.price_period` = `'total'`|`'bulan'`|`'tahun'`, migration `20260822_property_price_period.sql`): harga Dijual = total, Disewa = per bulan/tahun. Backfill listing Disewa lama → `'bulan'`.
+  - **Form iklan** (`SellPropertyPage`): field baru **luas tanah** (`land_area_sqm`, `area_sqm` tetap luas bangunan) & **kondisi furnished** (`furnished` = '' / furnished / semi_furnished / unfurnished) — migration `20260823_property_detail_fields.sql`; default `price_period='tahun'` untuk sewa; luas 0 ditampilkan sebagai `-`; foto draft tidak valid disaring; validasi inline + indikator draft.
+  - **Penyaringan fitur kepemilikan**: properti sewa **tidak** menampilkan Simulasi KPR (diganti **Simulasi Sewa**), analisis investasi (`InvestmentAnalyzer`) & harga wajar (`FairPriceAnalyzer`) **disembunyikan**; label harga ditambah `/bulan`; kartu properti & detail menampilkan **badge keterjangkauan** sewa di Explore/Compare/detail.
+  - **Tren & harga turun**: `PriceTrendPage` & `PriceDropPage` dinormalisasi ke harga sewa **per bulan** (fix crash `map.get.push`); sort harga sewa dinormalisasi; filter **Disewa** punya **rentang harga bulanan** (price bands /bulan).
+  - **Compare**: **diblokir membandingkan sewa vs properti jual** (campuran kategori ditolak).
+  - **Jadwal survei**: label konsisten **Inspeksi/Survei** di `ScheduleVisit` untuk properti sewa.
+- **Chat realtime diperbesar** (`ChatHubPage` + `TopNavbar`):
+  - **Read receipt & unread persisten** via `direct_messages.read_at` (migration `20260821_chat_read_receipts.sql`, realtime UPDATE) — pengirim melihat pesan sudah dibaca.
+  - **Badge unread di top navbar** (selain item Chat di drawer) + i18n; perhitungan unread konsisten via `read_at`.
+  - **Typing indicator**, **paginasi** (load older), **date separator**, **header & bubble UI**, dan **kartu konteks properti** (chat menampilkan konteks properti yang dibicarakan).
+- **Alur jadwal survei di sisi seller** (`MyListingsPage`, migration `20260820_seller_survey_visits.sql`): seller kini bisa **konfirmasi / tolak / selesaikan** jadwal survei (sebelumnya hanya buyer bisa cancel), realtime agar seller dapat notif instan; RLS UPDATE baru untuk seller & admin (buyer tetap boleh cancel → `'cancelled'`).
+- **Lapor iklan** (`ReportListingModal` + `AdminPropertyReports`, migration `20260819_property_reports.sql`): pembeli (login) melaporkan listing dengan alasan (penipuan/harga/terjual/duplikat/lokasi/lainnya) → tabel `property_reports` → antrian admin: **Hapus Listing** (delete permanen + hapus foto storage) atau **Tutup Laporan** (tidak terbukti); audit action baru `delete_property` & `dismiss_report`.
+- **Definisi "properti baru"** (`properties.published_at`, migration `20260820_property_published_at.sql`): diisi otomatis saat status → `'verified'` (backfill `created_at`); dipakai untuk section "Baru" / collection **tidak lagi mengandalkan `created_at` draft**.
+- **Section Kepercayaan live data** (`dc8dfb2`): data/UI/UX live (bukan angka statis) di footer/explore trust bar.
+- **Perbaikan ExplorePage**: `CarouselPropertyCard` **diseragamkan dengan kartu grid Fase 3** (badge cerdas + quick action yang sama), **dedup properti antar-section** agar tidak tampil berulang, **Market Pulse UI/UX** diperhalus (badge naik/stabil/turun, detail foto listing), **FAB aksi cepat dipindah** agar tidak tertutup HuniBot, `pb-32` bawah halaman, scroll ke pencarian `block:nearest` + fokus langsung, perbaikan UI mobile.
+- **Language switcher di TopNavbar** (selain di drawer).
+- **Autocomplete Kota** (`LocationAutocomplete.jsx`) di form iklan properti **& form wilayah agen** (data `wilayah.js`).
+- **Fix statistik agen**: query count `agent_profiles` memakai `user_id` (kolom `id` tidak ada) → statistik agen (view `agent_stats`) kembali terisi.
+
 ## Tech Stack
 - **React 19 + Vite 8** — JavaScript (JSX)
 - **Tailwind CSS v4** — konfigurasi via CSS `@theme` di `index.css` (tidak ada `tailwind.config.js`)
@@ -64,7 +85,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 | `/forum` | ForumPage | Tidak | hero stats, category pills, sort tabs, search + filter tag via `?tag=` |
 | `/forum/:id` | ForumDetailPage | Tidak | views counter, reactions, poll, best answer, related threads, share |
 | `/property/:id` | PropertyDetailPage | Tidak | **mobile bottom price bar (sticky)**, **spec tiles** (KT/KM/luas/sertifikat), **map card**, harga di sidebar desktop, Properti Serupa, KPR simulator, lightbox gallery, **share → toast sukses/gagal**, **alamat area-only + gate alamat lengkap via kontak agent** |
-| `/admin` | AdminDashboardPage | Ya (admin only) | **5-tab** (Overview/**Agen**/**Harga**/Users/Audit Trail), preview modal, konfirmasi sebelum verify/survei/bulk + **undo**, soft reject, pagination, realtime, filter **Terjual** |
+| `/admin` | AdminDashboardPage | Ya (admin only) | **6-tab** (Overview/**Agen**/**Harga**/**Laporan**/Users/Audit Trail), preview modal, konfirmasi sebelum verify/survei/bulk + **undo**, soft reject, pagination, realtime, filter **Terjual** |
 | `/kpr` | KprCalculatorPage | Tidak | amortization table, biaya tambahan |
 | `/compare` | ComparePage | Tidak | bandingkan max 3 properti + affordability dari financial profile |
 | `/price-drop` | PriceDropPage | Tidak | properti yang baru turun harga (dari `price_history`/`price_change_status`) |
@@ -76,7 +97,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 ## Fitur Utama
 
 ### 1. SellPropertyPage (3-Step Flow)
-- **Step 0 — Info Properti**: kategori (Dijual/Disewa), tipe properti, judul, harga, KT/KM/sqm, sertifikat, deskripsi + tombol **Saran AI** via Groq API (`model: llama-3.3-70b-versatile`, parse `choices[0].message.content`), alamat, kota, kecamatan
+- **Step 0 — Info Properti**: kategori (Dijual/Disewa), tipe properti, judul, **harga + `price_period`** (total untuk Dijual; per **bulan/tahun** untuk Disewa), **luas bangunan & luas tanah** (`area_sqm`/`land_area_sqm`), **kondisi isi** (`furnished`), KT/KM/sertifikat, deskripsi + tombol **Saran AI** via Groq API (`model: llama-3.3-70b-versatile`, parse `choices[0].message.content`), alamat, kota, kecamatan (input pakai **autocomplete** `LocationAutocomplete`)
 - **Step 1 — Foto & Lokasi**: upload multi-image (max 10, max 5MB, JPG/PNG/WEBP/AVIF), **drag-and-drop reorder**, upload paralel ke Supabase Storage `PROPERTIES_IMAGE`
 - **Step 2 — Review & Kirim**: PreviewCard, ringkasan, input WhatsApp, submit
 - Draft **autosave ke localStorage** — restore otomatis saat kembali
@@ -103,6 +124,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - **Gallery**: Desktop (Airbnb-style grid) / Mobile (hero + thumb grid) + Lightbox (fullscreen, keyboard nav)
 - **Agent Card**: sticky sidebar (desktop), floating WhatsApp bar (mobile, IntersectionObserver — deps `[loading]` fixed)
 - **KprSimulator**: mortgage calculator
+- **Properti sewa (202608)**: properti Disewa menampilkan **Simulasi Sewa** (bukan KPR), harga berlabel `/bulan`, analisis investasi & harga wajar disembunyikan, harga + affordability badge per periode
 - **Properti Serupa**: grid 6 item, filter by category/city, exclude current ID, limit 6, status='verified'
 - **Accordion**: Panduan Membeli + Disclaimer
 - **UI/UX detail (b1dda98)**: **mobile bottom price bar** (sticky di bawah layar), **spec tiles** (KT/KM/luas/sertifikat), **map card**, harga terpajang di **sidebar desktop**
@@ -128,10 +150,14 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 ### 6. ChatHubPage (Realtime DM)
 - Two-column: contact list + chat window
 - Mobile toggle, realtime subscription via Supabase Realtime
+- **Read receipt (20260821)**: kolom `direct_messages.read_at` — receiver menandai dibaca (policy UPDATE), pengirim lihat status "Dibaca" live via realtime UPDATE
+- **Badge unread di top navbar** (`TopNavbar`) + badge di item Chat drawer (perhitungan konsisten via `read_at`)
+- **Typing indicator**, **paginasi** (load older messages), **date separator**, header & bubble UI yang diperhalus, **kartu konteks properti** dalam chat
 - ArrowLeft icon dari lucide-react (bukan custom SVG)
 
 ### 7. Admin Dashboard
 - **5-tab**: Overview (analytics + pending table), **Agen** (review pendaftaran agent eksternal), **Harga** (antrian perubahan harga — AdminPriceChangeQueue), Users (role management via dropdown), Audit Trail (log)
+- **Tab Laporan** (`AdminPropertyReports`, 20260819): antrian laporan iklan (`property_reports`) — admin bisa **Hapus Listing** (delete permanen + hapus foto di storage) atau **Tutup Laporan** (tidak terbukti); semuanya dicatat di `audit_logs`
 - **AdminDashboardPage enhancements**: preview modal (gallery, inline property info), reject modal (required reason → `audit_logs`), soft delete (status='rejected' + restore button), **konfirmasi modal sebelum Setujui/Survei/Bulk verify** + **tombol Undo di toast** (mengembalikan status ke kondisi sebelumnya), filter tabs (Semua/Pending/Survei/Terverifikasi/**Terjual**/Ditolak), status `'sold'` dikenali (label **"Terjual"**, badge abu-abu, aksi **"Aktifkan Lagi"** → pending), bulk verify (checkboxes), pagination (10/page), thumbnails di table, search input, realtime subscription (INSERT/UPDATE on properties)
 - **AdminAgentApplications**: daftar pendaftaran calon agen (`agent_applications`) dengan filter Pending/Disetujui/Ditolak/Semua, tombol **Setujui** (→ status approved + trigger update role profil ke 'agent' + isi `agent_profiles`) dan **Tolak** (wajib alasan → `reject_reason`, ConfirmModal + textarea), catat `audit_logs` (`approve_agent`/`reject_agent`, target_type `agent_application`); admin bisa **hapus** aplikasi menggantung (20260808)
 - **AdminPriceChangeQueue**: antrian perubahan harga di luar ambang 15% — admin bisa **setujui/tolak** (`approve_price_change`/`reject_price_change`), properti yang ditahan tetap menampilkan harga lama dengan status `price_change_status='pending'`
@@ -154,7 +180,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
   - **Reactions multi-emoji** (👍❤️🔥💡) di post & reply via tabel `forum_reactions` (unique user+target), toggle / ganti emoji, realtime `*` event
   - **Poll render**: bar persentase, vote sekali per user (`forum_poll_votes` upsert on conflict `post_id,user_id`), badge "suara Anda"
   - **Best answer**: OP bisa tandai balasan sebagai solusi (`solved_reply_id`) — balasan dapat border emerald + badge "Jawaban Terbaik"
-  - **AI Summarize**: tombol "Ringkas" → POST ke `/api/groq` (purpose chat) merangkum judul+konten+replies jadi poin
+  - **AI Summarize**: *(DIHAPUS — 20260804, boros token)* — fitur "Ringkas" untuk merangkum thread dihapus dari ForumDetailPage
   - **Related threads**: 3 post se-kategori (exclude current), klik → navigasi
   - **Share** via WhatsApp, **quote reply**, **edit post/reply inline**, realtime INSERT `forum_replies` + `forum_reactions`, auto-scroll, success toast, cancel confirm
 - **Markdown.jsx** + **utils/markdown.js**: parser markdown ringan tanpa library (blocks: h1-h3, quote, ul/ol, paragraph; inline: bold/italic/code/link/`#tag`; `isSafeUrl` hanya izinkan http(s) & path relatif)
@@ -164,6 +190,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - **CompareBar** (bottom fixed bar): muncul saat ada item, thumbnail + title + remove per item, counter `n/3`, tombol "Bandingkan" → `/compare`
 - **ComparePage** (`/compare`):
   - Table perbandingan (gambar, harga + badge **Termurah**, cicilan KPR estimasi, tipe, KT/KM, luas, kota, alamat, sertifikat)
+  - **Upgrade (202608)**: tambah **harga/m²**, tombol **share** (bagikan hasil banding), **rekomendasi**, **sticky kolom** (kolom properti tetap terlihat saat scroll), **mini bar**; perbaiki overflow CompareBar & prompt compare di mobile; **diblokir menggabungkan sewa vs properti jual** (kategori campuran ditolak)
   - **Personalization affordability**: baca `user_financial_profiles` → `computeAffordability` (take-home × 30% atau budget) → **buying power** (`maxAffordablePrice`) → badge **"Dalam Jangkauan"/"Di Atas Budget"** per properti, cicilan merah bila > `maxInstallment`, banner summary (buying power + cicilan maksimal)
   - **Empty financial profile**: banner CTA "Isi profil finansial" → dispatch `open-financial-profile` (auto-buka ProfileDrawer, auto-refresh via event `financial-profile-saved`)
   - Skeleton loading, request race-guard (`requestRef`), sync live via `compare-updated` + `storage` events
@@ -227,6 +254,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - `image_url` (text — single URL or JSON.stringify([...]))
 - `seller_whatsapp`, `status` ('pending'/'in_review'/'verified'/'rejected'/'sold'), `created_at`
 - **Kolom harga (20260816)**: `original_price` (numeric, baseline % penurunan), `price_requested` (harga yang ditahan), `price_change_status` ('none'/'pending'/'approved'/'rejected', default 'none'), `price_requested_at`, `price_reviewed_by`, `price_reviewed_at`
+- **Kolom baru (Aug 2026, migrasi terbaru)**: `published_at` (timestamptz — 20260820, diisi otomatis saat status→'verified'), `price_period` (text 'total'/'bulan'/'tahun', default 'total' — 20260822), `land_area_sqm` (numeric — luas tanah; `area_sqm` tetap luas bangunan) & `furnished` ('' / furnished / semi_furnished / unfurnished, default '') — 20260823
 - **TIDAK ada kolom** `agent_id`, `is_verified`, `gmaps_link` — mekanisme status murni via kolom `status`; penjual via `seller_id` (kolom `agent_id`/`owner_id` sudah di-drop 20260807).
 - **Column naming**: `address` (bukan `location`), `area_sqm` (bukan `sqm`), `seller_whatsapp` (bukan `agent_whatsapp`), `description_id` (bukan `description`)
 
@@ -262,6 +290,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 
 ### Table `direct_messages`
 - `id`, `sender_id`, `receiver_id`, `content`, `created_at`
+- **`read_at` (timestamptz, 20260821)**: read receipt — receiver menandai pesan dibaca (policy UPDATE `auth.uid() = receiver_id`); unread = pesan diterima tanpa `read_at`; realtime UPDATE di channel supabase
 
 ### Table `forum_posts`
 - `id` (uuid PK), `author_id` (FK → profiles), `title`, `content`, `category` (text, default 'Umum'), `created_at`
@@ -300,11 +329,18 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - `id` (uuid PK), `property_id` (FK → properties), `buyer_id` (FK → profiles), `scheduled_date` (date), `scheduled_time` (time), `notes` (text, default ''), `status` (text, check: 'pending'/'confirmed'/'cancelled'/'completed'), `created_at`
 - RLS: user hanya bisa select/insert milik sendiri (`auth.uid() = buyer_id`), dan update hanya ke status 'cancelled'.
 - **Tambah (20260818)**: seller dapat select jadwal survei propertinya sendiri + admin dapat select semua (persiapan fitur jadwal survei di sisi seller)
+- **Alur seller (20260820)**: seller/admin kini dapat **UPDATE** status jadwal (confirmed/cancelled/completed) via policy baru (`exists properties.seller_id = auth.uid()` / role admin); buyer tetap hanya bisa cancel → 'cancelled'; tabel masuk **realtime** `supabase_realtime` agar seller dapat notif instan
 
 ### Table `whatsapp_leads` (baru — 20260816)
 - `id` (uuid PK), `property_id` (FK → properties, cascade), `seller_id` (FK → profiles), `buyer_id` (FK → profiles, nullable), `created_at`
 - RLS: insert **wajib login** (20260818); select seller utk properti sendiri (`exists properties.seller_id = auth.uid()`) + admin
 - Sumber data: klik "Hubungi via WhatsApp" di PropertyDetailPage; dibaca MyListingsPage (tab Leads) & AdminDashboardPage
+
+### Table `property_reports` (baru — 20260819, Lapor Iklan)
+- `id` (uuid PK), `property_id` (FK → properties, cascade), `reporter_id` (FK → profiles, cascade), `reason` (check: penipuan/harga/terjual/duplikat/lokasi/lainnya), `note`, `status` (check: 'pending'/'dismissed'/'actioned', default 'pending'), `reviewed_by` (FK → profiles), `reviewed_at`, `created_at`
+- Unique `(property_id, reporter_id)` — satu laporan per pembeli per properti; index `(status, created_at desc)`
+- RLS: pelapor lihat/membuat laporannya (login); admin lihat semua + update status + hapus; aksi admin: **Hapus Listing** (delete property + foto storage) / **Tutup Laporan**
+- Audit action baru: `delete_property`, `dismiss_report`
 
 ### Table `price_history` (baru — 20260816)
 - `id` (uuid PK), `property_id` (FK → properties, cascade), `old_price`, `new_price` (not null), `price_pct` (numeric), `source` ('seller' dalam ambang / 'admin' approve/override), `applied_by` (FK → profiles), `created_at`
@@ -462,5 +498,11 @@ Semua file di `supabase/migrations/`:
 28. `20260816_whatsapp_leads.sql` — tabel `whatsapp_leads` + RLS (insert publik, select seller/admin)
 29. `20260817_saved_searches.sql` — tabel `saved_searches` + RLS owner-only
 30. `20260818_security_gap_fixes.sql` — **penutup celah audit**: trigger `saved_properties` (user_id otomatis), agent_profiles self-read, whatsapp_leads wajib login, site_visits select seller/admin
+31. `20260819_property_reports.sql` — tabel `property_reports` + RLS (pelapor/admin) + audit `delete_property`/`dismiss_report` + policy hapus foto storage admin
+32. `20260820_property_published_at.sql` — kolom `properties.published_at` + trigger `set_property_published_at()` (definisi "properti baru" saat status → verified)
+33. `20260820_seller_survey_visits.sql` — alur survei sisi seller: policy UPDATE `site_visits` (seller/admin) + realtime `site_visits`
+34. `20260821_chat_read_receipts.sql` — kolom `direct_messages.read_at` + policy UPDATE receiver + realtime `direct_messages`
+35. `20260822_property_price_period.sql` — kolom `properties.price_period` ('total'/'bulan'/'tahun') + backfill sewa → 'bulan'
+36. `20260823_property_detail_fields.sql` — kolom `properties.land_area_sqm` & `furnished` (kondisi isi properti sewa)
 
 **Catatan**: PostgreSQL 14 tidak support `CREATE POLICY IF NOT EXISTS` — harus pakai `DROP POLICY IF EXISTS` dulu sebelum `CREATE POLICY`. Migration terbaru memakai blok `do $$ ... exception when duplicate_object` untuk idempotency.
