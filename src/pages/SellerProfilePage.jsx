@@ -302,8 +302,10 @@ export default function SellerProfilePage() {
       list || '- (tidak ada listing)',
       '',
       `Pilih 1-3 properti dari daftar di atas yang PALING cocok dengan kondisi keuangan & tujuan buyer.`,
-      `Output HANYA JSON tanpa markdown, format: {"tips":"1 kalimat menyatu tracking","picks":[{"id":"-","title":"-","reason":"-"}],"skip":["-"]}.`,
-      `Menggunakan angka rupiah realistis yang konsisten dengan budget buyer. Jangan rekomen properti TERJUAL (status sold).`,
+      `JANGAN tulis kalimat apapun selain SATU objek JSON yang valid (tanpa markdown, tanpa \\\`\\\`\\\`), contoh:`,
+      `{"tips":"1 kalimat alasan penyematan","picks":[{"id":"<id properti>","title":"<judul>","reason":"<alasan singkat>"}],"skip":["<judul yang sengaja dilewati, paling banyak 2>"]}`,
+      `id harus benar-benar sesuai dengan id properti aktual dari daftar di atas (bukan '-'). skip hany judul, bukan id.`,
+      `Gunakan angka rupiah realistis yang konsisten dengan budget buyer. Jangan rekomen properti TERJUAL (status sold).`,
     ].filter(Boolean).join('\n')
   }
 
@@ -323,17 +325,30 @@ export default function SellerProfilePage() {
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      const text = data?.choices?.[0]?.message?.content || ''
+      const text = String(data?.choices?.[0]?.message?.content || '').trim()
+
+      const tryParse = (s) => { try { return JSON.parse(s) } catch { return null } }
       let parsed = null
-      try {
-        const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim()
-        parsed = JSON.parse(cleaned)
-      } catch {
-        const m = text.match(/\{[\s\S]*\}/)
-        if (m) parsed = JSON.parse(m[0])
+      const noFence = text.replace(/```json/gi, '').replace(/```/g, '').trim()
+      parsed = tryParse(noFence)
+      if (!parsed) {
+        const start = text.indexOf('{')
+        const end = text.lastIndexOf('}')
+        if (start !== -1 && end > start) {
+          parsed = tryParse(text.slice(start, end + 1))
+          if (!parsed) {
+            const trailingCommaFixed = text.slice(start, end + 1).replace(/,\s*([}\]])/g, '$1')
+            parsed = tryParse(trailingCommaFixed)
+          }
+        }
       }
-      if (!parsed || !Array.isArray(parsed.picks)) throw new Error('Format AI tidak valid')
-      setAiResult(parsed)
+      if (!parsed) {
+        setAiResult({ fallbackText: text || 'Tidak ada respons AI.' })
+      } else if (!Array.isArray(parsed.picks)) {
+        setAiResult({ fallbackText: text || 'Tidak ada respons AI.' })
+      } else {
+        setAiResult(parsed)
+      }
     } catch (e) {
       setAiError(e?.message || 'Gagal memuat rekomendasi AI. Coba lagi nanti.')
       setAiResult(null)
@@ -643,43 +658,49 @@ export default function SellerProfilePage() {
 
               {aiResult && (
                 <div className="mt-4 border-t border-brand-border pt-4">
-                  {aiResult.tips && (
-                    <p className="text-sm text-brand-muted mb-3 italic">"{aiResult.tips}"</p>
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {aiResult.picks?.map((pick, idx) => {
-                      const matched = listings.find((l) => String(l.id) === String(pick.id))
-                      return (
-                        <div key={idx} className="rounded-xl border border-brand-accent/25 bg-brand-highlight/40 p-3.5">
-                          <p className="text-sm font-bold text-brand-accent">{pick.title || 'Properi terpilih'}</p>
-                          {matched && (() => {
-                            const tone = budgetHintFor(matched)
-                            return tone ? (
-                              <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                tone === 'green'
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : tone === 'amber'
-                                    ? 'bg-amber-50 text-amber-700'
-                                    : 'bg-rose-50 text-rose-700'
-                              }`}>
-                                {budgetLabelFor(tone)}
-                              </span>
-                            ) : null
-                          })()}
-                          {pick.reason && <p className="text-xs text-brand-muted mt-1.5 leading-relaxed">{pick.reason}</p>}
-                          {matched && (
-                            <Link to={`/property/${matched.id}`} className="text-xs font-semibold text-brand-accent hover:text-brand-primary mt-2 inline-block">
-                              {lang === 'en' ? 'View' : 'Lihat'} →
-                            </Link>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                  {Array.isArray(aiResult.skip) && aiResult.skip.length > 0 && (
-                    <p className="text-[11px] text-brand-muted mt-3">
-                      {lang === 'en' ? 'Less fit' : 'Kurang cocok'}: {aiResult.skip.join(', ')}
-                    </p>
+                  {aiResult.fallbackText ? (
+                    <p className="text-sm text-brand-muted whitespace-pre-line leading-relaxed">{aiResult.fallbackText}</p>
+                  ) : (
+                    <>
+                      {aiResult.tips && (
+                        <p className="text-sm text-brand-muted mb-3 italic">"{aiResult.tips}"</p>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {aiResult.picks?.map((pick, idx) => {
+                          const matched = listings.find((l) => String(l.id) === String(pick.id))
+                          return (
+                            <div key={idx} className="rounded-xl border border-brand-accent/25 bg-brand-highlight/40 p-3.5">
+                              <p className="text-sm font-bold text-brand-accent">{pick.title || 'Properi terpilih'}</p>
+                              {matched && (() => {
+                                const tone = budgetHintFor(matched)
+                                return tone ? (
+                                  <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    tone === 'green'
+                                      ? 'bg-emerald-50 text-emerald-700'
+                                      : tone === 'amber'
+                                        ? 'bg-amber-50 text-amber-700'
+                                        : 'bg-rose-50 text-rose-700'
+                                  }`}>
+                                    {budgetLabelFor(tone)}
+                                  </span>
+                                ) : null
+                              })()}
+                              {pick.reason && <p className="text-xs text-brand-muted mt-1.5 leading-relaxed">{pick.reason}</p>}
+                              {matched && (
+                                <Link to={`/property/${matched.id}`} className="text-xs font-semibold text-brand-accent hover:text-brand-primary mt-2 inline-block">
+                                  {lang === 'en' ? 'View' : 'Lihat'} →
+                                </Link>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {Array.isArray(aiResult.skip) && aiResult.skip.length > 0 && (
+                        <p className="text-[11px] text-brand-muted mt-3">
+                          {lang === 'en' ? 'Less fit' : 'Kurang cocok'}: {aiResult.skip.join(', ')}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               )}
