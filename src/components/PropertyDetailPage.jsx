@@ -404,6 +404,7 @@ export default function PropertyDetailPage() {
   const agentCardRef = useRef(null)
   const [showFloatingBtn, setShowFloatingBtn] = useState(true)
   const [similar, setSimilar] = useState([])
+  const [sellerPortfolioCount, setSellerPortfolioCount] = useState(0)
   const [showScheduleVisit, setShowScheduleVisit] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
@@ -586,6 +587,23 @@ export default function PropertyDetailPage() {
   }, [property?.id, property?.category, property?.city])
 
   useEffect(() => {
+    const sellerId = property?.seller_id
+    if (!sellerId || property?.id?.startsWith('dummy-')) return
+    let cancelled = false
+    supabase
+      .from('properties')
+      .select('id', { count: 'exact', head: true })
+      .eq('seller_id', sellerId)
+      .eq('status', 'verified')
+      .neq('id', property.id)
+      .then(({ count }) => {
+        if (!cancelled) setSellerPortfolioCount(count ?? 0)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [property])
+
+  useEffect(() => {
     const el = agentCardRef.current
     if (!el) return
     const observer = new IntersectionObserver(
@@ -660,7 +678,6 @@ export default function PropertyDetailPage() {
   const sellerRole = property.seller_type === 'developer' ? 'Pengembang'
     : property.seller_type === 'agent' ? 'Agen Properti'
     : 'Pemilik Langsung'
-  const isAgentSeller = property.seller_type === 'agent'
 
   const phoneShort = waNumber ? `+${waNumber.slice(0, 4)}...${waNumber.slice(-3)}` : null
 
@@ -923,36 +940,26 @@ export default function PropertyDetailPage() {
               </div>
               <div ref={agentCardRef} className="bg-white rounded-xl shadow-md border border-brand-border p-5">
                 <div className="flex items-center gap-3 mb-4">
-                  {isAgentSeller ? (
-                    <Link to={`/agents/${property.seller_id}`} className="flex items-center gap-3 flex-1 min-w-0 group">
-                      <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                        style={{ backgroundColor: getAvatarColor(property.seller_id) }}
-                      >
-                        {getInitials(sellerName)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-brand-text truncate group-hover:text-brand-accent transition-colors">{sellerName}</p>
-                        <p className="text-xs text-brand-muted flex items-center gap-1">
-                          {sellerRole}
-                          <ChevronRight size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Link to={`/seller/${property.seller_id}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                      style={{ backgroundColor: getAvatarColor(property.seller_id) }}
+                    >
+                      {getInitials(sellerName)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-brand-text truncate group-hover:text-brand-accent transition-colors">{sellerName}</p>
+                      <p className="text-xs text-brand-muted flex items-center gap-1">
+                        {sellerRole}
+                        <ChevronRight size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </p>
+                      {sellerPortfolioCount >= 1 && (
+                        <p className="text-xs font-medium text-brand-accent mt-0.5 group-hover:underline">
+                          {lang === 'en' ? `View ${sellerPortfolioCount} more properties` : `Lihat ${sellerPortfolioCount} properti lainnya`}
                         </p>
-                      </div>
-                    </Link>
-                  ) : (
-                    <>
-                      <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                        style={{ backgroundColor: getAvatarColor(property.seller_id) }}
-                      >
-                        {getInitials(sellerName)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-brand-text truncate">{sellerName}</p>
-                        <p className="text-xs text-brand-muted">{sellerRole}</p>
-                      </div>
-                    </>
-                  )}
+                      )}
+                    </div>
+                  </Link>
                 </div>
                 <div className="flex flex-col gap-3">
                   {waLink && (

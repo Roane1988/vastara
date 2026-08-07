@@ -22,6 +22,7 @@ const ChatHubPage = lazy(() => import('./components/ChatHubPage'))
 const ForumPage = lazy(() => import('./components/ForumPage'))
 const ForumDetailPage = lazy(() => import('./components/ForumDetailPage'))
 const PropertyDetailPage = lazy(() => import('./components/PropertyDetailPage'))
+const SellerProfilePage = lazy(() => import('./pages/SellerProfilePage'))
 const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const ComingSoonPage = lazy(() => import('./components/ComingSoonPage'))
 const KprCalculatorPage = lazy(() => import('./components/KprCalculatorPage'))
@@ -99,6 +100,7 @@ function AppContent() {
               <Route path="/agent-apply" element={<AgentApplicationPage />} />
               <Route path="/agents" element={<AgentsPage />} />
               <Route path="/agents/:id" element={<AgentDetailPage />} />
+              <Route path="/seller/:id" element={<SellerProfilePage />} />
               <Route path="/agent-profile" element={<ProtectedRoute isAuth={isAuth} location={location}><AgentProfilePage /></ProtectedRoute>} />
               <Route path="/sell" element={<ProtectedRoute isAuth={isAuth} location={location}><SellPropertyPage /></ProtectedRoute>} />
               <Route path="/my-listings" element={<ProtectedRoute isAuth={isAuth} location={location}><MyListingsPage /></ProtectedRoute>} />

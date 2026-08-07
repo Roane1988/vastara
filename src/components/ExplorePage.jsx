@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Heart, Bell, Check, Building2, Share2, Plus, Home, MessageSquare, BadgeCheck, Star } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Bell, Check, Building2, Plus, Home, MessageSquare } from 'lucide-react'
 import { supabase } from '../supabaseClient'
-import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
+import { getFavorites } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
-import { formatPriceDisplay, formatPrice, formatCount } from '../utils/format'
+import { formatPriceDisplay, formatCount } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
@@ -19,8 +19,9 @@ import PopularSearches from './PopularSearches'
 import ExploreInsights from './ExploreInsights'
 import ExplorePhase2 from './ExplorePhase2'
 import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
-import { getFinancialProfile, computeAffordability, maxAffordablePrice, estimateMonthlyInstallment, estimateMonthlyRent, isRentalProperty } from '../utils/financialProfile'
+import { getFinancialProfile, computeAffordability, maxAffordablePrice, estimateMonthlyRent, isRentalProperty } from '../utils/financialProfile'
 import { getAuthHeaders } from '../utils/groqClient'
+import PropertyGridCard from './PropertyGridCard'
 
 
 
@@ -64,7 +65,7 @@ export default function ExplorePage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, showToast } = useAuth()
-  const [saved, setSaved] = useState(getFavorites())
+  const [saved] = useState(getFavorites)
   const [showFilter, setShowFilter] = useState(false)
   const [filterPrice, setFilterPrice] = useState('')
   const [filterType, setFilterType] = useState('')
@@ -306,25 +307,6 @@ export default function ExplorePage() {
     setProperties([])
     fetchProperties().catch(() => {})
     searchInputRef.current?.focus()
-  }
-
-  const toggleSave = async (id) => {
-    const updated = await toggleFav(id)
-    setSaved(updated)
-  }
-
-  async function shareProperty(p) {
-    const url = `${window.location.origin}/property/${p.id}`
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: p.title, text: p.title, url })
-      } else {
-        await navigator.clipboard.writeText(url)
-        showToast('Link properti disalin', 'success')
-      }
-    } catch {
-      /* user cancelled share sheet */
-    }
   }
 
   async function handleSaveSearch() {
@@ -1069,127 +1051,9 @@ export default function ExplorePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {displayListings.map((p) => {
-              const drop = p.original_price && Number(p.original_price) > Number(p.price)
-              const isRent = isRentalProperty(p)
-              const installment =
-                !isRent && Number(p.price) > 0 ? estimateMonthlyInstallment(p.price, 5.5, 20, 20) : 0
-              const rentPerMonth = isRent && Number(p.price) > 0 ? estimateMonthlyRent(p) : 0
-              const rentAffordable = rentPerMonth > 0 && maxRent > 0 && rentPerMonth <= maxRent
-              return (
-              <div key={p.id} className="bg-white rounded-[20px] shadow-sm border border-brand-border overflow-hidden h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand-primary/5">
-                <Link to={`/property/${p.id}`} className="block group flex-1">
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <img loading="lazy"
-                      src={getImageSrc(p.image_url)}
-                      alt={p.title}
-                      onError={(e) => { e.target.src = FALLBACK_IMAGE }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-3 left-3 flex gap-1.5">
-                      {p.status === 'verified' && (
-                        <span className="inline-flex items-center gap-1 bg-white/90 backdrop-blur text-brand-verified border border-brand-verified/20 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                          <BadgeCheck size={11} />
-                          {t('explore.property_card.verified_legal')}
-                        </span>
-                      )}
-                      {p.is_premium && (
-                        <span className="inline-flex items-center gap-1 bg-amber-400 text-amber-950 text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                          <Star size={11} className="fill-current" />
-                          {t('explore.filter.premium_badge')}
-                        </span>
-                      )}
-                    </div>
-                    {drop && (
-                      <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 bg-brand-danger text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                        <TrendingDown size={11} />
-                        {t('explore.property_card.price_drop')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-end gap-2 flex-wrap">
-                      {drop && (
-                        <span className="text-sm font-semibold text-brand-muted line-through">
-                          {formatPrice(p.original_price)}
-                        </span>
-                      )}
-                      <p className="text-xl font-extrabold text-brand-primary">
-                        {formatPriceDisplay(p)}
-                      </p>
-                    </div>
-                    {installment > 0 && (
-                      <p className="text-[11px] text-brand-muted mt-0.5">
-                        Estimasi cicilan <b className="text-brand-accent">{formatPrice(installment)}</b>/bulan
-                      </p>
-                    )}
-                    {isRent && rentPerMonth > 0 && maxRent > 0 && (
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg mt-1.5 border ${
-                        rentAffordable
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}>
-                        {rentAffordable ? <Check size={12} /> : <X size={12} />}
-                        {rentAffordable ? 'Sewa dalam jangkauan' : 'Sewa di atas budget'}
-                      </span>
-                    )}
-                    <p className="text-base font-semibold text-brand-text mt-1 group-hover:text-brand-accent transition-colors">
-                      {getTranslated(p, 'title', p.title)}
-                    </p>
-                    <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
-                      <MapPin size={14} />
-                      {getTranslated(p, 'address', p.address || p.location || t('explore.location_fallback'))}
-                    </p>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-brand-border">
-                      <div className="flex gap-3 text-xs text-brand-muted">
-                        <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
-                        <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
-                        <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
-                      </div>
-                      {p.agent && (
-                        <span className="text-xs font-medium text-brand-accent">{p.agent}</span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-                <div className="px-4 py-2.5 border-t border-brand-border flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => toggleSave(p.id)}
-                    className={`flex items-center gap-1.5 text-xs transition-colors ${
-                      saved.includes(p.id) ? 'text-[#4A90E2] font-semibold' : 'text-brand-muted hover:text-brand-accent'
-                    }`}
-                  >
-                    <Heart size={15} className={saved.includes(p.id) ? 'fill-[#4A90E2] text-[#4A90E2]' : 'text-current'} />
-                    {saved.includes(p.id) ? t('explore.property_card.saved') : t('explore.property_card.save')}
-                  </button>
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => toggleCompare(p)}
-                      className={`flex items-center gap-1 text-xs transition-colors ${
-                        compareSet.has(p.id)
-                          ? 'text-brand-primary font-semibold'
-                          : 'text-brand-muted hover:text-brand-primary'
-                      }`}
-                    >
-                      <ArrowLeftRight size={14} />
-                      {compareSet.has(p.id) ? 'Terseleksi' : 'Bandingkan'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => shareProperty(p)}
-                      aria-label="Bagikan properti"
-                      title="Bagikan properti"
-                      className="text-brand-muted hover:text-brand-accent transition-colors"
-                    >
-                      <Share2 size={15} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              )
-            })}
+            {displayListings.map((p) => (
+              <PropertyGridCard key={p.id} p={p} getTranslated={getTranslated} maxRent={maxRent} />
+            ))}
           </div>
         )}
       </motion.section>
