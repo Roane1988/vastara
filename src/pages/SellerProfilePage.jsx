@@ -90,7 +90,7 @@ export default function SellerProfilePage() {
             : Promise.resolve({ data: null, error: null }),
           supabase
             .from('properties')
-            .select('id, title, price, original_price, price_period, property_type, category, address, city, district, bedrooms, bathrooms, area_sqm, image_url, is_premium, agent, created_at')
+            .select('id, title, price, original_price, price_period, property_type, category, address, city, district, bedrooms, bathrooms, area_sqm, image_url, is_premium, created_at')
             .eq('seller_id', id)
             .eq('status', 'verified')
             .order('created_at', { ascending: false }),
