@@ -65,7 +65,9 @@ export default function SellerProfilePage() {
   const [agentProfile, setAgentProfile] = useState(null)
   const [stats, setStats] = useState(null)
   const [listings, setListings] = useState([])
+  const [reviews, setReviews] = useState([])
   const [category, setCategory] = useState('dijual')
+  const [showSticky, setShowSticky] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -82,7 +84,7 @@ export default function SellerProfilePage() {
         const base = profileRes.data
         const isAgent = base.role === 'agent'
 
-        const [agentRes, statsRes, listingRes] = await Promise.all([
+        const [agentRes, statsRes, listingRes, reviewRes] = await Promise.all([
           isAgent
             ? supabase.from('agent_profiles').select('*').eq('user_id', id).eq('is_visible', true).maybeSingle()
             : Promise.resolve({ data: null, error: null }),
@@ -91,21 +93,26 @@ export default function SellerProfilePage() {
             : Promise.resolve({ data: null, error: null }),
           supabase
             .from('properties')
-            .select('id, title, price, original_price, price_period, property_type, category, address, city, district, bedrooms, bathrooms, area_sqm, image_url, is_premium, seller_whatsapp, created_at')
+            .select('id, title, price, original_price, price_period, property_type, category, address, city, district, bedrooms, bathrooms, area_sqm, image_url, is_premium, seller_whatsapp, status, created_at')
+            .in('status', ['verified', 'sold'])
             .eq('seller_id', id)
-            .eq('status', 'verified')
             .order('created_at', { ascending: false }),
+          isAgent
+            ? supabase.from('agent_reviews').select('*, profiles!reviewer_id(first_name)').eq('agent_id', id).order('created_at', { ascending: false })
+            : Promise.resolve({ data: null, error: null }),
         ])
 
         if (isAgent && agentRes?.error) throw new Error(agentRes.error.message)
         if (isAgent && statsRes?.error) throw new Error(statsRes.error.message)
         if (listingRes.error) throw new Error(listingRes.error.message)
+        if (isAgent && reviewRes?.error) throw new Error(reviewRes.error.message)
 
         if (!cancelled) {
           setProfile(base)
           setAgentProfile(agentRes?.data || null)
           setStats(statsRes?.data || null)
           setListings(listingRes.data || [])
+          setReviews(reviewRes?.data || [])
         }
       } catch (e) {
         if (!cancelled) setError(e?.message || 'Gagal memuat profil.')
@@ -141,6 +148,14 @@ export default function SellerProfilePage() {
   const shown = category === 'disewa' ? rentListings : soldListings
   const soldCount = soldListings.length
   const rentCount = rentListings.length
+  const activeCount = useMemo(() => listings.filter((p) => p.status === 'verified').length, [listings])
+
+  useEffect(() => {
+    function onScroll() { setShowSticky(window.scrollY > 300) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   useSEO(profile
     ? { title: `${displayName} — Profil Penjual Properti | HuniOne`, description: `Lihat properti yang dijual & disewa oleh ${displayName} di HuniOne.` }
@@ -291,7 +306,7 @@ export default function SellerProfilePage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 pb-24 lg:pb-8">
         {/* Stats */}
         <div className="relative z-10 -mt-12 sm:-mt-16 grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-2xl border border-brand-border p-4 shadow-lg shadow-brand-primary/10">
@@ -301,7 +316,7 @@ export default function SellerProfilePage() {
               </span>
               <span className="text-xs text-brand-muted">Listing Aktif</span>
             </div>
-            <p className="text-xl font-bold text-brand-text">{listings.length}</p>
+            <p className="text-xl font-bold text-brand-text">{activeCount}</p>
           </div>
           <div className="bg-white rounded-2xl border border-brand-border p-4 shadow-lg shadow-brand-primary/10">
             <div className="flex items-center gap-2.5 mb-2">
@@ -335,6 +350,42 @@ export default function SellerProfilePage() {
         {isAgent && agentProfile?.bio && (
           <div className="bg-white rounded-2xl border border-brand-border p-5 mb-6">
             <p className="text-sm text-brand-text leading-relaxed whitespace-pre-line">{agentProfile.bio}</p>
+          </div>
+        )}
+
+        {isAgent && reviews.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-brand-text">
+                {lang === 'en' ? 'Buyer Reviews' : 'Ulasan Pembeli'}
+              </h2>
+              {stats?.review_count > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-500">
+                  <Star size={15} className="fill-current" />
+                  {Number(stats.avg_rating).toFixed(1)}
+                  <span className="text-xs font-medium text-brand-muted">({stats.review_count})</span>
+                </span>
+              )}
+            </div>
+            <div className="space-y-3">
+              {reviews.map((r) => (
+                <div key={r.id} className="bg-white rounded-2xl border border-brand-border p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-semibold text-brand-text">{r.profiles?.first_name || 'Pembeli'}</span>
+                    <span className="flex items-center gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          size={12}
+                          className={i < r.rating ? 'text-amber-400 fill-amber-400' : 'text-brand-border'}
+                        />
+                      ))}
+                    </span>
+                  </div>
+                  {r.comment && <p className="text-sm text-brand-text leading-relaxed">{r.comment}</p>}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -386,6 +437,30 @@ export default function SellerProfilePage() {
                 <PropertyGridCard key={p.id} p={p} />
               ))}
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky action bar (mobile) */}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/95 backdrop-blur-md border-t border-brand-border p-3 shadow-[0_-4px_16px_rgba(30,58,95,0.10)] transition-transform duration-300 ${showSticky ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className="flex gap-2.5">
+          <button
+            type="button"
+            onClick={() => navigate(`/chat?user=${id}`)}
+            className="flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-brand-primary bg-brand-primary/5 border border-brand-primary/20 active:scale-[0.98] transition-all"
+          >
+            <MessageCircle size={16} />
+            {t('agents.chat')}
+          </button>
+          {waLink && (
+            <button
+              type="button"
+              onClick={handleWhatsApp}
+              className="flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 active:scale-[0.98] transition-all"
+            >
+              <Phone size={16} />
+              WhatsApp
+            </button>
           )}
         </div>
       </div>

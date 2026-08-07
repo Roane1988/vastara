@@ -86,6 +86,13 @@ export default function PropertyGridCard({ p, getTranslated = null, maxRent = 0 
               {t('explore.property_card.price_drop')}
             </span>
           )}
+          {p.status === 'sold' && (
+            <div className="absolute inset-0 bg-gray-100/70 flex items-center justify-center">
+              <span className="inline-flex items-center bg-gray-600/95 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-md">
+                Terjual
+              </span>
+            </div>
+          )}
         </div>
         <div className="p-4">
           <div className="flex items-end gap-2 flex-wrap">
