@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useDragControls } from 'framer-motion'
-import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine, TrendingUp, BellRing, LayoutGrid, List, ChevronRight } from 'lucide-react'
+import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine, TrendingUp, TrendingDown, BellRing, Megaphone, Users, Calculator, MessageCircle, LayoutGrid, List, ChevronRight } from 'lucide-react'
+
+const TOP_SERVICES = [
+  { label: 'Iklankan Properti', icon: Megaphone, path: '/sell-role' },
+  { label: 'Cari Agen', icon: Users, path: '/agents' },
+  { label: 'Kalkulator KPR', icon: Calculator, path: '/kpr' },
+  { label: 'Turun Harga', icon: TrendingDown, path: '/price-drop' },
+  { label: 'Tren Harga', icon: TrendingUp, path: '/price-trends' },
+  { label: 'Tanya Forum', icon: MessageCircle, path: '/forum' },
+]
 
 const SECTIONS = [
   {
@@ -130,6 +139,11 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
     onClose()
   }
 
+  const onTopService = (item) => () => {
+    navigate(item.path)
+    onClose()
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -159,58 +173,81 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
             className="fixed bottom-0 left-0 right-0 z-[110] flex justify-center"
           >
             <div className="w-full max-w-lg mx-auto bg-brand-surface rounded-t-3xl max-h-[85vh] overflow-y-auto overscroll-contain scroll-smooth pb-8">
-              <div className="sticky top-0 z-20 rounded-t-3xl bg-white/90 backdrop-blur-md border-b border-brand-border/60 shadow-sm">
-                <div
-                  onPointerDown={(e) => dragControls.start(e)}
-                  className="pt-2 pb-1 flex justify-center cursor-grab active:cursor-grabbing touch-none"
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="pt-2 pb-1 flex justify-center cursor-grab active:cursor-grabbing touch-none"
+              >
+                <div className="w-10 h-1 rounded-full bg-brand-border" />
+              </div>
+
+              <div className="px-5 pt-1 pb-2 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-brand-text">Kategori Lainnya</h2>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="p-1.5 rounded-full text-brand-muted hover:bg-brand-bg transition-colors active:scale-90"
                 >
-                  <div className="w-10 h-1 rounded-full bg-brand-border" />
-                </div>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
 
-                <div className="px-5 pt-1 pb-2 flex items-center justify-between">
-                  <h2 className="text-lg font-bold text-brand-text">Kategori Lainnya</h2>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="p-1.5 rounded-full text-brand-muted hover:bg-brand-bg transition-colors active:scale-90"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
+              <div className="px-5 pt-1 pb-3">
+                <h3 className="text-lg font-bold text-brand-text mb-4">Layanan teratas</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {TOP_SERVICES.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={onTopService(item)}
+                        className="flex flex-col items-center text-center p-2 rounded-xl hover:bg-brand-bg active:scale-95 transition-all duration-200 cursor-pointer"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-brand-highlight border border-brand-accent/10 flex items-center justify-center text-brand-primary shadow-sm shrink-0">
+                          <Icon size={20} />
+                        </div>
+                        <span className="text-xs sm:text-sm font-medium text-brand-text mt-1.5 leading-tight">
+                          {item.label}
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
+              </div>
 
-                <div className="px-5 pb-4">
-                  <div className="flex items-center justify-center">
-                    <div className="inline-flex items-center gap-1 bg-gray-100 p-1 rounded-full">
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('grid')}
-                        aria-label="Tampilan grid"
-                        title="Tampilan grid"
-                        className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 active:scale-90 ${
-                          viewMode === 'grid'
-                            ? 'bg-white shadow text-brand-primary'
-                            : 'text-brand-muted hover:text-brand-text'
-                        }`}
-                      >
-                        <LayoutGrid size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('list')}
-                        aria-label="Tampilan list"
-                        title="Tampilan list"
-                        className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 active:scale-90 ${
-                          viewMode === 'list'
-                            ? 'bg-white shadow text-brand-primary'
-                            : 'text-brand-muted hover:text-brand-text'
-                        }`}
-                      >
-                        <List size={16} />
-                      </button>
-                    </div>
+              <div className="sticky top-0 z-20 backdrop-blur-md bg-white/90 border-b border-brand-border/60 shadow-sm py-3">
+                <div className="px-5 flex items-center justify-between gap-3">
+                  <h3 className="text-base font-bold text-brand-text shrink-0">Layanan lainnya</h3>
+                  <div className="inline-flex items-center gap-1 bg-gray-100 p-1 rounded-full">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('grid')}
+                      aria-label="Tampilan grid"
+                      title="Tampilan grid"
+                      className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 active:scale-90 ${
+                        viewMode === 'grid'
+                          ? 'bg-white shadow text-brand-primary'
+                          : 'text-brand-muted hover:text-brand-text'
+                      }`}
+                    >
+                      <LayoutGrid size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('list')}
+                      aria-label="Tampilan list"
+                      title="Tampilan list"
+                      className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 active:scale-90 ${
+                        viewMode === 'list'
+                          ? 'bg-white shadow text-brand-primary'
+                          : 'text-brand-muted hover:text-brand-text'
+                      }`}
+                    >
+                      <List size={16} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -220,6 +257,7 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="pt-2"
               >
                 {viewMode === 'grid' ? (
                   <GridView sections={SECTIONS} onNavigate={onNavigate} />
