@@ -34,14 +34,20 @@ const SECTIONS = [
   },
 ]
 
+function SectionTitle({ title }) {
+  return (
+    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-4">
+      {title}
+    </h3>
+  )
+}
+
 function GridView({ sections, onNavigate }) {
   return (
-    <div className="px-5 flex flex-col gap-6">
+    <div className="px-5 flex flex-col">
       {sections.map((section) => (
-        <div key={section.title}>
-          <h3 className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-4">
-            {section.title}
-          </h3>
+        <div key={section.title} className="mt-6 first:mt-0">
+          <SectionTitle title={section.title} />
           <div className="grid grid-cols-4 gap-2">
             {section.items.map((item) => {
               const Icon = item.icon
@@ -50,12 +56,12 @@ function GridView({ sections, onNavigate }) {
                   key={item.label}
                   type="button"
                   onClick={onNavigate(item)}
-                  className="flex flex-col items-center text-center p-2 rounded-xl hover:bg-brand-bg active:scale-95 transition-all cursor-pointer"
+                  className="flex flex-col items-center text-center p-2 rounded-xl hover:bg-brand-bg active:scale-95 transition-all duration-200 cursor-pointer"
                 >
                   <div className="relative w-12 h-12 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent shadow-sm shrink-0">
                     <Icon size={20} />
                     {item.isNew && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                      <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none shadow-sm">
                         NEW
                       </span>
                     )}
@@ -75,12 +81,10 @@ function GridView({ sections, onNavigate }) {
 
 function ListView({ sections, onNavigate }) {
   return (
-    <div className="px-5 flex flex-col gap-6">
+    <div className="px-5 flex flex-col">
       {sections.map((section) => (
-        <div key={section.title}>
-          <h3 className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-4">
-            {section.title}
-          </h3>
+        <div key={section.title} className="mt-6 first:mt-0">
+          <SectionTitle title={section.title} />
           <div className="bg-white rounded-2xl border border-brand-border overflow-hidden">
             {section.items.map((item) => {
               const Icon = item.icon
@@ -89,19 +93,21 @@ function ListView({ sections, onNavigate }) {
                   key={item.label}
                   type="button"
                   onClick={onNavigate(item)}
-                  className="w-full flex items-center gap-3 px-3.5 py-3 text-left border-b border-gray-100 last:border-0 hover:bg-brand-bg/50 transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-3 px-3.5 py-3 text-left border-b border-gray-100 last:border-0 hover:bg-brand-bg/50 active:bg-gray-50 active:scale-[0.98] transition-all duration-200 cursor-pointer"
                 >
                   <span className="relative w-11 h-11 rounded-xl bg-brand-highlight text-brand-accent flex items-center justify-center shrink-0">
                     <Icon size={20} />
-                    {item.isNew && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-                        NEW
-                      </span>
-                    )}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-brand-text">{item.label}</span>
-                    <span className="block text-xs text-brand-muted truncate">{item.description}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-brand-text truncate">{item.label}</span>
+                      {item.isNew && (
+                        <span className="shrink-0 bg-red-50 text-red-600 px-2 py-0.5 rounded-full text-[10px] font-bold leading-none">
+                          NEW
+                        </span>
+                      )}
+                    </span>
+                    <span className="block text-xs text-brand-muted truncate mt-0.5">{item.description}</span>
                   </span>
                   <ChevronRight size={16} className="text-brand-muted/40 shrink-0" />
                 </button>
@@ -153,56 +159,58 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
             className="fixed bottom-0 left-0 right-0 z-[110] flex justify-center"
           >
             <div className="w-full max-w-lg mx-auto bg-brand-surface rounded-t-3xl max-h-[85vh] overflow-y-auto overscroll-contain scroll-smooth pb-8">
-              <div
-                onPointerDown={(e) => dragControls.start(e)}
-                className="sticky top-0 bg-brand-surface rounded-t-3xl pt-2 pb-1 flex justify-center cursor-grab active:cursor-grabbing touch-none z-10"
-              >
-                <div className="w-10 h-1 rounded-full bg-brand-border" />
-              </div>
-
-              <div className="px-5 pt-1 pb-2 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-brand-text">Kategori Lainnya</h2>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="p-1.5 rounded-full text-brand-muted hover:bg-brand-bg transition-colors"
+              <div className="sticky top-0 z-20 rounded-t-3xl bg-white/90 backdrop-blur-md border-b border-brand-border/60 shadow-sm">
+                <div
+                  onPointerDown={(e) => dragControls.start(e)}
+                  className="pt-2 pb-1 flex justify-center cursor-grab active:cursor-grabbing touch-none"
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
+                  <div className="w-10 h-1 rounded-full bg-brand-border" />
+                </div>
 
-              <div className="px-5 pb-4">
-                <div className="flex items-center justify-center">
-                  <div className="inline-flex items-center gap-1 bg-gray-100 p-1 rounded-full">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('grid')}
-                      aria-label="Tampilan grid"
-                      title="Tampilan grid"
-                      className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 ${
-                        viewMode === 'grid'
-                          ? 'bg-white shadow text-brand-primary'
-                          : 'text-brand-muted hover:text-brand-text'
-                      }`}
-                    >
-                      <LayoutGrid size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('list')}
-                      aria-label="Tampilan list"
-                      title="Tampilan list"
-                      className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 ${
-                        viewMode === 'list'
-                          ? 'bg-white shadow text-brand-primary'
-                          : 'text-brand-muted hover:text-brand-text'
-                      }`}
-                    >
-                      <List size={16} />
-                    </button>
+                <div className="px-5 pt-1 pb-2 flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-brand-text">Kategori Lainnya</h2>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="p-1.5 rounded-full text-brand-muted hover:bg-brand-bg transition-colors active:scale-90"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="px-5 pb-4">
+                  <div className="flex items-center justify-center">
+                    <div className="inline-flex items-center gap-1 bg-gray-100 p-1 rounded-full">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('grid')}
+                        aria-label="Tampilan grid"
+                        title="Tampilan grid"
+                        className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 active:scale-90 ${
+                          viewMode === 'grid'
+                            ? 'bg-white shadow text-brand-primary'
+                            : 'text-brand-muted hover:text-brand-text'
+                        }`}
+                      >
+                        <LayoutGrid size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('list')}
+                        aria-label="Tampilan list"
+                        title="Tampilan list"
+                        className={`flex items-center justify-center p-2 rounded-full transition-all duration-200 active:scale-90 ${
+                          viewMode === 'list'
+                            ? 'bg-white shadow text-brand-primary'
+                            : 'text-brand-muted hover:text-brand-text'
+                        }`}
+                      >
+                        <List size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
