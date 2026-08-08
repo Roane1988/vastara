@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Bell, Check, Building2, Plus, Home, MessageSquare } from 'lucide-react'
+import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Bell, Check, Plus, Home, MessageSquare } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext'
 import useSEO from '../hooks/useSEO'
 import { batchTranslate } from '../hooks/useGroqTranslation'
 import { useCompare } from '../hooks/useCompare'
-import { serializeFilters, isNewListing, getListingTimestamp } from '../utils/savedSearch'
+import { serializeFilters, isNewListing } from '../utils/savedSearch'
 import MoreCategoriesDrawer from './MoreCategoriesDrawer'
 import RecentlyViewed from './RecentlyViewed'
 import CompareBar from './CompareBar'
@@ -88,7 +88,6 @@ export default function ExplorePage() {
   const [isAiSearch, setIsAiSearch] = useState(false)
   const [showFinBanner, setShowFinBanner] = useState(false)
   const [finProfile, setFinProfile] = useState(null)
-  const [activity, setActivity] = useState({ agents: 0, discussions: 0 })
   const [stickySearch, setStickySearch] = useState(false)
   const { compareSet, toggleCompare } = useCompare(showToast)
   const { totalNew } = useSavedSearchAlerts()
@@ -109,22 +108,6 @@ export default function ExplorePage() {
     })()
     return () => { cancelled = true }
   }, [user])
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const [agents, discussions] = await Promise.allSettled([
-        supabase.from('agent_profiles').select('user_id', { count: 'exact', head: true }),
-        supabase.from('forum_posts').select('id', { count: 'exact', head: true }),
-      ])
-      if (cancelled) return
-      setActivity({
-        agents: agents.status === 'fulfilled' ? (agents.value.count ?? 0) : 0,
-        discussions: discussions.status === 'fulfilled' ? (discussions.value.count ?? 0) : 0,
-      })
-    })()
-    return () => { cancelled = true }
-  }, [])
 
   useEffect(() => {
     const onScroll = () => setStickySearch(window.scrollY > 520)
@@ -375,23 +358,6 @@ export default function ExplorePage() {
     ]
   }, [searchCategory])
 
-  const heroStats = useMemo(() => {
-    const total = properties.length
-    const cities = new Set(properties.map((p) => p.city || p.district).filter(Boolean)).size
-    const types = new Set(properties.map((p) => p.property_type).filter(Boolean)).size
-    return { total, cities, types }
-  }, [properties])
-
-  const startOfToday = useMemo(() => new Date().setHours(0, 0, 0, 0), [])
-  const newToday = useMemo(
-    () => properties.filter((p) => getListingTimestamp(p) >= startOfToday).length,
-    [properties, startOfToday]
-  )
-  const priceDrops = useMemo(
-    () => properties.filter((p) => p.original_price && Number(p.original_price) > Number(p.price)).length,
-    [properties]
-  )
-
   const sorted = useMemo(() => {
     return [...properties].filter((p) => {
       if (searchCategory === 'dijual' && p.category !== 'Dijual') return false
@@ -559,7 +525,7 @@ export default function ExplorePage() {
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 pt-8 pb-12 sm:pt-12 sm:pb-16">
+        <div className="relative max-w-7xl mx-auto px-4 pt-8 pb-10 sm:pt-12 sm:pb-14">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -581,62 +547,13 @@ export default function ExplorePage() {
             )}
           </motion.div>
 
-          {heroStats.total > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.12, ease: 'easeOut' }}
-              className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-white/70 text-xs sm:text-sm"
-            >
-              <span><b className="text-white font-bold text-sm sm:text-base">{heroStats.total}</b> properti</span>
-              <span className="w-1 h-1 rounded-full bg-white/40" />
-              <span><b className="text-white font-bold text-sm sm:text-base">{heroStats.cities}</b> kota</span>
-              <span className="w-1 h-1 rounded-full bg-white/40" />
-              <span><b className="text-white font-bold text-sm sm:text-base">{heroStats.types}</b> tipe</span>
-            </motion.div>
-          )}
-
-          {/* Activity Card */}
-          {!isSearching && (
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.16, ease: 'easeOut' }}
-              className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5"
-            >
-              {[
-                { icon: Building2, value: newToday || 0, label: 'properti baru hari ini', to: null, onClick: scrollToSearch },
-                { icon: TrendingDown, value: priceDrops || 0, label: 'harga turun', to: '/price-drop', onClick: null },
-                ...(activity.agents > 0 ? [{ icon: Users, value: activity.agents, label: 'agen siap bantu', to: '/agents', onClick: null }] : []),
-                ...(activity.discussions > 0 ? [{ icon: MessageCircle, value: activity.discussions, label: 'diskusi aktif', to: '/forum', onClick: null }] : []),
-              ].map((s) => {
-                const Inner = (
-                  <span className="w-full bg-white/10 hover:bg-white/20 backdrop-blur border border-white/15 rounded-2xl px-3 py-2.5 flex items-center gap-2.5 transition-colors">
-                    <span className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
-                      <s.icon size={16} className="text-white" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-bold text-white leading-tight">{s.value}</span>
-                      <span className="block text-[10px] text-white/70 truncate">{s.label}</span>
-                    </span>
-                  </span>
-                )
-                return s.to ? (
-                  <Link key={s.label} to={s.to} className="flex">{Inner}</Link>
-                ) : (
-                  <button key={s.label} type="button" onClick={s.onClick} className="flex">{Inner}</button>
-                )
-              })}
-            </motion.div>
-          )}
-
           {/* Search Card */}
           <motion.div
             ref={searchCardRef}
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.2, ease: 'easeOut' }}
-            className="bg-white/95 backdrop-blur rounded-3xl shadow-xl shadow-brand-primary/15 border border-white/60 p-4 sm:p-5 mt-7 scroll-mt-24"
+            className="bg-white/95 backdrop-blur rounded-3xl shadow-xl shadow-brand-primary/15 border border-white/60 p-4 sm:p-5 mt-9 scroll-mt-24"
           >
             <div className="flex gap-5 sm:gap-6 mb-4 border-b border-brand-border/70">
               {[
@@ -953,7 +870,7 @@ export default function ExplorePage() {
               {properties.length} properti tersedia
             </span>
             <span className="hidden sm:inline text-brand-border">•</span>
-            <span>{activity.agents > 0 ? `${activity.agents} agen siap bantu` : 'Agen siap bantu'}</span>
+            <span>Agen siap bantu</span>
             <span className="hidden sm:inline text-brand-border">•</span>
             <span>Harga selalu diperbarui</span>
           </div>
