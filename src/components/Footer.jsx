@@ -6,7 +6,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
 const WA_NUMBER = '6281234567890'
-const CONTACT_EMAIL = 'halo@hunione.com'
+const CONTACT_EMAIL = 'officialhunione@gmail.com'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const socialLinks = [
@@ -257,10 +257,19 @@ export default function Footer() {
               </a>
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
-                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors duration-200 text-sm"
+                className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 hover:border-brand-accent/50 active:scale-[0.98] transition-all"
               >
-                <Mail size={15} className="shrink-0" />
-                {CONTACT_EMAIL}
+                <span className="shrink-0 w-9 h-9 rounded-lg bg-brand-accent/20 flex items-center justify-center">
+                  <Mail size={17} className="text-brand-accent group-hover:scale-110 transition-transform" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                    {t('footer.email_label')}
+                  </span>
+                  <span className="block text-sm text-white font-medium truncate group-hover:underline underline-offset-2">
+                    {CONTACT_EMAIL}
+                  </span>
+                </span>
               </a>
               <button
                 type="button"
