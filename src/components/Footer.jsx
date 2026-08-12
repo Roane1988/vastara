@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowUp, Send, ShieldCheck, BadgeCheck, Headset, Apple, Play, MessageCircle, Mail, Bot, Loader2, CheckCircle2 } from 'lucide-react'
+import { ArrowUp, Send, ShieldCheck, BadgeCheck, Headset, MessageCircle, Mail, Bot, Loader2, CheckCircle2 } from 'lucide-react'
+import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
 const WA_NUMBER = '6281234567890'
@@ -52,7 +53,7 @@ export default function Footer() {
   const { showToast } = useAuth()
 
   const [email, setEmail] = useState('')
-  const [subscribing, setSubscribing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [showScroll, setShowScroll] = useState(false)
 
@@ -62,20 +63,26 @@ export default function Footer() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const handleSubscribe = (e) => {
+  const handleSubscribe = async (e) => {
     e.preventDefault()
-    if (subscribed) return
-    if (!email.trim() || !EMAIL_RE.test(email.trim())) {
+    if (subscribed || isLoading) return
+    const trimmed = email.trim()
+    if (!trimmed || !EMAIL_RE.test(trimmed)) {
       showToast(t('footer.newsletter_required'), 'error')
       return
     }
-    setSubscribing(true)
-    window.setTimeout(() => {
-      setSubscribing(false)
+    setIsLoading(true)
+    try {
+      const { error } = await supabase.from('newsletter_subscribers').insert([{ email: trimmed }])
+      if (error) throw error
       setSubscribed(true)
       setEmail('')
       showToast(t('footer.newsletter_success'), 'success')
-    }, 700)
+    } catch {
+      showToast(t('footer.newsletter_error'), 'error')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const openHuniBot = (question) => {
@@ -162,11 +169,11 @@ export default function Footer() {
                     />
                     <button
                       type="submit"
-                      disabled={subscribing}
-                      className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-brand-accent text-white text-sm font-semibold hover:bg-brand-accent/90 active:scale-[0.97] transition-all disabled:opacity-60"
+                      disabled={isLoading}
+                      className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-brand-accent text-white text-sm font-semibold hover:bg-brand-accent/90 active:scale-[0.97] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {subscribing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-                      <span className="hidden sm:inline">{t('footer.newsletter_button')}</span>
+                      {isLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                      <span className="hidden sm:inline">{isLoading ? t('footer.newsletter_sending') : t('footer.newsletter_button')}</span>
                     </button>
                   </div>
                 </form>
@@ -250,25 +257,13 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 rounded-2xl bg-white/5 border border-white/10 p-5 sm:p-6">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-            <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-8">
-              {trustItems.map((item) => (
-                <div key={item.label} className="flex items-center gap-2">
-                  <item.icon size={17} className="text-brand-accent" />
-                  <span className="text-slate-300 text-xs sm:text-sm font-medium">{item.label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs font-semibold opacity-80">
-                <Apple size={16} />
-                {t('footer.app_ios')}
-              </span>
-              <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs font-semibold opacity-80">
-                <Play size={16} />
-                {t('footer.app_android')}
-              </span>
-            </div>
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-8 gap-y-4">
+            {trustItems.map((item) => (
+              <div key={item.label} className="flex items-center gap-2">
+                <item.icon size={17} className="text-brand-accent" />
+                <span className="text-slate-300 text-xs sm:text-sm font-medium">{item.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
