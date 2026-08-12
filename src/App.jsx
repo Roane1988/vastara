@@ -5,6 +5,7 @@ import { SavedSearchAlertsProvider } from './context/SavedSearchAlertsContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import TopNavbar from './components/TopNavbar'
 import Footer from './components/Footer'
+import LegalPage from './components/LegalPage'
 
 const ProfileDrawer = lazy(() => import('./components/ProfileDrawer'))
 const HuniBot = lazy(() => import('./components/HuniBot'))
@@ -30,7 +31,6 @@ const ComparePage = lazy(() => import('./components/ComparePage'))
 const PriceDropPage = lazy(() => import('./components/PriceDropPage'))
 const PriceTrendPage = lazy(() => import('./components/PriceTrendPage'))
 const SavedSearchesPage = lazy(() => import('./components/SavedSearchesPage'))
-const LegalPage = lazy(() => import('./components/LegalPage'))
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'))
 
 function PageLoader() {
