@@ -5,30 +5,56 @@ const BASE_DESC = 'Temukan properti impian Anda di HuniOne. Jual, beli, dan sewa
 
 export default function useSEO({ title, description, image } = {}) {
   useEffect(() => {
-    document.title = title ? `${title} | HuniOne` : BASE_TITLE
+    const pageTitle = title ? `${title} | HuniOne` : BASE_TITLE
+    document.title = pageTitle
 
-    const setMeta = (name, content) => {
-      let el = document.querySelector(`meta[name="${name}"], meta[property="${name}"]`)
+    const upsertMeta = (attr, key, content) => {
+      let el = document.head.querySelector(`meta[${attr}="${key}"]`)
       if (!el) {
         el = document.createElement('meta')
-        el.name = name
+        el.setAttribute(attr, key)
         document.head.appendChild(el)
       }
-      el.content = content
+      el.setAttribute('content', content)
     }
 
-    setMeta('description', description || BASE_DESC)
-    setMeta('og:title', title || BASE_TITLE)
-    setMeta('og:description', description || BASE_DESC)
-    setMeta('og:type', 'website')
-    setMeta('og:url', window.location.href)
-    if (image) setMeta('og:image', image)
+    const upsertLink = (rel, href) => {
+      let el = document.head.querySelector(`link[rel="${rel}"]`)
+      if (!el) {
+        el = document.createElement('link')
+        el.rel = rel
+        document.head.appendChild(el)
+      }
+      el.setAttribute('href', href)
+    }
+
+    const url = window.location.href
+    const origin = window.location.origin
+    const ogImage = image || `${origin}/favicon.png`
+
+    upsertMeta('name', 'description', description || BASE_DESC)
+    upsertMeta('name', 'robots', 'index, follow')
+    upsertLink('canonical', url)
+
+    upsertMeta('property', 'og:title', title || BASE_TITLE)
+    upsertMeta('property', 'og:description', description || BASE_DESC)
+    upsertMeta('property', 'og:type', 'website')
+    upsertMeta('property', 'og:url', url)
+    upsertMeta('property', 'og:site_name', 'HuniOne')
+    upsertMeta('property', 'og:locale', 'id_ID')
+    upsertMeta('property', 'og:image', ogImage)
+    upsertMeta('property', 'og:image:alt', title || BASE_TITLE)
+
+    upsertMeta('name', 'twitter:card', 'summary_large_image')
+    upsertMeta('name', 'twitter:title', title || BASE_TITLE)
+    upsertMeta('name', 'twitter:description', description || BASE_DESC)
+    upsertMeta('name', 'twitter:image', ogImage)
 
     return () => {
       document.title = BASE_TITLE
-      setMeta('description', BASE_DESC)
-      setMeta('og:title', BASE_TITLE)
-      setMeta('og:description', BASE_DESC)
+      upsertMeta('name', 'description', BASE_DESC)
+      upsertMeta('property', 'og:title', BASE_TITLE)
+      upsertMeta('property', 'og:description', BASE_DESC)
     }
   }, [title, description, image])
 }
