@@ -129,8 +129,8 @@ export default function Footer() {
   return (
     <footer className="bg-brand-primary">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 lg:pt-16 pb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
-          <div className="sm:col-span-2 lg:col-span-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
+          <div className="sm:col-span-2 lg:col-span-3">
             <Link to="/" className="inline-block">
               <img src="/huniOne.svg" alt="HuniOne" className="h-20 md:h-24 w-auto object-contain" />
             </Link>
@@ -175,7 +175,7 @@ export default function Footer() {
           </div>
 
           {navGroups.map((group) => (
-            <div key={group.title}>
+            <div key={group.title} className="lg:col-span-2">
               <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">
                 {group.title}
               </h3>
@@ -204,7 +204,7 @@ export default function Footer() {
             </div>
           ))}
 
-          <div>
+          <div className="lg:col-span-3">
             <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">
               {t('footer.group_contact')}
             </h3>
@@ -220,7 +220,7 @@ export default function Footer() {
               </a>
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
-                className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 hover:border-brand-accent/50 active:scale-[0.98] transition-all"
+                className="group w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 hover:border-brand-accent/50 active:scale-[0.98] transition-all"
               >
                 <span className="shrink-0 w-9 h-9 rounded-lg bg-brand-accent/20 flex items-center justify-center">
                   <Mail size={17} className="text-brand-accent group-hover:scale-110 transition-transform" />
@@ -229,7 +229,7 @@ export default function Footer() {
                   <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
                     {t('footer.email_label')}
                   </span>
-                  <span className="block text-xs sm:text-sm text-white font-medium break-all leading-snug group-hover:underline underline-offset-2">
+                  <span className="block text-xs sm:text-sm text-white font-medium whitespace-nowrap leading-snug group-hover:underline underline-offset-2">
                     {CONTACT_EMAIL}
                   </span>
                 </span>
