@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowUp, Send, ShieldCheck, BadgeCheck, Headset, Apple, Play, MessageCircle, Mail, Bot, Loader2, CheckCircle2 } from 'lucide-react'
-import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
 const WA_NUMBER = '6281234567890'
@@ -56,30 +55,11 @@ export default function Footer() {
   const [subscribing, setSubscribing] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [showScroll, setShowScroll] = useState(false)
-  const [stats, setStats] = useState({ properties: null, users: null, posts: null })
 
   useEffect(() => {
     const onScroll = () => setShowScroll(window.scrollY > 400)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    const fetchStats = async () => {
-      try {
-        const [prop, users, posts] = await Promise.all([
-          supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }),
-          supabase.from('forum_posts').select('*', { count: 'exact', head: true }),
-        ])
-        if (!cancelled) setStats({ properties: prop.count, users: users.count, posts: posts.count })
-      } catch {
-        if (!cancelled) setStats({ properties: 0, users: 0, posts: 0 })
-      }
-    }
-    fetchStats()
-    return () => { cancelled = true }
   }, [])
 
   const handleSubscribe = (e) => {
@@ -109,8 +89,6 @@ export default function Footer() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-
-  const formatStat = (n) => (n == null ? '–' : n.toLocaleString('id-ID'))
 
   const navGroups = [
     {
@@ -194,21 +172,6 @@ export default function Footer() {
                 </form>
               )}
             </div>
-
-            <div className="mt-6 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-white/5 border border-white/10 p-2.5 text-center">
-                <p className="text-white text-sm font-bold">{formatStat(stats.properties)}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{t('footer.stat_property')}</p>
-              </div>
-              <div className="rounded-xl bg-white/5 border border-white/10 p-2.5 text-center">
-                <p className="text-white text-sm font-bold">{formatStat(stats.users)}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{t('footer.stat_user')}</p>
-              </div>
-              <div className="rounded-xl bg-white/5 border border-white/10 p-2.5 text-center">
-                <p className="text-white text-sm font-bold">{formatStat(stats.posts)}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{t('footer.stat_forum')}</p>
-              </div>
-            </div>
           </div>
 
           {navGroups.map((group) => (
@@ -266,7 +229,7 @@ export default function Footer() {
                   <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
                     {t('footer.email_label')}
                   </span>
-                  <span className="block text-sm text-white font-medium truncate group-hover:underline underline-offset-2">
+                  <span className="block text-xs sm:text-sm text-white font-medium break-all leading-snug group-hover:underline underline-offset-2">
                     {CONTACT_EMAIL}
                   </span>
                 </span>
