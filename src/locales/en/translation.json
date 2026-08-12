@@ -25,10 +25,10 @@
     "report_question": "I would like to report an issue on the HuniOne website. Please help me walk through the steps.",
     "group_contact": "Contact",
     "email_label": "Email",
-    "wa_button": "Chat on WhatsApp",
-    "wa_message": "Hello HuniOne, I would like to ask about your platform.",
     "link_ask_hunibot": "Ask HuniBot",
     "contact_note": "Our team is ready to help every day, anytime.",
+    "link_terms": "Terms & Conditions",
+    "link_privacy": "Privacy Policy",
     "newsletter_title": "Subscribe",
     "newsletter_desc": "Get the latest properties and useful tips straight to your inbox.",
     "newsletter_placeholder": "Your email",
@@ -36,6 +36,7 @@
     "newsletter_sending": "Sending...",
     "newsletter_required": "Please enter a valid email address.",
     "newsletter_success": "Thank you for subscribing!",
+    "newsletter_duplicate": "This email is already subscribed!",
     "newsletter_error": "Something went wrong. Please try again.",
     "newsletter_done": "You are now subscribed to our newsletter.",
     "stat_property": "Verified Properties",
@@ -637,5 +638,39 @@
     "delete": "Delete",
     "delete_confirm": "Delete this search? The alert will stop running.",
     "show_all": "Show all"
+  },
+  "legal": {
+    "back": "Back to Home",
+    "last_updated": "Last updated: 2026",
+    "terms": {
+      "title": "Terms & Conditions",
+      "intro": "Welcome to HuniOne. These Terms & Conditions (\"Terms\") govern your use of the HuniOne platform and its services. By accessing or using our platform, you agree to be bound by these Terms.",
+      "s1_title": "1. Use of the Platform",
+      "s1_body": "HuniOne provides an online marketplace connecting property buyers, sellers, tenants, and agents in Indonesia. You agree to use the platform only for lawful purposes and in a way that does not infringe the rights of others or restrict their use of the platform.",
+      "s2_title": "2. Accounts and Responsibilities",
+      "s2_body": "When you create an account, you are responsible for maintaining the confidentiality of your credentials and for all activities that occur under your account. You must provide accurate and up-to-date information at all times.",
+      "s3_title": "3. Property Listings",
+      "s3_body": "Property information is provided by sellers and agents. While we review listings, we do not guarantee the accuracy, completeness, or reliability of any listing. Buyers are encouraged to perform their own due diligence and verify property details before making any decision.",
+      "s4_title": "4. Limitation of Liability",
+      "s4_body": "To the fullest extent permitted by law, HuniOne shall not be liable for any indirect, incidental, special, or consequential damages arising out of or in connection with your use of the platform.",
+      "s5_title": "5. Changes to These Terms",
+      "s5_body": "We may update these Terms from time to time. Any changes will be posted on this page with a revised date. Continued use of the platform after changes constitutes acceptance of the new Terms."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "intro": "This Privacy Policy explains how HuniOne collects, uses, and protects your personal information when you use our platform.",
+      "s1_title": "1. Information We Collect",
+      "s1_body": "We collect information you provide directly, such as your name, email address, and profile details, as well as information collected automatically, such as device and usage data.",
+      "s2_title": "2. How We Use Your Information",
+      "s2_body": "We use your information to operate and improve the platform, personalize your experience, send you property updates and newsletters if you subscribe, and provide customer support.",
+      "s3_title": "3. Cookies and Analytics",
+      "s3_body": "We use cookies and similar technologies to analyze usage, remember preferences, and improve our services. You can control cookies through your browser settings.",
+      "s4_title": "4. Data Security",
+      "s4_body": "We implement appropriate technical and organizational measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction.",
+      "s5_title": "5. Your Rights",
+      "s5_body": "You may request access to, correction of, or deletion of your personal information at any time. You may also unsubscribe from our newsletters at any time using the link provided in our emails.",
+      "s6_title": "6. Contact Us",
+      "s6_body": "If you have any questions about this Privacy Policy, please contact us at officialhunione@gmail.com."
+    }
   }
 }

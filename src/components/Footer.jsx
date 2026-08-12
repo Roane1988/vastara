@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowUp, Send, ShieldCheck, BadgeCheck, Headset, MessageCircle, Mail, Bot, Loader2, CheckCircle2 } from 'lucide-react'
+import { ArrowUp, Send, ShieldCheck, BadgeCheck, Headset, Mail, Bot, Loader2, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
-const WA_NUMBER = '6281234567890'
+const NEWSLETTER_STORAGE_KEY = 'hunione_newsletter_subscribed'
 const CONTACT_EMAIL = 'officialhunione@gmail.com'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -20,29 +20,11 @@ const socialLinks = [
     ),
   },
   {
-    label: 'LinkedIn',
-    href: '#',
-    icon: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-      </svg>
-    ),
-  },
-  {
     label: 'TikTok',
     href: 'https://www.tiktok.com/@myhunione?is_from_webapp=1&sender_device=pc',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Facebook',
-    href: '#',
-    icon: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
       </svg>
     ),
   },
@@ -54,7 +36,7 @@ export default function Footer() {
 
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [subscribed, setSubscribed] = useState(false)
+  const [subscribed, setSubscribed] = useState(() => localStorage.getItem(NEWSLETTER_STORAGE_KEY) === 'true')
   const [showScroll, setShowScroll] = useState(false)
 
   useEffect(() => {
@@ -76,10 +58,15 @@ export default function Footer() {
       const { error } = await supabase.from('newsletter_subscribers').insert([{ email: trimmed }])
       if (error) throw error
       setSubscribed(true)
+      localStorage.setItem(NEWSLETTER_STORAGE_KEY, 'true')
       setEmail('')
       showToast(t('footer.newsletter_success'), 'success')
-    } catch {
-      showToast(t('footer.newsletter_error'), 'error')
+    } catch (err) {
+      if (err?.code === '23505') {
+        showToast(t('footer.newsletter_duplicate'), 'error')
+      } else {
+        showToast(t('footer.newsletter_error'), 'error')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -130,8 +117,6 @@ export default function Footer() {
     { icon: BadgeCheck, label: t('footer.trust_verified') },
     { icon: Headset, label: t('footer.trust_support') },
   ]
-
-  const waHref = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(t('footer.wa_message'))}`
 
   return (
     <footer className="bg-brand-primary">
@@ -217,15 +202,6 @@ export default function Footer() {
             </h3>
             <div className="space-y-3">
               <a
-                href={waHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 active:scale-[0.97] transition-all"
-              >
-                <MessageCircle size={15} />
-                {t('footer.wa_button')}
-              </a>
-              <a
                 href={`mailto:${CONTACT_EMAIL}`}
                 className="group w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 hover:border-brand-accent/50 active:scale-[0.98] transition-all"
               >
@@ -288,9 +264,26 @@ export default function Footer() {
                 ))}
               </div>
             </div>
-            <p className="text-slate-500 text-xs sm:text-right">
-              &copy; 2026 HuniOne. All rights reserved.
-            </p>
+            <div className="flex flex-col items-center sm:items-end gap-2">
+              <p className="text-slate-500 text-xs sm:text-right">
+                &copy; 2026 HuniOne. All rights reserved.
+              </p>
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/terms"
+                  className="text-slate-500 hover:text-white transition-colors duration-200 text-xs"
+                >
+                  {t('footer.link_terms')}
+                </Link>
+                <span className="text-slate-700 text-xs">•</span>
+                <Link
+                  to="/privacy"
+                  className="text-slate-500 hover:text-white transition-colors duration-200 text-xs"
+                >
+                  {t('footer.link_privacy')}
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>

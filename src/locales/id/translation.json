@@ -25,10 +25,10 @@
     "report_question": "Saya ingin melaporkan masalah di situs HuniOne. Tolong bantu saya menjelaskan langkahnya.",
     "group_contact": "Kontak",
     "email_label": "Email",
-    "wa_button": "Chat WhatsApp",
-    "wa_message": "Halo HuniOne, saya ingin bertanya tentang platform Anda.",
     "link_ask_hunibot": "Tanya HuniBot",
     "contact_note": "Tim kami siap membantu setiap hari, kapan saja.",
+    "link_terms": "Syarat & Ketentuan",
+    "link_privacy": "Kebijakan Privasi",
     "newsletter_title": "Berlangganan",
     "newsletter_desc": "Dapatkan properti terbaru dan tips menarik langsung ke emailmu.",
     "newsletter_placeholder": "Email kamu",
@@ -36,6 +36,7 @@
     "newsletter_sending": "Mengirim...",
     "newsletter_required": "Masukkan alamat email yang valid.",
     "newsletter_success": "Terima kasih telah berlangganan!",
+    "newsletter_duplicate": "Email ini sudah terdaftar sebelumnya!",
     "newsletter_error": "Terjadi kesalahan. Silakan coba lagi.",
     "newsletter_done": "Kamu sudah terdaftar di newsletter kami.",
     "stat_property": "Properti Terverifikasi",
@@ -637,5 +638,39 @@
     "delete": "Hapus",
     "delete_confirm": "Hapus pencarian ini? Alert tidak lagi berjalan.",
     "show_all": "Lihat semua"
+  },
+  "legal": {
+    "back": "Kembali ke Beranda",
+    "last_updated": "Terakhir diperbarui: 2026",
+    "terms": {
+      "title": "Syarat & Ketentuan",
+      "intro": "Selamat datang di HuniOne. Syarat & Ketentuan ini mengatur penggunaan platform dan layanan HuniOne. Dengan mengakses atau menggunakan platform kami, Anda dianggap menyetujui Syarat & Ketentuan ini.",
+      "s1_title": "1. Penggunaan Platform",
+      "s1_body": "HuniOne menyediakan marketplace daring yang menghubungkan pembeli, penjual, penyewa, dan agen properti di Indonesia. Anda setuju untuk menggunakan platform hanya untuk tujuan yang sah dan dengan cara yang tidak melanggar hak orang lain atau membatasi penggunaan mereka terhadap platform.",
+      "s2_title": "2. Akun dan Tanggung Jawab",
+      "s2_body": "Saat membuat akun, Anda bertanggung jawab menjaga kerahasiaan kredensial Anda dan atas seluruh aktivitas yang terjadi pada akun Anda. Anda wajib memberikan informasi yang akurat dan terbaru setiap saat.",
+      "s3_title": "3. Iklan Properti",
+      "s3_body": "Informasi properti disediakan oleh penjual dan agen. Meskipun kami meninjau iklan, kami tidak menjamin keakuratan, kelengkapan, atau keandalan setiap iklan. Pembeli disarankan melakukan pengecekan mandiri dan memverifikasi detail properti sebelum mengambil keputusan.",
+      "s4_title": "4. Batasan Tanggung Jawab",
+      "s4_body": "Sejauh diizinkan oleh hukum, HuniOne tidak bertanggung jawab atas kerugian tidak langsung, insidental, khusus, atau konsekuensial yang timbul dari atau terkait dengan penggunaan platform.",
+      "s5_title": "5. Perubahan Syarat",
+      "s5_body": "Kami dapat memperbarui Syarat & Ketentuan ini dari waktu ke waktu. Setiap perubahan akan dipublikasikan di halaman ini dengan tanggal revisi. Penggunaan platform yang berkelanjutan setelah perubahan berarti menerima Syarat yang baru."
+    },
+    "privacy": {
+      "title": "Kebijakan Privasi",
+      "intro": "Kebijakan Privasi ini menjelaskan bagaimana HuniOne mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda saat menggunakan platform kami.",
+      "s1_title": "1. Informasi yang Kami Kumpulkan",
+      "s1_body": "Kami mengumpulkan informasi yang Anda berikan secara langsung, seperti nama, alamat email, dan detail profil, serta informasi yang dikumpulkan secara otomatis, seperti data perangkat dan penggunaan.",
+      "s2_title": "2. Cara Kami Menggunakan Informasi Anda",
+      "s2_body": "Kami menggunakan informasi Anda untuk mengoperasikan dan meningkatkan platform, menyesuaikan pengalaman Anda, mengirimkan pembaruan properti dan newsletter jika Anda berlangganan, serta memberikan dukungan pelanggan.",
+      "s3_title": "3. Cookie dan Analitik",
+      "s3_body": "Kami menggunakan cookie dan teknologi serupa untuk menganalisis penggunaan, mengingat preferensi, dan meningkatkan layanan kami. Anda dapat mengontrol cookie melalui pengaturan browser Anda.",
+      "s4_title": "4. Keamanan Data",
+      "s4_body": "Kami menerapkan langkah-langkah teknis dan organisasional yang tepat untuk melindungi informasi pribadi Anda dari akses, perubahan, pengungkapan, atau penghancuran yang tidak sah.",
+      "s5_title": "5. Hak Anda",
+      "s5_body": "Anda dapat meminta akses, perbaikan, atau penghapusan informasi pribadi Anda kapan saja. Anda juga dapat berhenti berlangganan newsletter kapan saja menggunakan tautan yang disediakan dalam email kami.",
+      "s6_title": "6. Hubungi Kami",
+      "s6_body": "Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan hubungi kami di officialhunione@gmail.com."
+    }
   }
 }
