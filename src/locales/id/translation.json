@@ -641,7 +641,16 @@
   },
   "legal": {
     "back": "Kembali ke Beranda",
+    "back_top": "Kembali ke atas",
     "last_updated": "Terakhir diperbarui: 2026",
+    "toc": "Daftar isi",
+    "email_copied": "Email disalin ke clipboard!",
+    "contact_title": "Masih ada pertanyaan?",
+    "contact_desc": "Tim kami siap membantu setiap hari, kapan saja. Hubungi kami melalui email.",
+    "contact_button": "Hubungi Kami",
+    "see_terms": "Lihat Syarat & Ketentuan",
+    "see_privacy": "Lihat Kebijakan Privasi",
+    "see_note": "Dokumentasi legal HuniOne",
     "terms": {
       "title": "Syarat & Ketentuan",
       "intro": "Selamat datang di HuniOne. Syarat & Ketentuan ini mengatur penggunaan platform dan layanan HuniOne. Dengan mengakses atau menggunakan platform kami, Anda dianggap menyetujui Syarat & Ketentuan ini.",

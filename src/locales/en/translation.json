@@ -641,7 +641,16 @@
   },
   "legal": {
     "back": "Back to Home",
+    "back_top": "Back to top",
     "last_updated": "Last updated: 2026",
+    "toc": "On this page",
+    "email_copied": "Email copied to clipboard!",
+    "contact_title": "Still have questions?",
+    "contact_desc": "Our team is ready to help every day, anytime. Reach us via email.",
+    "contact_button": "Email Us",
+    "see_terms": "View Terms & Conditions",
+    "see_privacy": "View Privacy Policy",
+    "see_note": "HuniOne legal documentation",
     "terms": {
       "title": "Terms & Conditions",
       "intro": "Welcome to HuniOne. These Terms & Conditions (\"Terms\") govern your use of the HuniOne platform and its services. By accessing or using our platform, you agree to be bound by these Terms.",
