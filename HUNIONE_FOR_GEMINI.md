@@ -1,6 +1,24 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 7 Agustus 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 12 Agustus 2026.
+
+## Changelog — Footer Revamp & Newsletter Fungsional (12 Agustus 2026)
+Fokus: membereskan data dummy, menghidupkan fitur berlangganan, dan menambah halaman legal. Semua dikerjakan di `src/components/Footer.jsx`, `src/components/LegalPage.jsx`, dan `src/App.jsx`.
+- **Email resmi di footer**: `officialhunione@gmail.com` menggantikan `halo@hunione.com`. Kartu email di-redesign — teks email dijamin **satu baris lurus** (`whitespace-nowrap`, `text-xs sm:text-sm`, `w-full`), kolom KONTAK diperlebar (grid footer diubah dari `lg:grid-cols-5` → `lg:grid-cols-12`: logo `col-span-3`, nav `col-span-2`, kontak `col-span-3`).
+- **Section statistik dihapus**: 3 kotak (Properti Terverifikasi / Pengguna Terdaftar / Diskusi Forum) **beserta seluruh state, useEffect, dan query Supabase** (`fetchStats`) yang menghitungnya — halaman utama tidak lagi terbebani fetch yang tidak ditampilkan.
+- **Tombol App Store & Google Play dihapus** dari baris trust badges (layout menjadi centered/flex-wrap).
+- **Newsletter fungsional** (`handleSubscribe` async):
+  - Insert ke tabel **`newsletter_subscribers`** (`supabase.from('newsletter_subscribers').insert([{ email }])`).
+  - Validasi email kosong/format → toast `footer.newsletter_required` (warning).
+  - Sukses → toast "Terima kasih telah berlangganan!", input dikosongkan, form berubah jadi pesan sukses.
+  - **Deteksi email duplikat**: error Supabase `code === '23505'` → toast khusus "Email ini sudah terdaftar sebelumnya!" (bukan pesan error generik).
+  - Error lain → toast `footer.newsletter_error`.
+  - `isLoading` state: tombol berubah "Mengirim..." + spinner + `disabled` (anti double-submit).
+- **Persistensi localStorage**: key `hunione_newsletter_subscribed` — state `subscribed` di-inisialisasi lazy dari localStorage (form tidak muncul lagi saat reload; sesuai lint `react-hooks/set-state-in-effect`).
+- **Data dummy dibereskan**: tombol WhatsApp dihapus (nomor `6281234567890` dummy tidak dipakai lagi), link sosial LinkedIn & Facebook (`href="#"`) dihapus — tersisa Instagram & TikTok yang URL-nya aktif.
+- **Legal links di bottom bar footer**: "Syarat & Ketentuan" → `/terms`, "Kebijakan Privasi" → `/privacy`.
+- **Halaman legal baru** (`src/components/LegalPage.jsx`): konten statis elegan + lokalized (EN/ID, namespace `legal`), **eager import di `App.jsx`** (bukan `React.lazy`) agar tidak pernah stuck di loading spinner / blank saat chunk gagal termuat.
+  - UI: **hero card** gradient navy + badge last-updated + intro, **sticky Table of Contents** sidebar (desktop) / chips horizontal (mobile) dengan **active-section highlight** via `IntersectionObserver`, **scroll progress bar** di atas halaman, kartu section bernomor + ikon, **contact CTA** (tombol Email Us + tombol **copy email** ke clipboard dengan toast), **cross-link** Terms ↔ Privacy, tombol **back-to-top** floating (muncul setelah scroll > 20%).
 
 ## Changelog — Redesign ExplorePage (Fase 1 & 2)
 Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningkatkan retention, engagement, lead, conversion, session time, dan returning user. Mobile-first, tanpa mengubah branding/warna.
@@ -91,6 +109,8 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 | `/price-drop` | PriceDropPage | Tidak | properti yang baru turun harga (dari `price_history`/`price_change_status`) |
 | `/price-trends` | PriceTrendPage | Tidak | tren harga per kota/kategori/tipe (2×60 hari) |
 | `/saved-searches` | SavedSearchesPage | Ya | kelola alert pencarian tersimpan (`saved_searches`) |
+| `/terms` | LegalPage (type='terms') | Tidak | Syarat & Ketentuan (eager import, UI hero + sticky TOC + progress bar) |
+| `/privacy` | LegalPage (type='privacy') | Tidak | Kebijakan Privasi (eager import) |
 | `*` | NotFoundPage | Tidak | wildcard route, bukan redirect |
 | `/coming-soon` | ComingSoonPage | Tidak | |
 
@@ -336,6 +356,11 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - RLS: insert **wajib login** (20260818); select seller utk properti sendiri (`exists properties.seller_id = auth.uid()`) + admin
 - Sumber data: klik "Hubungi via WhatsApp" di PropertyDetailPage; dibaca MyListingsPage (tab Leads) & AdminDashboardPage
 
+### Table `newsletter_subscribers` (baru — 20260824)
+- `id` (uuid PK, default `gen_random_uuid()`), `email` (text **NOT NULL UNIQUE**), `created_at` (timestamptz, default `now()`)
+- RLS: **INSERT terbuka** (`with check (true)` — anon & authenticated boleh berlangganan); **SELECT/UPDATE/DELETE hanya admin** (`auth.uid() in (select id from profiles where role = 'admin')`) — daftar email pelanggan tidak bisa dibaca publik
+- Sumber data: form newsletter di footer (`Footer.jsx` → `supabase.from('newsletter_subscribers').insert([{ email }])`); error unique violation (`code 23505`) ditangkap → toast "Email ini sudah terdaftar sebelumnya!"
+
 ### Table `property_reports` (baru — 20260819, Lapor Iklan)
 - `id` (uuid PK), `property_id` (FK → properties, cascade), `reporter_id` (FK → profiles, cascade), `reason` (check: penipuan/harga/terjual/duplikat/lokasi/lainnya), `note`, `status` (check: 'pending'/'dismissed'/'actioned', default 'pending'), `reviewed_by` (FK → profiles), `reviewed_at`, `created_at`
 - Unique `(property_id, reporter_id)` — satu laporan per pembeli per properti; index `(status, created_at desc)`
@@ -439,7 +464,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - Image fallback: semua `<img>` dari DB punya `onError` → `FALLBACK_IMAGE` (exported dari `utils/images.js`)
 
 ## Code Splitting
-- Semua route components di `App.jsx` pakai `React.lazy()` + `Suspense` dengan `PageLoader` spinner
+- Semua route components di `App.jsx` pakai `React.lazy()` + `Suspense` dengan `PageLoader` spinner — **kecuali `LegalPage` (`/terms` & `/privacy`) yang eager-import** (12 Agustus 2026) agar halaman legal selalu render instan tanpa risiko blank/stuck spinner saat chunk lambat/cache stale
 - Bundle size: 849KB → 671KB (gzip 199KB)
 
 ## Keamanan
@@ -464,7 +489,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - Logo: `public/huniOne.svg` via `<img>` (viewBox-based)
 - Shared utils: `format.js` (formatPrice, formatCurrency, formatCount), `avatar.js` (getAvatarColor, getInitials), `time.js` (timeAgo), `favorites.js` (setSupabase, initFavorites, toggleFavorite), `images.js` (parseImages, FALLBACK_IMAGE, getImageSrc), `markdown.js` (parseBlocks, tokenizeInline, isSafeUrl), `compare.js` (MAX_ITEMS=3, getCompareList, addToCompare, removeFromCompare, isInCompare, clearCompare), `recentlyViewed.js` (get/remove/clear/addRecentlyViewed, CHANGE_EVENT), `financialProfile.js` (getFinancialProfile, saveFinancialProfile, computeAffordability, maxAffordablePrice, estimateMonthlyInstallment, BUYING_POWER_ASSUMPTION), `groqClient.js` (`getAuthHeaders()` — baca token session untuk `Authorization: Bearer` ke `/api/groq`)
 - Custom events untuk integrasi antar komponen: `compare-updated`, `recently-viewed-changed`, `financial-profile-saved`, `open-financial-profile`, `open-hunibot-question`, `open-hunibot`
-- Footer: mega footer (5 kolom) + newsletter (validasi email) + stats live (properties verified/profiles/forum_posts) + trust badges + app badges (**statis** — bukan link dead-end, diubah saat audit fix) + contact (WhatsApp `wa.me/6281234567890`, `halo@hunione.com`, tombol tanya HuniBot) + social links real + **scroll-to-top button** (muncul scrollY > 400)
+- Footer: mega footer (kolom logo+newsletter **fungsional** → tabel `newsletter_subscribers`, 3 grup nav, kontak) + trust badges (tanpa app badges) + contact (email resmi `officialhunione@gmail.com` — kartu satu baris, tombol Tanya HuniBot) + social links real (Instagram, TikTok) + **legal links** (Syarat & Ketentuan `/terms`, Kebijakan Privasi `/privacy`) + **scroll-to-top button** (muncul scrollY > 400); newsletter state di-persist ke localStorage (key `hunione_newsletter_subscribed`)
 
 ## Migrations SQL
 Semua file di `supabase/migrations/`:
@@ -504,5 +529,6 @@ Semua file di `supabase/migrations/`:
 34. `20260821_chat_read_receipts.sql` — kolom `direct_messages.read_at` + policy UPDATE receiver + realtime `direct_messages`
 35. `20260822_property_price_period.sql` — kolom `properties.price_period` ('total'/'bulan'/'tahun') + backfill sewa → 'bulan'
 36. `20260823_property_detail_fields.sql` — kolom `properties.land_area_sqm` & `furnished` (kondisi isi properti sewa)
+37. `20260824_create_newsletter_subscribers.sql` — tabel `newsletter_subscribers` + RLS (INSERT publik, SELECT/UPDATE/DELETE admin-only)
 
 **Catatan**: PostgreSQL 14 tidak support `CREATE POLICY IF NOT EXISTS` — harus pakai `DROP POLICY IF EXISTS` dulu sebelum `CREATE POLICY`. Migration terbaru memakai blok `do $$ ... exception when duplicate_object` untuk idempotency.
