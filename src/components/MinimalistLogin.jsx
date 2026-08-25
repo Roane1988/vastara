@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -159,6 +160,12 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                     <EyeIcon visible={showPassword} />
                   </button>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-end">
+                <Link to="/forgot-password" className="text-xs font-medium text-brand-primary hover:text-brand-accent transition-colors">
+                  {t('login.forgot_password')}
+                </Link>
               </div>
 
               <button

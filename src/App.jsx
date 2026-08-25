@@ -31,6 +31,8 @@ const ComparePage = lazy(() => import('./components/ComparePage'))
 const PriceDropPage = lazy(() => import('./components/PriceDropPage'))
 const PriceTrendPage = lazy(() => import('./components/PriceTrendPage'))
 const SavedSearchesPage = lazy(() => import('./components/SavedSearchesPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
+const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage'))
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'))
 
 function PageLoader() {
@@ -97,6 +99,8 @@ function AppContent() {
               <Route path="/" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
               <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
               <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/update-password" element={<UpdatePasswordPage />} />
               <Route path="/sell-role" element={<ProtectedRoute isAuth={isAuth} location={location}><RoleSelectionPage /></ProtectedRoute>} />
               <Route path="/agent-apply" element={<AgentApplicationPage />} />
               <Route path="/agents" element={<AgentsPage />} />
