@@ -1,6 +1,15 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 12 Agustus 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 25 Agustus 2026.
+
+## Changelog — SEO, MoreCategoriesDrawer, Profil Penjual Publik (25 Agustus 2026)
+- **SEO (`index.html` + `public/robots.txt`)**: tambah `<meta name="robots" content="index, follow">`, `<link rel="canonical">`, Open Graph tags (`og:type`, `og:site_name`, `og:locale`, `og:title`, `og:description`, `og:image`), Twitter Card (`summary_large_image`). `robots.txt` allow all dengan sitemap reference.
+- **MoreCategoriesDrawer redesign (gaya Gojek)**: section "Layanan cepat" di atas (6 shortcut — Iklankan Properti, Cari Agen, Kalkulator KPR, Turun Harga, Tren Harga, Tanya Forum) dengan sticky glassmorphism header (`backdrop-blur`). **Mode grid/list toggle** — default grid, tombol `LayoutGrid`/`List` di header sticky. **Deskripsi per kategori** (contoh: "Temukan hunian tapak idamanmu"). Micro-interactions premium (hover scale, active scale, smooth transitions). Kategori Disewa bertambah: Hotel, Kost, Villa (badge `isNew`). Swipe-to-close via `useDragControls`.
+- **Halaman profil penjual publik `/seller/:id`** (`SellerProfilePage.jsx`, 806 baris): profil publik siapa pun berdasarkan `seller_id`. Statistik (total iklan, rating, review, listing aktif). Daftar properti (verified + sold) dengan tab Dijual/Disewa. Ulasan pembeli (agent saja). Forum posts (3 terbaru). Sticky action bar di mobile (Chat/WhatsApp/Bagikan). Badge "Profil Anda" untuk user yang login = pemilik profil. Integrasi **personalisasi berbasis profil keuangan** — `PropertyGridCard` menampilkan badge "Cocok dengan Budget" jika cicilan properti ≤ anggaran pembeli + link "Profil Finansial" jika belum mengisi.
+- **`PropertyGridCard.jsx`** (reusable): kartu properti untuk grid listing. Badge cerdas (VERIFIED/PREMIUM/Turun Harga), estimasi cicilan/rent per month, quick actions (Save/Compare/Share) di footer kartu. Dipakai di ExplorePage & SellerProfilePage. Integrasi `useCompare` hook + `estimateMonthlyRent` untuk properti sewa.
+- **`useCompare.js`** (refactor): hook baru untuk compare — `compareSet`, `toggleCompare`, `isInCompare`, `clearCompare`. Event `compare-updated` untuk sinkronisasi antar komponen.
+- **Filter author di forum** (`ForumPage`): query `?author=USER_ID` untuk melihat semua post dari user tertentu. Tombol "Lihat semua postingan" di ForumDetailPage (post author) dan SellerProfilePage.
+- **Bug fixes**: normalisasi harga sewa per bulan (`d1682ad`), fix crash tren harga `map.get.push` (`d1682ad`), fix query `agent_profiles` pakai `user_id` bukan `id` (`08167f7`), konsisten label inspeksi/survei di ScheduleVisit (`fb7b6dc`).
 
 ## Changelog — Footer Revamp & Newsletter Fungsional (12 Agustus 2026)
 Fokus: membereskan data dummy, menghidupkan fitur berlangganan, dan menambah halaman legal. Semua dikerjakan di `src/components/Footer.jsx`, `src/components/LegalPage.jsx`, dan `src/App.jsx`.
@@ -99,8 +108,9 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 | `/agent-profile` | AgentProfilePage | Ya (agen) | kelola profil direktori agen sendiri (toggle `is_visible`, bio, dll) |
 | `/sell` | SellPropertyPage (3-step) | Ya | + edit via `?edit=ID`, beforeunload guard, draft autosave |
 | `/my-listings` | MyListingsPage | Ya | Edit & **Tandai Terjual** (verified→sold), status timeline **vertikal di mobile** (tidak terpotong), card sold diredupkan + catatan "Iklan telah ditandai terjual", **tab Leads** (`whatsapp_leads` per listing) |
+| `/seller/:id` | SellerProfilePage | Tidak | profil penjual publik — statistik, listing, ulasan, forum posts, sticky action bar mobile, personalisasi budget |
 | `/chat` | ChatHubPage (realtime DM) | Tidak (login prompt) | ArrowLeft lucide icon |
-| `/forum` | ForumPage | Tidak | hero stats, category pills, sort tabs, search + filter tag via `?tag=` |
+| `/forum` | ForumPage | Tidak | hero stats, category pills, sort tabs, search + filter tag via `?tag=` + **filter author via `?author=`** |
 | `/forum/:id` | ForumDetailPage | Tidak | views counter, reactions, poll, best answer, related threads, share |
 | `/property/:id` | PropertyDetailPage | Tidak | **mobile bottom price bar (sticky)**, **spec tiles** (KT/KM/luas/sertifikat), **map card**, harga di sidebar desktop, Properti Serupa, KPR simulator, lightbox gallery, **share → toast sukses/gagal**, **alamat area-only + gate alamat lengkap via kontak agent** |
 | `/admin` | AdminDashboardPage | Ya (admin only) | **6-tab** (Overview/**Agen**/**Harga**/**Laporan**/Users/Audit Trail), preview modal, konfirmasi sebelum verify/survei/bulk + **undo**, soft reject, pagination, realtime, filter **Terjual** |
@@ -456,7 +466,9 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 
 ## SEO
 - **useSEO hook** (`src/hooks/useSEO.js`): sets `document.title`, meta description, `og:title`, `og:description`, `og:image`, `og:url`
-- Dipanggil di ExplorePage, PropertyDetailPage, SellPropertyPage, KprCalculatorPage, NotFoundPage, **AgentApplicationPage**
+- Dipanggil di ExplorePage, PropertyDetailPage, SellPropertyPage, KprCalculatorPage, NotFoundPage, **AgentApplicationPage**, **SellerProfilePage**
+- **`index.html`**: `<meta name="robots" content="index, follow">`, `<link rel="canonical" href="https://hunione.com/">`, Open Graph tags (`og:type`, `og:site_name`, `og:locale`, `og:title`, `og:description`, `og:image`), Twitter Card (`summary_large_image`)
+- **`public/robots.txt`**: allow all, sitemap reference
 
 ## Error Handling
 - **ErrorBoundary** (`src/components/ErrorBoundary.jsx`): class component, catches render errors, shows reload button + dev stack trace

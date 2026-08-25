@@ -28,13 +28,25 @@ Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 | `/` atau `/explore` | ExplorePage | Tidak |
 | `/login` | MinimalistLogin | Tidak |
 | `/sell-role` | RoleSelectionPage | **Ya** |
-| `/sell` | SellPropertyPage | **Ya** |
+| `/agent-apply` | AgentApplicationPage | **Ya** |
+| `/agents` | AgentsPage | Tidak |
+| `/agents/:id` | AgentDetailPage | Tidak |
+| `/agent-profile` | AgentProfilePage | **Ya (agent)** |
+| `/sell` | SellPropertyPage (3-step) | **Ya** |
 | `/my-listings` | MyListingsPage | **Ya** |
-| `/chat` | ChatHubPage | Tidak |
+| `/seller/:id` | SellerProfilePage | Tidak |
+| `/chat` | ChatHubPage | Tidak (login prompt) |
 | `/forum` | ForumPage | Tidak |
 | `/forum/:id` | ForumDetailPage | Tidak |
 | `/property/:id` | PropertyDetailPage | Tidak |
 | `/admin` | AdminDashboardPage (via `AdminRoute`) | **Ya (admin only)** |
+| `/kpr` | KprCalculatorPage | Tidak |
+| `/compare` | ComparePage | Tidak |
+| `/price-drop` | PriceDropPage | Tidak |
+| `/price-trends` | PriceTrendPage | Tidak |
+| `/saved-searches` | SavedSearchesPage | **Ya** |
+| `/terms` | LegalPage (type='terms') | Tidak |
+| `/privacy` | LegalPage (type='privacy') | Tidak |
 | `/coming-soon` | ComingSoonPage | Tidak |
 
 `ProtectedRoute` redirect ke `/login` jika belum login, menyimpan `state.from` untuk redirect balik. `AdminRoute` redirect ke `/` jika `role !== 'admin'`.
@@ -43,7 +55,7 @@ Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 
 ## Struktur Folder `src/`
 
-### `components/` — 22 komponen halaman/UI
+### `components/` — 30+ komponen halaman/UI
 
 | File | Fungsi |
 |---|---|
@@ -72,6 +84,39 @@ Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 | **ComingSoonPage.jsx** | Placeholder halaman dalam pengembangan. |
 | **NotFoundPage.jsx** | Fallback properti tidak ditemukan. |
 | **Toast.jsx** | Notifikasi auto-dismiss (4000ms). Tipe: success (CheckCircle/green), error (AlertCircle/red), info (Info/blue). |
+| **LegalPage.jsx** | Halaman Syarat & Ketentuan / Kebijakan Privasi. Hero card gradient, sticky Table of Contents (desktop)/chips horizontal (mobile) dengan active-section highlight via IntersectionObserver, scroll progress bar, section bernomor + ikon, contact CTA (Email Us + copy email), cross-link Terms ↔ Privacy, back-to-top floating. Konten statis & lokalized (ID/EN). **Eager import** di App.jsx (bukan lazy). |
+| **ExploreInsights.jsx** | Section Market Pulse (rata-rata harga per kota dengan pill naik/stabil/turun), collection carousel "Baru Turun Harga", "Rumah Pertama", "Rumah Premium", trust bar. |
+| **ExplorePhase2.jsx** | Agen Terpercaya (top 6 by listing_score), Diskusi Trending (4 post pinned-first), Pilihan Investasi (ranking harga/m²). |
+| **PropertyGridCard.jsx** | Komponen kartu properti reusable untuk grid listing. Badge cerdas (VERIFIED/PREMIUM/Turun Harga), estimasi cicilan, quick actions (Save/Compare/Share). Digunakan di ExplorePage, SellerProfilePage. |
+| **MoreCategoriesDrawer.jsx** | Bottom sheet kategori properti — swipe-to-close (`useDragControls`). Top services (6 shortcut), 3 section (Dijual/Disewa/Alat & Fitur) dengan mode **grid/list** toggle, deskripsi per item, sticky glassmorphism header + micro-interactions premium. |
+| **CompareBar.jsx** | Floating bar bottom saat ada item di keranjang banding (max 3). Thumbnail + title + remove per item, tombol "Bandingkan" → `/compare`. |
+| **ComparePage.jsx** | Halaman perbandingan properti. Tabel perbandingan, harga/m², share, rekomendasi, sticky kolom, personalization affordability dari financial profile. |
+| **RecentlyViewed.jsx** | Kartu horizontal properti yang terakhir dilihat. Hapus per-item/hapus semua, scroll kiri/kanan, label waktu. |
+| **AgentApplicationPage.jsx** | Form pendaftaran agen (wajib login). Insert `agent_applications` dengan `user_id`. |
+| **AgentsPage.jsx** | Direktori agen publik — Top Agent, search, filter region, sort. |
+| **AgentDetailPage.jsx** | Profil agen publik + listing + ulasan pembeli. |
+| **AgentProfilePage.jsx** | Kelola profil direktori agen sendiri (toggle `is_visible`, bio). |
+| **AdminAgentApplications.jsx** | Daftar pendaftaran calon agen — approve/reject/hapus. |
+| **AdminPriceChangeQueue.jsx** | Antrian perubahan harga >15% — admin approve/reject. |
+| **AdminPropertyReports.jsx** | Antrian laporan iklan — Hapus Listing / Tutup Laporan. |
+| **ReportListingModal.jsx** | Form lapor iklan oleh pembeli (alasan: penipuan/harga/terjual/duplikat/lokasi/lainnya). |
+| **PriceDropPage.jsx** | Properti yang baru turun harga (dari `price_history`). |
+| **PriceTrendPage.jsx** | Tren harga per kota/kategori/tipe. |
+| **SavedSearchesPage.jsx** | Kelola alert pencarian tersimpan. |
+| **InvestmentAnalyzer.jsx** | Widget analisis investasi & yield via Groq API. |
+| **FairPriceAnalyzer.jsx** | Widget penilaian harga wajar via Groq API. |
+| **KprSimulator.jsx** | Kalkulator KPR reusable (annuity formula, DP slider 0-50%). |
+| **KprCalculatorPage.jsx** | Halaman penuh KPR — 2-column, DP 0-80%, amortization table, biaya tambahan, WhatsApp & HuniBot integration. |
+| **CountUp.jsx** | Animasi angka via rAF easeOutCubic. |
+| **InfoTooltip.jsx** | Tooltip informatif untuk KPR calculator. |
+| **FinancialProfileForm.jsx** | Form profil keuangan pengguna (penghasilan, komitmen, budget, tujuan beli). |
+| **HuniBot.jsx** | AI chatbot floating widget — Groq API, personalisasi greeting, animated bubbles. |
+| **SavedPropertiesList.jsx** | Daftar properti favorit reusable dengan skeleton (dipakai HamburgerMenu & ProfileDrawer). |
+| **SlideOver.jsx** | Drawer base reusable dengan a11y (Escape close, focus trap). |
+| **PopularSearches.jsx** | Pencarian populer dinamis (kota/tipe real, foto listing, result count). |
+| **Markdown.jsx** | Parser markdown ringan (heading, list, bold/italic, code, link, quote, #tag). |
+| **FormErrorSummary.jsx** | Ringkasan error validasi reusable untuk form. |
+| **LocationAutocomplete.jsx** | Autocomplete kota & kecamatan (data dari `wilayah.js`). |
 
 ### `context/`
 - **AuthContext.jsx**: Supabase auth state (`session`, `user`, `loading`, `showToast`, `signOut`). Ada cancelled flag di effect + `.catch()` di `getSession()`. `showToast` memanggil `setToast` dengan timer. Wrapped dalam `AuthProvider` di `App.jsx`. Export: `AuthProvider` (default) + `useAuth` (named).
@@ -80,11 +125,20 @@ Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 - **dummyProperties.js**: Fallback properti jika fetch Supabase kosong.
 
 ### `utils/`
-- **favorites.js**: Helper favorite (pakai localStorage): `getFavorites()`, `toggleFavorite(id)`, `isFavorite(id)`, `clearFavorites()`. `toggleFavorite` adalah alias dari `toggleFavourite` — keduanya bisa dipakai untuk menghindari typo Britania/AS.
-- **images.js**: Helper multi-image: `parseImages(imageUrl)` → array of URLs (handle single string, JSON array, atau array literal). `getImageSrc(imageUrl)` → URL pertama atau fallback Unsplash. `FALLBACK_IMAGE` (Unplash) — konstanta yang juga bisa dipakai di komponen untuk `onError` fallback.
-- **format.js**: `formatPrice(value)` — format harga ke Rp dengan suffix M/Jt. Dulu inline di 5 file, sekarang reusable.
-- **avatar.js**: `getAvatarColor(id)` + `getInitials(name)` — warna konsisten dari hash UUID + inisial dari `first_name`. Dulu inline di 3 file.
-- **time.js**: `timeAgo(dateString)` — relative time in Indonesian. Dulu inline di 2 file.
+- **favorites.js**: Helper favorite (pakai localStorage + Supabase sync): `setSupabase(client)`, `initFavorites(userId)`, `toggleFavorite(id)`, `isFavorite(id)`, `clearFavorites()`.
+- **images.js**: Helper multi-image: `parseImages(imageUrl)` → array of URLs (handle single string, JSON array, atau array literal). `getImageSrc(imageUrl)` → URL pertama atau fallback Unsplash. `FALLBACK_IMAGE` (Unsplash) — konstanta.
+- **format.js**: `formatPrice(value)` — format harga ke Rp dengan suffix M/Jt. `formatCurrency(value)` — Intl.NumberFormat IDR. `formatShort(value)` — ringkas angka.
+- **avatar.js**: `getAvatarColor(id)` + `getInitials(name)` — warna konsisten dari hash UUID + inisial dari `first_name`.
+- **time.js**: `timeAgo(dateString)` — relative time in Indonesian.
+- **compare.js**: `MAX_ITEMS = 3`, `getCompareList/addToCompare/removeFromCompare/isInCompare/clearCompare`, event `compare-updated`.
+- **recentlyViewed.js**: `getRecentlyViewed/addRecentlyViewed/removeRecentlyViewed/clearRecentlyViewed`, event `recently-viewed-changed`, max 10.
+- **financialProfile.js**: `getFinancialProfile(userId)`, `saveFinancialProfile(userId, data)`, `computeAffordability(profile)`, `maxAffordablePrice`, `estimateMonthlyInstallment`, `estimateMonthlyRent`, `isRentalProperty`, `formatRupiah`, `BUYING_POWER_ASSUMPTION`.
+- **groqClient.js**: `getAuthHeaders()` — baca token session dari Supabase untuk `Authorization: Bearer` header ke `/api/groq`.
+- **markdown.js**: `parseBlocks(markdown)` + `tokenizeInline(text)` — parser markdown ringan tanpa library. `isSafeUrl(url)` — izinkan hanya http(s) & path relatif.
+- **authErrors.js**: `isRateLimitError(error)` — deteksi error 429 rate limit dari Supabase Auth.
+- **imageCompression.js**: Kompresi gambar client-side sebelum upload ke Supabase Storage (via `browser-image-compression`).
+- **wilayah.js**: Data wilayah Indonesia untuk LocationAutocomplete (kota & kecamatan).
+- **agentApplicationSchema.js**: Zod schema untuk validasi form pendaftaran agen.
 
 ### `locales/`
 - `id/translation.json` — Bahasa Indonesia (238 baris)
@@ -94,6 +148,11 @@ Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 - **useGroqTranslation.js**: Hook + utility untuk dynamic Indonesian-to-English translation via Groq AI. Module-level `cache` Map + `inflight` Map untuk dedup request. Dua export:
   - `useGroqTranslation(propertyId, fields)` — untuk single property (PropertyDetailPage). Return `{ translated, loading, getText(field, fallback) }`.
   - `batchTranslate(properties, signal)` — async batch utility (ExplorePage). Dedup otomatis, kirim hanya uncached texts dalam satu POST ke `/api/groq`.
+- **useSEO.js**: Hook untuk set `document.title`, meta description, `og:title`, `og:description`, `og:image`, `og:url`. Dipakai di semua halaman publik.
+- **useCompare.js**: Hook untuk compare properties — `compareSet`, `toggleCompare`, `isInCompare`, `clearCompare`. Event `compare-updated` untuk sinkronisasi antar komponen.
+- **useChatUnread.js**: Hook untuk menghitung unread messages via `direct_messages` (receiver = user, read_at IS NULL) + realtime INSERT. Return count.
+- **usePrefersReducedMotion.js**: Hook untuk deteksi `prefers-reduced-motion` media query. Dipakai di SlideOver/HamburgerMenu.
+- **useAgentQueries.js**: Hook TanStack Query untuk Agent Directory — fetch agents, stats, reviews.
 
 ### Root files
 - **i18n.js**: Konfigurasi i18next dengan deteksi bahasa browser.
@@ -105,14 +164,20 @@ Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 ## Backend / API
 
 ### `api/groq.js` (Vercel Serverless Function)
-Proxy untuk Groq AI API. Menerima POST dengan `{ model, messages }`, meneruskan ke `api.groq.com` dengan `process.env.GROQ_API_KEY` (server-side only, tidak ada `VITE_` prefix).
+Proxy untuk Groq AI API. Menerima POST dengan `{ model, messages, purpose }`, meneruskan ke `api.groq.com` dengan `process.env.GROQ_API_KEY` (server-side only, tidak ada `VITE_` prefix).
 
 **Keamanan**:
-- **Rate limiting**: lru-cache in-memory, max 20 req/min per IP.
+- **Auth**: semua caller kirim `Authorization: Bearer <token>` (dari `src/utils/groqClient.js`); server verifikasi via `supabase.auth.getUser(token)`.
+- **Rate limiting**: lru-cache in-memory, max 20 req/min per IP + per user (`u:{userId}`); purpose `investment` wajib login + limit 8×/jam.
 - **Model restriction**: hanya `llama-3.3-70b-versatile` yang diizinkan.
 - **Body validation**: validasi `messages` array — tiap item harus punya `role` (system/user/assistant) dan `content` string (max 10.000 chars).
+- **Input sanitization**: null bytes, control characters, `<script>`, `data:text/html`, `vbscript:`.
+- **Output guard**: replace dangerous content with `[diblokir]`.
+- **Session limit**: 50 messages per IP per hour.
+- **Audit log**: in-memory ring buffer (1000 entries).
+- **BLOCKED_PATTERNS**: block prompt injection.
 - **Error handling**: 405 (method), 429 (rate limit), 400 (invalid body), 403 (model), 500 (fetch failed).
-- **Prompt injection prevention**: `req.body.purpose` (`'chat'` / `'translation'`) pilih system prompt dari `SYSTEM_PROMPTS` map. Client system role selalu di-strip. Dua prompt: HuniBot (ID, properti-only, maks 2-3 paragraf) dan translator (EN, JSON-only).
+- **Prompt injection prevention**: `req.body.purpose` (`'chat'` / `'translation'` / `'investment'` / `'fair_price'`) pilih system prompt dari `SYSTEM_PROMPTS` map. Client system role selalu di-strip.
 - **Temperature & tokens**: chat → 0.7 / 1024, translation → 0.3 / 2048.
 
 ### `vercel.json`
@@ -135,6 +200,13 @@ Security headers & routing konfigurasi untuk Vercel deploy.
 - Methods: GET, POST, OPTIONS
 - Credentials: true
 
+### SEO (`index.html`)
+- `<meta name="robots" content="index, follow" />`
+- `<link rel="canonical" href="https://hunione.com/" />`
+- Open Graph tags: `og:type`, `og:site_name`, `og:locale`, `og:title`, `og:description`, `og:image`
+- Twitter Card: `summary_large_image`
+- **`public/robots.txt`**: allow all, sitemap ke `https://hunione.com/sitemap.xml`
+
 ### `vite.config.js`
 Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via `loadEnv()` (server-side). Identik dengan serverless function: rate limiting, model restriction, purpose-based system prompt, fetch ke Groq API, error handling.
 
@@ -145,15 +217,24 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 ### Table: `profiles`
 - `id` (UUID, PK, references `auth.users`)
 - `first_name`, `email`, `whatsapp`, `role`, `created_at`
-- **Tidak ada kolom `updated_at`** (dibuktikan bugfix: update payload tidak boleh menyertakan `updated_at`).
+- `is_super_admin` (bool, default false) — hanya super admin yang boleh mengubah role/`is_super_admin`.
+- **Tidak ada kolom `updated_at`**.
 - **Tidak ada tabel `agents` terpisah** — "agen" = baris `profiles` dengan `role` = agent/developer/admin.
-- RLS: select all, insert/update/delete hanya owner.
+- **Email/WhatsApp privat**: `REVOKE select` dari `profiles`; publik hanya diberi `GRANT SELECT (id, first_name, role)`.
+- Role values: `pembeli`, `owner`, `agent`, `developer`, `admin`.
+- **Auto-create**: trigger `handle_new_user()` membuat baris profil (role `pembeli`) otomatis saat signup.
+- RLS: publik SELECT (id, first_name, role); owner insert/update/delete; admin all.
 
 ### Table: `forum_posts`
 - `id` (UUID, PK)
 - `author_id` (UUID, FK → `profiles.id`)
 - `title`, `content`, `category` (text, default 'Umum'), `created_at`
-- RLS: select all, insert/update/delete hanya author.
+- `views` (int, default 0) — diincrement via RPC `increment_forum_views()` (security definer).
+- `is_pinned` (bool, default false) — admin bisa toggle pin.
+- `solved_reply_id` (UUID → forum_replies) — OP tandai jawaban terbaik.
+- `tags` (text[], default '{}') — input `#tag` saat compose, filterable via `?tag=`.
+- `poll` (jsonb — `{ question, options[] }`) — poll dengan 2-4 opsi, vote via `forum_poll_votes`.
+- RLS: select semua; insert/update/delete author + admin.
 
 ### Table: `forum_replies`
 - `id` (UUID, PK)
@@ -177,17 +258,27 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 ### Table: `properties`
 - `id` (UUID, PK)
 - `seller_id` (UUID, FK → `profiles.id`)
-- `category` ('Dijual')
+- `category` ('Dijual' / 'Disewa')
 - `title`, `property_type`, `price` (bigint)
+- `original_price` (numeric — baseline % penurunan harga, backfill dari harga tertinggi)
+- `price_requested` (harga yang ditahan untuk review admin)
+- `price_change_status` ('none' / 'pending' / 'approved' / 'rejected', default 'none')
+- `price_requested_at`, `price_reviewed_by`, `price_reviewed_at`
 - `description_id`, `description_en` (TEXT — untuk EN description, disimpan statis dari hasil Groq translation atau input manual)
 - `address`, `city`, `district`, `certificate_status`
 - `bedrooms`, `bathrooms`, `area_sqm` (int, **bukan** `sqm`)
+- `land_area_sqm` (numeric — luas tanah, berbeda dari `area_sqm` = luas bangunan)
+- `furnished` ('' / 'furnished' / 'semi_furnished' / 'unfurnished')
 - `image_url` (TEXT — bisa single URL string legacy atau `JSON.stringify([url1, url2, ...])` untuk multi-image. Parsing via `utils/images.js:parseImages()`)
 - `seller_whatsapp`
+- `seller_type` (TEXT — 'owner' / 'agent' / 'developer')
+- `is_premium` (boolean)
 - `status` ('pending' / 'in_review' / 'verified' / 'rejected' / 'sold') — `in_review` = antrian survei tim admin
+- `published_at` (TIMESTAMPTZ — diisi otomatis saat status → 'verified')
+- `price_period` (text 'total' / 'bulan' / 'tahun', default 'total' — untuk properti sewa)
 - `created_at`
 - **Tidak ada kolom** `agent_id`, `is_verified`, `gmaps_link`.
-- RLS: select all, insert/update/delete hanya seller.
+- RLS: select verified; seller select own; admin all; insert/update/delete seller.
 
 ### Table: `audit_logs`
 - `id` (UUID, PK)
@@ -208,10 +299,10 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - `receiver_id` (UUID, FK → `profiles.id`, NOT NULL)
 - `content` (TEXT, NOT NULL)
 - `created_at` (TIMESTAMPTZ, default now())
-- RLS: select where user is sender or receiver, insert where user is sender.
-- Migration: `supabase/migrations/20260727_create_direct_messages.sql`.
-- Realtime: harus di-enable manual di Supabase Dashboard → Database → Replication → toggle INSERT on `direct_messages`.
-- Dipakai oleh: `ChatHubPage` — fetch contacts, fetch messages, send message, realtime subscription.
+- `read_at` (TIMESTAMPTZ — read receipt: receiver menandai pesan dibaca)
+- RLS: select where user is sender or receiver; insert where user is sender; update receiver untuk `read_at`.
+- Realtime: INSERT + UPDATE on `direct_messages`.
+- Dipakai oleh: `ChatHubPage` — fetch contacts, fetch messages, send message, read receipts, typing indicator, paginasi.
 
 ### Table: `saved_properties`
 - `id` (UUID, PK)
@@ -228,8 +319,8 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - `scheduled_date` (DATE), `scheduled_time` (TIME)
 - `notes` (TEXT, default ''), `status` (TEXT, CHECK: 'pending'/'confirmed'/'cancelled'/'completed')
 - `created_at`
-- RLS: user hanya bisa select/insert milik sendiri; update hanya ke status 'cancelled'.
-- Migration: `supabase/migrations/20260731_create_site_visits.sql`.
+- RLS: buyer select/insert own + update hanya ke 'cancelled'; seller select untuk propertinya sendiri + update (confirmed/cancelled/completed); admin all.
+- Realtime: `site_visits` di-enable untuk seller notification instan.
 
 ### Table: `user_financial_profiles`
 - `id` (UUID, PK)
@@ -246,9 +337,59 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - `property_id` (UUID, unique FK → `properties.id` on delete cascade)
 - `analysis_data` (JSONB)
 - `created_at`
-- RLS: select/insert/update untuk semua (cache publik).
+- RLS: select/insert/update untuk semua (cache publik); tulis hanya via RPC `set_property_ai_analysis()` (security definer).
 - Migration: `supabase/migrations/20260731_create_property_ai_analysis.sql`.
 - Dipakai oleh: `InvestmentAnalyzer` — cache hasil analisis AI per properti (30 hari + fingerprint preferensi investor).
+
+### Table: `agent_profiles` (1:1 ke profiles)
+- `user_id` (UUID PK, FK → profiles, cascade), `full_name`, `agency`, `region`, `experience`, `experience_years` (int), `portfolio`, `bio`, `whatsapp`, `is_visible` (bool, default true), `created_at`, `updated_at`
+- RLS: select `is_visible = true` atau `user_id = auth.uid()`; insert/update owner; admin all.
+
+### Table: `agent_reviews`
+- `id` (UUID PK), `agent_id` (FK → profiles, cascade), `reviewer_id` (FK → profiles, cascade), `rating` (smallint 1-5), `comment`, `created_at`, `updated_at`, unique `(agent_id, reviewer_id)`
+- RLS: select semua; insert/update/delete hanya reviewer sendiri.
+
+### View: `agent_stats`
+- `agent_id`, `verified_listings`, `premium_listings`, `listing_score` (verified + premium), `total_visits`, `completed_visits`, `avg_rating`, `review_count`
+- Join `profiles` + `agent_profiles` + `properties` (`seller_type='agent'`) + `site_visits` + `agent_reviews`.
+
+### Table: `agent_applications`
+- `id`, `full_name`, `email`, `whatsapp` (NOT NULL), `agency`, `experience`, `region`, `portfolio`, `user_id` (FK → auth.users), `agreement_accepted_at`, `status` (CHECK: 'pending'/'approved'/'rejected'), `reject_reason`, `reviewed_by`, `reviewed_at`, `created_at`
+- RLS: insert wajib login (`user_id = auth.uid()`); select milik sendiri; update/delete hanya admin.
+- Trigger `handle_agent_approval()` — saat approved: update `profiles.role='agent'` + isi `agent_profiles`.
+
+### Table: `property_reports` (Lapor Iklan)
+- `id`, `property_id` (FK → properties, cascade), `reporter_id` (FK → profiles, cascade), `reason` (CHECK: penipuan/harga/terjual/duplikat/lokasi/lainnya), `note`, `status` (CHECK: 'pending'/'dismissed'/'actioned'), `reviewed_by`, `reviewed_at`, `created_at`
+- Unique `(property_id, reporter_id)` — satu laporan per pembeli per properti.
+- RLS: pelapor lihat/buat; admin lihat semua + update status + hapus property.
+
+### Table: `price_history`
+- `id`, `property_id` (FK → properties, cascade), `old_price`, `new_price` (NOT NULL), `price_pct` (numeric), `source` ('seller' / 'admin'), `applied_by` (FK → profiles), `created_at`
+- Diisi oleh trigger `guard_property_price_change()` via `log_price_change()`.
+
+### Table: `whatsapp_leads`
+- `id`, `property_id` (FK → properties, cascade), `seller_id` (FK → profiles), `buyer_id` (FK → profiles, nullable), `created_at`
+- RLS: INSERT wajib login; SELECT seller untuk properti sendiri + admin.
+
+### Table: `saved_searches` (Alert Pencarian)
+- `id`, `user_id` (FK → profiles, cascade), `name`, `filters` (jsonb), `active` (bool), `last_checked_at`, `created_at`
+- RLS: owner-only.
+
+### Table: `newsletter_subscribers`
+- `id` (UUID PK), `email` (text NOT NULL UNIQUE), `created_at`
+- RLS: INSERT terbuka (anon & authenticated); SELECT/UPDATE/DELETE hanya admin.
+
+### Table: `forum_reactions` (menggantikan likes)
+- `id` (UUID PK), `user_id` (FK → profiles, cascade), `target_id` (uuid — post or reply ID), `target_type` (text — 'post'/'reply'), `reaction` (text — emoji 👍❤️🔥💡), `created_at`
+- Unique constraint `(user_id, target_id, target_type)` — satu reaksi per user per target.
+
+### Table: `forum_poll_votes`
+- `id` (UUID PK), `post_id` (FK → forum_posts, cascade), `user_id` (FK → profiles, cascade), `option_index` (int), `created_at`
+- Unique `(post_id, user_id)` — satu vote per user per poll.
+
+### Table: `forum_likes` (legacy — masih ada untuk kompatibilitas)
+- `id`, `user_id`, `target_id`, `target_type`, `created_at`
+- Unique `(user_id, target_id, target_type)`. Data lama dimigrasi ke `forum_reactions` sebagai 👍.
 
 ### Storage: `PROPERTIES_IMAGE` (bucket)
 - Untuk upload gambar properti dari `SellPropertyPage.jsx`.
