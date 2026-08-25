@@ -7,6 +7,8 @@ import { isRateLimitError } from '../utils/authErrors'
 import FormErrorSummary from '../components/FormErrorSummary'
 import useSEO from '../hooks/useSEO'
 
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+
 function EyeIcon({ visible }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -45,24 +47,45 @@ export default function UpdatePasswordPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [passwordError, setPasswordError] = useState('')
+  const [confirmError, setConfirmError] = useState('')
 
   useSEO({
     title: t('update_password.page_title'),
     description: t('update_password.page_description'),
   })
 
+  function validatePassword(value) {
+    if (value && !PASSWORD_REGEX.test(value)) {
+      setPasswordError(t('update_password.password_weak'))
+      return false
+    }
+    setPasswordError('')
+    return true
+  }
+
+  function handlePasswordChange(e) {
+    const value = e.target.value
+    setNewPassword(value)
+    if (passwordError) validatePassword(value)
+    if (confirmError && value === confirmPassword) setConfirmError('')
+  }
+
+  function handleConfirmChange(e) {
+    const value = e.target.value
+    setConfirmPassword(value)
+    if (confirmError && newPassword === value) setConfirmError('')
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
 
-    if (newPassword !== confirmPassword) {
-      setError(t('update_password.password_mismatch'))
-      return
-    }
+    const isPasswordValid = validatePassword(newPassword)
+    if (!isPasswordValid) return
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
-    if (!passwordRegex.test(newPassword)) {
-      setError(t('update_password.password_weak'))
+    if (newPassword !== confirmPassword) {
+      setConfirmError(t('update_password.password_mismatch'))
       return
     }
 
@@ -110,7 +133,7 @@ export default function UpdatePasswordPage() {
           {t('update_password.desc')}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {error && <FormErrorSummary errors={[error]} title={t('update_password.error_title')} />}
 
           <div>
@@ -123,10 +146,9 @@ export default function UpdatePasswordPage() {
                 type={showNew ? 'text' : 'password'}
                 placeholder={t('update_password.new_password_placeholder')}
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={handlePasswordChange}
                 required
-                minLength={8}
-                className="w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+                className={`w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${passwordError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
               />
               <button
                 type="button"
@@ -137,6 +159,7 @@ export default function UpdatePasswordPage() {
                 <EyeIcon visible={showNew} />
               </button>
             </div>
+            {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
           </div>
 
           <div>
@@ -149,10 +172,9 @@ export default function UpdatePasswordPage() {
                 type={showConfirm ? 'text' : 'password'}
                 placeholder={t('update_password.confirm_password_placeholder')}
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={handleConfirmChange}
                 required
-                minLength={8}
-                className="w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+                className={`w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${confirmError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
               />
               <button
                 type="button"
@@ -163,6 +185,7 @@ export default function UpdatePasswordPage() {
                 <EyeIcon visible={showConfirm} />
               </button>
             </div>
+            {confirmError && <p className="text-red-500 text-sm mt-1">{confirmError}</p>}
           </div>
 
           <button

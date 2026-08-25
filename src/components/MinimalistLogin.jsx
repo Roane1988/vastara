@@ -6,6 +6,9 @@ import { useAuth } from '../context/AuthContext'
 import { isRateLimitError } from '../utils/authErrors'
 import FormErrorSummary from './FormErrorSummary'
 
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+const WA_REGEX = /^(08|62|\+62)\d{8,12}$/
+
 function EyeIcon({ visible }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -58,29 +61,61 @@ export default function MinimalistLogin({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [isLogin, setIsLogin] = useState(true)
+  const [passwordError, setPasswordError] = useState('')
+  const [confirmError, setConfirmError] = useState('')
+  const [waError, setWaError] = useState('')
+
+  function validatePassword(value) {
+    if (value && !PASSWORD_REGEX.test(value)) {
+      setPasswordError(t('login.error_password_weak'))
+      return false
+    }
+    setPasswordError('')
+    return true
+  }
+
+  function validateWa(value) {
+    const cleaned = value.replace(/\D/g, '')
+    if (cleaned && !WA_REGEX.test(cleaned)) {
+      setWaError(t('login.error_whatsapp_invalid'))
+      return false
+    }
+    setWaError('')
+    return true
+  }
+
+  function handlePasswordChange(e) {
+    const value = e.target.value
+    setPassword(value)
+    if (passwordError) validatePassword(value)
+    if (confirmError && value === confirmPassword) setConfirmError('')
+  }
+
+  function handleConfirmChange(e) {
+    const value = e.target.value
+    setConfirmPassword(value)
+    if (confirmError && password === value) setConfirmError('')
+  }
+
+  function handleWaChange(e) {
+    const value = e.target.value
+    setWhatsapp(value)
+    if (waError) validateWa(value)
+  }
 
   async function handleAuth(e) {
     e.preventDefault()
     setError(null)
 
     if (!isLogin) {
+      if (!validatePassword(password)) return
+
       if (password !== confirmPassword) {
-        setError(t('login.error_password_mismatch'))
+        setConfirmError(t('login.error_password_mismatch'))
         return
       }
 
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
-      if (!passwordRegex.test(password)) {
-        setError(t('login.error_password_weak'))
-        return
-      }
-
-      const cleanedWa = whatsapp.replace(/\D/g, '')
-      const waRegex = /^(08|62|\+62)\d{8,12}$/
-      if (!waRegex.test(cleanedWa)) {
-        setError(t('login.error_whatsapp_invalid'))
-        return
-      }
+      if (!validateWa(whatsapp)) return
     }
 
     setLoading(true)
@@ -140,7 +175,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               {t('login.title')}
             </h2>
 
-            <form onSubmit={handleAuth} className="space-y-5">
+            <form onSubmit={handleAuth} noValidate className="space-y-5">
               {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
 
               <div>
@@ -213,7 +248,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               {t('login.no_account')}{' '}
               <button
                 type="button"
-                onClick={() => { setIsLogin(false); setError(null) }}
+                onClick={() => { setIsLogin(false); setError(null); setPasswordError(''); setConfirmError(''); setWaError('') }}
                 className="font-semibold text-brand-primary hover:text-brand-accent transition-colors"
               >
                 {t('login.register_link')}
@@ -236,7 +271,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               </div>
             </div>
 
-            <form onSubmit={handleAuth} className="space-y-4">
+            <form onSubmit={handleAuth} noValidate className="space-y-4">
               {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
 
               <div>
@@ -263,10 +298,11 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                   type="tel"
                   placeholder={t('login.whatsapp_placeholder')}
                   value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
+                  onChange={handleWaChange}
                   required
-                  className="w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+                  className={`w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${waError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
                 />
+                {waError && <p className="text-red-500 text-sm mt-1">{waError}</p>}
               </div>
 
               <div>
@@ -294,10 +330,9 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                     type={showPassword ? 'text' : 'password'}
                     placeholder={t('login.password_placeholder_reg')}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={handlePasswordChange}
                     required
-                    minLength={8}
-                    className="w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+                    className={`w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${passwordError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
                   />
                   <button
                     type="button"
@@ -308,6 +343,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                     <EyeIcon visible={showPassword} />
                   </button>
                 </div>
+                {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
               </div>
 
               <div>
@@ -320,10 +356,9 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder={t('login.confirm_password_placeholder')}
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={handleConfirmChange}
                     required
-                    minLength={8}
-                    className="w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+                    className={`w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${confirmError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
                   />
                   <button
                     type="button"
@@ -334,6 +369,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                     <EyeIcon visible={showConfirmPassword} />
                   </button>
                 </div>
+                {confirmError && <p className="text-red-500 text-sm mt-1">{confirmError}</p>}
               </div>
 
               <button
@@ -350,7 +386,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               {t('login.has_account')}{' '}
               <button
                 type="button"
-                onClick={() => { setIsLogin(true); setError(null) }}
+                onClick={() => { setIsLogin(true); setError(null); setPasswordError(''); setConfirmError(''); setWaError('') }}
                 className="font-semibold text-brand-primary hover:text-brand-accent transition-colors"
               >
                 {t('login.login_link')}
