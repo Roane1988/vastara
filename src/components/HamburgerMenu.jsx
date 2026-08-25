@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import {
   ArrowLeft,
   Bookmark,
-  Calculator,
   Check,
   Globe,
   Home,
@@ -140,7 +139,6 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
   const forumActive = pathname.startsWith('/forum')
   const myListingsActive = pathname === '/my-listings'
   const adminActive = pathname === '/admin'
-  const kprActive = pathname === '/kpr'
   const compareActive = pathname === '/compare'
 
   const menuContent = (
@@ -243,12 +241,6 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
       <div className="border-t border-brand-border pt-4">
         <SectionHeader>{t('hamburger.tools')}</SectionHeader>
         <div className="space-y-0.5">
-          <MenuItem
-            icon={<Calculator size={18} />}
-            label={t('hamburger.kpr')}
-            active={kprActive}
-            onClick={() => handleNavigate('/kpr')}
-          />
           <MenuItem
             icon={<Scale size={18} />}
             label={t('hamburger.compare')}

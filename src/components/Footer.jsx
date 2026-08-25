@@ -99,7 +99,6 @@ export default function Footer() {
       links: [
         { label: t('footer.link_sell_house'), to: '/sell-role' },
         { label: t('footer.link_my_listings'), to: '/my-listings' },
-        { label: t('footer.link_kpr'), to: '/kpr' },
       ],
     },
     {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, Calculator, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Bell, Check, Plus, Home, MessageSquare } from 'lucide-react'
+import { Search, Megaphone, Users, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Bell, Check, Plus, Home, MessageSquare } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
@@ -29,7 +29,6 @@ const QUICK_MENU = [
   { icon: Search, tKey: 'explore.quick_menu.find_property', action: 'search' },
   { icon: Megaphone, tKey: 'explore.quick_menu.advertise', path: '/sell-role' },
   { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/agents' },
-  { icon: Calculator, tKey: 'explore.quick_menu.mortgage', path: '/kpr' },
   { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/price-drop' },
   { icon: TrendingUp, tKey: 'explore.quick_menu.price_trends', path: '/price-trends' },
   { icon: MessageCircle, tKey: 'explore.quick_menu.forum', path: '/forum' },
