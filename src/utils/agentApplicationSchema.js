@@ -18,6 +18,11 @@ export function createAgentApplicationSchema(t) {
       .trim()
       .min(1, { message: t('agentApply.error_whatsapp') })
       .regex(/^\+?[0-9\s-]+$/, { message: t('agentApply.error_whatsapp_invalid') }),
+    nib: z
+      .string({ message: t('agentApply.error_nib') })
+      .trim()
+      .min(1, { message: t('agentApply.error_nib') })
+      .regex(/^\d+$/, { message: t('agentApply.error_nib_invalid') }),
     agency: z.string().trim(),
     experience: z
       .enum(['', ...EXPERIENCE_OPTIONS], { message: t('agentApply.error_experience') })
@@ -34,6 +39,7 @@ export function buildAgentApplicationPayload(values, userId, email) {
     full_name: values.full_name,
     email,
     whatsapp: values.whatsapp,
+    nib: values.nib,
     agency: values.agency,
     experience: values.experience,
     region: values.region,

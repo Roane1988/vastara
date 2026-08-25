@@ -481,6 +481,26 @@ export default function SellPropertyPage() {
         return
       }
 
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('whatsapp')
+        .eq('id', user.id)
+        .single()
+
+      const normalizeWa = (raw) => {
+        let digits = String(raw || '').replace(/\D/g, '')
+        if (digits.startsWith('0')) digits = '62' + digits.slice(1)
+        if (digits.startsWith('620')) digits = '62' + digits.slice(2)
+        return digits
+      }
+      const profileWa = normalizeWa(profile?.whatsapp || user.user_metadata?.whatsapp)
+      const formWa = normalizeWa(form.whatsapp)
+      if (formWa && profileWa && formWa !== profileWa) {
+        showToast('Nomor WhatsApp pada listing harus sama dengan nomor yang terdaftar di profil akun Anda.', 'error')
+        setSubmitting(false)
+        return
+      }
+
       let uploadedImageUrls = []
       const realFiles = imageFiles.filter((f) => f.size > 0)
       const isUrlLike = (s) => /^https?:\/\//i.test(s || '')

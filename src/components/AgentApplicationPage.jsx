@@ -30,6 +30,7 @@ export default function AgentApplicationPage() {
       full_name: user?.user_metadata?.first_name || '',
       email: user?.email || '',
       whatsapp: '',
+      nib: '',
       agency: '',
       experience: '',
       region: '',
@@ -176,6 +177,12 @@ export default function AgentApplicationPage() {
                   <input id="whatsapp" type="tel" {...register('whatsapp')} placeholder="+62 812-3456-7890" className={`${inputClass} ${errorInput('whatsapp')}`} />
                   {fieldError('whatsapp')}
                 </div>
+              </div>
+
+              <div>
+                <label htmlFor="nib" className={labelClass}>{t('agentApply.nib')} *</label>
+                <input id="nib" type="text" inputMode="numeric" {...register('nib')} placeholder={t('agentApply.nib_placeholder')} className={`${inputClass} ${errorInput('nib')}`} />
+                {fieldError('nib')}
               </div>
 
               <div>
