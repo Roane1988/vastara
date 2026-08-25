@@ -61,7 +61,7 @@ function Collapsible({ title, icon, defaultOpen = false, children }) {
 export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { showToast } = useAuth()
+  const { role, showToast } = useAuth()
   const { totalNew } = useSavedSearchAlerts()
 
   const [name, setName] = useState(userName || '')
@@ -73,7 +73,6 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   const [currentEmail, setCurrentEmail] = useState('')
-  const [role, setRole] = useState('')
   const [dirty, setDirty] = useState(false)
   const [financeOpenKey, setFinanceOpenKey] = useState(0)
 
@@ -113,7 +112,6 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
         if (!cancelled && profile) {
           if (profile.first_name) loadedName = profile.first_name
-          if (profile.role) setRole(profile.role)
         }
 
         const { data: myProfile } = await supabase.rpc('get_my_profile')

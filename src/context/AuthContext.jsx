@@ -77,6 +77,29 @@ export function AuthProvider({ children }) {
     }
   }, [fetchRole])
 
+  useEffect(() => {
+    if (!user?.id) return
+    let cancelled = false
+
+    const channel = supabase
+      .channel('profile-role-watcher')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          if (!cancelled && payload.new?.role) {
+            setRole(payload.new.role)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id])
+
   return (
     <AuthContext.Provider value={{ session, user, role, loading, showToast, signOut }}>
       {children}
