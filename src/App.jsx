@@ -26,7 +26,7 @@ const PropertyDetailPage = lazy(() => import('./components/PropertyDetailPage'))
 const SellerProfilePage = lazy(() => import('./pages/SellerProfilePage'))
 const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const ComingSoonPage = lazy(() => import('./components/ComingSoonPage'))
-const KprCalculatorPage = lazy(() => import('./components/KprCalculatorPage'))
+// const KprCalculatorPage = lazy(() => import('./components/KprCalculatorPage'))
 const ComparePage = lazy(() => import('./components/ComparePage'))
 const PriceDropPage = lazy(() => import('./components/PriceDropPage'))
 const PriceTrendPage = lazy(() => import('./components/PriceTrendPage'))
@@ -115,7 +115,7 @@ function AppContent() {
               <Route path="/property/:id" element={<PropertyDetailPage />} />
               <Route path="/admin" element={<AdminRoute isAuth={isAuth} role={role} location={location}><AdminDashboardPage /></AdminRoute>} />
               <Route path="/coming-soon" element={<ComingSoonPage />} />
-              <Route path="/kpr" element={<KprCalculatorPage />} />
+              {/* <Route path="/kpr" element={<KprCalculatorPage />} /> */}
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/price-drop" element={<PriceDropPage />} />
               <Route path="/price-trends" element={<PriceTrendPage />} />

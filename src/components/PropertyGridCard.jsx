@@ -16,7 +16,6 @@ import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { formatPriceDisplay, formatPrice } from '../utils/format'
 import {
-  estimateMonthlyInstallment,
   estimateMonthlyRent,
   isRentalProperty,
 } from '../utils/financialProfile'
@@ -31,8 +30,6 @@ export default function PropertyGridCard({ p, getTranslated = null, maxRent = 0,
 
   const drop = p.original_price && Number(p.original_price) > Number(p.price)
   const isRent = isRentalProperty(p)
-  const installment =
-    !isRent && Number(p.price) > 0 ? estimateMonthlyInstallment(p.price, 5.5, 20, 20) : 0
   const rentPerMonth = isRent && Number(p.price) > 0 ? estimateMonthlyRent(p) : 0
   const rentAffordable = rentPerMonth > 0 && maxRent > 0 && rentPerMonth <= maxRent
 
@@ -103,11 +100,12 @@ export default function PropertyGridCard({ p, getTranslated = null, maxRent = 0,
             )}
             <p className="text-xl font-extrabold text-brand-primary">{formatPriceDisplay(p)}</p>
           </div>
+          {/* Estimasi cicilan KPR — hidden temporarily
           {installment > 0 && (
             <p className="text-[11px] text-brand-muted mt-0.5">
               Estimasi cicilan <b className="text-brand-accent">{formatPrice(installment)}</b>/bulan
             </p>
-          )}
+          )} */}
           {isRent && rentPerMonth > 0 && maxRent > 0 && (
             <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg mt-1.5 border ${
               rentAffordable

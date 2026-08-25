@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useDragControls } from 'framer-motion'
-import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine, TrendingUp, TrendingDown, BellRing, Megaphone, Users, Calculator, MessageCircle, LayoutGrid, List, ChevronRight } from 'lucide-react'
+import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine, TrendingUp, TrendingDown, BellRing, Megaphone, Users, MessageCircle, LayoutGrid, List, ChevronRight } from 'lucide-react'
 
 const TOP_SERVICES = [
   { label: 'Iklankan Properti', icon: Megaphone, path: '/sell-role' },
   { label: 'Cari Agen', icon: Users, path: '/agents' },
-  { label: 'Kalkulator KPR', icon: Calculator, path: '/kpr' },
   { label: 'Turun Harga', icon: TrendingDown, path: '/price-drop' },
   { label: 'Tren Harga', icon: TrendingUp, path: '/price-trends' },
   { label: 'Tanya Forum', icon: MessageCircle, path: '/forum' },

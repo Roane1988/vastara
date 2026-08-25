@@ -12,7 +12,7 @@ import { useGroqTranslation } from '../hooks/useGroqTranslation'
 import useSEO from '../hooks/useSEO'
 import { usePropertyStore } from '../store/usePropertyStore'
 import NotFoundPage from './NotFoundPage'
-import KprSimulator from './KprSimulator'
+// import KprSimulator from './KprSimulator'
 import InvestmentAnalyzer from './InvestmentAnalyzer'
 import FairPriceAnalyzer from './FairPriceAnalyzer'
 import ScheduleVisit from './ScheduleVisit'
@@ -828,7 +828,6 @@ export default function PropertyDetailPage() {
                     <p className="text-sm text-brand-muted leading-relaxed">
                       Properti ini disewakan dengan biaya sewa{' '}
                       <b className="text-brand-primary">{formatPriceDisplay(property)}</b>.
-                      Simulasi KPR tidak berlaku untuk properti sewa — KPR digunakan saat membeli properti.
                     </p>
                     {rentAfford?.hasProfile ? (
                       <div className={`mt-4 rounded-xl border px-4 py-3.5 ${rentAfford.affordable ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
@@ -867,12 +866,7 @@ export default function PropertyDetailPage() {
                     </button>
                   </div>
                 </>
-              ) : (
-                <>
-                  <h3 className="text-2xl font-bold text-brand-text mb-6">Simulasi KPR</h3>
-                  <KprSimulator initialPrice={property?.price || 900000000} />
-                </>
-              )}
+              ) : null}
             </div>
 
             {!isRent && (

@@ -17,7 +17,7 @@ import {
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { formatPrice, formatPriceDisplay } from '../utils/format'
 import { getFavorites, toggleFavorite } from '../utils/favorites'
-import { estimateMonthlyInstallment, isRentalProperty } from '../utils/financialProfile'
+import { isRentalProperty } from '../utils/financialProfile'
 import { useAuth } from '../context/AuthContext'
 import { useCompare } from '../hooks/useCompare'
 
@@ -27,9 +27,6 @@ export function CarouselPropertyCard({ p, t }) {
   const { compareSet, toggleCompare } = useCompare(showToast)
 
   const drop = p.original_price && Number(p.original_price) > Number(p.price)
-  const isRent = p.category === 'Disewa' || p.typeLabel === 'Disewa'
-  const installment =
-    !isRent && Number(p.price) > 0 ? estimateMonthlyInstallment(p.price, 5.5, 20, 20) : 0
 
   async function toggleSave(id) {
     const updated = await toggleFavorite(id)
@@ -93,11 +90,12 @@ export function CarouselPropertyCard({ p, t }) {
               {formatPriceDisplay(p)}
             </p>
           </div>
+          {/* Estimasi cicilan KPR — hidden temporarily
           {installment > 0 && (
             <p className="text-[11px] text-brand-muted mt-0.5">
               Estimasi cicilan <b className="text-brand-accent">{formatPrice(installment)}</b>/bulan
             </p>
-          )}
+          )} */}
           <p className="text-base font-semibold text-brand-text mt-1 truncate">{p.title}</p>
           <p className="text-sm text-brand-muted mt-1 flex items-center gap-1">
             <MapPin size={14} />

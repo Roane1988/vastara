@@ -811,12 +811,12 @@ export default function ExplorePage() {
                 Simulasi &amp; rekomendasi AI jadi lebih akurat, {firstName || 'kamu'}
               </p>
               <p className="text-emerald-50/85 text-xs sm:text-sm mt-0.5 truncate">
-                Isi profil keuangan — cek kemampuan cicilan KPR sesuai budget kamu.
+                Isi profil keuangan — cek kemampuan beli properti sesuai budget kamu.
               </p>
             </div>
             <button
               type="button"
-              onClick={() => navigate('/kpr')}
+              onClick={() => window.dispatchEvent(new Event('open-financial-profile'))}
               className="hidden sm:inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-emerald-700 text-sm font-bold hover:bg-emerald-50 transition-colors"
             >
               Isi profil keuangan
@@ -1193,7 +1193,6 @@ export default function ExplorePage() {
             <div className="flex flex-col items-stretch gap-2 animate-fadeIn">
               {[
                 { icon: Home, label: 'Jual Properti', path: '/sell-role' },
-                { icon: Calculator, label: 'Simulasi KPR', path: '/kpr' },
                 { icon: MessageSquare, label: 'Tanya Forum', path: '/forum' },
               ].map((m) => (
                 <button

@@ -11,7 +11,6 @@ import {
   getFinancialProfile,
   computeAffordability,
   maxAffordablePrice,
-  estimateMonthlyInstallment,
   estimateMonthlyRent,
   isRentalProperty,
   BUYING_POWER_ASSUMPTION,
@@ -283,13 +282,7 @@ export default function ComparePage() {
             </span>
           )
         }
-        const inst = estimateMonthlyInstallment(Number(p.price), BUYING_POWER_ASSUMPTION.interestRate, BUYING_POWER_ASSUMPTION.tenorYears, BUYING_POWER_ASSUMPTION.dpPercentage)
-        const over = finState === 'ready' && affordability.maxInstallment > 0 && inst > affordability.maxInstallment
-        return (
-          <span className={over ? 'text-brand-danger font-semibold' : 'text-brand-text'}>
-            {formatRupiah(inst)}
-          </span>
-        )
+        return '-'
       },
     },
     { label: t('compare.row.property_type'), render: (p) => p.property_type || p.category || '-' },
