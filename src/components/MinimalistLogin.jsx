@@ -63,9 +63,24 @@ export default function MinimalistLogin({ onLoginSuccess }) {
     e.preventDefault()
     setError(null)
 
-    if (!isLogin && password !== confirmPassword) {
-      setError(t('login.error_password_mismatch'))
-      return
+    if (!isLogin) {
+      if (password !== confirmPassword) {
+        setError(t('login.error_password_mismatch'))
+        return
+      }
+
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+      if (!passwordRegex.test(password)) {
+        setError(t('login.error_password_weak'))
+        return
+      }
+
+      const cleanedWa = whatsapp.replace(/\D/g, '')
+      const waRegex = /^(08|62|\+62)\d{8,12}$/
+      if (!waRegex.test(cleanedWa)) {
+        setError(t('login.error_whatsapp_invalid'))
+        return
+      }
     }
 
     setLoading(true)
@@ -78,9 +93,10 @@ export default function MinimalistLogin({ onLoginSuccess }) {
           return
         }
       } else {
+        const normalizedWa = whatsapp.replace(/\D/g, '')
         const { error: authError } = await supabase.auth.signUp({
           email, password,
-          options: { data: { first_name: firstName, whatsapp } },
+          options: { data: { first_name: firstName, whatsapp: normalizedWa } },
         })
         if (authError) {
           handleAuthError(authError)
@@ -280,7 +296,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                     className="w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
                   />
                   <button
@@ -306,7 +322,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                     className="w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
                   />
                   <button
