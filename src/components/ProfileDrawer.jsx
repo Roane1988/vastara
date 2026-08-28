@@ -237,6 +237,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           first_name: name,
           email: email.trim(),
           whatsapp: normalizedWa,
+          ...(normalizedWa ? { whatsapp_verified: true } : {}),
         })
         .eq('id', user.id)
 
