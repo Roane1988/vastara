@@ -62,7 +62,7 @@ function Collapsible({ title, icon, defaultOpen = false, children }) {
 export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { role, showToast, setWhatsappVerified } = useAuth()
+  const { role, showToast, refreshProfile } = useAuth()
   const { totalNew } = useSavedSearchAlerts()
 
   const [name, setName] = useState(userName || '')
@@ -74,6 +74,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   const [currentEmail, setCurrentEmail] = useState('')
+  const [currentWhatsapp, setCurrentWhatsapp] = useState('')
   const [dirty, setDirty] = useState(false)
   const [financeOpenKey, setFinanceOpenKey] = useState(0)
 
@@ -127,6 +128,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           setEmail(loadedEmail)
           setWhatsapp(loadedWhatsapp)
           setCurrentEmail(loadedEmail)
+          setCurrentWhatsapp(loadedWhatsapp)
           setDirty(false)
         }
       } catch {
@@ -190,6 +192,8 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
     }
 
     const normalizedWa = waTrimmed ? normalizeWhatsAppNumber(waTrimmed) : ''
+    const currentWa = currentWhatsapp ? normalizeWhatsAppNumber(currentWhatsapp) : ''
+    const waChanged = normalizedWa !== currentWa
 
     setSaving(true)
     notify(t('profileDrawer.verifying'), 'info')
@@ -238,7 +242,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           first_name: name,
           email: email.trim(),
           whatsapp: normalizedWa,
-          ...(normalizedWa ? { whatsapp_verified: true } : {}),
+          ...(normalizedWa && !waChanged ? { whatsapp_verified: true } : { whatsapp_verified: false }),
         })
         .eq('id', user.id)
 
@@ -249,8 +253,9 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
       setCurrentPassword('')
       setCurrentEmail(email.trim())
+      setCurrentWhatsapp(normalizedWa)
       setDirty(false)
-      if (normalizedWa) setWhatsappVerified(normalizedWa)
+      refreshProfile(user.id)
       notify(t('profileDrawer.save_success'), 'success')
       showToast(t('profileDrawer.save_success'), 'success')
     } catch (err) {

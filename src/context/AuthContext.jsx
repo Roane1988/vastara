@@ -138,7 +138,7 @@ export function AuthProvider({ children }) {
   }, [user?.id])
 
   return (
-    <AuthContext.Provider value={{ session, user, role, profile, loading, showToast, signOut, setWhatsappVerified }}>
+    <AuthContext.Provider value={{ session, user, role, profile, loading, showToast, signOut, setWhatsappVerified, refreshProfile: fetchProfile }}>
       {children}
       {toast && <Toast message={toast.message} type={toast.type} action={toast.action} onClose={hideToast} />}
     </AuthContext.Provider>

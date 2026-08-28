@@ -7,6 +7,13 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Fix**: tambah state `showInput`; tombol kini `setShowInput(true)` yang membuka (expand) kolom input + tombol "Simpan & Verifikasi" di dalam banner; `showForm = showInput || whatsapp_verified === false`; input diberi `autoFocus`.
 - **UX**: wrapper `z-index` naik `z-40` → `z-50`; tombol diberi `cursor-pointer`, `hover:bg-brand-primary/90`, `transition-colors`, `disabled:cursor-not-allowed`.
 
+## Changelog — Hardening WhatsApp: UNIQUE, Validasi Backend, Reset Verified (29 Agustus 2026)
+- **Partial UNIQUE index** (`20260829_whatsapp_verification_hardening.sql`): `profiles.whatsapp` unik untuk nilai non-empty → mencegah satu nomor dipakai banyak akun. NULL/empty tetap diizinkan banyak.
+- **Validasi & normalisasi backend** di RPC `set_whatsapp_verified`: regexp ambil digit, cek panjang 10-14, normalisasi awalan `08/620 → 62`, tolak duplikat nomor akun lain (raise exception). Frontend tidak bisa di-bypass.
+- **#10 Reset verified saat ganti nomor** (`ProfileDrawer.jsx`): `handleSave` menyetel `whatsapp_verified` berdasarkan `waChanged` (bandingkan dengan `currentWhatsapp` yang tersimpan). Nomor sama → `true`; nomor berubah/dikosongkan → `false` (user harus verifikasi ulang via banner). Setelah simpan, `refreshProfile(user.id)` (metode baru diekspos dari `AuthContext`) sinkron `profile` dari DB, menggantikan tebakan `setWhatsappVerified`.
+- **AuthContext**: ekspos `refreshProfile` di context value.
+- Efek: satu akun satu nomor; pergantian nomor memaksa verifikasi ulang; banner persisten konsisten dengan status DB.
+
 ## Changelog — Fix Banner WhatsApp Muncul Lagi Setelah Refresh (Root Cause) (28 Agustus 2026)
 - **Root cause sebenarnya**: `get_my_profile()` berjenis `returns table(...)` → PostgREST mengembalikan **array**, bukan objek. `AuthContext.fetchProfile` menyimpan `setProfile(data)` (array), sehingga `profile?.whatsapp_verified` selalu `undefined` → banner verifikasi selalu ditampilkan setelah refresh (walau hilang sesaat saat klik karena `setWhatsappVerified` mengubah profile jadi objek).
 - **Fix**: normalisasi hasil RPC ke objek di semua konsumen:
