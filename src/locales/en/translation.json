@@ -726,5 +726,18 @@
       "s6_title": "6. Contact Us",
       "s6_body": "If you have any questions about this Privacy Policy, please contact us at officialhunione@gmail.com."
     }
+  },
+  "whatsappVerify": {
+    "title": "WhatsApp Verification Required",
+    "titleMissing": "WhatsApp Number Not Set",
+    "subtitle": "Add and verify your WhatsApp number to interact with sellers and agents.",
+    "subtitleMissing": "Add your WhatsApp number before sending messages or posting listings.",
+    "placeholder": "Enter WhatsApp number",
+    "verify": "Save & Verify",
+    "add": "Add Now",
+    "saving": "Saving...",
+    "invalid": "Invalid WhatsApp number. Use format 08xxxxxxxxxx or 62xxxxxxxxxx (10-14 digits).",
+    "success": "WhatsApp number verified successfully.",
+    "failed": "Failed to verify WhatsApp. Please try again."
   }
 }

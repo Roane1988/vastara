@@ -131,7 +131,13 @@ export default function MinimalistLogin({ onLoginSuccess }) {
         const normalizedWa = whatsapp.replace(/\D/g, '')
         const { error: authError } = await supabase.auth.signUp({
           email, password,
-          options: { data: { first_name: firstName, whatsapp: normalizedWa } },
+          options: {
+            data: {
+              first_name: firstName,
+              whatsapp: normalizedWa,
+              whatsapp_verified: false,
+            },
+          },
         })
         if (authError) {
           handleAuthError(authError)

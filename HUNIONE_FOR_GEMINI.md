@@ -1,6 +1,39 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 25 Agustus 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 28 Agustus 2026.
+
+## Changelog — Verifikasi WhatsApp Wajib & Pengingat Persisten (28 Agustus 2026)
+- **Verifikasi WhatsApp wajib** (migration `20260828_whatsapp_verification.sql`): kolom baru `whatsapp_verified` (bool, default false) di tabel `profiles`.
+  - Trigger `handle_new_user()` di-update: saat signup, profil dibuat dengan `whatsapp_verified = true` bila nomor WhatsApp diisi, `false` bila kosong.
+  - **Backfill**: user lama yang sudah punya nomor WhatsApp dianggap terverifikasi (tidak memaksa verifikasi ulang).
+  - RPC `get_my_profile()` diperluas mengembalikan `whatsapp_verified`; RPC baru `set_whatsapp_verified(p_whatsapp text)` (security definer, owner-only) untuk menyimpan nomor + menandai terverifikasi.
+- **Banner/reminder persisten** (`WhatsAppVerificationBanner.jsx`, di-render global di `App.jsx` di bawah TopNavbar): muncul di semua halaman saat user login & `whatsapp_verified !== true`. **Tidak bisa ditutup** (persisten). Menampilkan form input nomor WhatsApp + tombol "Simpan & Verifikasi" (validasi regex 08/62/+62 10-14 digit → RPC `set_whatsapp_verified` → hilang setelah terverifikasi).
+- **AuthContext** (`src/context/AuthContext.jsx`): tambah state `profile` (dari RPC `get_my_profile()`), diekspos via `useAuth()` beserta `setWhatsappVerified` (update lokal setelah verifikasi) & watcher Realtime `profiles` yang juga membaca `whatsapp_verified`/`whatsapp`.
+- **Registrasi** (`MinimalistLogin.jsx`): metadata signup eksplisit `whatsapp_verified: false` (konsisten dgn trigger).
+- i18n baru (ID & EN): key `whatsappVerify.*` (title, subtitle, placeholder, verify, add, saving, invalid, success, failed).
+
+## Changelog — Validasi Input, Penyembunyian KPR, NIB Agen, Sinkronisasi Role, Prompt HuniBot (26 Agustus 2026)
+- **Validasi kekuatan password** (`1424b00` → `3b4b017`): aturan baru password min 8 karakter + 1 huruf besar + 1 huruf kecil + 1 angka (regex `/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/`). Diterapkan di `MinimalistLogin.jsx` (registrasi) & `UpdatePasswordPage.jsx` (reset). i18n baru: `login.error_password_weak`, `login.error_whatsapp_invalid`, `update_password.password_weak` (ID & EN).
+- **Validasi nomor WhatsApp**: harus diawali `08`/`62`/`+62`, digit saja, panjang 10–14 digit (regex `/^(08|62|\+62)\d{8,12}$/`). Nomor dinormalisasi (strip non-digit) sebelum `signUp`.
+- **Inline field errors** (bukan native HTML5): tambah `noValidate` ke form, hapus `minLength` dari input password, validasi berbasis state React per-field (password, confirm, whatsapp) dengan **border merah + `text-red-500`** di bawah input; error terhapus saat mengetik; form register & login switch mereset error field.
+- **KPR disembunyikan dari UI** (`3e4b930` + `f4def92` — sementara): fitur KPR di-sembunyikan dari antarmuka, tetapi **mesin perhitungan (`KprSimulator.jsx`) & route `/kpr` tetap ada di kode** (hanya di-comment-out di `App.jsx`).
+  - `PropertyDetailPage`: section **Simulasi KPR** (dan disclaimer KPR di properti sewa) dihapus — properti Dijual tidak lagi menampilkan simulator; `// import KprSimulator`.
+  - `PropertyGridCard` & `ExploreInsights` (`CarouselPropertyCard`): **estimasi cicilan KPR** di-comment-out.
+  - `ComparePage`: baris "estimasi cicilan" kini menampilkan `'-'` (KPR dihapus, `estimateMonthlyInstallment` di-unimport).
+  - `ExplorePage`: item "Simulasi KPR" dihapus dari **FAB menu**; CTA section finansial kini `open-financial-profile` (bukan navigate `/kpr`).
+  - `MoreCategoriesDrawer`: shortcut "Kalkulator KPR" dihapus (icon `Calculator` di-unimport).
+  - `ExplorePage` QUICK_MENU, `HamburgerMenu`, `Footer`: link/menu KPR dihapus seluruhnya.
+- **NIB (`Nomor Induk Berusaha`) untuk agen** (`91bd3cc`, migration `20260826_add_nib_to_agents.sql`):
+  - Kolom `nib` baru di **`agent_applications`** & **`agent_profiles`** (default `''`).
+  - `AgentApplicationPage`: field **NIB wajib** (Zod validasi required + digit saja) → payload insert `nib`.
+  - Trigger `handle_agent_approval()` di-update untuk **menyalin `nib`** ke `agent_profiles` saat disetujui (INSERT & `on conflict ... update`).
+  - i18n: `agentApply.nib`, `nib_placeholder`, `error_nib`, `error_nib_invalid`.
+- **Validasi WhatsApp listing cocok dengan profil** (`91bd3cc`, di `SellPropertyPage` sebelum submit): nomor WhatsApp form harus **sama persis** dengan nomor terdaftar di profil akun (baca `profiles.whatsapp` / `user.user_metadata.whatsapp`); normalisasi `08`/`62`/`+62` → prefix `62` sebelum dibandingkan; mismatch → toast error + blokir submit.
+- **Sinkronisasi role real-time saat admin ubah role user** (`f839930`):
+  - **Akar masalah**: `AuthContext.fetchRole()` hanya berjalan saat login/auth change; admin mengganti role di DB tidak memicu event auth → role user stale sampai keluar-masuk.
+  - **Fix**: `AuthContext` kini subscribe **Supabase Realtime** pada tabel `profiles` (filter `id=eq.<user.id>`, event UPDATE) → `setRole(payload.new.role)` seketika saat admin mengubah role.
+  - `ProfileDrawer`: role diambil dari `useAuth()` (single source of truth) — hapus fetch role mandiri yang menyebabkan inkonsistensi.
+- **Tuning prompt HuniBot** (`3152004`): sistem prompt jadi lebih ringkas — "Jawab SANGAT ringkas: maksimal 2-3 kalimat pendek, langsung ke inti tanpa basa-basi", gunakan poin/bullet, hindari pembukaan "Tentu/Baik/Silakan", tolak di luar topik cukup 1 kalimat. Diterapkan konsisten di 3 tempat: `HuniBot.jsx` (frontend), `api/groq.js` (serverless), `vite.config.js` (dev proxy). Prompt translation/investment/search tidak diubah.
 
 ## Changelog — SEO, MoreCategoriesDrawer, Profil Penjual Publik (25 Agustus 2026)
 - **SEO (`index.html` + `public/robots.txt`)**: tambah `<meta name="robots" content="index, follow">`, `<link rel="canonical">`, Open Graph tags (`og:type`, `og:site_name`, `og:locale`, `og:title`, `og:description`, `og:image`), Twitter Card (`summary_large_image`). `robots.txt` allow all dengan sitemap reference.
@@ -114,7 +147,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 | `/forum/:id` | ForumDetailPage | Tidak | views counter, reactions, poll, best answer, related threads, share |
 | `/property/:id` | PropertyDetailPage | Tidak | **mobile bottom price bar (sticky)**, **spec tiles** (KT/KM/luas/sertifikat), **map card**, harga di sidebar desktop, Properti Serupa, KPR simulator, lightbox gallery, **share → toast sukses/gagal**, **alamat area-only + gate alamat lengkap via kontak agent** |
 | `/admin` | AdminDashboardPage | Ya (admin only) | **6-tab** (Overview/**Agen**/**Harga**/**Laporan**/Users/Audit Trail), preview modal, konfirmasi sebelum verify/survei/bulk + **undo**, soft reject, pagination, realtime, filter **Terjual** |
-| `/kpr` | KprCalculatorPage | Tidak | amortization table, biaya tambahan |
+| `/kpr` | KprCalculatorPage | Tidak | **HIDDEN (26 Aug 2026)** — route & component masih ada di kode tapi di-comment-out sementara dari `App.jsx`; mesin `KprSimulator.jsx` tetap tersedia |
 | `/compare` | ComparePage | Tidak | bandingkan max 3 properti + affordability dari financial profile |
 | `/price-drop` | PriceDropPage | Tidak | properti yang baru turun harga (dari `price_history`/`price_change_status`) |
 | `/price-trends` | PriceTrendPage | Tidak | tren harga per kota/kategori/tipe (2×60 hari) |
@@ -166,7 +199,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - Lazy loading images
 
 ### 4. KPR Calculator
-- **KprSimulator.jsx** (reusable): annuity formula, DP slider 0-50%
+- **KprSimulator.jsx** (reusable): annuity formula, DP slider 0-50% — **mesin tetap ada di kode, tapi sementara disembunyikan dari UI (26 Aug 2026)**; route `/kpr` di-comment-out di `App.jsx`
 - **KprCalculatorPage.jsx** (full page): 2-column, DP 0-80%, amortization table (yearly), biaya tambahan (BPHTB 5%, PPN 11%, Notaris 1%, Provisi 1%), WhatsApp integration
 - **Enhancements (Aug 2026)**: ringkasan finansial (DP, pokok, total bunga, total bayar), **minimum income** (cicilan / 0.3), **CountUp** animasi angka (`CountUp.jsx` via rAF easeOutCubic), **DP presets** (10/20/30/50%) + **tenor presets** (10/15/20/25 th), slider DP diperbaiki, tombol **HuniBot** (custom event `open-hunibot-question` dengan konteks harga/DP/bunga/tenor), tombol **WhatsApp** share, integrasi `financialProfile` (batas ideal dari `maxInstallment`, progress bar, saran naik DP/perpanjang tenor saat cicilan melebihi batas), i18n
 - **Input limits (Aug 2026)**: harga properti di-cap **Rp100 miliar** + warning bila < Rp10 juta, suku bunga di-cap **30%/thn** (warning), DP warning bila < 10% atau nominal > harga — diterapkan di `KprSimulator.jsx` & `KprCalculatorPage.jsx` (konstanta `PRICE_MIN`/`PRICE_MAX`/`INTEREST_MAX`/`DP_MIN_PCT`)
@@ -231,7 +264,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - `PropertyDetailPage` memanggil `addRecentlyViewed(property)` saat properti dimuat
 
 ### 11. Pendaftaran Agen
-- **AgentApplicationPage** (`/agent-apply`, **wajib login — 20260802**): form full_name, email, whatsapp (wajib), agency, experience (<1/1-3/3-5/5+ tahun), region, portfolio, **checkbox persetujuan** (wajib), info review 3-langkah. Submit → insert `agent_applications` dengan `user_id` (RLS `user_id = auth.uid()`) + status default 'pending', tampil success state. `useSEO` title/description.
+- **AgentApplicationPage** (`/agent-apply`, **wajib login — 20260802**): form full_name, email, whatsapp (wajib), **nib (`Nomor Induk Berusaha`, wajib — 20260826)**, agency, experience (<1/1-3/3-5/5+ tahun), region, portfolio, **checkbox persetujuan** (wajib), info review 3-langkah. Submit → insert `agent_applications` dengan `user_id` (RLS `user_id = auth.uid()`) + status default 'pending', tampil success state. `useSEO` title/description.
 - **AdminAgentApplications** di dashboard admin tab **Agen**: list + filter + approve/reject/hapus (lihat bagian 7).
 - Approval mengaktifkan **trigger** `handle_agent_approval()` yang otomatis update `profiles.role = 'agent'` untuk profil dengan `user_id` yang sama (fallback email), kecuali admin.
 
@@ -289,7 +322,8 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - **Column naming**: `address` (bukan `location`), `area_sqm` (bukan `sqm`), `seller_whatsapp` (bukan `agent_whatsapp`), `description_id` (bukan `description`)
 
 ### Table `profiles`
-- `id` (uuid PK, references auth.users), `first_name`, `email`, `whatsapp`, `role`, `created_at`
+ - `id` (uuid PK, references auth.users), `first_name`, `email`, `whatsapp`, `role`, `created_at`
+ - **`whatsapp_verified` (bool, default false — 20260828)**: status verifikasi WhatsApp; wajib `true` untuk berinteraksi/pasang listing; di-set otomatis di trigger `handle_new_user()` & via RPC `set_whatsapp_verified(text)`
 - **`is_super_admin` (bool, default false — 20260815)**: hanya super admin yang boleh mengubah role/`is_super_admin` (trigger `enforce_role_super_guard`); admin terakhir tidak bisa diturunkan (anti lockout)
 - Role values: `pembeli`, `owner`, `agent`, `developer`, `admin` (constraint `profiles_role_check`)
 - **TIDAK ada kolom `updated_at`** (sudah dibuktikan bugfix: update payload tidak boleh menyertakan `updated_at`).
@@ -299,7 +333,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - **Auto-create**: trigger `handle_new_user()` membuat baris profil (role `pembeli`) otomatis saat user signup (20260810)
 
 ### Table `agent_profiles` (baru — direktori agen, 1:1 ke profiles)
-- `user_id` (uuid PK, FK → profiles, cascade), `full_name`, `agency`, `region`, `experience`, `experience_years` (int), `portfolio`, `bio`, `whatsapp`, `is_visible` (bool, default true), `created_at`, `updated_at`
+- `user_id` (uuid PK, FK → profiles, cascade), `full_name`, `agency`, `region`, `experience`, `experience_years` (int), `portfolio`, `bio`, `whatsapp`, `nib` (text default '' — **20260826**), `is_visible` (bool, default true), `created_at`, `updated_at`
 - RLS: select `is_visible = true` **atau user_id = auth.uid()** (agent bisa baca profil sendiri walau disembunyikan — 20260818); insert/update owner (`user_id = auth.uid()`, insert wajib role 'agent'); admin `for all` via subquery role admin
 
 ### Table `agent_reviews` (baru)
@@ -349,7 +383,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - RLS: select all, insert/update/delete hanya owner
 
 ### Table `agent_applications` (baru)
-- `id` (uuid PK), `full_name`, `email`, `whatsapp` (not null), `agency`, `experience`, `region`, `portfolio` (text, default '')
+- `id` (uuid PK), `full_name`, `email`, `whatsapp` (not null), `nib` (text default '' — **20260826**, Nomor Induk Berusaha, wajib), `agency`, `experience`, `region`, `portfolio` (text, default '')
 - `user_id` (uuid FK → auth.users — 20260802), `agreement_accepted_at` (timestamptz), `status` (check 'pending'/'approved'/'rejected', default 'pending'), `reject_reason` (text default ''), `reviewed_by` (FK → profiles), `reviewed_at`, `created_at`
 - Index: `status`, `created_at`, `user_id`
 - **RLS (20260802)**: insert `user_id = auth.uid()` (wajib login, bukan lagi "Anyone can submit"); select milik sendiri (`user_id = auth.uid()`); update hanya admin; **delete hanya admin** (20260808)
@@ -402,7 +436,8 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 
 ## Functions & RPC (Security definer)
 - `is_admin()` — cek `role='admin'` dari `auth.uid()`; **dipakai semua policy admin** (menghindari subquery self-referential yang memicu 42P17)
-- `get_my_profile()` — email/whatsapp milik sendiri (owner-only)
+- `get_my_profile()` — email/whatsapp milik sendiri (owner-only); kini juga kembalikan `whatsapp_verified` (20260828)
+- `set_whatsapp_verified(text)` — simpan nomor WhatsApp + set `whatsapp_verified=true` (owner-only, security definer; 20260828)
 - `get_admin_users()` — daftar user lengkap + email/whatsapp (hanya admin); kini juga ekspos `is_super_admin` (20260815)
 - `set_property_ai_analysis(uuid, jsonb)` — tulis cache AI (hanya service_role)
 - `increment_forum_views(uuid)` — naikkan `forum_posts.views`
@@ -415,7 +450,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - Trigger `enforce_profile_role_change()` — role hanya bisa diubah admin (20260813)
 - Trigger `enforce_role_super_guard()` — hanya super admin yang boleh ubah role/`is_super_admin`; admin terakhir dilindungi (20260815)
 - Trigger `handle_new_user()` — auto-create profil saat signup (20260810)
-- Trigger `handle_agent_approval()` — aplikasi agen approved → role='agent' + isi `agent_profiles`
+- Trigger `handle_agent_approval()` — aplikasi agen approved → role='agent' + isi `agent_profiles` (termasuk **`nib`** sejak 20260826)
 
 ## API
 
@@ -446,7 +481,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - **Transisi status di-trigger** `enforce_property_status_transition()`: non-admin hanya boleh `verified → sold`; admin/service bebas
 
 ### `profiles`
-- Publik: `GRANT SELECT (id, first_name, role)` saja — **email/whatsapp privat** (dibaca via RPC `get_my_profile()`)
+- Publik: `GRANT SELECT (id, first_name, role)` saja — **email/whatsapp privat** (dibaca via RPC `get_my_profile()`); `whatsapp_verified` juga dibaca via RPC `get_my_profile()` (20260828)
 - Users can insert own: `with check (auth.uid() = id AND role = 'pembeli')`
 - Users can update own: `using (auth.uid() = id) with check (auth.uid() = id)` — **tanpa subquery**
 - Admins can update all profiles / delete: `public.is_admin()`
@@ -487,6 +522,8 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - **WhatsApp leads (20260818)**: INSERT wajib login (anti spam anonim)
 - **Favorit (20260818)**: `user_id` diisi server-side via trigger (anti salah-user)
 - **Auth di `/api/groq`**: verifikasi Bearer token (Supabase), rate limit per user + per IP, purpose `investment` wajib login (8×/jam)
+- **Validasi input auth (20260826)**: password min 8 + huruf besar/kecil/angka; nomor WhatsApp valid (08/62/+62, 10-14 digit) & dinormalisasi saat signUp; inline field errors (bukan native HTML5)
+- **Real-time role sync (20260826)**: `AuthContext` subscribe Realtime pada `profiles` (filter id user) → `setRole` seketika saat admin ubah role; `ProfileDrawer` pakai `useAuth().role` (single source of truth)
 - **Upload validasi**: whitelist MIME (jpeg/png/webp/avif) + ukuran ≤ 5MB (policy storage + cek di klien)
 - **Forum RLS**: post/reply hanya author + admin; views via RPC security definer
 - **Auto-create profil** saat signup (trigger `handle_new_user`)
@@ -542,5 +579,7 @@ Semua file di `supabase/migrations/`:
 35. `20260822_property_price_period.sql` — kolom `properties.price_period` ('total'/'bulan'/'tahun') + backfill sewa → 'bulan'
 36. `20260823_property_detail_fields.sql` — kolom `properties.land_area_sqm` & `furnished` (kondisi isi properti sewa)
 37. `20260824_create_newsletter_subscribers.sql` — tabel `newsletter_subscribers` + RLS (INSERT publik, SELECT/UPDATE/DELETE admin-only)
+38. `20260826_add_nib_to_agents.sql` — kolom `nib` di `agent_applications` & `agent_profiles` + update trigger `handle_agent_approval()` menyalin `nib` saat approval
+39. `20260828_whatsapp_verification.sql` — kolom `whatsapp_verified` (bool) di `profiles`; update trigger `handle_new_user()`; backfill user dgn WhatsApp; perpanjang RPC `get_my_profile()` (+`whatsapp_verified`); RPC baru `set_whatsapp_verified(text)`
 
 **Catatan**: PostgreSQL 14 tidak support `CREATE POLICY IF NOT EXISTS` — harus pakai `DROP POLICY IF EXISTS` dulu sebelum `CREATE POLICY`. Migration terbaru memakai blok `do $$ ... exception when duplicate_object` untuk idempotency.

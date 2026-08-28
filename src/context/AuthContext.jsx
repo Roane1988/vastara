@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [user, setUser] = useState(null)
   const [role, setRole] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
 
@@ -20,6 +21,14 @@ export function AuthProvider({ children }) {
     setToast(null)
   }, [])
 
+  const setWhatsappVerified = useCallback((whatsapp) => {
+    setProfile((prev) => ({
+      ...prev,
+      whatsapp,
+      whatsapp_verified: true,
+    }))
+  }, [])
+
   const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut()
@@ -29,6 +38,7 @@ export function AuthProvider({ children }) {
     setSession(null)
     setUser(null)
     setRole(null)
+    setProfile(null)
   }, [])
 
   useEffect(() => {
@@ -45,6 +55,19 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const fetchProfile = useCallback(async (userId) => {
+    if (!userId) { setProfile(null); return }
+    try {
+      const { data, error } = await supabase.rpc('get_my_profile')
+      if (!error && data) {
+        setProfile(data)
+        if (typeof data.role === 'string') setRole(data.role)
+      }
+    } catch {
+      /* profile fetch failure is non-critical */
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
 
@@ -53,6 +76,7 @@ export function AuthProvider({ children }) {
       setSession(session)
       setUser(session?.user ?? null)
       fetchRole(session?.user?.id)
+      fetchProfile(session?.user?.id)
       initFavorites(session?.user?.id)
       setLoading(false)
     }).catch(() => {
@@ -60,6 +84,7 @@ export function AuthProvider({ children }) {
       setSession(null)
       setUser(null)
       setRole(null)
+      setProfile(null)
       setLoading(false)
     })
 
@@ -68,6 +93,7 @@ export function AuthProvider({ children }) {
       setSession(session)
       setUser(session?.user ?? null)
       fetchRole(session?.user?.id)
+      fetchProfile(session?.user?.id)
       initFavorites(session?.user?.id)
     })
 
@@ -75,7 +101,7 @@ export function AuthProvider({ children }) {
       cancelled = true
       subscription?.unsubscribe()
     }
-  }, [fetchRole])
+  }, [fetchRole, fetchProfile])
 
   useEffect(() => {
     if (!user?.id) return
@@ -87,8 +113,16 @@ export function AuthProvider({ children }) {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
         (payload) => {
-          if (!cancelled && payload.new?.role) {
+          if (cancelled) return
+          if (payload.new?.role) {
             setRole(payload.new.role)
+          }
+          if (typeof payload.new?.whatsapp_verified === 'boolean') {
+            setProfile((prev) => ({
+              ...prev,
+              whatsapp: payload.new.whatsapp,
+              whatsapp_verified: payload.new.whatsapp_verified,
+            }))
           }
         }
       )
@@ -101,7 +135,7 @@ export function AuthProvider({ children }) {
   }, [user?.id])
 
   return (
-    <AuthContext.Provider value={{ session, user, role, loading, showToast, signOut }}>
+    <AuthContext.Provider value={{ session, user, role, profile, loading, showToast, signOut, setWhatsappVerified }}>
       {children}
       {toast && <Toast message={toast.message} type={toast.type} action={toast.action} onClose={hideToast} />}
     </AuthContext.Provider>

@@ -726,5 +726,18 @@
       "s6_title": "6. Hubungi Kami",
       "s6_body": "Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan hubungi kami di officialhunione@gmail.com."
     }
+  },
+  "whatsappVerify": {
+    "title": "Verifikasi WhatsApp Dibutuhkan",
+    "titleMissing": "Nomor WhatsApp Belum Diisi",
+    "subtitle": "Tambahkan dan verifikasi nomor WhatsApp Anda untuk berinteraksi dengan penjual dan agen.",
+    "subtitleMissing": "Lengkapi nomor WhatsApp Anda sebelum melanjutkan untuk mengirim pesan atau memasang listing.",
+    "placeholder": "Masukkan no WhatsApp",
+    "verify": "Simpan & Verifikasi",
+    "add": "Tambahkan Sekarang",
+    "saving": "Menyimpan...",
+    "invalid": "Nomor WhatsApp tidak valid. Gunakan format 08xxxxxxxxxx atau 62xxxxxxxxxx (10-14 digit).",
+    "success": "Nomor WhatsApp berhasil diverifikasi.",
+    "failed": "Terjadi kesalahan saat memverifikasi WhatsApp. Silakan coba lagi."
   }
 }

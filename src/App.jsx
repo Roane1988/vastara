@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import TopNavbar from './components/TopNavbar'
 import Footer from './components/Footer'
 import LegalPage from './components/LegalPage'
+import WhatsAppVerificationBanner from './components/WhatsAppVerificationBanner'
 
 const ProfileDrawer = lazy(() => import('./components/ProfileDrawer'))
 const HuniBot = lazy(() => import('./components/HuniBot'))
@@ -93,6 +94,7 @@ function AppContent() {
     <ErrorBoundary>
       <div className="min-h-screen bg-brand-bg text-brand-text">
         <TopNavbar isAuth={isAuth} userName={userName} onProfileOpen={() => setIsProfileOpen(true)} onLogout={handleLogout} />
+        <WhatsAppVerificationBanner />
         <div key={location.pathname} className="pt-14 animate-page-in">
           <Suspense fallback={<PageLoader />}>
             <Routes location={location} key={location.pathname}>
