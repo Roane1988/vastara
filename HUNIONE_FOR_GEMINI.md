@@ -12,6 +12,7 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Fix**: `isSaveDisabled` kini hanya `saving` → tombol selalu bisa diklik dan kasih feedback. `handleSave` mengganti silent return dengan `notify(..., 'error')` eksplisit: `name_required`, `email_required`, `email_invalid`, `whatsapp_invalid` (validasi WhatsApp pakai `isValidWhatsAppNumber`), `password_required`.
 - **Normalisasi**: nomor WhatsApp dinormalisasi (`normalizeWhatsAppNumber`) sebelum simpan ke `auth.user.user_metadata` & `profiles.whatsapp`.
 - **Toast**: saat sukses memanggil `showToast(save_success, 'success')` (global) + `notify` inline; loading state (spinner `Loader2` + "Menyimpan...") & disabled tetap.
+- **Sinkronisasi state** (`d80cf23` →): setelah simpan sukses, `handleSave` memanggil `setWhatsappVerified(normalizedWa)` (dari `useAuth()`) agar `AuthContext.profile.whatsapp` langsung sinkron + `whatsapp_verified=true`, tidak hanya bergantung pada Realtime (mencegah UI banner menampilkan nilai basi sesaat). Konsisten dgn backfill verifikasi berbasis kepemilikan nomor.
 - i18n baru (ID & EN): `profileDrawer.name_required`, `email_required`, `whatsapp_invalid`.
 
 ## Changelog — Placeholder & Bantuan Format WhatsApp Seragam (28 Agustus 2026)

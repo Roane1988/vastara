@@ -62,7 +62,7 @@ function Collapsible({ title, icon, defaultOpen = false, children }) {
 export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { role, showToast } = useAuth()
+  const { role, showToast, setWhatsappVerified } = useAuth()
   const { totalNew } = useSavedSearchAlerts()
 
   const [name, setName] = useState(userName || '')
@@ -248,6 +248,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
       setCurrentPassword('')
       setCurrentEmail(email.trim())
       setDirty(false)
+      if (normalizedWa) setWhatsappVerified(normalizedWa)
       notify(t('profileDrawer.save_success'), 'success')
       showToast(t('profileDrawer.save_success'), 'success')
     } catch (err) {
