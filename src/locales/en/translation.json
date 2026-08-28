@@ -371,7 +371,11 @@
     "agent": "Property Agent",
     "developer": "Developer",
     "owner": "Property Owner",
-    "find_agent": "Find an Agent to Sell"
+    "find_agent": "Find an Agent to Sell",
+    "owner_desc": "Sell or rent out your own property",
+    "agent_desc": "Manage & market properties on behalf of clients",
+    "developer_desc": "Market new projects, towers, or units",
+    "find_agent_desc": "Find a trusted agent to help with your sale"
   },
   "profileDrawer": {
     "title": "Personal Information",

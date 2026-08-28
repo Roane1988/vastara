@@ -9,6 +9,12 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Route & komponen**: hapus `PriceDropPage` & `PriceTrendPage` (file dihapus) dan route `/price-drop` & `/price-trends` dari `App.jsx`; hapus kunci i18n `quick_menu.price_drop` & `price_trends` (id/en).
 - **Dipertahankan**: guard harga backend (`guard_property_price_change()`, `original_price`, `price_history`, tab "Harga" admin) tetap ada — hanya UI/landing-page tren & penurunan harga yang dihapus.
 
+## Changelog — Redesign Halaman Pilih Peran `/sell-role` (RoleSelectionPage) (28 Agustus 2026)
+- **Layout role cards**: dari tumpukan vertikal 1 kolom menjadi **grid rapi** — 3 kolom sejajar di desktop (`md:grid-cols-3`) & 1 kolom proporsional di mobile (`grid-cols-1`). Hero card (owner/agent/developer) memakai container rounded `rounded-2xl`, `bg-white`, border tipis `border-brand-border`, dan **hover interaktif** (`-translate-y-1`, `hover:border-brand-accent`, `hover:shadow-lg`).
+- **Ikon & hierarki visual**: ikon diperbesar (`w-16 h-16`, `size={30}`) dalam kotak `bg-brand-accent/10` yang berubah menjadi `brand-primary` + putih saat hover; judul peran tebal (`font-bold`) diikuti **deskripsi singkat** di bawahnya (string i18n baru `roleSelection.*_desc` untuk owner/agent/developer/find_agent, ID & EN).
+- **Card sekunder "Cari Agen"**: dibuat terpisah sebagai card full-width bergaya dashed/ghost di bawah grid (navigasi `/agents`), mengikuti konvensi portal — peran yang mengiklankan sebagai CTA utama, mencari agen sebagai aksi sekunder.
+- **Fungsionalitas dipertahankan**: routing & state handling tak berubah — tiga peran utama tetap `navigate('/sell', { state: { role } })`, "Cari Agen" tetap `navigate('/agents')`; tombol back `navigate(-1)` tetap.
+
 ## Changelog — Alur Lupa & Ubah Kata Sandi End-to-End (25 Agustus 2026)
 - **ForgotPasswordPage** (`/forgot-password`, `src/pages/ForgotPasswordPage.jsx`): form email → `resetPasswordForEmail` (Supabase Auth) → state sukses dengan instruksi cek email. Route public, lazy-loaded.
 - **UpdatePasswordPage** (`/update-password`, `src/pages/UpdatePasswordPage.jsx`): form password baru (konfirmasi) → `updateUser({ password })` → redirect ke `/`; validasi kekuatan password (min 8 + huruf besar/kecil + angka) & inline errors.

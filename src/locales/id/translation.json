@@ -371,7 +371,11 @@
     "agent": "Agen Properti",
     "developer": "Developer",
     "owner": "Pemilik Properti",
-    "find_agent": "Cari Agen untuk Menjualkan"
+    "find_agent": "Cari Agen untuk Menjualkan",
+    "owner_desc": "Jual atau sewakan properti milik Anda sendiri",
+    "agent_desc": "Kelola & pasarkan properti atas nama klien",
+    "developer_desc": "Pasarkan proyek, tower, atau unit baru",
+    "find_agent_desc": "Temukan agen tepercaya untuk membantu penjualan"
   },
   "profileDrawer": {
     "title": "Informasi Pribadi",
