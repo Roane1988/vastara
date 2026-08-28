@@ -375,7 +375,44 @@
     "owner_desc": "Sell or rent out your own property",
     "agent_desc": "Manage & market properties on behalf of clients",
     "developer_desc": "Market new projects, towers, or units",
-    "find_agent_desc": "Find a trusted agent to help with your sale"
+    "find_agent_desc": "Find a trusted agent to help with your sale",
+    "learn_more": "Learn More"
+  },
+  "packages": {
+    "title": "Ads Packages & Pricing",
+    "subtitle": "Pick the package that best reaches more buyers.",
+    "feature_title": "What's included",
+    "popular": "Most Popular",
+    "per_period": "/listing",
+    "choose": "Choose Package",
+    "coming_soon": "Coming soon",
+    "back": "Back",
+    "starter": "Starter",
+    "starter_desc": "For property owners new to advertising",
+    "starter_price": "Free",
+    "starter_features": [
+      "1 active listing",
+      "Up to 5 photos",
+      "Shown in standard search"
+    ],
+    "pro": "Pro",
+    "pro_desc": "Most popular for active agents",
+    "pro_price": "IDR 99,000",
+    "pro_features": [
+      "5 active listings",
+      "Up to 10 photos",
+      "Priority in search results",
+      "Click & impression stats"
+    ],
+    "premium": "Premium",
+    "premium_desc": "For developers & large portfolios",
+    "premium_price": "IDR 199,000",
+    "premium_features": [
+      "Unlimited listings",
+      "Up to 20 photos",
+      "Exclusive Premium badge",
+      "Full analytics & priority support"
+    ]
   },
   "profileDrawer": {
     "title": "Personal Information",

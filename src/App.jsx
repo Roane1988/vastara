@@ -27,6 +27,7 @@ const PropertyDetailPage = lazy(() => import('./components/PropertyDetailPage'))
 const SellerProfilePage = lazy(() => import('./pages/SellerProfilePage'))
 const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const ComingSoonPage = lazy(() => import('./components/ComingSoonPage'))
+const PackagesPage = lazy(() => import('./components/PackagesPage'))
 // const KprCalculatorPage = lazy(() => import('./components/KprCalculatorPage'))
 const ComparePage = lazy(() => import('./components/ComparePage'))
 const SavedSearchesPage = lazy(() => import('./components/SavedSearchesPage'))
@@ -115,6 +116,7 @@ function AppContent() {
               <Route path="/property/:id" element={<PropertyDetailPage />} />
               <Route path="/admin" element={<AdminRoute isAuth={isAuth} role={role} location={location}><AdminDashboardPage /></AdminRoute>} />
               <Route path="/coming-soon" element={<ComingSoonPage />} />
+              <Route path="/packages" element={<PackagesPage />} />
               {/* <Route path="/kpr" element={<KprCalculatorPage />} /> */}
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/saved-searches" element={<ProtectedRoute isAuth={isAuth} location={location}><SavedSearchesPage /></ProtectedRoute>} />

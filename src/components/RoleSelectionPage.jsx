@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { UserCheck, Building2, Home, ArrowLeft, Search, ArrowRight } from 'lucide-react'
+import { UserCheck, Building2, Home, ArrowLeft, Search, ArrowRight, Info } from 'lucide-react'
 
 const ROLES = [
   { key: 'owner', icon: Home, desc: 'roleSelection.owner', sub: 'roleSelection.owner_desc' },
@@ -64,6 +64,15 @@ export default function RoleSelectionPage() {
             <p className="text-xs text-brand-muted mt-0.5">{t(FIND_AGENT.sub)}</p>
           </div>
           <ArrowRight size={18} className="text-brand-muted shrink-0 group-hover:text-brand-accent group-hover:translate-x-0.5 transition-all duration-200" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate('/packages')}
+          className="mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-brand-border text-sm font-semibold text-brand-muted hover:text-brand-primary hover:border-brand-accent hover:shadow-sm active:scale-[0.97] transition-all duration-200 cursor-pointer"
+        >
+          <Info size={16} />
+          {t('roleSelection.learn_more')}
         </button>
       </div>
     </div>

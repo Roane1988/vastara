@@ -375,7 +375,44 @@
     "owner_desc": "Jual atau sewakan properti milik Anda sendiri",
     "agent_desc": "Kelola & pasarkan properti atas nama klien",
     "developer_desc": "Pasarkan proyek, tower, atau unit baru",
-    "find_agent_desc": "Temukan agen tepercaya untuk membantu penjualan"
+    "find_agent_desc": "Temukan agen tepercaya untuk membantu penjualan",
+    "learn_more": "Pelajari Lebih Lanjut"
+  },
+  "packages": {
+    "title": "Paket & Harga Iklan",
+    "subtitle": "Pilih paket yang paling sesuai untuk menjangkau lebih banyak pembeli.",
+    "feature_title": "Fitur di dalamnya",
+    "popular": "Paling Populer",
+    "per_period": "/iklan",
+    "choose": "Pilih Paket",
+    "coming_soon": "Segera hadir",
+    "back": "Kembali",
+    "starter": "Starter",
+    "starter_desc": "Untuk pemilik properti yang baru mulai beriklan",
+    "starter_price": "Gratis",
+    "starter_features": [
+      "1 iklan aktif",
+      "Foto hingga 5",
+      "Muncul di pencarian standar"
+    ],
+    "pro": "Pro",
+    "pro_desc": "Paling populer untuk agen aktif",
+    "pro_price": "Rp 99.000",
+    "pro_features": [
+      "5 iklan aktif",
+      "Foto hingga 10",
+      "Prioritas di hasil pencarian",
+      "Statistik klik & tayangan"
+    ],
+    "premium": "Premium",
+    "premium_desc": "Untuk developer & portofolio besar",
+    "premium_price": "Rp 199.000",
+    "premium_features": [
+      "Iklan tanpa batas",
+      "Foto hingga 20",
+      "Badge Premium eksklusif",
+      "Analitik lengkap & dukungan prioritas"
+    ]
   },
   "profileDrawer": {
     "title": "Informasi Pribadi",

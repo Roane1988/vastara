@@ -15,6 +15,11 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Card sekunder "Cari Agen"**: dibuat terpisah sebagai card full-width bergaya dashed/ghost di bawah grid (navigasi `/agents`), mengikuti konvensi portal — peran yang mengiklankan sebagai CTA utama, mencari agen sebagai aksi sekunder.
 - **Fungsionalitas dipertahankan**: routing & state handling tak berubah — tiga peran utama tetap `navigate('/sell', { state: { role } })`, "Cari Agen" tetap `navigate('/agents')`; tombol back `navigate(-1)` tetap.
 
+## Changelog — Halaman Paket `/packages` + Tombol "Pelajari Lebih Lanjut" (28 Agustus 2026)
+- **Halaman informasi paket baru** (`src/components/PackagesPage.jsx`, route `/packages` di `App.jsx`, lazy-loaded): menampilkan 3 paket iklan (Starter / Pro / Premium) dalam **grid 3 kolom** (`md:grid-cols-3`, 1 kolom di mobile). Tiap kartu: nama, deskripsi singkat, harga, daftar fitur (ikon `Check`), dan tombol "Pilih Paket". Paket **Pro** diberi highlight khusus (border accent, shadow, badge "Paling Populer", posisi naik `md:-translate-y-1`). Tombol "Pilih Paket" sementara mengarah ke `/coming-soon` (alur pembayaran belum dibangun).
+- **Tombol "Pelajari Lebih Lanjut"** di `RoleSelectionPage.jsx`: tombol sekunder rapi (ikon `Info`, `bg-white` + `border-brand-border`, hover → `brand-primary`/`brand-accent`) di bagian bawah halaman, mengarah ke `/packages`.
+- **i18n**: namespace `packages` baru (ID & EN) — judul, subtitle, nama/deskripsi/harga/fitur per paket (fitur sebagai array via `t(..., { returnObjects: true })`), label `roleSelection.learn_more`.
+
 ## Changelog — Alur Lupa & Ubah Kata Sandi End-to-End (25 Agustus 2026)
 - **ForgotPasswordPage** (`/forgot-password`, `src/pages/ForgotPasswordPage.jsx`): form email → `resetPasswordForEmail` (Supabase Auth) → state sukses dengan instruksi cek email. Route public, lazy-loaded.
 - **UpdatePasswordPage** (`/update-password`, `src/pages/UpdatePasswordPage.jsx`): form password baru (konfirmasi) → `updateUser({ password })` → redirect ke `/`; validasi kekuatan password (min 8 + huruf besar/kecil + angka) & inline errors.
@@ -220,6 +225,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 | `/privacy` | LegalPage (type='privacy') | Tidak | Kebijakan Privasi (eager import) |
 | `*` | NotFoundPage | Tidak | wildcard route, bukan redirect |
 | `/coming-soon` | ComingSoonPage | Tidak | |
+| `/packages` | PackagesPage | Tidak | info paket iklan (Starter/Pro/Premium), tombol "Pilih Paket" → `/coming-soon` |
 
 ## Fitur Utama
 
