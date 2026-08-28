@@ -293,7 +293,8 @@ export default function SellPropertyPage() {
         setForm((prev) => ({ ...prev, whatsapp: String(metaWa) }))
         return
       }
-      const { data: myProfile } = await supabase.rpc('get_my_profile')
+      const { data: myProfileData } = await supabase.rpc('get_my_profile')
+      const myProfile = Array.isArray(myProfileData) ? myProfileData[0] : myProfileData
       if (!cancelled && myProfile?.whatsapp) {
         setForm((prev) => ({ ...prev, whatsapp: myProfile.whatsapp }))
       }

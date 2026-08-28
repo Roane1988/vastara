@@ -7,6 +7,14 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Fix**: tambah state `showInput`; tombol kini `setShowInput(true)` yang membuka (expand) kolom input + tombol "Simpan & Verifikasi" di dalam banner; `showForm = showInput || whatsapp_verified === false`; input diberi `autoFocus`.
 - **UX**: wrapper `z-index` naik `z-40` → `z-50`; tombol diberi `cursor-pointer`, `hover:bg-brand-primary/90`, `transition-colors`, `disabled:cursor-not-allowed`.
 
+## Changelog — Fix Banner WhatsApp Muncul Lagi Setelah Refresh (Root Cause) (28 Agustus 2026)
+- **Root cause sebenarnya**: `get_my_profile()` berjenis `returns table(...)` → PostgREST mengembalikan **array**, bukan objek. `AuthContext.fetchProfile` menyimpan `setProfile(data)` (array), sehingga `profile?.whatsapp_verified` selalu `undefined` → banner verifikasi selalu ditampilkan setelah refresh (walau hilang sesaat saat klik karena `setWhatsappVerified` mengubah profile jadi objek).
+- **Fix**: normalisasi hasil RPC ke objek di semua konsumen:
+  - `AuthContext.fetchProfile`: `const p = Array.isArray(data) ? data[0] : data; setProfile(p)`.
+  - `ProfileDrawer`: `const myProfile = Array.isArray(myProfileData) ? myProfileData[0] : myProfileData` (email/whatsapp kini benar termuat dari DB, tak hanya fallback metadata).
+  - `SellPropertyPage` (prefill WhatsApp): normalisasi yang sama.
+- Dampak: `profile.whatsapp_verified` kini boolean nyata dari DB → banner hilang permanen setelah verifikasi tersimpan.
+
 ## Changelog — Perkuat Simpan & Verifikasi Banner WhatsApp (28 Agustus 2026)
 - `WhatsAppVerificationBanner.jsx` `handleSave`: sudah memanggil RPC `set_whatsapp_verified(normalized)` (menulis `whatsapp` + `whatsapp_verified=true` ke DB) → `setWhatsappVerified(normalized)` agar state global sinkron & banner hilang seketika.
 - **Error handling diperkuat**: `rpcErr` dan `catch` kini memanggil `showToast(msg,'error')` selain `setError` inline; sukses memanggil `showToast(success,'success')`.

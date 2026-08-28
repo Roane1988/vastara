@@ -115,7 +115,8 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           if (profile.first_name) loadedName = profile.first_name
         }
 
-        const { data: myProfile } = await supabase.rpc('get_my_profile')
+        const { data: myProfileData } = await supabase.rpc('get_my_profile')
+        const myProfile = Array.isArray(myProfileData) ? myProfileData[0] : myProfileData
         if (!cancelled && myProfile) {
           if (myProfile.email) loadedEmail = myProfile.email
           if (myProfile.whatsapp) loadedWhatsapp = myProfile.whatsapp

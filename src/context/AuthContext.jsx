@@ -60,8 +60,11 @@ export function AuthProvider({ children }) {
     try {
       const { data, error } = await supabase.rpc('get_my_profile')
       if (!error && data) {
-        setProfile(data)
-        if (typeof data.role === 'string') setRole(data.role)
+        const p = Array.isArray(data) ? data[0] : data
+        if (p) {
+          setProfile(p)
+          if (typeof p.role === 'string') setRole(p.role)
+        }
       }
     } catch {
       /* profile fetch failure is non-critical */
