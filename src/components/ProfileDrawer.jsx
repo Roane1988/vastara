@@ -22,6 +22,7 @@ import {
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { isRateLimitError } from '../utils/authErrors'
+import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp'
 import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
 import FinancialProfileForm from './FinancialProfileForm'
 import SlideOver from './SlideOver'
@@ -151,7 +152,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
   const isEmailChanged = currentEmail !== '' && email.trim() !== currentEmail
   const emailInvalid = email.trim() !== '' && !EMAIL_RE.test(email.trim())
-  const isSaveDisabled = saving || !name.trim() || !email.trim() || emailInvalid || (isEmailChanged && !currentPassword.trim())
+  const isSaveDisabled = saving
 
   const requestClose = useCallback(() => {
     if (dirty && !window.confirm(t('profileDrawer.unsaved_warning'))) return false
@@ -165,17 +166,35 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
 
   async function handleSave() {
     if (saving) return
-    if (!name.trim() || !email.trim() || emailInvalid) return
+    if (!name.trim()) {
+      notify(t('profileDrawer.name_required'), 'error')
+      return
+    }
+    if (!email.trim()) {
+      notify(t('profileDrawer.email_required'), 'error')
+      return
+    }
+    if (emailInvalid) {
+      notify(t('profileDrawer.email_invalid'), 'error')
+      return
+    }
+    const waTrimmed = whatsapp.trim()
+    if (waTrimmed && !isValidWhatsAppNumber(waTrimmed)) {
+      notify(t('profileDrawer.whatsapp_invalid'), 'error')
+      return
+    }
     if (isEmailChanged && !currentPassword.trim()) {
       notify(t('profileDrawer.password_required'), 'error')
       return
     }
 
+    const normalizedWa = waTrimmed ? normalizeWhatsAppNumber(waTrimmed) : ''
+
     setSaving(true)
     notify(t('profileDrawer.verifying'), 'info')
 
     try {
-      const authUpdates = { data: { first_name: name, whatsapp } }
+      const authUpdates = { data: { first_name: name, whatsapp: normalizedWa } }
 
       if (isEmailChanged) {
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -217,7 +236,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
         .update({
           first_name: name,
           email: email.trim(),
-          whatsapp,
+          whatsapp: normalizedWa,
         })
         .eq('id', user.id)
 
@@ -230,6 +249,7 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
       setCurrentEmail(email.trim())
       setDirty(false)
       notify(t('profileDrawer.save_success'), 'success')
+      showToast(t('profileDrawer.save_success'), 'success')
     } catch (err) {
       notify(err.message || 'Terjadi kesalahan saat menyimpan profil', 'error')
     } finally {

@@ -7,6 +7,13 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Fix**: tambah state `showInput`; tombol kini `setShowInput(true)` yang membuka (expand) kolom input + tombol "Simpan & Verifikasi" di dalam banner; `showForm = showInput || whatsapp_verified === false`; input diberi `autoFocus`.
 - **UX**: wrapper `z-index` naik `z-40` → `z-50`; tombol diberi `cursor-pointer`, `hover:bg-brand-primary/90`, `transition-colors`, `disabled:cursor-not-allowed`.
 
+## Changelog — Fix Tombol "Simpan Perubahan" Akun (28 Agustus 2026)
+- **Bug**: tombol "Simpan Perubahan" di `ProfileDrawer.jsx` tidak merespon karena `isSaveDisabled` mematikan tombol saat field kosong/email tidak valid (`saving || !name || !email || emailInvalid || ...`), dan `handleSave` berhenti diam-diam (`return`) tanpa feedback.
+- **Fix**: `isSaveDisabled` kini hanya `saving` → tombol selalu bisa diklik dan kasih feedback. `handleSave` mengganti silent return dengan `notify(..., 'error')` eksplisit: `name_required`, `email_required`, `email_invalid`, `whatsapp_invalid` (validasi WhatsApp pakai `isValidWhatsAppNumber`), `password_required`.
+- **Normalisasi**: nomor WhatsApp dinormalisasi (`normalizeWhatsAppNumber`) sebelum simpan ke `auth.user.user_metadata` & `profiles.whatsapp`.
+- **Toast**: saat sukses memanggil `showToast(save_success, 'success')` (global) + `notify` inline; loading state (spinner `Loader2` + "Menyimpan...") & disabled tetap.
+- i18n baru (ID & EN): `profileDrawer.name_required`, `email_required`, `whatsapp_invalid`.
+
 ## Changelog — Placeholder & Bantuan Format WhatsApp Seragam (28 Agustus 2026)
 - **Placeholder standar `+62 812-3456-7890`** pada semua input WhatsApp (`<input type="tel">`): `MinimalistLogin` (registrasi), `ProfileDrawer`, `AgentProfilePage`, `AgentApplicationPage`, `WhatsAppVerificationBanner`. Pengecualian `SellPropertyPage` yang punya prefix visual `+62` → placeholder `812 3456-7890` (gabungan = `+62 812 3456-7890`).
 - **Helper text di bawah input**: "Gunakan format internasional (misal: +62812...)" di semua form WhatsApp (i18n ID & EN). `ProfileDrawer` memakai hint lama, `SellPropertyPage` menggabung dengan catatan kontak pembeli/penyewa.
