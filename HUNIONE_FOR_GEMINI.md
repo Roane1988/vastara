@@ -9,6 +9,19 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Route & komponen**: hapus `PriceDropPage` & `PriceTrendPage` (file dihapus) dan route `/price-drop` & `/price-trends` dari `App.jsx`; hapus kunci i18n `quick_menu.price_drop` & `price_trends` (id/en).
 - **Dipertahankan**: guard harga backend (`guard_property_price_change()`, `original_price`, `price_history`, tab "Harga" admin) tetap ada — hanya UI/landing-page tren & penurunan harga yang dihapus.
 
+## Changelog — Alur Lupa & Ubah Kata Sandi End-to-End (25 Agustus 2026)
+- **ForgotPasswordPage** (`/forgot-password`, `src/pages/ForgotPasswordPage.jsx`): form email → `resetPasswordForEmail` (Supabase Auth) → state sukses dengan instruksi cek email. Route public, lazy-loaded.
+- **UpdatePasswordPage** (`/update-password`, `src/pages/UpdatePasswordPage.jsx`): form password baru (konfirmasi) → `updateUser({ password })` → redirect ke `/`; validasi kekuatan password (min 8 + huruf besar/kecil + angka) & inline errors.
+- **MinimalistLogin**: tambah link **"Lupa kata sandi?"** di bawah kolom password → `/forgot-password`.
+- **Route** `src/App.jsx`: `/forgot-password` & `/update-password` (public, `React.lazy`).
+- **Rate-limit 429** ditangani via `isRateLimitError` di kedua halaman (toast `login.too_many_attempts`).
+- **i18n**: namespace lengkap ID/EN untuk kedua halaman.
+
+## Changelog — Hapus Hero Activity Card & Section Kepercayaan HuniOne (8 Agustus 2026)
+- **Hapus Hero Activity Card & statistik hidup** di `ExplorePage.jsx` (`19d3f22`): kartu statistik real-time (properti baru/harga turun/agen/diskusi) beserta seluruh state & query Supabase yang menghitungnya dihapus.
+- **Hapus section "Kepercayaan HuniOne" & statistik live** di `ExploreInsights.jsx` (`4aff793`): trust bar (Properti/Kota/100% Terverifikasi) + data statistik langsung dihapus.
+- Efek: listing utama tidak lagi terbebani fetch statistik yang tidak ditampilkan; halaman lebih ringan dan fokus ke properti.
+
 ## Changelog — Fix Tombol "Tambahkan Sekarang" Banner WhatsApp (28 Agustus 2026)
 - **Bug**: tombol "Tambahkan Sekarang" di `WhatsAppVerificationBanner.jsx` tidak bisa diklik — `onClick` hanya `setWhatsapp('')` (tidak berguna), dan form input hanya tampil saat `whatsapp_verified === false` (bukan saat `null`/belum diisi).
 - **Fix**: tambah state `showInput`; tombol kini `setShowInput(true)` yang membuka (expand) kolom input + tombol "Simpan & Verifikasi" di dalam banner; `showForm = showInput || whatsapp_verified === false`; input diberi `autoFocus`.
