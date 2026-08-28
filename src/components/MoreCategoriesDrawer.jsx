@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useDragControls } from 'framer-motion'
-import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine, TrendingUp, TrendingDown, BellRing, Megaphone, Users, MessageCircle, LayoutGrid, List, ChevronRight } from 'lucide-react'
+import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine, BellRing, Megaphone, Users, MessageCircle, LayoutGrid, List, ChevronRight } from 'lucide-react'
 
 const TOP_SERVICES = [
   { label: 'Iklankan Properti', icon: Megaphone, path: '/sell-role' },
   { label: 'Cari Agen', icon: Users, path: '/agents' },
-  { label: 'Turun Harga', icon: TrendingDown, path: '/price-drop' },
-  { label: 'Tren Harga', icon: TrendingUp, path: '/price-trends' },
   { label: 'Tanya Forum', icon: MessageCircle, path: '/forum' },
 ]
 
@@ -36,7 +34,6 @@ const SECTIONS = [
   {
     title: 'Alat & Fitur',
     items: [
-      { label: 'Tren Harga', icon: TrendingUp, description: 'Pantau pergerakan harga properti', path: '/price-trends', isNew: true },
       { label: 'Pencarian Tersimpan', icon: BellRing, description: 'Terima notifikasi properti baru', path: '/saved-searches', isNew: true },
     ],
   },
@@ -195,7 +192,7 @@ export default function MoreCategoriesDrawer({ isOpen, onClose }) {
 
               <div className="px-5 pt-1 pb-3">
                 <h3 className="text-lg font-bold text-brand-text mb-4">Layanan teratas</h3>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {TOP_SERVICES.map((item) => {
                     const Icon = item.icon
                     return (

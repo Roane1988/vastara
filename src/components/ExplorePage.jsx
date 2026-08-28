@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, TrendingDown, TrendingUp, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Bell, Check, Plus, Home, MessageSquare } from 'lucide-react'
+import { Search, Megaphone, Users, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Bell, Check, Plus, Home, MessageSquare } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
@@ -29,8 +29,6 @@ const QUICK_MENU = [
   { icon: Search, tKey: 'explore.quick_menu.find_property', action: 'search' },
   { icon: Megaphone, tKey: 'explore.quick_menu.advertise', path: '/sell-role' },
   { icon: Users, tKey: 'explore.quick_menu.find_agent', path: '/agents' },
-  { icon: TrendingDown, tKey: 'explore.quick_menu.price_drop', path: '/price-drop' },
-  { icon: TrendingUp, tKey: 'explore.quick_menu.price_trends', path: '/price-trends' },
   { icon: MessageCircle, tKey: 'explore.quick_menu.forum', path: '/forum' },
   { icon: LayoutGrid, tKey: 'explore.quick_menu.more', drawer: true },
 ]
@@ -492,22 +490,6 @@ export default function ExplorePage() {
               <Search size={16} className="shrink-0" />
               <span className="truncate">Cari properti, kota, atau tipe...</span>
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/price-trends')}
-              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-accent bg-brand-highlight hover:bg-brand-accent hover:text-white transition-colors rounded-xl px-3 py-2.5"
-            >
-              <TrendingUp size={14} />
-              <span className="hidden sm:inline">Analisis Harga</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/price-drop')}
-              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-danger bg-red-50 hover:bg-brand-danger hover:text-white transition-colors rounded-xl px-3 py-2.5"
-            >
-              <TrendingDown size={14} />
-              <span className="hidden sm:inline">Harga Turun</span>
-            </button>
           </div>
         </div>
       )}
@@ -651,7 +633,7 @@ export default function ExplorePage() {
           <p className="text-[11px] font-bold uppercase tracking-wide text-brand-muted mb-3">
             Layanan cepat
           </p>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-2">
+          <div className="grid grid-cols-5 gap-3 sm:gap-4">
             {QUICK_MENU.map((item) => {
               const Icon = item.icon
               return (

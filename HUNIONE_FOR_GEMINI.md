@@ -2,6 +2,13 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 28 Agustus 2026.
 
+## Changelog — Hapus Fitur Tren & Perubahan Harga (Tren Harga / Turun Harga) (28 Agustus 2026)
+- **Landing (ExplorePage)**: hapus shortcut "Turun Harga" & "Tren Harga" dari **Layanan cepat** (QUICK_MENU) dan dari **sticky search bar**; grid quick services di-balance `grid-cols-4 sm:grid-cols-8` → `grid-cols-5` (5 item simetris di mobile & desktop). Import tak terpakai `TrendingUp`/`TrendingDown` dibersihkan.
+- **ExploreInsights**: hapus section **Market Pulse** (median harga per kota, link `/price-trends`) & collection **"Baru Turun Harga"** (link `/price-drop`) beserta component `MarketPulse`, fungsi `median`, `MIN_CITY_LISTINGS`, dan import `TrendingUp`/`Flame`/`isRentalProperty`. Logika `drops`/`dropIds` tetap dipakai untuk dedupe row "Rumah Pertama"/premium; badge "Turun Harga" per-kartu tetap.
+- **Navigasi lain**: hapus entri "Tren Harga"/"Turun Harga" dari `MoreCategoriesDrawer` (TOP_SERVICES jadi 3 item → grid `grid-cols-3`; section "Alat & Fitur" tinggal "Pencarian Tersimpan") dan link "Tren Harga" di `ProfileDrawer`.
+- **Route & komponen**: hapus `PriceDropPage` & `PriceTrendPage` (file dihapus) dan route `/price-drop` & `/price-trends` dari `App.jsx`; hapus kunci i18n `quick_menu.price_drop` & `price_trends` (id/en).
+- **Dipertahankan**: guard harga backend (`guard_property_price_change()`, `original_price`, `price_history`, tab "Harga" admin) tetap ada — hanya UI/landing-page tren & penurunan harga yang dihapus.
+
 ## Changelog — Fix Tombol "Tambahkan Sekarang" Banner WhatsApp (28 Agustus 2026)
 - **Bug**: tombol "Tambahkan Sekarang" di `WhatsAppVerificationBanner.jsx` tidak bisa diklik — `onClick` hanya `setWhatsapp('')` (tidak berguna), dan form input hanya tampil saat `whatsapp_verified === false` (bukan saat `null`/belum diisi).
 - **Fix**: tambah state `showInput`; tombol kini `setShowInput(true)` yang membuka (expand) kolom input + tombol "Simpan & Verifikasi" di dalam banner; `showForm = showInput || whatsapp_verified === false`; input diberi `autoFocus`.
@@ -189,8 +196,6 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 | `/admin` | AdminDashboardPage | Ya (admin only) | **6-tab** (Overview/**Agen**/**Harga**/**Laporan**/Users/Audit Trail), preview modal, konfirmasi sebelum verify/survei/bulk + **undo**, soft reject, pagination, realtime, filter **Terjual** |
 | `/kpr` | KprCalculatorPage | Tidak | **HIDDEN (26 Aug 2026)** — route & component masih ada di kode tapi di-comment-out sementara dari `App.jsx`; mesin `KprSimulator.jsx` tetap tersedia |
 | `/compare` | ComparePage | Tidak | bandingkan max 3 properti + affordability dari financial profile |
-| `/price-drop` | PriceDropPage | Tidak | properti yang baru turun harga (dari `price_history`/`price_change_status`) |
-| `/price-trends` | PriceTrendPage | Tidak | tren harga per kota/kategori/tipe (2×60 hari) |
 | `/saved-searches` | SavedSearchesPage | Ya | kelola alert pencarian tersimpan (`saved_searches`) |
 | `/terms` | LegalPage (type='terms') | Tidak | Syarat & Ketentuan (eager import, UI hero + sticky TOC + progress bar) |
 | `/privacy` | LegalPage (type='privacy') | Tidak | Kebijakan Privasi (eager import) |
@@ -344,8 +349,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 ### 17. Price Drop & Price Trends
 - **Guard harga (20260816)**: trigger `guard_property_price_change()` — seller boleh ubah harga **≤ 15%** langsung jadi (tercatat `price_history`); perubahan **> 15%** ditahan → `price_requested` + `price_change_status='pending'` menunggu persetujuan admin (tab **Harga** di admin)
 - **`properties.original_price`** = harga tertinggi tercatat (baseline % penurunan), backfilled saat migrasi
-- **PriceDropPage** (`/price-drop`): properti verified dengan penurunan harga
-- **PriceTrendPage** (`/price-trends`): tren harga per kota/kategori/tipe (bandingkan 60 hari terakhir vs 60 hari sebelumnya)
+- **UI tren & penurunan harga DIHAPUS (28 Aug 2026)**: `PriceDropPage` (`/price-drop`) & `PriceTrendPage` (`/price-trends`) dihapus, berikut section "Market Pulse"/"Baru Turun Harga" di landing, shortcut quick-service & search bar, serta link di `MoreCategoriesDrawer`/`ProfileDrawer`. Bagian **backend tetap dipertahankan**: guard harga, `original_price`, `price_history`, dan tab "Harga" admin masih aktif. Badge "Turun Harga" (`original_price > price`) per-kartu properti tetap tampil.
 
 ## Database Supabase
 

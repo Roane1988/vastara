@@ -29,8 +29,6 @@ const AdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
 const ComingSoonPage = lazy(() => import('./components/ComingSoonPage'))
 // const KprCalculatorPage = lazy(() => import('./components/KprCalculatorPage'))
 const ComparePage = lazy(() => import('./components/ComparePage'))
-const PriceDropPage = lazy(() => import('./components/PriceDropPage'))
-const PriceTrendPage = lazy(() => import('./components/PriceTrendPage'))
 const SavedSearchesPage = lazy(() => import('./components/SavedSearchesPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage'))
@@ -119,8 +117,6 @@ function AppContent() {
               <Route path="/coming-soon" element={<ComingSoonPage />} />
               {/* <Route path="/kpr" element={<KprCalculatorPage />} /> */}
               <Route path="/compare" element={<ComparePage />} />
-              <Route path="/price-drop" element={<PriceDropPage />} />
-              <Route path="/price-trends" element={<PriceTrendPage />} />
               <Route path="/saved-searches" element={<ProtectedRoute isAuth={isAuth} location={location}><SavedSearchesPage /></ProtectedRoute>} />
               <Route path="/terms" element={<LegalPage type="terms" />} />
               <Route path="/privacy" element={<LegalPage type="privacy" />} />

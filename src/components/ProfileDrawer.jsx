@@ -17,7 +17,6 @@ import {
   Wallet,
   UserCheck,
   BellRing,
-  TrendingUp,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -547,14 +546,6 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
               {totalNew > 99 ? '99+' : totalNew}
             </span>
           )}
-        </button>
-        <button
-          type="button"
-          onClick={() => handleNavigate('/price-trends')}
-          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors"
-        >
-          <TrendingUp size={18} className="text-brand-primary shrink-0" />
-          Tren Harga
         </button>
         <button
           type="button"
