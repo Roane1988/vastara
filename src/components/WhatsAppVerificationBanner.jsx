@@ -6,7 +6,7 @@ import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsap
 
 export default function WhatsAppVerificationBanner() {
   const { t } = useTranslation()
-  const { user, profile, setWhatsappVerified } = useAuth()
+  const { user, profile, setWhatsappVerified, showToast } = useAuth()
   const [whatsapp, setWhatsapp] = useState('')
   const [showInput, setShowInput] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -31,12 +31,16 @@ export default function WhatsAppVerificationBanner() {
       })
       if (rpcErr) {
         setError(rpcErr.message)
+        showToast(rpcErr.message, 'error')
         return
       }
       setWhatsappVerified(normalized)
       setNotice(t('whatsappVerify.success'))
+      showToast(t('whatsappVerify.success'), 'success')
     } catch (err) {
-      setError(err?.message || t('whatsappVerify.failed'))
+      const msg = err?.message || t('whatsappVerify.failed')
+      setError(msg)
+      showToast(msg, 'error')
     } finally {
       setSaving(false)
     }

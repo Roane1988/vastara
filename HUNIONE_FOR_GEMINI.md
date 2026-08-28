@@ -7,6 +7,11 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Fix**: tambah state `showInput`; tombol kini `setShowInput(true)` yang membuka (expand) kolom input + tombol "Simpan & Verifikasi" di dalam banner; `showForm = showInput || whatsapp_verified === false`; input diberi `autoFocus`.
 - **UX**: wrapper `z-index` naik `z-40` → `z-50`; tombol diberi `cursor-pointer`, `hover:bg-brand-primary/90`, `transition-colors`, `disabled:cursor-not-allowed`.
 
+## Changelog — Perkuat Simpan & Verifikasi Banner WhatsApp (28 Agustus 2026)
+- `WhatsAppVerificationBanner.jsx` `handleSave`: sudah memanggil RPC `set_whatsapp_verified(normalized)` (menulis `whatsapp` + `whatsapp_verified=true` ke DB) → `setWhatsappVerified(normalized)` agar state global sinkron & banner hilang seketika.
+- **Error handling diperkuat**: `rpcErr` dan `catch` kini memanggil `showToast(msg,'error')` selain `setError` inline; sukses memanggil `showToast(success,'success')`.
+- **Catatan penting**: agar data benar masuk DB, migration `20260828_whatsapp_verification.sql` (termasuk RPC `set_whatsapp_verified`) **wajib sudah dijalankan di Supabase** — jika tidak, RPC error "function does not exist" dan banner tetap muncul (bukan bug kode frontend).
+
 ## Changelog — Fix Tombol "Simpan Perubahan" Akun (28 Agustus 2026)
 - **Bug**: tombol "Simpan Perubahan" di `ProfileDrawer.jsx` tidak merespon karena `isSaveDisabled` mematikan tombol saat field kosong/email tidak valid (`saving || !name || !email || emailInvalid || ...`), dan `handleSave` berhenti diam-diam (`return`) tanpa feedback.
 - **Fix**: `isSaveDisabled` kini hanya `saving` → tombol selalu bisa diklik dan kasih feedback. `handleSave` mengganti silent return dengan `notify(..., 'error')` eksplisit: `name_required`, `email_required`, `email_invalid`, `whatsapp_invalid` (validasi WhatsApp pakai `isValidWhatsAppNumber`), `password_required`.
