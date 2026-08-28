@@ -2,6 +2,11 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 28 Agustus 2026.
 
+## Changelog — Fix Tombol "Tambahkan Sekarang" Banner WhatsApp (28 Agustus 2026)
+- **Bug**: tombol "Tambahkan Sekarang" di `WhatsAppVerificationBanner.jsx` tidak bisa diklik — `onClick` hanya `setWhatsapp('')` (tidak berguna), dan form input hanya tampil saat `whatsapp_verified === false` (bukan saat `null`/belum diisi).
+- **Fix**: tambah state `showInput`; tombol kini `setShowInput(true)` yang membuka (expand) kolom input + tombol "Simpan & Verifikasi" di dalam banner; `showForm = showInput || whatsapp_verified === false`; input diberi `autoFocus`.
+- **UX**: wrapper `z-index` naik `z-40` → `z-50`; tombol diberi `cursor-pointer`, `hover:bg-brand-primary/90`, `transition-colors`, `disabled:cursor-not-allowed`.
+
 ## Changelog — Placeholder & Bantuan Format WhatsApp Seragam (28 Agustus 2026)
 - **Placeholder standar `+62 812-3456-7890`** pada semua input WhatsApp (`<input type="tel">`): `MinimalistLogin` (registrasi), `ProfileDrawer`, `AgentProfilePage`, `AgentApplicationPage`, `WhatsAppVerificationBanner`. Pengecualian `SellPropertyPage` yang punya prefix visual `+62` → placeholder `812 3456-7890` (gabungan = `+62 812 3456-7890`).
 - **Helper text di bawah input**: "Gunakan format internasional (misal: +62812...)" di semua form WhatsApp (i18n ID & EN). `ProfileDrawer` memakai hint lama, `SellPropertyPage` menggabung dengan catatan kontak pembeli/penyewa.

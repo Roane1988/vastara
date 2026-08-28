@@ -8,6 +8,7 @@ export default function WhatsAppVerificationBanner() {
   const { t } = useTranslation()
   const { user, profile, setWhatsappVerified } = useAuth()
   const [whatsapp, setWhatsapp] = useState('')
+  const [showInput, setShowInput] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -41,10 +42,10 @@ export default function WhatsAppVerificationBanner() {
     }
   }
 
-  const showForm = profile?.whatsapp_verified === false
+  const showForm = showInput || profile?.whatsapp_verified === false
 
   return (
-    <div className="fixed inset-x-0 top-14 z-40 px-4">
+    <div className="fixed inset-x-0 top-14 z-50 px-4">
       <div className="mx-auto max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 shadow-lg p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1">
@@ -58,8 +59,8 @@ export default function WhatsAppVerificationBanner() {
           {!showForm && (
             <button
               type="button"
-              onClick={() => setWhatsapp('')}
-              className="inline-flex justify-center items-center px-4 py-2 rounded-xl bg-brand-primary text-white text-sm font-medium disabled:opacity-50"
+              onClick={() => setShowInput(true)}
+              className="inline-flex justify-center items-center px-4 py-2 rounded-xl bg-brand-primary text-white text-sm font-medium cursor-pointer transition-colors hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={saving}
             >
               {saving ? t('whatsappVerify.saving') : t('whatsappVerify.add')}
@@ -75,12 +76,13 @@ export default function WhatsAppVerificationBanner() {
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
                 placeholder={t('whatsappVerify.placeholder')}
+                autoFocus
                 className="flex-1 px-3 py-2 rounded-xl border border-amber-300 bg-white text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400"
               />
               <button
                 type="button"
                 onClick={handleSave}
-                className="inline-flex justify-center items-center px-5 py-2 rounded-xl bg-brand-primary text-white text-sm font-medium disabled:opacity-50"
+                className="inline-flex justify-center items-center px-5 py-2 rounded-xl bg-brand-primary text-white text-sm font-medium cursor-pointer transition-colors hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={saving}
               >
                 {saving ? t('whatsappVerify.saving') : t('whatsappVerify.verify')}
