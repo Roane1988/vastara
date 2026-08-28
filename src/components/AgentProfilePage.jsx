@@ -240,7 +240,8 @@ export default function AgentProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="ap_whatsapp" className={labelClass}>{t('agentProfile.whatsapp')} *</label>
-                  <input id="ap_whatsapp" type="tel" value={form.whatsapp} onChange={updateField('whatsapp')} placeholder="+62 812-3456-7890" className={inputClass} />
+                  <input id="ap_whatsapp" type="tel" value={form.whatsapp} onChange={updateField('whatsapp')} placeholder={t('agentProfile.whatsapp_placeholder')} className={inputClass} />
+                  <p className="text-xs text-brand-muted mt-1.5">{t('agentProfile.whatsapp_hint')}</p>
                 </div>
                 <div>
                   <label htmlFor="ap_experience" className={labelClass}>{t('agentProfile.experience')}</label>

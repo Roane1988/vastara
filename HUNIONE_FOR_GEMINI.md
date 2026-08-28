@@ -2,6 +2,12 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 28 Agustus 2026.
 
+## Changelog — Placeholder & Bantuan Format WhatsApp Seragam (28 Agustus 2026)
+- **Placeholder standar `+62 812-3456-7890`** pada semua input WhatsApp (`<input type="tel">`): `MinimalistLogin` (registrasi), `ProfileDrawer`, `AgentProfilePage`, `AgentApplicationPage`, `WhatsAppVerificationBanner`. Pengecualian `SellPropertyPage` yang punya prefix visual `+62` → placeholder `812 3456-7890` (gabungan = `+62 812 3456-7890`).
+- **Helper text di bawah input**: "Gunakan format internasional (misal: +62812...)" di semua form WhatsApp (i18n ID & EN). `ProfileDrawer` memakai hint lama, `SellPropertyPage` menggabung dengan catatan kontak pembeli/penyewa.
+- **Normalisasi seragam** (`src/utils/whatsapp.js` baru): `normalizeWhatsAppNumber()` terima awalan `08`/`62`/`+62` → konversi ke format `62` (strip non-digit, ganti `0` awal → `62`). `isValidWhatsAppNumber()` (regex 08/62/+62, 10-14 digit). Dipakai di `MinimalistLogin` (validasi + signup) & `WhatsAppVerificationBanner`.
+- i18n baru/update (ID & EN): `login.whatsapp_hint`, `agentApply.whatsapp_hint`/`whatsapp_placeholder`, `agentProfile.whatsapp_hint`/`whatsapp_placeholder`, `whatsappVerify.hint`; update `*_placeholder` ke `+62 812-3456-7890`.
+
 ## Changelog — Verifikasi WhatsApp Wajib & Pengingat Persisten (28 Agustus 2026)
 - **Verifikasi WhatsApp wajib** (migration `20260828_whatsapp_verification.sql`): kolom baru `whatsapp_verified` (bool, default false) di tabel `profiles`.
   - Trigger `handle_new_user()` di-update: saat signup, profil dibuat dengan `whatsapp_verified = true` bila nomor WhatsApp diisi, `false` bila kosong.

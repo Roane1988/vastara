@@ -899,10 +899,10 @@ export default function SellPropertyPage() {
               <label className="text-sm font-semibold text-brand-text mb-1.5 block">Nomor WhatsApp <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-brand-muted font-medium">+62</span>
-                <input type="tel" placeholder="81234567890" value={form.whatsapp} onChange={updateForm('whatsapp')} onBlur={touch('whatsapp')} className={`w-full py-4 pl-12 pr-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${fieldErrors.whatsapp ? 'border-red-400' : 'border-brand-border'}`} />
+                <input type="tel" placeholder="812 3456-7890" value={form.whatsapp} onChange={updateForm('whatsapp')} onBlur={touch('whatsapp')} className={`w-full py-4 pl-12 pr-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${fieldErrors.whatsapp ? 'border-red-400' : 'border-brand-border'}`} />
               </div>
               {showFieldError('whatsapp') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('whatsapp')}</p>}
-              <p className="text-xs text-brand-muted mt-1.5">{form.category === 'Disewa' ? 'Calon penyewa akan menghubungi Anda via nomor ini' : 'Calon pembeli akan menghubungi Anda via nomor ini'}</p>
+              <p className="text-xs text-brand-muted mt-1.5">Gunakan format internasional (misal: +62812...). {form.category === 'Disewa' ? 'Calon penyewa akan menghubungi Anda via nomor ini' : 'Calon pembeli akan menghubungi Anda via nomor ini'}</p>
             </div>
           </div>
         )

@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-
-const WA_REGEX = /^(08|62|\+62)\d{8,12}$/
+import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp'
 
 export default function WhatsAppVerificationBanner() {
   const { t } = useTranslation()
@@ -17,7 +16,7 @@ export default function WhatsAppVerificationBanner() {
 
   const handleSave = async () => {
     const cleaned = whatsapp.trim()
-    if (!cleaned || !WA_REGEX.test(cleaned)) {
+    if (!cleaned || !isValidWhatsAppNumber(cleaned)) {
       setError(t('whatsappVerify.invalid'))
       return
     }
@@ -25,14 +24,15 @@ export default function WhatsAppVerificationBanner() {
     setSaving(true)
     setNotice('')
     try {
+      const normalized = normalizeWhatsAppNumber(cleaned)
       const { error: rpcErr } = await supabase.rpc('set_whatsapp_verified', {
-        p_whatsapp: cleaned.replace(/\D/g, ''),
+        p_whatsapp: normalized,
       })
       if (rpcErr) {
         setError(rpcErr.message)
         return
       }
-      setWhatsappVerified(cleaned.replace(/\D/g, ''))
+      setWhatsappVerified(normalized)
       setNotice(t('whatsappVerify.success'))
     } catch (err) {
       setError(err?.message || t('whatsappVerify.failed'))
@@ -68,23 +68,26 @@ export default function WhatsAppVerificationBanner() {
         </div>
 
         {showForm && (
-          <div className="mt-3 flex flex-col sm:flex-row gap-2">
-            <input
-              type="tel"
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder={t('whatsappVerify.placeholder')}
-              className="flex-1 px-3 py-2 rounded-xl border border-amber-300 bg-white text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400"
-            />
-            <button
-              type="button"
-              onClick={handleSave}
-              className="inline-flex justify-center items-center px-5 py-2 rounded-xl bg-brand-primary text-white text-sm font-medium disabled:opacity-50"
-              disabled={saving}
-            >
-              {saving ? t('whatsappVerify.saving') : t('whatsappVerify.verify')}
-            </button>
-          </div>
+          <>
+            <div className="mt-3 flex flex-col sm:flex-row gap-2">
+              <input
+                type="tel"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder={t('whatsappVerify.placeholder')}
+                className="flex-1 px-3 py-2 rounded-xl border border-amber-300 bg-white text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400"
+              />
+              <button
+                type="button"
+                onClick={handleSave}
+                className="inline-flex justify-center items-center px-5 py-2 rounded-xl bg-brand-primary text-white text-sm font-medium disabled:opacity-50"
+                disabled={saving}
+              >
+                {saving ? t('whatsappVerify.saving') : t('whatsappVerify.verify')}
+              </button>
+            </div>
+            <p className="mt-1.5 text-[11px] text-amber-700">{t('whatsappVerify.hint')}</p>
+          </>
         )}
 
         {error && <p className="mt-2 text-xs text-red-600">{error}</p>}

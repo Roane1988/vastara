@@ -174,8 +174,9 @@ export default function AgentApplicationPage() {
                 </div>
                 <div>
                   <label htmlFor="whatsapp" className={labelClass}>{t('agentApply.whatsapp')} *</label>
-                  <input id="whatsapp" type="tel" {...register('whatsapp')} placeholder="+62 812-3456-7890" className={`${inputClass} ${errorInput('whatsapp')}`} />
+                  <input id="whatsapp" type="tel" {...register('whatsapp')} placeholder={t('agentApply.whatsapp_placeholder')} className={`${inputClass} ${errorInput('whatsapp')}`} />
                   {fieldError('whatsapp')}
+                  <p className="text-xs text-brand-muted mt-1.5">{t('agentApply.whatsapp_hint')}</p>
                 </div>
               </div>
 

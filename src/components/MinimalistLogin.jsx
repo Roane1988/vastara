@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { isRateLimitError } from '../utils/authErrors'
+import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp'
 import FormErrorSummary from './FormErrorSummary'
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
-const WA_REGEX = /^(08|62|\+62)\d{8,12}$/
 
 function EyeIcon({ visible }) {
   return (
@@ -75,8 +75,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
   }
 
   function validateWa(value) {
-    const cleaned = value.replace(/\D/g, '')
-    if (cleaned && !WA_REGEX.test(cleaned)) {
+    if (value.replace(/\D/g, '') && !isValidWhatsAppNumber(value)) {
       setWaError(t('login.error_whatsapp_invalid'))
       return false
     }
@@ -128,7 +127,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
           return
         }
       } else {
-        const normalizedWa = whatsapp.replace(/\D/g, '')
+        const normalizedWa = normalizeWhatsAppNumber(whatsapp)
         const { error: authError } = await supabase.auth.signUp({
           email, password,
           options: {
@@ -309,6 +308,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
                   className={`w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${waError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
                 />
                 {waError && <p className="text-red-500 text-sm mt-1">{waError}</p>}
+                {!waError && <p className="text-xs text-brand-muted mt-1">{t('login.whatsapp_hint')}</p>}
               </div>
 
               <div>
