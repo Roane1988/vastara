@@ -43,6 +43,14 @@ function PageLoader() {
   )
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [pathname])
+  return null
+}
+
 function ProtectedRoute({ isAuth, children, location }) {
   if (!isAuth) return <Navigate to="/login" state={{ from: location.pathname }} replace />
   return children
@@ -91,6 +99,7 @@ function AppContent() {
 
   return (
     <ErrorBoundary>
+      <ScrollToTop />
       <div className="min-h-screen bg-brand-bg text-brand-text">
         <TopNavbar isAuth={isAuth} userName={userName} onProfileOpen={() => setIsProfileOpen(true)} onLogout={handleLogout} />
         <WhatsAppVerificationBanner />
