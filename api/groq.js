@@ -256,10 +256,14 @@ export default async function handler(req, res) {
     limiter.set(rateKey, invCount)
     if (invCount > limitMax) {
       appendAudit({ time: Date.now(), ip, userId: authUser.id, action: `${purpose}_limited` })
-      return res.status(429).json({ error: { message: 'Batas analisis harga tercapai. Coba lagi nanti.' } })
+      const limitMsg = purpose === 'investment'
+        ? 'Batas analisis investasi tercapai. Coba lagi nanti.'
+        : 'Batas analisis harga tercapai. Coba lagi nanti.'
+      return res.status(429).json({ error: { message: limitMsg } })
     }
   } else {
-    const sessionCount = (sessionLimiter.get(rateKey) || 0) + req.body.messages.length
+    const userMsgCount = (req.body.messages || []).filter(m => m.role === 'user').length
+    const sessionCount = (sessionLimiter.get(rateKey) || 0) + userMsgCount
     sessionLimiter.set(rateKey, sessionCount)
     if (sessionCount > MAX_SESSION_MESSAGES) {
       appendAudit({ time: Date.now(), ip, userId: authUser?.id || null, action: 'session_limited' })

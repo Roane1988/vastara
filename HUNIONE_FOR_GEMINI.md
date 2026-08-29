@@ -203,7 +203,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 ## Routes
 | Path | Component | Auth | Notes |
 |---|---|---|---|
-| `/` atau `/explore` | ExplorePage | Tidak | filter by status='verified', back-to-top button, lazy loading images, **Cari Properti** scroll & fokus ke kotak pencarian, quick menu "Cari Agen" → `/agent-apply`, **pencarian populer & tombol Acak → filter nyata via `?q=`** (bukan dead-end), empty state "Belum ada properti" saat kosong |
+| `/` atau `/explore` | ExplorePage | Tidak | filter by status='verified', back-to-top button, lazy loading images, **Cari Properti** scroll & fokus ke kotak pencarian, quick menu "Cari Agen" → `/agents` (direktori agen publik), **pencarian populer & tombol Acak → filter nyata via `?q=`** (bukan dead-end), empty state "Belum ada properti" saat kosong |
 | `/login` | MinimalistLogin | Tidak | |
 | `/sell-role` | RoleSelectionPage | Ya | onboarding pilih peran sebelum iklan properti |
 | `/agent-apply` | AgentApplicationPage | **Ya (login)** | form pendaftaran agen → insert `agent_applications` dengan `user_id` (20260802 — tidak lagi publik) |
@@ -246,7 +246,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - Lazy loading images (`loading="lazy"`)
 - Dynamic EN translation via `batchTranslate()`
 - **Quick menu "Cari Properti"**: `scrollIntoView` ke kotak pencarian lalu auto-focus input (bukan redirect lagi)
-- **Quick menu "Cari Agen"**: navigasi ke `/agent-apply`
+- **Quick menu "Cari Agen"**: navigasi ke `/agents` (direktori agen publik)
 - **Pencarian populer** (chip "rumah bandung", "apartemen jakarta", dll): mengisi query lalu menavigasi ke `/explore?q=...` — filter nyata (bukan dead-end)
 - **Tombol Acak (Shuffle)**: benar-benar mengacak urutan daftar properti
 - **Empty state**: saat tidak ada properti verified, tampil "Belum ada properti" + CTA jual (fallback `DUMMY_PROPERTIES` dihapus)
