@@ -54,7 +54,7 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
             aria-label="HuniOne beranda"
             className="flex items-center"
           >
-            <img src="/huniOne.svg" alt="HuniOne" className="h-12 w-auto object-contain" />
+            <img src="/huniOne.svg" alt="HuniOne" className="h-20 w-auto object-contain" />
           </button>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
