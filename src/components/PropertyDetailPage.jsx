@@ -152,66 +152,64 @@ function LoadingSkeleton() {
   )
 }
 
-function GalleryDesktop({ images, property, onOpenLightbox }) {
+function GalleryDesktop({ images, property, onOpenLightbox, lang }) {
   const heroImage = images[0] || FALLBACK_IMAGE
   const drop = dropPct(property)
+  const totalCount = images.length
+  const thumbs = images.slice(1, 4)
 
-  if (images.length >= 5) {
-    const remaining = images.slice(0, 5)
-    return (
-      <div className="hidden lg:grid lg:grid-cols-4 lg:grid-rows-2 lg:gap-2 lg:h-[420px] lg:rounded-2xl lg:overflow-hidden">
-        <div className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(0)}>
-          {drop > 0 && (
-            <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow">
-              <TrendingDown size={12} />
-              Turun {drop.toFixed(1)}%
-            </span>
-          )}
-          <img loading="lazy" src={remaining[0]} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-        </div>
-        {remaining.slice(1, 5).map((url, i) => (
-          <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(i + 1)}>
-            <img loading="lazy" src={url} alt={`${property.title} ${i + 2}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-          </div>
-        ))}
-      </div>
-    )
-  }
+  const seeAllText = lang === 'en'
+    ? `View all ${totalCount} photos`
+    : `Lihat Semua Foto (${totalCount})`
 
-  if (images.length === 4) {
+  const renderThumb = (i) => {
+    const url = thumbs[i]
+    const isPlaceholder = !url
     return (
-      <div className="hidden lg:grid lg:grid-cols-4 lg:gap-2 lg:h-[360px] lg:rounded-2xl lg:overflow-hidden">
-        {images.map((url, i) => (
-          <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(i)}>
-            <img loading="lazy" src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+      <button
+        key={i}
+        type="button"
+        onClick={() => onOpenLightbox(isPlaceholder ? 0 : i + 1)}
+        aria-label={isPlaceholder ? seeAllText : `${property.title} ${i + 2}`}
+        className="relative flex-1 min-h-0 overflow-hidden cursor-pointer group rounded-lg"
+      >
+        {url ? (
+          <img
+            loading="lazy"
+            src={url}
+            alt={`${property.title} ${i + 2}`}
+            onError={(e) => { e.target.src = FALLBACK_IMAGE }}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full bg-brand-bg flex flex-col items-center justify-center gap-1.5 text-brand-muted group-hover:bg-brand-border/60 transition-colors">
+            <Images size={18} />
+            <span className="text-[11px] font-bold px-2 text-center leading-tight">{seeAllText}</span>
           </div>
-        ))}
-      </div>
-    )
-  }
-
-  if (images.length === 2 || images.length === 3) {
-    const cols = images.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3'
-    return (
-      <div className={`hidden lg:grid ${cols} lg:gap-2 lg:h-[360px] lg:rounded-2xl lg:overflow-hidden`}>
-        {images.map((url, i) => (
-          <div key={i} className="relative overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(i)}>
-            <img loading="lazy" src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-          </div>
-        ))}
-      </div>
+        )}
+      </button>
     )
   }
 
   return (
-    <div className="hidden lg:block lg:rounded-2xl overflow-hidden cursor-pointer relative" onClick={() => onOpenLightbox(0)}>
-      {drop > 0 && (
-        <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow">
-          <TrendingDown size={12} />
-          Turun {drop.toFixed(1)}%
-        </span>
-      )}
-      <img loading="lazy" src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+    <div className="hidden lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] lg:grid-rows-1 lg:gap-2 lg:h-[440px] lg:rounded-2xl lg:overflow-hidden">
+      <button
+        type="button"
+        onClick={() => onOpenLightbox(0)}
+        aria-label={property.title}
+        className="relative h-full overflow-hidden cursor-pointer group rounded-lg"
+      >
+        {drop > 0 && (
+          <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow">
+            <TrendingDown size={12} />
+            Turun {drop.toFixed(1)}%
+          </span>
+        )}
+        <img loading="lazy" src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+      </button>
+      <div className="flex flex-col gap-2 min-h-0">
+        {[0, 1, 2].map(renderThumb)}
+      </div>
     </div>
   )
 }
@@ -733,7 +731,7 @@ export default function PropertyDetailPage() {
           )}
           <span className="text-brand-text font-semibold truncate max-w-[280px]">{displayTitle}</span>
         </nav>
-        <GalleryDesktop images={images} property={property} onOpenLightbox={openLightbox} />
+        <GalleryDesktop images={images} property={property} onOpenLightbox={openLightbox} lang={lang} />
         <GalleryMobile images={images} property={property} onOpenLightbox={openLightbox} />
         {images.length > 0 && (
           <button
