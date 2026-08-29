@@ -17,6 +17,8 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif
 
 const PROPERTY_TYPE_OPTIONS = ['Rumah', 'Apartemen', 'Villa', 'Tanah', 'Kantor', 'Ruko']
 
+const digitsOnly = (value = '') => String(value).replace(/[^0-9]/g, '')
+
 const EMPTY_FORM = {
   title: '',
   category: 'Dijual',
@@ -663,7 +665,7 @@ export default function SellPropertyPage() {
               <label className="text-sm font-semibold text-brand-text mb-1.5 block">Harga <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-brand-muted font-medium">Rp</span>
-                <input type="text" inputMode="numeric" placeholder="500.000.000" value={form.estimasi_harga} onBlur={touch('estimasi_harga')} onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); setForm((p) => ({ ...p, estimasi_harga: raw })) }} className={`w-full py-4 pl-10 pr-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${fieldErrors.estimasi_harga ? 'border-red-400' : 'border-brand-border'}`} />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" placeholder="500.000.000" value={form.estimasi_harga} onBlur={touch('estimasi_harga')} onChange={(e) => { const raw = digitsOnly(e.target.value); setForm((p) => ({ ...p, estimasi_harga: raw })) }} className={`w-full py-4 pl-10 pr-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${fieldErrors.estimasi_harga ? 'border-red-400' : 'border-brand-border'}`} />
               </div>
               {showFieldError('estimasi_harga') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('estimasi_harga')}</p>}
               {form.category === 'Disewa' && (
@@ -728,19 +730,19 @@ export default function SellPropertyPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kamar Tidur</label>
-                <input type="number" min="0" placeholder="2" value={form.bedrooms} onChange={updateForm('bedrooms')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" placeholder="2" value={form.bedrooms} onChange={(e) => setForm((p) => ({ ...p, bedrooms: digitsOnly(e.target.value) }))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
               </div>
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kamar Mandi</label>
-                <input type="number" min="0" placeholder="1" value={form.bathrooms} onChange={updateForm('bathrooms')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" placeholder="1" value={form.bathrooms} onChange={(e) => setForm((p) => ({ ...p, bathrooms: digitsOnly(e.target.value) }))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
               </div>
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Luas Bangunan (m&sup2;)</label>
-                <input type="number" min="1" placeholder="60" value={form.sqm} onChange={updateForm('sqm')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" placeholder="60" value={form.sqm} onChange={(e) => setForm((p) => ({ ...p, sqm: digitsOnly(e.target.value) }))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
               </div>
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Luas Tanah (m&sup2;)</label>
-                <input type="number" min="0" placeholder="90" value={form.land_sqm} onChange={updateForm('land_sqm')} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" placeholder="90" value={form.land_sqm} onChange={(e) => setForm((p) => ({ ...p, land_sqm: digitsOnly(e.target.value) }))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
               </div>
             </div>
 
