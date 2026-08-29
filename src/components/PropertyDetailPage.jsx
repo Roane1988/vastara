@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MessageCircle, MessageSquare, Phone, ChevronDown, ChevronRight, X, ChevronLeft, Calendar, Share2, MapPin, Tag, TrendingDown, Flag, CheckCircle2, AlertTriangle, Wallet } from 'lucide-react'
+import { MessageCircle, MessageSquare, Phone, ChevronDown, ChevronRight, X, ChevronLeft, Calendar, Share2, MapPin, Tag, TrendingDown, Flag, CheckCircle2, AlertTriangle, Wallet, Heart, Images } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice, formatPriceDisplay } from '../utils/format'
@@ -410,6 +411,7 @@ export default function PropertyDetailPage() {
   const [showStickyBar, setShowStickyBar] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
   const [showReport, setShowReport] = useState(false)
+  const [isSaved, setIsSaved] = useState(getFavorites().includes(id))
 
   useSEO(property ? {
     title: property.title,
@@ -418,6 +420,11 @@ export default function PropertyDetailPage() {
   } : { title: 'Detail Properti' })
 
   const images = property ? parseImages(property.image_url) : []
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsSaved(id ? getFavorites().includes(id) : false)
+  }, [id])
 
   const transFields = property ? {
     title: property.title,
@@ -457,6 +464,15 @@ export default function PropertyDetailPage() {
         () => showToast('Gagal menyalin link. Coba lagi.', 'error')
       )
     }
+  }
+
+  async function toggleSave() {
+    if (!property?.id) return
+    const updated = await toggleFav(property.id)
+    setIsSaved(updated.includes(property.id))
+    showToast(updated.includes(property.id)
+      ? (lang === 'en' ? 'Property saved to favorites' : 'Properti disimpan ke favorit')
+      : (lang === 'en' ? 'Removed from favorites' : 'Dihapus dari favorit'), 'success')
   }
 
   function handleReportClick() {
@@ -704,6 +720,17 @@ export default function PropertyDetailPage() {
         </nav>
         <GalleryDesktop images={images} property={property} onOpenLightbox={openLightbox} />
         <GalleryMobile images={images} property={property} onOpenLightbox={openLightbox} />
+        {images.length > 0 && (
+          <button
+            type="button"
+            onClick={() => openLightbox(0)}
+            className="hidden lg:inline-flex absolute bottom-4 right-4 z-20 items-center gap-2 rounded-full bg-black/50 backdrop-blur px-3.5 py-2 text-white text-xs font-bold shadow-md hover:bg-black/70 transition-colors cursor-pointer"
+            aria-label={lang === 'en' ? `View all ${images.length} photos` : `Lihat semua ${images.length} foto`}
+          >
+            <Images size={15} />
+            {lang === 'en' ? `View all ${images.length} photos` : `Lihat Semua Foto (${images.length})`}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -737,15 +764,42 @@ export default function PropertyDetailPage() {
               </h1>
             </div>
 
-            <div>
-              <p className="text-2xl font-extrabold text-brand-primary">
-                {displayPrice}
-              </p>
-              {property.area_sqm > 0 && property.price > 0 && !isRent && (
-                <p className="text-sm text-brand-muted mt-0.5">
-                  {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-2xl font-extrabold text-brand-primary">
+                  {displayPrice}
                 </p>
-              )}
+                {property.area_sqm > 0 && property.price > 0 && !isRent && (
+                  <p className="text-sm text-brand-muted mt-0.5">
+                    {formatPrice(Math.round(property.price / property.area_sqm))} / m&sup2;
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleSave}
+                  aria-pressed={isSaved}
+                  aria-label={lang === 'en' ? (isSaved ? 'Remove from favorites' : 'Save to favorites') : (isSaved ? 'Hapus dari favorit' : 'Simpan ke favorit')}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-bold border transition-all active:scale-[0.97] ${
+                    isSaved
+                      ? 'bg-brand-highlight text-brand-accent border-brand-accent/30'
+                      : 'bg-white text-brand-text border-brand-border hover:border-brand-accent hover:text-brand-accent'
+                  }`}
+                >
+                  <Heart size={16} className={isSaved ? 'fill-brand-accent' : ''} />
+                  {isSaved ? (lang === 'en' ? 'Saved' : 'Tersimpan') : (lang === 'en' ? 'Save' : 'Simpan')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label={lang === 'en' ? 'Share property' : 'Bagikan properti'}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-bold bg-white text-brand-text border border-brand-border hover:border-brand-accent hover:text-brand-accent transition-all active:scale-[0.97]"
+                >
+                  <Share2 size={16} />
+                  {lang === 'en' ? 'Share' : 'Bagikan'}
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -771,7 +825,7 @@ export default function PropertyDetailPage() {
               )}
             </div>
 
-            <div className="mt-4">
+            <div className="lg:hidden mt-4">
               <SpecGrid property={property} />
             </div>
 
