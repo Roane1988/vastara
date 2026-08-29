@@ -822,8 +822,26 @@ export default function ChatHubPage() {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto py-2">
                 {messagesLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="w-7 h-7 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
+                  <div className="px-4 space-y-4 py-4">
+                    <div className="flex justify-start">
+                      <div className="w-2/3 space-y-2 animate-pulse">
+                        <div className="h-3 w-1/3 bg-brand-border rounded-full" />
+                        <div className="h-3 w-2/3 bg-brand-border rounded-full" />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <div className="w-1/2 space-y-2 animate-pulse">
+                        <div className="h-3 w-full bg-brand-border rounded-full" />
+                        <div className="h-3 w-3/4 bg-brand-border rounded-full" />
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <div className="w-3/5 space-y-2 animate-pulse">
+                        <div className="h-3 w-1/2 bg-brand-border rounded-full" />
+                        <div className="h-3 w-full bg-brand-border rounded-full" />
+                        <div className="h-3 w-2/3 bg-brand-border rounded-full" />
+                      </div>
+                    </div>
                   </div>
                 ) : messages.length === 0 ? (
                   <EmptyChat contactName={activeContact.first_name} />

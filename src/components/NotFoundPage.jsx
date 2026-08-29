@@ -3,7 +3,7 @@ import { SearchX } from 'lucide-react'
 import useSEO from '../hooks/useSEO'
 
 export default function NotFoundPage({ message, onBack }) {
-  useSEO({ title: 'Halaman Tidak Ditemukan' })
+  useSEO({ title: message ? 'Properti Tidak Ditemukan' : 'Halaman Tidak Ditemukan' })
   const navigate = useNavigate()
 
   const handleBack = () => {
@@ -22,11 +22,11 @@ export default function NotFoundPage({ message, onBack }) {
         </div>
 
         <h1 className="text-2xl font-bold text-white mb-3">
-          Properti tidak ditemukan
+          {message ? 'Properti tidak ditemukan' : 'Halaman tidak ditemukan'}
         </h1>
 
         <p className="text-sm text-white/70 leading-relaxed mb-8">
-          {message || 'Maaf, properti yang Anda cari mungkin sudah terjual atau tidak tersedia saat ini.'}
+          {message || 'Maaf, halaman yang Anda cari tidak tersedia. Mungkin alamat sudah berubah atau sebelumnya tidak pernah ada.'}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full">

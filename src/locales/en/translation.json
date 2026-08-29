@@ -81,6 +81,8 @@
     "share": "Share",
     "share_aria": "Share comparison",
     "best_value": "Best Value",
+    "error_title": "Failed to load properties",
+    "error_desc": "Something went wrong while fetching data. Please try again.",
     "row": {
       "price": "Price",
       "price_per_sqm": "Price/m²",

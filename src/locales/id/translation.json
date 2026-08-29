@@ -81,6 +81,8 @@
     "share": "Bagikan",
     "share_aria": "Bagikan perbandingan",
     "best_value": "Paling Hemat",
+    "error_title": "Gagal memuat properti",
+    "error_desc": "Terjadi kendala saat mengambil data. Silakan coba lagi.",
     "row": {
       "price": "Harga",
       "price_per_sqm": "Harga/m²",

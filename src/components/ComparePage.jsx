@@ -46,6 +46,7 @@ export default function ComparePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [fullData, setFullData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [finState, setFinState] = useState('loading')
   const [affordability, setAffordability] = useState(null)
   const requestRef = useRef(0)
@@ -132,6 +133,7 @@ export default function ComparePage() {
     const ids = items
 
     async function load() {
+      setError(null)
       if (ids.length === 0) {
         requestRef.current += 1
         setFullData([])
@@ -159,6 +161,7 @@ export default function ComparePage() {
             if (!cancelled && requestId === requestRef.current) {
               setFullData([])
               setLoading(false)
+              setError(true)
             }
             return
           }
@@ -168,6 +171,7 @@ export default function ComparePage() {
         if (!cancelled && requestId === requestRef.current) {
           setFullData([])
           setLoading(false)
+          setError(true)
         }
         return
       }
@@ -184,6 +188,7 @@ export default function ComparePage() {
 
   function handleRemove(id) {
     removeFromCompare(id)
+    error && setError(null)
     renderedIdsRef.current = renderedIdsRef.current.filter(rid => rid !== id)
     setFullData(prev => prev.filter(p => p.id !== id))
   }
@@ -191,6 +196,7 @@ export default function ComparePage() {
   function handleClearAll() {
     clearCompare()
     setFullData([])
+    setError(null)
     requestRef.current += 1
     setLoading(false)
   }
@@ -466,7 +472,23 @@ export default function ComparePage() {
 
       <div className="flex-1 overflow-x-auto">
         <div className="min-w-[640px] max-w-5xl mx-auto p-4">
-          {loading ? (
+          {error ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center" role="alert">
+              <div className="w-14 h-14 rounded-full bg-brand-danger/10 flex items-center justify-center mb-3">
+                <AlertTriangle size={22} className="text-brand-danger" />
+              </div>
+              <p className="text-sm font-semibold text-brand-text mb-1">{t('compare.error_title')}</p>
+              <p className="text-xs text-brand-muted mb-4">{t('compare.error_desc')}</p>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.97] transition-all duration-200"
+              >
+                <Plus size={16} />
+                {t('compare.empty_cta')}
+              </button>
+            </div>
+          ) : loading ? (
             <CompareSkeleton />
           ) : (
             <table className="w-full border-collapse" summary={t('compare.title')}>

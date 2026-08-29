@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Search, Megaphone, Users, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Bell, Check, Plus, Home, MessageSquare } from 'lucide-react'
+import { Search, Megaphone, Users, LayoutGrid, MessageCircle, ArrowLeftRight, MapPin, Sparkles, XCircle, Wallet, X, Filter, ChevronDown, Bell, Check, Plus, Home, MessageSquare, AlertTriangle } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
@@ -74,6 +74,7 @@ export default function ExplorePage() {
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false)
   const [properties, setProperties] = useState([])
   const [loadingProperties, setLoadingProperties] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [isSmartSearching, setIsSmartSearching] = useState(false)
   const [saveName, setSaveName] = useState('')
   const [savingSearch, setSavingSearch] = useState(false)
@@ -117,6 +118,7 @@ export default function ExplorePage() {
 
   async function fetchProperties() {
     setLoadingProperties(true)
+    setLoadError(false)
     try {
       const { data, error } = await supabase
         .from('properties')
@@ -129,11 +131,14 @@ export default function ExplorePage() {
       if (!error && data) {
         setProperties(data)
       } else if (error) {
+        if (cancelledRef.current) return
         console.warn('Gagal memuat properti:', error.message)
+        setLoadError(true)
       }
     } catch (err) {
       if (cancelledRef.current) return
       console.warn('Gagal memuat properti:', err.message)
+      setLoadError(true)
     }
     if (!cancelledRef.current) setLoadingProperties(false)
   }
@@ -908,6 +913,25 @@ export default function ExplorePage() {
               </div>
             ))}
           </div>
+        ) : loadError && !isSearchEmpty && !isSearching ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center" role="alert">
+            <div className="w-16 h-16 rounded-full bg-brand-danger/10 flex items-center justify-center mb-4">
+              <AlertTriangle size={30} className="text-brand-danger" />
+            </div>
+            <p className="text-base font-semibold text-brand-text mb-1">
+              Gagal memuat properti
+            </p>
+            <p className="text-sm text-brand-muted mb-6 max-w-xs">
+              Terjadi kendala saat mengambil data. Silakan coba lagi.
+            </p>
+            <button
+              type="button"
+              onClick={() => fetchProperties()}
+              className="px-6 py-3 rounded-xl bg-brand-primary text-white text-sm font-bold hover:brightness-90 active:scale-[0.98] transition-all duration-200"
+            >
+              Coba Lagi
+            </button>
+          </div>
         ) : isSearchEmpty ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center mb-4">
@@ -1005,7 +1029,7 @@ export default function ExplorePage() {
             className="fixed inset-0 bg-black/60 z-[100]"
             onClick={() => setShowFilter(false)}
           />
-          <div className="fixed bottom-0 left-0 right-0 z-[110] bg-brand-surface border border-brand-border rounded-t-3xl p-6 pb-10 animate-slide-up">
+          <div className="fixed bottom-0 left-0 right-0 z-[110] max-h-[85vh] overflow-y-auto bg-brand-surface border border-brand-border rounded-t-3xl p-6 pb-10 animate-slide-up">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-brand-text">{t('explore.filter.title')}</h2>
               <div className="flex gap-3">

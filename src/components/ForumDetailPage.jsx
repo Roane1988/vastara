@@ -476,8 +476,44 @@ export default function ForumDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="w-6 h-6 border-4 border-brand-accent border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-brand-bg flex flex-col">
+        <div className="sticky top-14 bg-brand-surface/90 backdrop-blur-md z-30 pb-3 px-5 border-b border-brand-border">
+          <div className="flex items-center justify-between">
+            <div className="w-9 h-9 rounded-full bg-brand-border animate-pulse" />
+            <div className="flex items-center gap-2">
+              <div className="w-16 h-8 rounded-full bg-brand-border animate-pulse" />
+              <div className="w-14 h-8 rounded-full bg-brand-border animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 px-5 py-5 max-w-3xl mx-auto w-full space-y-5">
+          <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-5 space-y-3 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-brand-border" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-1/3 bg-brand-border rounded" />
+                <div className="h-2.5 w-1/5 bg-brand-border rounded" />
+              </div>
+            </div>
+            <div className="h-5 w-3/4 bg-brand-border rounded" />
+            <div className="h-3 w-full bg-brand-border rounded" />
+            <div className="h-3 w-2/3 bg-brand-border rounded" />
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-5 animate-pulse space-y-2">
+            <div className="h-4 w-1/4 bg-brand-border rounded" />
+            <div className="h-12 w-full bg-brand-border rounded" />
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-brand-border p-5 animate-pulse space-y-2">
+            <div className="h-4 w-1/4 bg-brand-border rounded" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-brand-border" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-1/4 bg-brand-border rounded" />
+                <div className="h-2.5 w-full bg-brand-border rounded" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
