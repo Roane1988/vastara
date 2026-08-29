@@ -1076,7 +1076,7 @@ export default function PropertyDetailPage() {
 
       <Lightbox isOpen={isLightboxOpen} images={images} currentIndex={lightboxIndex} onClose={closeLightbox} onPrev={prevImage} onNext={nextImage} propertyTitle={property.title} />
 
-      <div className={`fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-brand-border shadow-sm transition-transform duration-300 ${showStickyBar ? 'translate-y-0' : '-translate-y-full'} hidden lg:block`}>
+      <div className={`fixed top-14 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-brand-border shadow-sm transition-transform duration-300 ${showStickyBar ? 'translate-y-0' : '-translate-y-full'} hidden lg:block`}>
         <div className="max-w-7xl mx-auto px-5 py-2.5 flex items-center justify-between">
           <div className="min-w-0 flex-1 mr-4">
             <p className="text-sm font-bold text-brand-text truncate">{displayTitle}</p>

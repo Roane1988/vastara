@@ -1116,7 +1116,7 @@ export default function SellPropertyPage() {
           )}
 
           <div className="flex-1 flex flex-col md:flex-row">
-            <aside className="hidden md:block md:w-64 md:min-h-screen md:border-r md:border-brand-border md:bg-brand-bg md:sticky md:top-0">
+            <aside className="hidden md:block md:w-64 md:min-h-screen md:border-r md:border-brand-border md:bg-brand-bg md:sticky md:top-14">
               <div className="px-5 py-6 md:py-10 md:px-6">
                 <VerticalStepper steps={STEPS} current={step} />
               </div>
