@@ -369,7 +369,6 @@ export default function ForumDetailPage() {
         setReplyingTo(null)
         showToast('Balasan berhasil dikirim', 'success')
         fetchReplies()
-        setTimeout(() => repliesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
       } else {
         showToast(error.message, 'error')
       }
