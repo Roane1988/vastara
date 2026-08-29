@@ -1,6 +1,6 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 28 Agustus 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 29 Agustus 2026.
 
 ## Changelog — Hapus Fitur Tren & Perubahan Harga (Tren Harga / Turun Harga) (28 Agustus 2026)
 - **Landing (ExplorePage)**: hapus shortcut "Turun Harga" & "Tren Harga" dari **Layanan cepat** (QUICK_MENU) dan dari **sticky search bar**; grid quick services di-balance `grid-cols-4 sm:grid-cols-8` → `grid-cols-5` (5 item simetris di mobile & desktop). Import tak terpakai `TrendingUp`/`TrendingDown` dibersihkan.
@@ -506,7 +506,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 ## Functions & RPC (Security definer)
 - `is_admin()` — cek `role='admin'` dari `auth.uid()`; **dipakai semua policy admin** (menghindari subquery self-referential yang memicu 42P17)
 - `get_my_profile()` — email/whatsapp milik sendiri (owner-only); kini juga kembalikan `whatsapp_verified` (20260828)
-- `set_whatsapp_verified(text)` — simpan nomor WhatsApp + set `whatsapp_verified=true` (owner-only, security definer; 20260828)
+- `set_whatsapp_verified(text)` — simpan nomor WhatsApp + set `whatsapp_verified=true` (owner-only, security definer; 20260828); **diperkuat 20260829**: normalisasi & validasi di backend (digits 10-14, awalan `08`/`620` → `62`, tolak duplikat akun lain — cocok dengan partial UNIQUE index `profiles.whatsapp`)
 - `get_admin_users()` — daftar user lengkap + email/whatsapp (hanya admin); kini juga ekspos `is_super_admin` (20260815)
 - `set_property_ai_analysis(uuid, jsonb)` — tulis cache AI (hanya service_role)
 - `increment_forum_views(uuid)` — naikkan `forum_posts.views`
@@ -619,36 +619,41 @@ Semua file di `supabase/migrations/`:
 6. `20260730_profiles_rls_policies.sql`
 7. `20260731_create_forum_likes.sql`
 8. `20260731_add_forum_category.sql`
-9. `20260801_forum_enhancements.sql` — kolom baru forum_posts (views/is_pinned/solved_reply_id/tags/poll) + tabel `forum_reactions` + `forum_poll_votes` + migrasi data forum_likes → reactions
-10. `20260801_create_agent_applications.sql` — tabel `agent_applications` + RLS + trigger approval role promotion
-11. `20260803_agent_directory.sql` — tabel `agent_profiles` + `agent_reviews`, view `agent_stats`, `handle_agent_approval()` trigger
-12. `20260803_property_listing_enhancements.sql` — constraint `property_type` + kolom `is_premium`
-13. `20260804_audit_log_security.sql` — RPC `record_audit` (security definer, hanya admin) + `audit_logs` dikunci
-14. `20260805_property_seller_type.sql` — kolom `seller_type`/`agent_id`/`owner_id` + trigger `enforce_property_seller_type()`
-15. `20260806_agent_integrity_fixes.sql` — policy insert `agent_profiles` (role agent), view `agent_stats` fix (`seller_type='agent'`), trigger hanya validasi saat kolom berubah
-16. `20260807_agent_directory_completion.sql` — selesaikan direktori agen (drop kolom mati `properties.agent_id`/`owner_id`)
-17. `20260808_security_hardening.sql` — **RLS profiles/properties**: normalisasi role + constraint, email privat, role guard, cache AI via RPC `set_property_ai_analysis` (service_role), RPC `get_my_profile`/`get_admin_users`
-18. `20260808_admin_delete_agent_applications.sql` — policy DELETE `agent_applications` (admin) + action audit `delete_agent_application`
-19. `20260809_storage_upload_policy.sql` — policy upload storage (whitelist mimetype `metadata->>'mimetype'`, `owner_id = auth.uid()::text`)
-20. `20260809_drop_legacy_audit_columns.sql` — hapus kolom audit lama yang tidak dipakai
-21. `20260810_forum_rls_and_handle_new_user.sql` — RLS `forum_posts`/`forum_replies` (author+admin), RPC `increment_forum_views`, trigger `handle_new_user()` (auto-create profil saat signup)
-22. `20260811_seller_can_mark_sold.sql` — seller boleh `verified → sold` *(DIGANTIKAN oleh 20260813 — masih ada bug 42P17)*
-23. `20260812_seller_mark_sold_any_status.sql` — seller boleh `sold` dari status apa pun *(DIGANTIKAN oleh 20260813 — masih ada bug 42P17)*
-24. `20260813_fix_rls_recursion.sql` — **fix 42P17**: helper `is_admin()`, policy sederhana (tanpa subquery self-ref), trigger `enforce_property_status_transition()` + `enforce_profile_role_change()`
-25. `20260815_admin_super_admin_role_guard.sql` — kolom `is_super_admin`, trigger `enforce_role_super_guard()`, admin lama otomatis jadi super admin, `get_admin_users()` ekspos `is_super_admin`
-26. `20260816_price_history.sql` — kolom `properties.original_price`, tabel `price_history`, `log_price_change()`, update `guard_property_price_change()`
-27. `20260816_property_price_change_guard.sql` — kolom harga (`price_requested`, `price_change_status`, dll) + trigger guard ≤15% → langsung, >15% → antrian admin
-28. `20260816_whatsapp_leads.sql` — tabel `whatsapp_leads` + RLS (insert publik, select seller/admin)
-29. `20260817_saved_searches.sql` — tabel `saved_searches` + RLS owner-only
-30. `20260818_security_gap_fixes.sql` — **penutup celah audit**: trigger `saved_properties` (user_id otomatis), agent_profiles self-read, whatsapp_leads wajib login, site_visits select seller/admin
-31. `20260819_property_reports.sql` — tabel `property_reports` + RLS (pelapor/admin) + audit `delete_property`/`dismiss_report` + policy hapus foto storage admin
-32. `20260820_property_published_at.sql` — kolom `properties.published_at` + trigger `set_property_published_at()` (definisi "properti baru" saat status → verified)
-33. `20260820_seller_survey_visits.sql` — alur survei sisi seller: policy UPDATE `site_visits` (seller/admin) + realtime `site_visits`
-34. `20260821_chat_read_receipts.sql` — kolom `direct_messages.read_at` + policy UPDATE receiver + realtime `direct_messages`
-35. `20260822_property_price_period.sql` — kolom `properties.price_period` ('total'/'bulan'/'tahun') + backfill sewa → 'bulan'
-36. `20260823_property_detail_fields.sql` — kolom `properties.land_area_sqm` & `furnished` (kondisi isi properti sewa)
-37. `20260824_create_newsletter_subscribers.sql` — tabel `newsletter_subscribers` + RLS (INSERT publik, SELECT/UPDATE/DELETE admin-only)
-38. `20260826_add_nib_to_agents.sql` — kolom `nib` di `agent_applications` & `agent_profiles` + update trigger `handle_agent_approval()` menyalin `nib` saat approval
-39. `20260828_whatsapp_verification.sql` — kolom `whatsapp_verified` (bool) di `profiles`; update trigger `handle_new_user()`; backfill user dgn WhatsApp; perpanjang RPC `get_my_profile()` (+`whatsapp_verified`); RPC baru `set_whatsapp_verified(text)`
+9. `20260731_create_property_ai_analysis.sql` — tabel `property_ai_analysis` (cache AI per properti) + RLS select/insert/update semua *(tulis dibatasi hanya via RPC `set_property_ai_analysis` service_role sejak 20260808)*
+10. `20260731_create_site_visits.sql` — tabel `site_visits` + RLS buyer (select/insert milik sendiri, update hanya → 'cancelled')
+11. `20260731_create_user_financial_profiles.sql` — tabel `user_financial_profiles` + RLS owner
+12. `20260801_forum_enhancements.sql` — kolom baru forum_posts (views/is_pinned/solved_reply_id/tags/poll) + tabel `forum_reactions` + `forum_poll_votes` + migrasi data forum_likes → reactions
+13. `20260801_create_agent_applications.sql` — tabel `agent_applications` + RLS + trigger approval role promotion
+14. `20260802_agent_applications_require_login.sql` — kolom `agent_applications.user_id` + **wajib login** (policy INSERT `user_id = auth.uid()`, SELECT milik sendiri) + trigger approval cocokkan profil via `user_id` (fallback email)
+15. `20260803_agent_directory.sql` — tabel `agent_profiles` + `agent_reviews`, view `agent_stats`, `handle_agent_approval()` trigger
+16. `20260803_property_listing_enhancements.sql` — constraint `property_type` + kolom `is_premium`
+17. `20260804_audit_log_security.sql` — RPC `record_audit` (security definer, hanya admin) + `audit_logs` dikunci
+18. `20260805_property_seller_type.sql` — kolom `seller_type`/`agent_id`/`owner_id` + trigger `enforce_property_seller_type()`
+19. `20260806_agent_integrity_fixes.sql` — policy insert `agent_profiles` (role agent), view `agent_stats` fix (`seller_type='agent'`), trigger hanya validasi saat kolom berubah
+20. `20260807_agent_directory_completion.sql` — selesaikan direktori agen (drop kolom mati `properties.agent_id`/`owner_id`)
+21. `20260808_security_hardening.sql` — **RLS profiles/properties**: normalisasi role + constraint, email privat, role guard, cache AI via RPC `set_property_ai_analysis` (service_role), RPC `get_my_profile`/`get_admin_users`
+22. `20260808_admin_delete_agent_applications.sql` — policy DELETE `agent_applications` (admin) + action audit `delete_agent_application`
+23. `20260809_storage_upload_policy.sql` — policy upload storage (whitelist mimetype `metadata->>'mimetype'`, `owner_id = auth.uid()::text`)
+24. `20260809_drop_legacy_audit_columns.sql` — hapus kolom audit lama yang tidak dipakai
+25. `20260810_forum_rls_and_handle_new_user.sql` — RLS `forum_posts`/`forum_replies` (author+admin), RPC `increment_forum_views`, trigger `handle_new_user()` (auto-create profil saat signup)
+26. `20260811_seller_can_mark_sold.sql` — seller boleh `verified → sold` *(DIGANTIKAN oleh 20260813 — masih ada bug 42P17)*
+27. `20260812_seller_mark_sold_any_status.sql` — seller boleh `sold` dari status apa pun *(DIGANTIKAN oleh 20260813 — masih ada bug 42P17)*
+28. `20260813_fix_rls_recursion.sql` — **fix 42P17**: helper `is_admin()`, policy sederhana (tanpa subquery self-ref), trigger `enforce_property_status_transition()` + `enforce_profile_role_change()`
+29. `20260815_admin_super_admin_role_guard.sql` — kolom `is_super_admin`, trigger `enforce_role_super_guard()`, admin lama otomatis jadi super admin, `get_admin_users()` ekspos `is_super_admin`
+30. `20260816_price_history.sql` — kolom `properties.original_price`, tabel `price_history`, `log_price_change()`, update `guard_property_price_change()`
+31. `20260816_property_price_change_guard.sql` — kolom harga (`price_requested`, `price_change_status`, dll) + trigger guard ≤15% → langsung, >15% → antrian admin
+32. `20260816_whatsapp_leads.sql` — tabel `whatsapp_leads` + RLS (insert publik, select seller/admin) *(insert diperketat wajib login sejak 20260818)*
+33. `20260817_saved_searches.sql` — tabel `saved_searches` + RLS owner-only
+34. `20260818_security_gap_fixes.sql` — **penutup celah audit**: trigger `saved_properties` (user_id otomatis), agent_profiles self-read, whatsapp_leads wajib login, site_visits select seller/admin
+35. `20260819_property_reports.sql` — tabel `property_reports` + RLS (pelapor/admin) + audit `delete_property`/`dismiss_report` + policy hapus foto storage admin
+36. `20260820_property_published_at.sql` — kolom `properties.published_at` + trigger `set_property_published_at()` (definisi "properti baru" saat status → verified)
+37. `20260820_seller_survey_visits.sql` — alur survei sisi seller: policy UPDATE `site_visits` (seller/admin) + realtime `site_visits`
+38. `20260821_chat_read_receipts.sql` — kolom `direct_messages.read_at` + policy UPDATE receiver + realtime `direct_messages`
+39. `20260822_property_price_period.sql` — kolom `properties.price_period` ('total'/'bulan'/'tahun') + backfill sewa → 'bulan'
+40. `20260823_property_detail_fields.sql` — kolom `properties.land_area_sqm` & `furnished` (kondisi isi properti sewa)
+41. `20260824_create_newsletter_subscribers.sql` — tabel `newsletter_subscribers` + RLS (INSERT publik, SELECT/UPDATE/DELETE admin-only)
+42. `20260826_add_nib_to_agents.sql` — kolom `nib` di `agent_applications` & `agent_profiles` + update trigger `handle_agent_approval()` menyalin `nib` saat approval
+43. `20260828_whatsapp_verification.sql` — kolom `whatsapp_verified` (bool) di `profiles`; update trigger `handle_new_user()`; backfill user dgn WhatsApp; perpanjang RPC `get_my_profile()` (+`whatsapp_verified`); RPC baru `set_whatsapp_verified(text)`
+44. `20260829_whatsapp_verification_hardening.sql` — **hardening WhatsApp**: partial UNIQUE index `profiles.whatsapp` (nilai non-empty unik → 1 nomor 1 akun, NULL/empty tetap bebas); perkuat RPC `set_whatsapp_verified` (validasi & normalisasi di **backend**: hanya digit 10-14, awalan `08`/`620` → `62`, tolak nomor duplikat milik akun lain)
 
 **Catatan**: PostgreSQL 14 tidak support `CREATE POLICY IF NOT EXISTS` — harus pakai `DROP POLICY IF EXISTS` dulu sebelum `CREATE POLICY`. Migration terbaru memakai blok `do $$ ... exception when duplicate_object` untuk idempotency.

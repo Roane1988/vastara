@@ -63,8 +63,8 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg px-4">
-        <div className="w-full max-w-sm text-center">
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg px-4 pt-8 pb-16">
+        <div className="w-full max-w-sm my-auto text-center">
           <img src="/huniOne.svg" alt="HuniOne" className="h-32 md:h-48 w-auto object-contain mx-auto mb-8" />
           <div className="w-16 h-16 rounded-full bg-brand-verified/10 flex items-center justify-center mx-auto mb-5">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-verified">
@@ -90,8 +90,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg px-4 pt-8 pb-16">
+      <div className="w-full max-w-sm my-auto">
         <div className="text-center mb-8 pt-4">
           <img src="/huniOne.svg" alt="HuniOne" className="h-32 md:h-48 w-auto object-contain mx-auto" />
           <p className="text-sm font-medium text-brand-primary/70 tracking-wide mt-1">
