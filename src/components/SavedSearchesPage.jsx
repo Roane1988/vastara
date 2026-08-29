@@ -102,7 +102,7 @@ export default function SavedSearchesPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      <header className="sticky top-0 bg-brand-surface/80 backdrop-blur-md z-10 border-b border-brand-border">
+      <header className="sticky top-14 bg-brand-surface/80 backdrop-blur-md z-10 border-b border-brand-border">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
           <button type="button" aria-label="Kembali" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0">
             <ArrowLeft size={18} />

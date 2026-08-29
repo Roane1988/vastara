@@ -120,7 +120,7 @@ export default function AgentProfilePage() {
   }
 
   const backHeader = (
-    <div className="sticky top-0 z-30 bg-brand-surface/90 backdrop-blur-md pt-12 pb-3 px-5 border-b border-brand-border">
+    <div className="sticky top-14 z-30 bg-brand-surface/90 backdrop-blur-md pb-3 px-5 border-b border-brand-border">
       <button
         type="button"
         onClick={() => navigate(-1)}

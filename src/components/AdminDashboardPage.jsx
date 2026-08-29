@@ -478,7 +478,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      <header className="sticky top-0 bg-brand-surface/80 backdrop-blur-md z-10 border-b border-brand-border">
+      <header className="sticky top-14 bg-brand-surface/80 backdrop-blur-md z-10 border-b border-brand-border">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-3 min-w-0">
             <button type="button" onClick={() => navigate(-1)} aria-label="Kembali" className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0">

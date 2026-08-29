@@ -1073,7 +1073,7 @@ export default function SellPropertyPage() {
         </div>
       ) : (
         <>
-          <header className="sticky top-0 bg-brand-surface/90 backdrop-blur-md z-30 border-b border-brand-border">
+          <header className="sticky top-14 bg-brand-surface/90 backdrop-blur-md z-30 border-b border-brand-border">
             <div className="flex items-center justify-between px-4 h-14">
               <button type="button" onClick={() => navigate(-1)} className="text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1 shrink-0"><ArrowLeftIcon /></button>
               <h1 className="text-lg font-bold text-brand-text">{editId ? 'Edit Properti' : 'Iklankan Properti'}</h1>

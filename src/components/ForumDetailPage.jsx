@@ -504,7 +504,7 @@ export default function ForumDetailPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
-      <div className="sticky top-0 bg-brand-surface/90 backdrop-blur-md z-30 pt-12 pb-3 px-5 border-b border-brand-border">
+      <div className="sticky top-14 bg-brand-surface/90 backdrop-blur-md z-30 pb-3 px-5 border-b border-brand-border">
         <div className="flex items-center justify-between">
           <button
             type="button"

@@ -273,7 +273,7 @@ export default function MyListingsPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      <header className="sticky top-0 bg-brand-surface/80 backdrop-blur-md z-10 border-b border-brand-border">
+      <header className="sticky top-14 bg-brand-surface/80 backdrop-blur-md z-10 border-b border-brand-border">
         <div className="flex items-center justify-between px-4 h-14">
           <button
             type="button"
