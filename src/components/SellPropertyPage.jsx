@@ -10,6 +10,7 @@ import { compressImage } from '../utils/imageCompression'
 import FormErrorSummary from './FormErrorSummary'
 import LocationAutocomplete from './LocationAutocomplete'
 import { cleanCityName, loadRegencies } from '../utils/wilayah'
+import { extractAddressWithAI } from '../utils/addressAI'
 
 const DRAFT_KEY = 'hunione_sell_draft'
 const MAX_IMAGES = 10
@@ -248,7 +249,9 @@ export default function SellPropertyPage() {
   const [priceRequested, setPriceRequested] = useState(null)
   const [generatingDesc, setGeneratingDesc] = useState(false)
   const [aiAddressLoading, setAiAddressLoading] = useState(false)
-  const [aiAddressNeedsManual, setAiAddressNeedsManual] = useState({})
+  const [aiAddressPreview, setAiAddressPreview] = useState(null)
+  const [aiAddressApplied, setAiAddressApplied] = useState(null)
+  const [aiPreviewOpen, setAiPreviewOpen] = useState(false)
 
   useEffect(() => {
     if (!editId) return
@@ -494,66 +497,52 @@ export default function SellPropertyPage() {
       return
     }
     setAiAddressLoading(true)
-    setAiAddressNeedsManual({})
     try {
-      const prompt = `Ekstrak informasi alamat dari teks berikut ke dalam objek JSON. Teks: "${text}"
-
-Gabungkan bagian kecamatan/kecamatan, dan untuk kota gunakan nama kota/kabupaten (tanpa kata "Kota"/"Kabupaten" di awal). Jika suatu informasi tidak ada atau tidak jelas, gunakan string kosong ("").
-
-Contoh format JSON yang diminta (hanya JSON, tanpa teks lain):
-{ "rt": "005", "rw": "002", "kelurahan": "Serua Indah", "kecamatan": "Ciputat", "kota": "Tangerang Selatan" }`
-      const res = await fetch('/api/groq', {
-        method: 'POST',
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({
-          model: 'openai/gpt-oss-120b',
-          purpose: 'chat',
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      })
-      if (!res.ok) {
-        let msg = 'Gagal menganalisis alamat.'
-        try { const j = await res.json(); msg = j?.error?.message || msg } catch { /* ignore */ }
-        throw new Error(msg)
-      }
-      const data = await res.json()
-      const content = data?.choices?.[0]?.message?.content
-      if (!content) throw new Error('Respon AI kosong. Coba lagi.')
-      const cleaned = String(content).replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '').trim()
-      let parsed
-      try { parsed = JSON.parse(cleaned) } catch { parsed = null }
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error('Format respon AI tidak valid. Coba lagi.')
-      }
-      const values = {
-        rt: digitsOnly(parsed.rt),
-        rw: digitsOnly(parsed.rw),
-        kelurahan: String(parsed.kelurahan || '').trim(),
-        kecamatan: String(parsed.kecamatan || '').trim(),
-        kota: String(parsed.kota || '').trim(),
-      }
-      const needs = Object.fromEntries(
-        Object.entries(values).filter(([, v]) => !v).map(([k]) => [k, true])
-      )
-      setForm((prev) => ({
-        ...prev,
-        rt: values.rt,
-        rw: values.rw,
-        kelurahan: values.kelurahan,
-        kecamatan: values.kecamatan,
-        city: values.kota,
-      }))
-      setAiAddressNeedsManual(needs)
-      if (Object.keys(needs).length > 0) {
-        showToast('Sebagian data alamat perlu diisi manual.', 'info')
-      } else {
-        showToast('Alamat berhasil diisi otomatis.', 'success')
-      }
+      const result = await extractAddressWithAI(text)
+      setAiAddressPreview(result)
+      setAiPreviewOpen(true)
     } catch (err) {
       showToast('Gagal mengisi alamat otomatis: ' + (err.message || 'Coba lagi.'), 'error')
     } finally {
       setAiAddressLoading(false)
     }
+  }
+
+  const handleAiCancelPreview = () => {
+    setAiPreviewOpen(false)
+    setAiAddressPreview(null)
+  }
+
+  const handleAiApplyAddress = () => {
+    if (!aiAddressPreview) return
+    const { values, missing, ambiguous } = aiAddressPreview
+    setForm((prev) => ({
+      ...prev,
+      rt: values.rt,
+      rw: values.rw,
+      kelurahan: values.kelurahan,
+      kecamatan: values.kecamatan,
+      city: values.kota,
+    }))
+    setAiAddressApplied({ ...values, missing, ambiguous })
+    setAiPreviewOpen(false)
+    setAiAddressPreview(null)
+    const labelByKey = { kota: 'Kota/Kabupaten', rt: 'RT', rw: 'RW', kelurahan: 'Kelurahan', kecamatan: 'Kecamatan' }
+    const needManual = [...new Set([...missing, ...ambiguous])].map((k) => labelByKey[k] || k)
+    if (needManual.length > 0) {
+      showToast(`Beberapa data alamat perlu diisi manual: ${needManual.join(', ')}.`, 'info')
+    } else {
+      showToast('Alamat berhasil diisi otomatis.', 'success')
+    }
+  }
+
+  const clearAiAddressApplied = () => {
+    if (aiAddressApplied) setAiAddressApplied(null)
+  }
+
+  const handleAiAddressChange = (e) => {
+    clearAiAddressApplied()
+    updateForm('address')(e)
   }
 
   const handleSubmit = async () => {
@@ -902,7 +891,7 @@ Contoh format JSON yang diminta (hanya JSON, tanpa teks lain):
                   {aiAddressLoading ? 'Menganalisis alamat...' : 'Ekstrak Alamat dengan AI'}
                 </button>
               </div>
-              <textarea data-field="address" rows={2} placeholder="Contoh: Cayman Residence, Blok B3 No. 17, Serua Indah, Kec. Ciputat, Kota Tangerang Selatan 15414" value={form.address} onChange={updateForm('address')} onBlur={touch('address')} className={`w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none ${fieldErrors.address ? 'border-red-400' : 'border-brand-border'}`} />
+              <textarea data-field="address" rows={2} placeholder="Contoh: Cayman Residence, Blok B3 No. 17, Serua Indah, Kec. Ciputat, Kota Tangerang Selatan 15414" value={form.address} onChange={handleAiAddressChange} onBlur={touch('address')} className={`w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none ${fieldErrors.address ? 'border-red-400' : 'border-brand-border'}`} />
               {showFieldError('address') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('address')}</p>}
               {aiAddressLoading ? (
                 <p className="text-[11px] text-brand-muted mt-1.5 flex items-center gap-1">
@@ -915,55 +904,57 @@ Contoh format JSON yang diminta (hanya JSON, tanpa teks lain):
 
             <div className="grid grid-cols-2 gap-3">
               <div data-field="rt">
-                <label className="text-sm font-semibold text-brand-text mb-1.5 block">RT <span className="text-brand-muted font-normal">(opsional)</span></label>
-                <input type="text" inputMode="numeric" pattern="[0-9]*" data-field="rt" placeholder="005" value={form.rt} onChange={(e) => updateFormValue('rt', digitsOnly(e.target.value))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
-                {aiAddressNeedsManual.rt && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">RT <span className="text-brand-muted font-normal">(opsional)</span> {aiAddressApplied?.rt ? <CheckCircle size={14} className="inline text-green-500 align-text-bottom" /> : null}</label>
+                <input type="text" inputMode="numeric" pattern="[0-9]*" data-field="rt" placeholder="005" value={form.rt} disabled={aiAddressLoading} onChange={(e) => { clearAiAddressApplied(); updateFormValue('rt', digitsOnly(e.target.value)) }} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors disabled:opacity-60" />
+                {aiAddressApplied?.missing?.includes('rt') || aiAddressApplied?.ambiguous?.includes('rt') ? <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p> : null}
               </div>
               <div data-field="rw">
-                <label className="text-sm font-semibold text-brand-text mb-1.5 block">RW <span className="text-brand-muted font-normal">(opsional)</span></label>
-                <input type="text" inputMode="numeric" pattern="[0-9]*" data-field="rw" placeholder="002" value={form.rw} onChange={(e) => updateFormValue('rw', digitsOnly(e.target.value))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
-                {aiAddressNeedsManual.rw && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">RW <span className="text-brand-muted font-normal">(opsional)</span> {aiAddressApplied?.rw ? <CheckCircle size={14} className="inline text-green-500 align-text-bottom" /> : null}</label>
+                <input type="text" inputMode="numeric" pattern="[0-9]*" data-field="rw" placeholder="002" value={form.rw} disabled={aiAddressLoading} onChange={(e) => { clearAiAddressApplied(); updateFormValue('rw', digitsOnly(e.target.value)) }} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors disabled:opacity-60" />
+                {aiAddressApplied?.missing?.includes('rw') || aiAddressApplied?.ambiguous?.includes('rw') ? <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p> : null}
               </div>
             </div>
 
-            <div data-field="kelurahan">
-              <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kelurahan <span className="text-brand-muted font-normal">(opsional)</span></label>
-              <input
-                type="text"
-                data-field="kelurahan"
-                placeholder={form.kecamatan ? 'Contoh: Lengkong Karya' : 'Pilih kecamatan terlebih dahulu'}
-                value={form.kelurahan}
-                disabled={!form.kecamatan}
-                onChange={(e) => updateFormValue('kelurahan', e.target.value)}
-                className={`w-full py-4 px-4 text-sm bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${!form.kecamatan ? 'opacity-60 cursor-not-allowed' : 'text-brand-text'}`}
-              />
-              {!form.kecamatan && <p className="text-[11px] text-brand-muted mt-1.5">Kelurahan tersedia setelah memilih Kecamatan.</p>}
-              {form.kecamatan && aiAddressNeedsManual.kelurahan && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div data-field="city">
-                <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kota/Kabupaten <span className="text-red-500">*</span></label>
-                <LocationAutocomplete
-                  mode="kota"
-                  value={form.city}
-                  onChange={(v) => updateFormValue('city', v)}
-                  onPickCity={(code) => setCityCode(code || '')}
-                  placeholder="Tangerang Selatan"
-                  required
+            <div className={`space-y-4 ${aiAddressLoading ? 'pointer-events-none opacity-60' : ''}`}>
+              <div data-field="kelurahan">
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kelurahan <span className="text-brand-muted font-normal">(opsional)</span> {aiAddressApplied?.kelurahan ? <CheckCircle size={14} className="inline text-green-500 align-text-bottom" /> : null}</label>
+                <input
+                  type="text"
+                  data-field="kelurahan"
+                  placeholder={form.kecamatan ? 'Contoh: Lengkong Karya' : 'Pilih kecamatan terlebih dahulu'}
+                  value={form.kelurahan}
+                  disabled={!form.kecamatan || aiAddressLoading}
+                  onChange={(e) => { clearAiAddressApplied(); updateFormValue('kelurahan', e.target.value) }}
+                  className={`w-full py-4 px-4 text-sm bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${!form.kecamatan ? 'opacity-60 cursor-not-allowed' : 'text-brand-text'}`}
                 />
-                {aiAddressNeedsManual.kota && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
+                {!form.kecamatan && <p className="text-[11px] text-brand-muted mt-1.5">Kelurahan tersedia setelah memilih Kecamatan.</p>}
+                {form.kecamatan && (aiAddressApplied?.missing?.includes('kelurahan') || aiAddressApplied?.ambiguous?.includes('kelurahan')) ? <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p> : null}
               </div>
-              <div>
-                <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kecamatan</label>
-                <LocationAutocomplete
-                  mode="kecamatan"
-                  value={form.kecamatan}
-                  onChange={(v) => updateFormValue('kecamatan', v)}
-                  selectedCityCode={cityCode}
-                  placeholder="Serpong"
-                />
-                {aiAddressNeedsManual.kecamatan && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div data-field="city">
+                  <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kota/Kabupaten <span className="text-red-500">*</span> {aiAddressApplied?.city ? <CheckCircle size={14} className="inline text-green-500 align-text-bottom" /> : null}</label>
+                  <LocationAutocomplete
+                    mode="kota"
+                    value={form.city}
+                    onChange={(v) => { clearAiAddressApplied(); updateFormValue('city', v) }}
+                    onPickCity={(code) => setCityCode(code || '')}
+                    placeholder="Tangerang Selatan"
+                    required
+                  />
+                  {aiAddressApplied?.missing?.includes('kota') || aiAddressApplied?.ambiguous?.includes('kota') ? <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p> : null}
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kecamatan {aiAddressApplied?.kecamatan ? <CheckCircle size={14} className="inline text-green-500 align-text-bottom" /> : null}</label>
+                  <LocationAutocomplete
+                    mode="kecamatan"
+                    value={form.kecamatan}
+                    onChange={(v) => { clearAiAddressApplied(); updateFormValue('kecamatan', v) }}
+                    selectedCityCode={cityCode}
+                    placeholder="Serpong"
+                  />
+                  {aiAddressApplied?.missing?.includes('kecamatan') || aiAddressApplied?.ambiguous?.includes('kecamatan') ? <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p> : null}
+                </div>
               </div>
             </div>
           </div>
@@ -1162,6 +1153,61 @@ Contoh format JSON yang diminta (hanya JSON, tanpa teks lain):
               <div className="h-24" />
             </div>
           </div>
+
+          {aiPreviewOpen && aiAddressPreview && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center px-5">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleAiCancelPreview} />
+              <div className="relative w-full max-w-md bg-brand-surface border border-brand-border rounded-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="ai-address-preview-title">
+                <button
+                  type="button"
+                  onClick={handleAiCancelPreview}
+                  className="absolute top-4 right-4 text-brand-muted hover:text-brand-text transition-colors"
+                  aria-label="Tutup"
+                >
+                  <X size={20} />
+                </button>
+                <h3 id="ai-address-preview-title" className="text-lg font-bold text-brand-text flex items-center gap-2">
+                  <Wand2 size={18} className="text-brand-primary" /> Hasil Ekstraksi Alamat
+                </h3>
+                <p className="text-sm text-brand-muted mt-1">Tinjau hasil sebelum diterapkan ke formulir.</p>
+
+                <div className="mt-4 space-y-2.5">
+                  {[
+                    { key: 'rt', label: 'RT' },
+                    { key: 'rw', label: 'RW' },
+                    { key: 'kelurahan', label: 'Kelurahan' },
+                    { key: 'kecamatan', label: 'Kecamatan' },
+                    { key: 'kota', label: 'Kota/Kabupaten' },
+                  ].map(({ key, label }) => {
+                    const val = key === 'kota' ? aiAddressPreview.values.kota : aiAddressPreview.values[key]
+                    const needManual = aiAddressPreview.missing.includes(key) || aiAddressPreview.ambiguous.includes(key)
+                    return (
+                      <div key={key} className="flex items-center justify-between gap-3 rounded-xl border border-brand-border bg-brand-bg px-4 py-3">
+                        <span className="text-sm text-brand-muted">{label}</span>
+                        <span className={`flex items-center gap-1.5 text-sm font-semibold ${val ? 'text-brand-text' : 'text-amber-600'}`}>
+                          {val ? <CheckCircle size={15} className="text-green-500" /> : <Info size={15} />}
+                          {val || (needManual ? 'Butuh diisi manual' : 'Kosong')}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {aiAddressPreview.missing.length > 0 && (
+                  <p className="text-[11px] text-amber-600 mt-3">Bidang yang masih kosong atau tidak pasti akan ditandai "Butuh diisi manual" setelah diterapkan.</p>
+                )}
+
+                <div className="mt-5 flex gap-3">
+                  <button type="button" onClick={handleAiCancelPreview} className="flex-1 py-3 rounded-xl font-medium text-sm text-brand-text bg-brand-bg hover:bg-brand-border transition-colors border border-brand-border">
+                    Batalkan
+                  </button>
+                  <button type="button" onClick={handleAiApplyAddress} className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-brand-primary hover:brightness-90 transition-all">
+                    Terapkan
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
