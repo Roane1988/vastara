@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2 } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 
 
@@ -56,10 +56,11 @@ function MessageBubble({ message, isOwn, onDelete, lang, firstInGroup, lastInGro
           <button
             type="button"
             onClick={() => onDelete?.(message.id)}
-            className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-white/80 border border-brand-border shadow-sm flex items-center justify-center hover:bg-red-50 hover:border-red-300 hover:text-red-500 text-brand-muted transition-all"
+            className="absolute -top-1.5 -right-1.5 z-10 w-7 h-7 rounded-full bg-white/80 border border-brand-border shadow-sm flex items-center justify-center hover:bg-red-50 hover:border-red-300 hover:text-red-500 text-brand-muted transition-all"
             title="Hapus pesan"
+            aria-label="Hapus pesan"
           >
-            <Trash2 size={11} />
+            <Trash2 size={12} />
           </button>
         )}
         <div className={`rounded-2xl px-4 py-2.5 ${
@@ -209,6 +210,7 @@ export default function ChatHubPage() {
   const [deleting, setDeleting] = useState(false)
   const [showNewChat, setShowNewChat] = useState(false)
   const [allUsers, setAllUsers] = useState([])
+  const [allUsersLoading, setAllUsersLoading] = useState(false)
   const [userSearch, setUserSearch] = useState('')
   const [unreadMap, setUnreadMap] = useState({})
   const [messagesLoading, setMessagesLoading] = useState(false)
@@ -646,8 +648,12 @@ export default function ChatHubPage() {
   useEffect(() => {
     if (!showNewChat) return
     supabase.from('profiles').select('id, first_name, role').neq('id', userId).then(({ data }) => {
-      if (data) setAllUsers(data)
-    }).catch(() => {})
+      setAllUsers(data || [])
+    }).catch(() => {
+      setAllUsers([])
+    }).finally(() => {
+      setAllUsersLoading(false)
+    })
   }, [showNewChat, userId])
 
   if (!userId) {
@@ -675,7 +681,7 @@ export default function ChatHubPage() {
             <h1 className="text-lg font-bold text-brand-text flex-1">Pesan</h1>
             <button
               type="button"
-              onClick={() => setShowNewChat(true)}
+              onClick={() => { setAllUsersLoading(true); setShowNewChat(true) }}
               className="w-9 h-9 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent hover:bg-brand-accent/20 active:scale-90 transition-all"
               title="Mulai obrolan baru"
             >
@@ -695,7 +701,7 @@ export default function ChatHubPage() {
                   className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
                 />
                 {searchQuery && (
-                  <button type="button" onClick={() => setSearchQuery('')} className="text-brand-muted hover:text-brand-text">
+                  <button type="button" aria-label="Bersihkan pencarian" onClick={() => setSearchQuery('')} className="text-brand-muted hover:text-brand-text">
                     <X size={14} />
                   </button>
                 )}
@@ -905,7 +911,7 @@ export default function ChatHubPage() {
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl p-6 pb-10 max-h-[70vh] overflow-y-auto animate-slide-up">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-brand-text">Obrolan Baru</h2>
-            <button type="button" onClick={() => setShowNewChat(false)} className="text-brand-muted hover:text-brand-text">
+            <button type="button" aria-label="Tutup" onClick={() => setShowNewChat(false)} className="text-brand-muted hover:text-brand-text">
               <X size={20} />
             </button>
           </div>
@@ -919,7 +925,7 @@ export default function ChatHubPage() {
               className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
             />
             {userSearch && (
-              <button type="button" onClick={() => setUserSearch('')} className="text-brand-muted hover:text-brand-text">
+              <button type="button" aria-label="Bersihkan pencarian" onClick={() => setUserSearch('')} className="text-brand-muted hover:text-brand-text">
                 <X size={14} />
               </button>
             )}
@@ -952,9 +958,14 @@ export default function ChatHubPage() {
                   </div>
                 </button>
               ))}
-            {allUsers.length === 0 && (
+            {allUsersLoading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-brand-muted">
+                <Loader2 size={16} className="animate-spin" />
+                <span className="text-sm">Memuat pengguna...</span>
+              </div>
+            ) : allUsers.length === 0 ? (
               <p className="text-sm text-brand-muted text-center py-8">Tidak ada pengguna lain.</p>
-            )}
+            ) : null}
           </div>
         </div>
       </>

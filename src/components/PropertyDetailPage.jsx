@@ -1109,7 +1109,7 @@ export default function PropertyDetailPage() {
                 <div className="p-2.5">
                   <p className="text-[11px] font-semibold text-brand-text truncate">{p.title}</p>
                   <p className="text-xs font-bold text-brand-primary mt-0.5">{formatPriceDisplay(p)}</p>
-                  <p className="text-[10px] text-brand-muted truncate mt-0.5">{p.bedrooms} KT &bull; {p.bathrooms} KM &bull; {p.area_sqm} m&sup2;</p>
+                  <p className="text-[10px] text-brand-muted truncate mt-0.5">{p.bedrooms ?? '-'} KT &bull; {p.bathrooms ?? '-'} KM &bull; {p.area_sqm ?? '-'} m&sup2;</p>
                 </div>
               </Link>
             ))}

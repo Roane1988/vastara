@@ -771,8 +771,8 @@ export default function ExplorePage() {
                     {getTranslated(p, 'address', p.address || p.location || t('explore.location_fallback'))}
                   </p>
                   <div className="flex gap-3 text-[11px] text-brand-muted mt-2 pt-2 border-t border-brand-border">
-                    <span>{p.bedrooms} {t('explore.property_card.bed')}</span>
-                    <span>{p.bathrooms} {t('explore.property_card.bath')}</span>
+                    <span>{p.bedrooms ?? '-'} {t('explore.property_card.bed')}</span>
+                    <span>{p.bathrooms ?? '-'} {t('explore.property_card.bath')}</span>
                     <span>{p.area_sqm || p.sqm || '-'} m&sup2;</span>
                   </div>
                 </div>

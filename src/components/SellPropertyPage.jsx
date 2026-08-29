@@ -291,9 +291,13 @@ export default function SellPropertyPage() {
         } catch {
           /* ignore malformed image_url */
         }
+      } else if (error) {
+        showToast(error.message || 'Gagal memuat data properti.', 'error')
       }
+    }).catch(() => {
+      showToast('Gagal memuat data properti. Silakan coba lagi.', 'error')
     })
-  }, [editId])
+  }, [editId, showToast])
 
   useEffect(() => {
     if (editId || form.whatsapp) return
@@ -763,6 +767,7 @@ export default function SellPropertyPage() {
                     <button
                       key={opt.value}
                       type="button"
+                      aria-pressed={form.price_period === opt.value}
                       onClick={() => updateFormValue('price_period', opt.value)}
                       className={`py-2.5 rounded-xl text-sm font-semibold border transition-all ${
                         form.price_period === opt.value
@@ -785,6 +790,7 @@ export default function SellPropertyPage() {
                       <button
                         key={opt.value}
                         type="button"
+                        aria-pressed={form.furnished === opt.value}
                         onClick={() => updateFormValue('furnished', opt.value)}
                         className={`py-2.5 rounded-xl text-sm font-semibold border transition-all ${
                           form.furnished === opt.value
@@ -854,6 +860,7 @@ export default function SellPropertyPage() {
                 type="button"
                 role="switch"
                 aria-checked={form.is_premium}
+                aria-label="Iklan Premium"
                 onClick={() => updateFormValue('is_premium', !form.is_premium)}
                 className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${form.is_premium ? 'bg-brand-primary' : 'bg-brand-border'}`}
               >
@@ -986,7 +993,7 @@ export default function SellPropertyPage() {
                         <p className="text-xs font-medium text-brand-text truncate">{file.name}</p>
                         <p className="text-[10px] text-brand-muted">{(file.size / 1024).toFixed(0)} KB</p>
                       </div>
-                      <button type="button" onClick={() => removeImage(i)} className="w-7 h-7 rounded-full flex items-center justify-center text-brand-muted hover:bg-red-50 hover:text-red-500 transition-colors"><X size={14} /></button>
+                      <button type="button" aria-label={`Hapus foto ${i + 1}`} onClick={() => removeImage(i)} className="w-7 h-7 rounded-full flex items-center justify-center text-brand-muted hover:bg-red-50 hover:text-red-500 transition-colors"><X size={14} /></button>
                     </div>
                   ))}
                   {imageFiles.length < MAX_IMAGES && (

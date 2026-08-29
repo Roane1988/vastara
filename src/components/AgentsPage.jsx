@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { MapPin, Star, Crown, MessageCircle, Phone, Building2, Search, X, UserPlus, Briefcase, Pencil, AlertCircle } from 'lucide-react'
@@ -167,10 +167,13 @@ export default function AgentsPage() {
               const isTop = topIds.includes(agent.user_id)
               const wa = agent.whatsapp || ''
               return (
-                <Link
+                <div
                   key={agent.user_id}
-                  to={`/agents/${agent.user_id}`}
-                  className="group bg-white rounded-2xl border border-brand-border p-5 hover:shadow-xl hover:shadow-brand-primary/5 hover:-translate-y-1 transition-all"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/agents/${agent.user_id}`)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/agents/${agent.user_id}`) } }}
+                  className="group bg-white rounded-2xl border border-brand-border p-5 hover:shadow-xl hover:shadow-brand-primary/5 hover:-translate-y-1 transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="relative">
@@ -220,7 +223,7 @@ export default function AgentsPage() {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={(e) => { e.preventDefault(); navigate(`/chat?user=${agent.user_id}`) }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/chat?user=${agent.user_id}`) }}
                       className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border border-brand-border text-brand-text hover:bg-brand-bg transition-colors"
                     >
                       <MessageCircle size={15} />
@@ -229,7 +232,7 @@ export default function AgentsPage() {
                     {wa ? (
                       <button
                         type="button"
-                        onClick={(e) => { e.preventDefault(); openWa(wa, agent.full_name) }}
+                        onClick={(e) => { e.stopPropagation(); openWa(wa, agent.full_name) }}
                         className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors"
                       >
                         <Phone size={15} />
@@ -237,7 +240,7 @@ export default function AgentsPage() {
                       </button>
                     ) : null}
                   </div>
-                </Link>
+                </div>
               )
             })}
           </div>

@@ -363,9 +363,9 @@ export default function MyListingsPage() {
                     {p.address || ''}
                   </p>
                   <div className="flex items-center gap-2 text-[11px] text-brand-muted mt-2">
-                    <span>{p.bedrooms} KT</span>
+                    <span>{p.bedrooms ?? '-'} KT</span>
                     <span className="text-brand-border">&bull;</span>
-                    <span>{p.bathrooms} KM</span>
+                    <span>{p.bathrooms ?? '-'} KM</span>
                     <span className="text-brand-border">&bull;</span>
                     <span>{p.area_sqm ? `${p.area_sqm} m²` : '-'}</span>
                   </div>

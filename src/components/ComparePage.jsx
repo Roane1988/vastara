@@ -299,7 +299,7 @@ export default function ComparePage() {
   if (items.length === 0 && !loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex flex-col">
-        <div className="flex items-center gap-3 px-4 pt-14 pb-4 border-b border-brand-border bg-brand-surface">
+        <div className="sticky top-14 z-30 flex items-center gap-3 px-4 py-3 border-b border-brand-border bg-brand-surface/90 backdrop-blur-md">
           <button type="button" onClick={() => navigate(-1)} aria-label={t('compare.back')} className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text">
             <ArrowLeft size={20} />
           </button>

@@ -188,7 +188,7 @@ export default function ForumDetailPage() {
         setPost(data)
         if (!viewedRef.current && data.id) {
           viewedRef.current = true
-          supabase.rpc('increment_forum_views', { p_post_id: data.id }).then(() => {})
+          supabase.rpc('increment_forum_views', { p_post_id: data.id }).then(() => {}).catch(() => {})
         }
         fetchRelated(data)
       }

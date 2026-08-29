@@ -798,8 +798,9 @@ export default function ForumPage() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); handleTogglePin(post) }}
-                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${post.is_pinned ? 'text-brand-accent bg-brand-accent/10' : 'text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10'}`}
+                                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${post.is_pinned ? 'text-brand-accent bg-brand-accent/10' : 'text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10'}`}
                                 title={t('forum.pinToggle')}
+                                aria-label={t('forum.pinToggle')}
                               >
                                 <Pin size={14} />
                               </button>
@@ -809,16 +810,18 @@ export default function ForumPage() {
                                 <button
                                   type="button"
                                   onClick={(e) => handleEditPost(e, post)}
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10 transition-colors"
+                                  className="w-9 h-9 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10 transition-colors"
                                   title={t('forum.edit')}
+                                  aria-label={t('forum.edit')}
                                 >
                                   <Edit3 size={14} />
                                 </button>
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); openDeleteModal(post.id) }}
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-brand-muted hover:text-red-500 hover:bg-red-50 transition-colors"
+                                  className="w-9 h-9 rounded-full flex items-center justify-center text-brand-muted hover:text-red-500 hover:bg-red-50 transition-colors"
                                   title={t('forum.delete')}
+                                  aria-label={t('forum.delete')}
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -829,8 +832,9 @@ export default function ForumPage() {
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); handleShare(post) }}
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10 transition-colors"
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10 transition-colors"
                           title={t('forum.share')}
+                          aria-label={t('forum.share')}
                         >
                           <Share2 size={14} />
                         </button>
