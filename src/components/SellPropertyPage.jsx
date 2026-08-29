@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { CheckCircle, X, Plus, Sparkles, Info } from 'lucide-react'
+import { CheckCircle, X, Plus, Sparkles, Info, Loader2, Wand2 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../utils/format'
@@ -247,6 +247,8 @@ export default function SellPropertyPage() {
   const [priceChangeStatus, setPriceChangeStatus] = useState('none')
   const [priceRequested, setPriceRequested] = useState(null)
   const [generatingDesc, setGeneratingDesc] = useState(false)
+  const [aiAddressLoading, setAiAddressLoading] = useState(false)
+  const [aiAddressNeedsManual, setAiAddressNeedsManual] = useState({})
 
   useEffect(() => {
     if (!editId) return
@@ -482,6 +484,75 @@ export default function SellPropertyPage() {
       showToast('Gagal menghasilkan deskripsi. Coba lagi.', 'error')
     } finally {
       setGeneratingDesc(false)
+    }
+  }
+
+  const handleAiExtractAddress = async () => {
+    const text = (form.address || '').trim()
+    if (!text) {
+      showToast('Tulis atau tempel alamat lengkap terlebih dahulu.', 'error')
+      return
+    }
+    setAiAddressLoading(true)
+    setAiAddressNeedsManual({})
+    try {
+      const prompt = `Ekstrak informasi alamat dari teks berikut ke dalam objek JSON. Teks: "${text}"
+
+Gabungkan bagian kecamatan/kecamatan, dan untuk kota gunakan nama kota/kabupaten (tanpa kata "Kota"/"Kabupaten" di awal). Jika suatu informasi tidak ada atau tidak jelas, gunakan string kosong ("").
+
+Contoh format JSON yang diminta (hanya JSON, tanpa teks lain):
+{ "rt": "005", "rw": "002", "kelurahan": "Serua Indah", "kecamatan": "Ciputat", "kota": "Tangerang Selatan" }`
+      const res = await fetch('/api/groq', {
+        method: 'POST',
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-120b',
+          purpose: 'chat',
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      })
+      if (!res.ok) {
+        let msg = 'Gagal menganalisis alamat.'
+        try { const j = await res.json(); msg = j?.error?.message || msg } catch { /* ignore */ }
+        throw new Error(msg)
+      }
+      const data = await res.json()
+      const content = data?.choices?.[0]?.message?.content
+      if (!content) throw new Error('Respon AI kosong. Coba lagi.')
+      const cleaned = String(content).replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '').trim()
+      let parsed
+      try { parsed = JSON.parse(cleaned) } catch { parsed = null }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Format respon AI tidak valid. Coba lagi.')
+      }
+      const values = {
+        rt: digitsOnly(parsed.rt),
+        rw: digitsOnly(parsed.rw),
+        kelurahan: String(parsed.kelurahan || '').trim(),
+        kecamatan: String(parsed.kecamatan || '').trim(),
+        kota: String(parsed.kota || '').trim(),
+      }
+      const needs = Object.fromEntries(
+        Object.entries(values).filter(([, v]) => !v).map(([k]) => [k, true])
+      )
+      setForm((prev) => ({
+        ...prev,
+        rt: values.rt,
+        rw: values.rw,
+        kelurahan: values.kelurahan,
+        kecamatan: values.kecamatan,
+        city: values.kota,
+      }))
+      setAiAddressNeedsManual(needs)
+      if (Object.keys(needs).length > 0) {
+        showToast('Sebagian data alamat perlu diisi manual.', 'info')
+      } else {
+        showToast('Alamat berhasil diisi otomatis.', 'success')
+      }
+    } catch (err) {
+      showToast('Gagal mengisi alamat otomatis: ' + (err.message || 'Coba lagi.'), 'error')
+    } finally {
+      setAiAddressLoading(false)
     }
   }
 
@@ -819,19 +890,39 @@ export default function SellPropertyPage() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-brand-text mb-1.5 block">Alamat <span className="text-red-500">*</span></label>
-              <textarea data-field="address" rows={2} placeholder="Contoh: Jl. Merpati No. 10, RT 05 RW 02" value={form.address} onChange={updateForm('address')} onBlur={touch('address')} className={`w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none ${fieldErrors.address ? 'border-red-400' : 'border-brand-border'}`} />
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <label className="text-sm font-semibold text-brand-text">Alamat <span className="text-red-500">*</span></label>
+                <button
+                  type="button"
+                  onClick={handleAiExtractAddress}
+                  disabled={aiAddressLoading}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-primary hover:text-brand-accent disabled:opacity-50 transition-colors"
+                >
+                  {aiAddressLoading ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                  {aiAddressLoading ? 'Menganalisis alamat...' : 'Ekstrak Alamat dengan AI'}
+                </button>
+              </div>
+              <textarea data-field="address" rows={2} placeholder="Contoh: Cayman Residence, Blok B3 No. 17, Serua Indah, Kec. Ciputat, Kota Tangerang Selatan 15414" value={form.address} onChange={updateForm('address')} onBlur={touch('address')} className={`w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors resize-none ${fieldErrors.address ? 'border-red-400' : 'border-brand-border'}`} />
               {showFieldError('address') && <p className="text-xs text-red-500 mt-1.5">{showFieldError('address')}</p>}
+              {aiAddressLoading ? (
+                <p className="text-[11px] text-brand-muted mt-1.5 flex items-center gap-1">
+                  <Loader2 size={11} className="animate-spin" /> Menganalisis alamat dan mengisi RT, RW, Kelurahan, Kecamatan, Kota...
+                </p>
+              ) : (
+                <p className="text-[11px] text-brand-muted mt-1.5">Tempel alamat lengkap, lalu klik "Ekstrak Alamat dengan AI" untuk mengisi detail lokasi secara otomatis.</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div data-field="rt">
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">RT <span className="text-brand-muted font-normal">(opsional)</span></label>
                 <input type="text" inputMode="numeric" pattern="[0-9]*" data-field="rt" placeholder="005" value={form.rt} onChange={(e) => updateFormValue('rt', digitsOnly(e.target.value))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                {aiAddressNeedsManual.rt && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
               </div>
               <div data-field="rw">
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">RW <span className="text-brand-muted font-normal">(opsional)</span></label>
                 <input type="text" inputMode="numeric" pattern="[0-9]*" data-field="rw" placeholder="002" value={form.rw} onChange={(e) => updateFormValue('rw', digitsOnly(e.target.value))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+                {aiAddressNeedsManual.rw && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
               </div>
             </div>
 
@@ -847,6 +938,7 @@ export default function SellPropertyPage() {
                 className={`w-full py-4 px-4 text-sm bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${!form.kecamatan ? 'opacity-60 cursor-not-allowed' : 'text-brand-text'}`}
               />
               {!form.kecamatan && <p className="text-[11px] text-brand-muted mt-1.5">Kelurahan tersedia setelah memilih Kecamatan.</p>}
+              {form.kecamatan && aiAddressNeedsManual.kelurahan && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -860,6 +952,7 @@ export default function SellPropertyPage() {
                   placeholder="Tangerang Selatan"
                   required
                 />
+                {aiAddressNeedsManual.kota && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
               </div>
               <div>
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kecamatan</label>
@@ -870,6 +963,7 @@ export default function SellPropertyPage() {
                   selectedCityCode={cityCode}
                   placeholder="Serpong"
                 />
+                {aiAddressNeedsManual.kecamatan && <p className="text-[11px] text-amber-600 mt-1.5">Butuh diisi manual</p>}
               </div>
             </div>
           </div>
