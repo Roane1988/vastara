@@ -14,10 +14,16 @@ export const ADDRESS_FIELD_LABELS = {
 }
 
 function parseJson(content) {
-  const cleaned = String(content)
-    .replace(/^```(json)?\s*/i, '')
-    .replace(/```\s*$/, '')
+  let cleaned = String(content || '')
+    .replace(/```(?:json)?/gi, '')
     .trim()
+
+  const start = cleaned.indexOf('{')
+  const end = cleaned.lastIndexOf('}')
+  if (start !== -1 && end !== -1 && end > start) {
+    cleaned = cleaned.slice(start, end + 1)
+  }
+
   try {
     const parsed = JSON.parse(cleaned)
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
@@ -62,21 +68,22 @@ Contoh format JSON (hanya JSON, tanpa teks lain):
   const data = await res.json()
   const content = data?.choices?.[0]?.message?.content
   if (!content) throw new Error('Respon AI kosong. Coba lagi.')
-  const parsed = parseJson(content)
-  if (!parsed) throw new Error('Format respon AI tidak valid. Coba lagi.')
+  const parsed = parseJson(content) || {}
+
+  const asString = (v) => (typeof v === 'string' ? v : v == null ? '' : String(v))
 
   const values = {
-    rt: digitsOnly(parsed.rt),
-    rw: digitsOnly(parsed.rw),
-    kelurahan: String(parsed.kelurahan || '').trim(),
-    kecamatan: String(parsed.kecamatan || '').trim(),
-    kota: cleanCityName(parsed.kota),
+    rt: digitsOnly(asString(parsed.rt)),
+    rw: digitsOnly(asString(parsed.rw)),
+    kelurahan: asString(parsed.kelurahan).trim(),
+    kecamatan: asString(parsed.kecamatan).trim(),
+    kota: cleanCityName(asString(parsed.kota)),
   }
 
   const missing = ADDRESS_FIELDS.filter((k) => !values[k])
 
   const rawAmbiguous = Array.isArray(parsed.ambiguous)
-    ? parsed.ambiguous.map((a) => String(a).trim().toLowerCase()).filter(Boolean)
+    ? parsed.ambiguous.map((a) => asString(a).trim().toLowerCase()).filter(Boolean)
     : []
   const ambiguous = [...new Set([...rawAmbiguous, ...missing])].filter((k) =>
     ADDRESS_FIELDS.includes(k)
