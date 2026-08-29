@@ -56,7 +56,7 @@ function buildCards(props) {
 function CardSkeleton() {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-brand-border overflow-hidden flex items-stretch animate-pulse">
-      <div className="w-24 sm:w-32 shrink-0 bg-brand-bg" />
+      <div className="w-24 sm:w-28 shrink-0 bg-brand-bg" />
       <div className="flex-1 p-4 space-y-2">
         <div className="h-4 w-2/3 bg-brand-bg rounded-md" />
         <div className="h-3 w-24 bg-brand-bg rounded-md" />
@@ -120,8 +120,8 @@ export default function PopularSearches() {
     return (
       <section className="max-w-7xl mx-auto px-4 mb-8">
         <div className="h-6 w-52 bg-brand-bg rounded-md animate-pulse mb-4" />
-        <div className="flex flex-col gap-4">
-          {[0, 1, 2].map((i) => <CardSkeleton key={i} />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          {[0, 1, 2, 3].map((i) => <CardSkeleton key={i} />)}
         </div>
       </section>
     )
@@ -143,32 +143,32 @@ export default function PopularSearches() {
           {t('explore.popular_searches.shuffle')}
         </button>
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         {visible.map((item) => (
           <Link
             key={`${item.kind}-${item.title}`}
             to={item.to}
-            className="bg-brand-surface rounded-2xl shadow-sm overflow-hidden flex items-stretch group"
+            className="bg-white rounded-2xl shadow-sm border border-brand-border overflow-hidden flex items-stretch group hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
           >
-            <div className="w-24 sm:w-32 shrink-0 overflow-hidden">
+            <div className="w-24 sm:w-28 md:w-32 shrink-0 overflow-hidden">
               <img loading="lazy"
                 src={item.image ? getImageSrc(item.image) : getImageSrc(null)}
                 alt={item.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </div>
-            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center">
-              <h3 className="text-sm sm:text-base font-bold text-brand-text group-hover:text-brand-accent transition-colors">
+            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center min-w-0">
+              <h3 className="text-sm sm:text-[15px] font-bold text-brand-text group-hover:text-brand-accent transition-colors leading-snug">
                 {item.title}
               </h3>
-              <p className="text-xs font-semibold text-brand-primary mt-0.5">
+              <p className="text-xs font-semibold text-brand-primary mt-1">
                 {formatCount(item.count)} properti
               </p>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {item.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-[10px] font-medium text-brand-muted bg-brand-bg px-2 py-0.5 rounded-full border border-brand-border"
+                    className="text-[10px] font-medium text-brand-muted bg-brand-bg px-2 py-0.5 rounded-full border border-brand-border truncate"
                   >
                     {tag}
                   </span>

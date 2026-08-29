@@ -480,7 +480,12 @@ export default function ExplorePage() {
     <div className="min-h-screen bg-brand-bg pb-36">
       {/* ─── STICKY SEARCH ─── */}
       {stickySearch && !isSearching && (
-        <div className="fixed top-14 inset-x-0 z-[60] bg-white/95 backdrop-blur border-b border-brand-border px-4 py-2.5 shadow-sm">
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="fixed top-14 inset-x-0 z-[60] bg-white/95 backdrop-blur border-b border-brand-border px-4 py-2.5 shadow-sm"
+        >
           <div className="max-w-7xl mx-auto flex items-center gap-2">
             <button
               type="button"
@@ -491,7 +496,7 @@ export default function ExplorePage() {
               <span className="truncate">Cari properti, kota, atau tipe...</span>
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* ─── HERO BANNER ─── */}
@@ -661,7 +666,7 @@ export default function ExplorePage() {
       </div>
 
       {/* ─── TERAKHIR DILIHAT ─── */}
-      <section className="max-w-7xl mx-auto px-4 mt-8 mb-4">
+      <section className="max-w-7xl mx-auto px-4 mt-8">
         <RecentlyViewed />
       </section>
 
@@ -673,7 +678,7 @@ export default function ExplorePage() {
 
       {/* ─── REKOMENDASI SESUAI PENCARIANMU ─── */}
       {showSkeleton ? (
-      <section className="max-w-7xl mx-auto px-4 mt-8 mb-8">
+      <section className="max-w-7xl mx-auto px-4 mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="h-6 w-44 bg-brand-bg rounded-md animate-pulse" />
         </div>
@@ -691,7 +696,7 @@ export default function ExplorePage() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-40px' }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="max-w-7xl mx-auto px-4 mt-8 mb-8"
+        className="max-w-7xl mx-auto px-4 mb-8"
       >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
