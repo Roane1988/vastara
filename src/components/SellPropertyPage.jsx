@@ -328,11 +328,6 @@ export default function SellPropertyPage() {
     return () => clearTimeout(id)
   }, [form, imageFiles, isSubmitted])
 
-  useEffect(() => {
-    const urls = imageFiles.filter((f) => f.size > 0).map((f) => URL.createObjectURL(f))
-    return () => urls.forEach((u) => URL.revokeObjectURL(u))
-  }, [imageFiles])
-
   const updateForm = useCallback((field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
   }, [])
@@ -627,8 +622,13 @@ export default function SellPropertyPage() {
     }
   }
 
-  const previewImage = imageFiles.filter((f) => f.size > 0)[0]
-  const previewSrc = previewImage ? URL.createObjectURL(previewImage) : ''
+  const imagePreviews = useMemo(() => imageFiles.map((f) => URL.createObjectURL(f)), [imageFiles])
+
+  useEffect(() => {
+    return () => { imagePreviews.forEach((u) => URL.revokeObjectURL(u)) }
+  }, [imagePreviews])
+
+  const previewSrc = imagePreviews[imageFiles.findIndex((f) => f.size > 0)]
 
   function renderStep() {
     switch (step) {
@@ -845,7 +845,7 @@ export default function SellPropertyPage() {
                     >
                       <div className="cursor-grab active:cursor-grabbing"><GripIcon /></div>
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-brand-bg border border-brand-border shrink-0">
-                        <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                        <img src={imagePreviews[i]} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-brand-text truncate">{file.name}</p>
