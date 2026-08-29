@@ -111,13 +111,16 @@ export default function AgentsPage() {
               <button
                 type="button"
                 onClick={() => setSearch('')}
+                aria-label="Bersihkan pencarian"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text"
               >
                 <X size={16} />
               </button>
             )}
           </div>
+          <label htmlFor="agents-region" className="sr-only">{t('agents.all_region')}</label>
           <select
+            id="agents-region"
             value={region}
             onChange={(e) => setRegion(e.target.value)}
             className="sm:w-56 px-4 py-3 rounded-xl text-sm text-brand-text bg-white border border-brand-border focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
@@ -127,7 +130,9 @@ export default function AgentsPage() {
               <option key={r} value={r}>{r}</option>
             ))}
           </select>
+          <label htmlFor="agents-sort" className="sr-only">{t('agents.sort_by')}</label>
           <select
+            id="agents-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             className="sm:w-56 px-4 py-3 rounded-xl text-sm text-brand-text bg-white border border-brand-border focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"

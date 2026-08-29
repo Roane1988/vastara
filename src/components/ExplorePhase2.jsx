@@ -33,25 +33,29 @@ function TopAgents() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const [{ data: list }, { data: stats }] = await Promise.all([
-        supabase.from('agent_profiles').select('*').eq('is_visible', true).limit(50),
-        supabase.from('agent_stats').select('*').limit(200),
-      ])
-      if (cancelled || !list) return
-      const statsMap = {}
-      for (const s of stats || []) statsMap[s.agent_id] = s
-      const merged = list
-        .map((a) => ({ ...a, stats: statsMap[a.user_id] }))
-        .map((a) => ({
-          ...a,
-          score: (a.stats?.verified_listings || 0) + (a.stats?.avg_rating || 0),
-          verified: a.stats?.verified_listings || 0,
-          rating: a.stats?.avg_rating || 0,
-          reviews: a.stats?.review_count || 0,
-        }))
-        .sort((x, y) => y.score - x.score || y.verified - x.verified)
-        .slice(0, 6)
-      setAgents(merged)
+      try {
+        const [{ data: list }, { data: stats }] = await Promise.all([
+          supabase.from('agent_profiles').select('*').eq('is_visible', true).limit(50),
+          supabase.from('agent_stats').select('*').limit(200),
+        ])
+        if (cancelled || !list) return
+        const statsMap = {}
+        for (const s of stats || []) statsMap[s.agent_id] = s
+        const merged = list
+          .map((a) => ({ ...a, stats: statsMap[a.user_id] }))
+          .map((a) => ({
+            ...a,
+            score: (a.stats?.verified_listings || 0) + (a.stats?.avg_rating || 0),
+            verified: a.stats?.verified_listings || 0,
+            rating: a.stats?.avg_rating || 0,
+            reviews: a.stats?.review_count || 0,
+          }))
+          .sort((x, y) => y.score - x.score || y.verified - x.verified)
+          .slice(0, 6)
+        if (!cancelled) setAgents(merged)
+      } catch {
+        /* silent — optional section */
+      }
     })()
     return () => { cancelled = true }
   }, [])

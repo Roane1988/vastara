@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { BellRing, BellOff, Trash2, Search, ArrowLeft, MapPin, TrendingUp, RefreshCw, Eye } from 'lucide-react'
@@ -16,14 +16,19 @@ export default function SavedSearchesPage() {
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   const loadData = useCallback(async () => {
-    setLoading(true)
+    if (mountedRef.current) setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        setSearches([])
-        setProperties([])
+        if (mountedRef.current) { setSearches([]); setProperties([]) }
         return
       }
       const [{ data: sData, error: sErr }, { data: pData, error: pErr }] = await Promise.all([
@@ -32,12 +37,11 @@ export default function SavedSearchesPage() {
       ])
       if (sErr) throw sErr
       if (pErr) throw pErr
-      setSearches(sData || [])
-      setProperties(pData || [])
+      if (mountedRef.current) { setSearches(sData || []); setProperties(pData || []) }
     } catch (err) {
       console.warn('Gagal memuat pencarian tersimpan:', err.message)
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
     }
   }, [])
 

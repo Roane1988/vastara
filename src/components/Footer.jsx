@@ -137,7 +137,7 @@ export default function Footer() {
                 </div>
               ) : (
                 <form onSubmit={handleSubscribe}>
-                  <label className="block text-white text-xs font-semibold uppercase tracking-wider mb-2">
+                  <label htmlFor="newsletter-email" className="block text-white text-xs font-semibold uppercase tracking-wider mb-2">
                     {t('footer.newsletter_title')}
                   </label>
                   <p className="text-slate-400 text-xs leading-relaxed mb-2.5">
@@ -145,6 +145,7 @@ export default function Footer() {
                   </p>
                   <div className="flex gap-2">
                     <input
+                      id="newsletter-email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}

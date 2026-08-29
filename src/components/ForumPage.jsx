@@ -465,6 +465,7 @@ export default function ForumPage() {
                         <button
                           type="button"
                           onClick={() => setPoll({ enabled: false, question: '', options: ['', ''] })}
+                          aria-label="Hapus kolom polling"
                           className="w-6 h-6 rounded-full flex items-center justify-center text-brand-muted hover:text-red-500 hover:bg-red-50 transition-colors"
                         >
                           <X size={14} />
@@ -494,6 +495,7 @@ export default function ForumPage() {
                             <button
                               type="button"
                               onClick={() => setPoll((p) => ({ ...p, options: p.options.filter((_, j) => j !== i) }))}
+                              aria-label={`Hapus opsi ${i + 1}`}
                               className="w-7 h-7 rounded-lg flex items-center justify-center text-brand-muted hover:text-red-500 hover:bg-red-50 transition-colors"
                             >
                               <X size={14} />
@@ -600,6 +602,7 @@ export default function ForumPage() {
             <button
               type="button"
               onClick={() => { setFilterTag(''); resetPagination() }}
+              aria-label="Bersihkan filter tag"
               className="w-5 h-5 rounded-full flex items-center justify-center text-brand-accent hover:bg-brand-accent/20 transition-colors"
             >
               <X size={12} />
@@ -616,6 +619,7 @@ export default function ForumPage() {
             <button
               type="button"
               onClick={() => { setFilterAuthor(''); resetPagination() }}
+              aria-label="Bersihkan filter pembuat"
               className="w-5 h-5 rounded-full flex items-center justify-center text-brand-accent hover:bg-brand-accent/20 transition-colors ml-auto"
             >
               <X size={12} />

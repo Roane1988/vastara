@@ -37,7 +37,7 @@ export default function KprSimulator({ initialPrice = 900000000 }) {
     let cancelled = false
     getFinancialProfile().then(({ profile }) => {
       if (!cancelled) setFinancialProfile(profile)
-    })
+    }).catch(() => {})
     return () => { cancelled = true }
   }, [])
 

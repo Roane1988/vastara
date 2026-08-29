@@ -171,7 +171,7 @@ export default function ExplorePage() {
     }
     /* eslint-enable react-hooks/set-state-in-effect */
     if (changed) {
-      setTimeout(() => scrollToSearch(), 300)
+      setTimeout(() => scrollToSearch({ focus: false }), 300)
     }
   }, [location.search])
 
@@ -273,13 +273,13 @@ export default function ExplorePage() {
     searchInputRef.current?.blur()
   }
 
-  function scrollToSearch() {
+  function scrollToSearch({ focus = true } = {}) {
     const el = searchCardRef.current
     const top = el?.getBoundingClientRect().top ?? 0
     if (el && top < 80) {
       el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
-    setTimeout(() => searchInputRef.current?.focus(), 300)
+    if (focus) setTimeout(() => searchInputRef.current?.focus(), 300)
   }
 
   function resetAllSearch() {
@@ -1048,6 +1048,7 @@ export default function ExplorePage() {
                 <button
                   type="button"
                   onClick={() => setShowFilter(false)}
+                  aria-label="Tutup filter"
                   className="text-brand-muted hover:text-brand-text transition-colors"
                 >
                   <X size={20} />

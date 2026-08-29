@@ -193,6 +193,7 @@ export default function ChatHubPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const cancelledRef = useRef(false)
   const messagesEndRef = useRef(null)
+  const messagesScrollRef = useRef(null)
   const inputRef = useRef(null)
   const contactsRef = useRef([])
 
@@ -349,6 +350,7 @@ export default function ChatHubPage() {
         setContextProperty(data)
         setShowContextCard(true)
       })
+      .catch(() => {})
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId])
@@ -498,7 +500,7 @@ export default function ChatHubPage() {
             const senderName = contactsRef.current.find(c => c.id === otherId)?.first_name || 'Seseorang'
             if (msg.content) showToast(`${senderName}: ${msg.content.slice(0, 80)}`, 'info')
           } else {
-            supabase.from('direct_messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id).then(() => {})
+            supabase.from('direct_messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id).then(() => {}).catch(() => {})
             setUnreadMap(prev => ({ ...prev, [otherId]: 0 }))
           }
 
@@ -547,7 +549,10 @@ export default function ChatHubPage() {
   }, [userId, activeContactId, showToast])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = messagesScrollRef.current
+    if (!el) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140
+    if (nearBottom) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   function handleSelectContact(contactId) {
@@ -647,13 +652,15 @@ export default function ChatHubPage() {
 
   useEffect(() => {
     if (!showNewChat) return
+    let cancelled = false
     supabase.from('profiles').select('id, first_name, role').neq('id', userId).then(({ data }) => {
-      setAllUsers(data || [])
+      if (!cancelled) setAllUsers(data || [])
     }).catch(() => {
-      setAllUsers([])
+      if (!cancelled) setAllUsers([])
     }).finally(() => {
-      setAllUsersLoading(false)
+      if (!cancelled) setAllUsersLoading(false)
     })
+    return () => { cancelled = true }
   }, [showNewChat, userId])
 
   if (!userId) {
@@ -675,6 +682,7 @@ export default function ChatHubPage() {
               type="button"
               onClick={() => navigate(-1)}
               className="lg:hidden text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1 shrink-0"
+              aria-label="Kembali"
             >
               <ArrowLeft size={20} />
             </button>
@@ -753,6 +761,7 @@ export default function ChatHubPage() {
                   type="button"
                   onClick={handleBackToList}
                   className="lg:hidden text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1 shrink-0"
+                  aria-label="Kembali"
                 >
                   <ArrowLeft size={18} />
                 </button>
@@ -820,7 +829,7 @@ export default function ChatHubPage() {
               )}
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto py-2">
+              <div ref={messagesScrollRef} className="flex-1 overflow-y-auto py-2">
                 {messagesLoading ? (
                   <div className="px-4 space-y-4 py-4">
                     <div className="flex justify-start">
@@ -907,6 +916,7 @@ export default function ChatHubPage() {
                   type="submit"
                   disabled={sending || !inputValue.trim()}
                   className="shrink-0 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Kirim pesan"
                 >
                   {sending ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -925,7 +935,7 @@ export default function ChatHubPage() {
 
     {showNewChat && (
       <>
-        <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowNewChat(false)} />
+        <button type="button" aria-label="Tutup" onClick={() => setShowNewChat(false)} className="fixed inset-0 bg-black/40 z-40 cursor-default p-0 border-0" />
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl p-6 pb-10 max-h-[70vh] overflow-y-auto animate-slide-up">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-brand-text">Obrolan Baru</h2>

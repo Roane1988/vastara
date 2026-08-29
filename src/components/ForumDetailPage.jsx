@@ -544,6 +544,7 @@ export default function ForumDetailPage() {
           <button
             type="button"
             onClick={() => navigate('/forum')}
+            aria-label={t('forum.backToForum')}
             className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
           >
             <ArrowLeft size={18} />
@@ -902,6 +903,7 @@ export default function ForumDetailPage() {
                 <button
                   type="button"
                   onClick={handleCancelReply}
+                  aria-label={t('forum.cancelReply')}
                   className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors"
                 >
                   <X size={14} />
@@ -922,6 +924,7 @@ export default function ForumDetailPage() {
               <button
                 type="submit"
                 disabled={submitting || !replyContent.trim()}
+                aria-label={t('forum.sendReply')}
                 className="shrink-0 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? (

@@ -336,17 +336,17 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
       {totalCount > 0 && (
         <div className="grid grid-cols-4 gap-0.5">
           {galleryImages.slice(0, 4).map((url, i) => (
-            <div key={i} className={`relative aspect-[4/3] overflow-hidden cursor-pointer border-b-2 transition-colors ${i === current ? 'border-brand-primary' : 'border-transparent'}`} onClick={() => goTo(i)}>
-              <img loading="lazy" src={url} alt={`${property.title} ${i + 1}`} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
-            </div>
+            <button key={i} type="button" aria-label={`${property.title} ${i + 1}`} className={`relative aspect-[4/3] overflow-hidden cursor-pointer border-b-2 transition-colors block p-0 text-left ${i === current ? 'border-brand-primary' : 'border-transparent'}`} onClick={() => goTo(i)}>
+              <img loading="lazy" src={url} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
+            </button>
           ))}
           {totalCount > 4 && (
-            <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => onOpenLightbox(current)}>
+            <button type="button" aria-label={`Lihat ${totalCount - 4} foto lainnya`} className="relative aspect-[4/3] overflow-hidden cursor-pointer block p-0 text-left" onClick={() => onOpenLightbox(current)}>
               <img loading="lazy" src={galleryImages[4]} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
                 <span className="text-white text-xs font-bold">+{totalCount - 4}</span>
               </div>
-            </div>
+            </button>
           )}
         </div>
       )}
@@ -354,14 +354,18 @@ function GalleryMobile({ images, property, onOpenLightbox }) {
   )
 }
 
-function Lightbox({ isOpen, images, currentIndex, onClose, onPrev, onNext, propertyTitle }) {
+function Lightbox({ isOpen, images, currentIndex, onClose, onPrev, onNext, propertyTitle, lang }) {
   if (!isOpen) return null
+  const closeLabel = lang === 'en' ? 'Close gallery' : 'Tutup galeri'
+  const prevLabel = lang === 'en' ? 'Previous photo' : 'Foto sebelumnya'
+  const nextLabel = lang === 'en' ? 'Next photo' : 'Foto berikutnya'
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 shrink-0">
         <button
           type="button"
           onClick={onClose}
+          aria-label={closeLabel}
           className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
         >
           <X size={20} />
@@ -375,6 +379,7 @@ function Lightbox({ isOpen, images, currentIndex, onClose, onPrev, onNext, prope
         <button
           type="button"
           onClick={onPrev}
+          aria-label={prevLabel}
           className="absolute left-2 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
         >
           <ChevronLeft size={24} />
@@ -388,6 +393,7 @@ function Lightbox({ isOpen, images, currentIndex, onClose, onPrev, onNext, prope
         <button
           type="button"
           onClick={onNext}
+          aria-label={nextLabel}
           className="absolute right-2 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
         >
           <ChevronRight size={24} />
@@ -706,7 +712,7 @@ export default function PropertyDetailPage() {
         affordable: maxRent > 0 && monthlyRent > 0 && monthlyRent <= maxRent,
         hasProfile: maxRent > 0,
       })
-    })
+    }).catch(() => {})
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRent, property?.id, property?.price, property?.price_period])
@@ -780,6 +786,7 @@ export default function PropertyDetailPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
+          aria-label={lang === 'en' ? 'Back' : 'Kembali'}
           className="absolute top-4 left-4 z-30 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-brand-text shadow-md hover:bg-white transition-colors cursor-pointer"
         >
           <ArrowLeftIcon />
@@ -1105,7 +1112,7 @@ export default function PropertyDetailPage() {
         </div>
       </div>
 
-      <Lightbox isOpen={isLightboxOpen} images={images} currentIndex={lightboxIndex} onClose={closeLightbox} onPrev={prevImage} onNext={nextImage} propertyTitle={property.title} />
+      <Lightbox isOpen={isLightboxOpen} images={images} currentIndex={lightboxIndex} onClose={closeLightbox} onPrev={prevImage} onNext={nextImage} propertyTitle={property.title} lang={lang} />
 
       <div className={`fixed top-14 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-brand-border shadow-sm transition-transform duration-300 ${showStickyBar ? 'translate-y-0' : '-translate-y-full'} hidden lg:block`}>
         <div className="max-w-7xl mx-auto px-5 py-2.5 flex items-center justify-between">

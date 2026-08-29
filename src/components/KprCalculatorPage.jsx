@@ -158,7 +158,7 @@ export default function KprCalculatorPage() {
     let cancelled = false
     getFinancialProfile().then(({ profile }) => {
       if (!cancelled) setFinancialProfile(profile)
-    })
+    }).catch(() => {})
     return () => { cancelled = true }
   }, [])
 

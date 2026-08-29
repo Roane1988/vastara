@@ -303,17 +303,21 @@ export default function SellPropertyPage() {
     if (editId || form.whatsapp) return
     let cancelled = false
     const prefillWhatsapp = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (cancelled || !user) return
-      const metaWa = user.user_metadata?.whatsapp || user.user_metadata?.phone
-      if (metaWa) {
-        setForm((prev) => ({ ...prev, whatsapp: String(metaWa) }))
-        return
-      }
-      const { data: myProfileData } = await supabase.rpc('get_my_profile')
-      const myProfile = Array.isArray(myProfileData) ? myProfileData[0] : myProfileData
-      if (!cancelled && myProfile?.whatsapp) {
-        setForm((prev) => ({ ...prev, whatsapp: myProfile.whatsapp }))
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (cancelled || !user) return
+        const metaWa = user.user_metadata?.whatsapp || user.user_metadata?.phone
+        if (metaWa) {
+          setForm((prev) => ({ ...prev, whatsapp: String(metaWa) }))
+          return
+        }
+        const { data: myProfileData } = await supabase.rpc('get_my_profile')
+        const myProfile = Array.isArray(myProfileData) ? myProfileData[0] : myProfileData
+        if (!cancelled && myProfile?.whatsapp) {
+          setForm((prev) => ({ ...prev, whatsapp: myProfile.whatsapp }))
+        }
+      } catch {
+        /* ignore — optional prefill */
       }
     }
     prefillWhatsapp()
@@ -1082,7 +1086,7 @@ export default function SellPropertyPage() {
         <>
           <header className="sticky top-14 bg-brand-surface/90 backdrop-blur-md z-30 border-b border-brand-border">
             <div className="flex items-center justify-between px-4 h-14">
-              <button type="button" onClick={() => navigate(-1)} className="text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1 shrink-0"><ArrowLeftIcon /></button>
+              <button type="button" onClick={() => navigate(-1)} aria-label="Kembali" className="text-brand-muted hover:text-brand-text transition-colors -ml-1 p-1 shrink-0"><ArrowLeftIcon /></button>
               <h1 className="text-lg font-bold text-brand-text">{editId ? 'Edit Properti' : 'Iklankan Properti'}</h1>
               {!editId && !isSubmitted ? (
                 <span className="flex items-center gap-1 text-[11px] text-brand-muted">
@@ -1163,7 +1167,7 @@ export default function SellPropertyPage() {
 
           {aiPreviewOpen && aiAddressPreview && (
             <div className="fixed inset-0 z-50 flex items-center justify-center px-5">
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleAiCancelPreview} />
+              <button type="button" aria-label="Tutup" onClick={handleAiCancelPreview} className="absolute inset-0 bg-black/50 backdrop-blur-sm p-0 border-0 cursor-default" />
               <div className="relative w-full max-w-md bg-brand-surface border border-brand-border rounded-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="ai-address-preview-title">
                 <button
                   type="button"
