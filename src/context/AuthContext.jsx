@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { setSupabase, initFavorites } from '../utils/favorites'
+import { resetScrollLock } from '../utils/scrollLock'
 import Toast from '../components/Toast'
 
 const AuthContext = createContext(null)
@@ -35,6 +36,7 @@ export function AuthProvider({ children }) {
     } catch {
       /* sign-out failure is non-critical */
     }
+    resetScrollLock()
     setSession(null)
     setUser(null)
     setRole(null)

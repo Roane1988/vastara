@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
+import { lockScroll, unlockScroll } from '../utils/scrollLock'
 
 function XIcon() {
   return (
@@ -38,9 +39,8 @@ export default function SlideOver({
   useEffect(() => {
     if (!isOpen) return
     const previousFocus = document.activeElement
-    const previousOverflow = document.body.style.overflow
     panelRef.current?.focus()
-    document.body.style.overflow = 'hidden'
+    lockScroll()
 
     function handleKeyDown(e) {
       if (e.key === 'Escape') {
@@ -66,7 +66,7 @@ export default function SlideOver({
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = previousOverflow
+      unlockScroll()
       if (previousFocus instanceof HTMLElement) previousFocus.focus()
     }
   }, [isOpen, onClose])

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trash2, X } from 'lucide-react'
+import { lockScroll, unlockScroll } from '../utils/scrollLock'
 
 export default function ConfirmModal({
   isOpen,
@@ -45,14 +46,13 @@ export default function ConfirmModal({
       }
     }
 
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    lockScroll()
     document.addEventListener('keydown', onKeyDown)
     // Focus the panel on open, then let the close (X) button receive focus.
     const t = setTimeout(() => dialogRef.current?.querySelector('button')?.focus(), 40)
 
     return () => {
-      document.body.style.overflow = prevOverflow
+      unlockScroll()
       document.removeEventListener('keydown', onKeyDown)
       clearTimeout(t)
     }

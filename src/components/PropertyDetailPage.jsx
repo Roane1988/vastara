@@ -8,6 +8,7 @@ import { formatPrice, formatPriceDisplay } from '../utils/format'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { parseImages, FALLBACK_IMAGE } from '../utils/images'
 import { getFinancialProfile, computeAffordability, estimateMonthlyRent } from '../utils/financialProfile'
+import { lockScroll, unlockScroll } from '../utils/scrollLock'
 import { useGroqTranslation } from '../hooks/useGroqTranslation'
 import useSEO from '../hooks/useSEO'
 import { usePropertyStore } from '../store/usePropertyStore'
@@ -494,10 +495,10 @@ export default function PropertyDetailPage() {
       if (e.key === 'ArrowRight') setLightboxIndex((i) => (i + 1) % images.length)
     }
     document.addEventListener('keydown', handleKey)
-    document.body.style.overflow = 'hidden'
+    lockScroll()
     return () => {
       document.removeEventListener('keydown', handleKey)
-      document.body.style.overflow = ''
+      unlockScroll()
     }
   }, [isLightboxOpen, images.length])
 

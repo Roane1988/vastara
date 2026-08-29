@@ -124,6 +124,8 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
     setLoggingOut(true)
     try {
       await onLogout?.()
+    } catch {
+      /* fall through to cleanup regardless */
     } finally {
       setLogoutOpen(false)
       onClose()
