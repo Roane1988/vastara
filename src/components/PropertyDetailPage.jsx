@@ -191,24 +191,57 @@ function GalleryDesktop({ images, property, onOpenLightbox, lang }) {
     )
   }
 
+  const renderHero = () => (
+    <button
+      type="button"
+      onClick={() => onOpenLightbox(0)}
+      aria-label={property.title}
+      className="relative h-full w-full overflow-hidden cursor-pointer group rounded-lg"
+    >
+      {drop > 0 && (
+        <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow">
+          <TrendingDown size={12} />
+          Turun {drop.toFixed(1)}%
+        </span>
+      )}
+      <img loading="lazy" src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+    </button>
+  )
+
+  if (totalCount === 1) {
+    return (
+      <div className="hidden lg:block lg:rounded-2xl lg:overflow-hidden">
+        <div className="aspect-[5/3] lg:aspect-[21/9] w-full">
+          {renderHero()}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="hidden lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] lg:grid-rows-1 lg:gap-2 lg:h-[440px] lg:rounded-2xl lg:overflow-hidden">
-      <button
-        type="button"
-        onClick={() => onOpenLightbox(0)}
-        aria-label={property.title}
-        className="relative h-full overflow-hidden cursor-pointer group rounded-lg"
-      >
-        {drop > 0 && (
-          <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 bg-red-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow">
-            <TrendingDown size={12} />
-            Turun {drop.toFixed(1)}%
-          </span>
-        )}
-        <img loading="lazy" src={heroImage} alt={property.title} onError={(e) => { e.target.src = FALLBACK_IMAGE }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-      </button>
+      <div className="h-full min-h-0">
+        {renderHero()}
+      </div>
       <div className="flex flex-col gap-2 min-h-0">
-        {[0, 1, 2].map(renderThumb)}
+        {[0, 1, 2].map((i) => (
+          i < thumbs.length ? renderThumb(i) : (
+            <div
+              key={i}
+              className="flex-1 min-h-0 overflow-hidden cursor-pointer group"
+            >
+              <button
+                type="button"
+                onClick={() => onOpenLightbox(0)}
+                aria-label={seeAllText}
+                className="w-full h-full bg-brand-bg flex flex-col items-center justify-center gap-1.5 text-brand-muted group-hover:bg-brand-border/60 transition-colors"
+              >
+                <Images size={18} />
+                <span className="text-[11px] font-bold px-2 text-center leading-tight">{seeAllText}</span>
+              </button>
+            </div>
+          )
+        ))}
       </div>
     </div>
   )
