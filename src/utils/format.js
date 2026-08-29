@@ -56,3 +56,9 @@ export function formatCount(value) {
   }
   return String(num)
 }
+
+export function formatIDR(value) {
+  const num = Number(value || 0)
+  if (isNaN(num) || !Number.isFinite(num)) return 'Rp 0'
+  return `Rp ${num.toLocaleString('id-ID')}`
+}

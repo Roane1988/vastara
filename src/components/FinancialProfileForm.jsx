@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import FormErrorSummary from './FormErrorSummary'
+import MoneyInput from './MoneyInput'
 import {
   Wallet,
   Info,
@@ -23,9 +24,6 @@ import {
   formatRupiah,
   BUYING_POWER_ASSUMPTION,
 } from '../utils/financialProfile'
-
-const inputClass =
-  'w-full px-3.5 py-2.5 rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all'
 
 const labelClass = 'block text-[11px] font-semibold text-brand-muted mb-1.5'
 
@@ -247,18 +245,12 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
 
       <div className="space-y-4">
         <div>
-          <label className={labelClass}>Pendapatan bulanan (bersih)</label>
-          <input
-            type="number"
-            min="0"
+          <MoneyInput
+            label="Pendapatan bulanan (bersih)"
             value={values.monthlyIncome}
-            onChange={(e) => setField('monthlyIncome', e.target.value)}
+            onChange={(v) => setField('monthlyIncome', v)}
             placeholder="cth. 15000000"
-            className={inputClass}
           />
-          {values.monthlyIncome && (
-            <p className="text-xs text-brand-muted mt-1">{formatRupiah(Number(values.monthlyIncome))}</p>
-          )}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {INCOME_PRESETS.map(p => (
               <button
@@ -278,18 +270,13 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
         </div>
 
         <div>
-          <label className={labelClass}>Cicilan / komitmen berjalan per bulan</label>
-          <input
-            type="number"
-            min="0"
+          <MoneyInput
+            label="Cicilan / komitmen berjalan per bulan"
             value={values.monthlyCommitments}
-            onChange={(e) => setField('monthlyCommitments', e.target.value)}
+            onChange={(v) => setField('monthlyCommitments', v)}
             placeholder="cth. 2000000"
-            className={inputClass}
+            hint="Cicilan mobil, kartu kredit, pinjaman lain, dsb."
           />
-          <p className="text-xs text-brand-muted mt-1">
-            Cicilan mobil, kartu kredit, pinjaman lain, dsb.
-          </p>
           {commitmentsOverIncome && (
             <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5 flex items-center gap-1">
               <AlertCircle size={11} className="shrink-0" />
@@ -303,14 +290,11 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
         </div>
 
         <div>
-          <label className={labelClass}>Budget cicilan rumah per bulan</label>
-          <input
-            type="number"
-            min="0"
+          <MoneyInput
+            label="Budget cicilan rumah per bulan"
             value={values.monthlyBudget}
-            onChange={(e) => setField('monthlyBudget', e.target.value)}
+            onChange={(v) => setField('monthlyBudget', v)}
             placeholder="cth. 5000000"
-            className={inputClass}
           />
           {suggestion.takeHome > 0 && (
             <div className="flex items-center justify-between gap-2 mt-1">
