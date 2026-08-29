@@ -35,6 +35,9 @@ const EMPTY_FORM = {
   description_en: '',
   is_premium: false,
   address: '',
+  rt: '',
+  rw: '',
+  kelurahan: '',
   city: '',
   kecamatan: '',
   whatsapp: '',
@@ -268,6 +271,9 @@ export default function SellPropertyPage() {
           description_en: data.description_en || '',
           is_premium: Boolean(data.is_premium),
           address: data.address || '',
+          rt: data.rt || '',
+          rw: data.rw || '',
+          kelurahan: data.kelurahan || '',
           city: data.city || '',
           kecamatan: data.district || '',
           whatsapp: data.seller_whatsapp || '',
@@ -576,6 +582,9 @@ export default function SellPropertyPage() {
         description_en: form.description_en || null,
         is_premium: Boolean(form.is_premium),
         address: form.address,
+        rt: form.rt || null,
+        rw: form.rw || null,
+        kelurahan: form.kelurahan || null,
         city: form.city,
         district: form.kecamatan,
         price: Number(form.estimasi_harga) || null,
@@ -816,6 +825,31 @@ export default function SellPropertyPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
+              <div data-field="rt">
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">RT <span className="text-brand-muted font-normal">(opsional)</span></label>
+                <input type="text" inputMode="numeric" pattern="[0-9]*" data-field="rt" placeholder="005" value={form.rt} onChange={(e) => updateFormValue('rt', digitsOnly(e.target.value))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+              </div>
+              <div data-field="rw">
+                <label className="text-sm font-semibold text-brand-text mb-1.5 block">RW <span className="text-brand-muted font-normal">(opsional)</span></label>
+                <input type="text" inputMode="numeric" pattern="[0-9]*" data-field="rw" placeholder="002" value={form.rw} onChange={(e) => updateFormValue('rw', digitsOnly(e.target.value))} className="w-full py-4 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors" />
+              </div>
+            </div>
+
+            <div data-field="kelurahan">
+              <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kelurahan <span className="text-brand-muted font-normal">(opsional)</span></label>
+              <input
+                type="text"
+                data-field="kelurahan"
+                placeholder={form.kecamatan ? 'Contoh: Lengkong Karya' : 'Pilih kecamatan terlebih dahulu'}
+                value={form.kelurahan}
+                disabled={!form.kecamatan}
+                onChange={(e) => updateFormValue('kelurahan', e.target.value)}
+                className={`w-full py-4 px-4 text-sm bg-brand-surface border border-brand-border rounded-xl placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${!form.kecamatan ? 'opacity-60 cursor-not-allowed' : 'text-brand-text'}`}
+              />
+              {!form.kecamatan && <p className="text-[11px] text-brand-muted mt-1.5">Kelurahan tersedia setelah memilih Kecamatan.</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div data-field="city">
                 <label className="text-sm font-semibold text-brand-text mb-1.5 block">Kota/Kabupaten <span className="text-red-500">*</span></label>
                 <LocationAutocomplete
@@ -905,7 +939,7 @@ export default function SellPropertyPage() {
                 <p>Kategori: {form.category}</p>
                 <p>Tipe: {form.jenis_properti}</p>
                 {form.category !== 'Disewa' && <p>Sertifikat: {form.status_sertifikat || '-'}</p>}
-                <p>Lokasi: {[form.city, form.kecamatan].filter(Boolean).join(', ') || form.address?.slice(0, 30)}</p>
+                <p>Lokasi: {[form.city, form.kecamatan, form.kelurahan].filter(Boolean).join(', ') || form.address?.slice(0, 30)}{form.rt || form.rw ? ` · RT ${form.rt || '-'}/RW ${form.rw || '-'}` : ''}</p>
                 <p>Kamar: {form.bedrooms || 0} KT / {form.bathrooms || 0} KM</p>
                 <p>Luas: {form.sqm ? `${form.sqm} m² bangunan` : '-'}{form.land_sqm ? ` · ${form.land_sqm} m² tanah` : ''}</p>
                 {form.category === 'Disewa' && form.furnished && <p>Kondisi: {form.furnished === 'semi_furnished' ? 'Semi Furnished' : form.furnished === 'unfurnished' ? 'Kosong' : 'Furnished'}</p>}
