@@ -455,14 +455,29 @@ export default function PropertyDetailPage() {
       url: window.location.href,
     }
     if (navigator.share) {
-      navigator.share(shareData).catch(() => {
-        showToast('Gagal membagikan properti. Coba lagi.', 'error')
-      })
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href).then(
-        () => showToast('Link properti disalin', 'success'),
-        () => showToast('Gagal menyalin link. Coba lagi.', 'error')
+      navigator.share(shareData).then(
+        () => { /* share completed successfully */ },
+        (err) => {
+          // Pengguna membatalkan dialog share bawaan → jangan tampilkan error.
+          if (err && (err.name === 'AbortError' || err.message === 'AbortError')) return
+          copyShareLink()
+        }
       )
+    } else {
+      copyShareLink()
+    }
+  }
+
+  async function copyShareLink() {
+    if (!navigator.clipboard?.writeText) {
+      showToast(lang === 'en' ? 'Could not share this property. Try again.' : 'Gagal membagikan properti. Coba lagi.', 'error')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      showToast(lang === 'en' ? 'Link copied to clipboard!' : 'Tautan berhasil disalin!', 'success')
+    } catch {
+      showToast(lang === 'en' ? 'Could not copy the link. Try again.' : 'Gagal menyalin tautan. Coba lagi.', 'error')
     }
   }
 
