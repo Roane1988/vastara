@@ -700,6 +700,8 @@ export default function ChatHubPage() {
         } else if (data) {
           setMessages(data.slice().reverse())
           setHasMore(data.length === PAGE_SIZE)
+          // Paksa scroll ke pesan terbaru setelah data kontak selesai dimuat
+          scrollToLatest()
         }
       } catch (err) {
         if (!messagesCancelledRef.current) console.warn('Gagal memuat pesan:', err.message)
@@ -709,6 +711,7 @@ export default function ChatHubPage() {
 
     fetchMessages()
     return () => { messagesCancelledRef.current = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeContactId, userId])
 
   async function loadEarlier() {
@@ -919,9 +922,10 @@ export default function ChatHubPage() {
   }, [userId, activeContactId, showToast])
 
   function scrollToLatest() {
+    loadedContactRef.current = activeContactId
     const applyScroll = () => {
       const container = messagesContainerRef.current
-      if (container) {
+      if (container && container.scrollHeight > container.clientHeight) {
         container.scrollTop = container.scrollHeight
         container.scrollTop = container.scrollHeight
       }
@@ -930,11 +934,10 @@ export default function ChatHubPage() {
       setNewMsgFAB(false)
       setNewMsgCount(0)
     }
-    // Pastikan DOM selesai merender (bubble, gambar) sebelum scroll dipicu
+    // Tunggu DOM benar-benar selesai merender (bubble, gambar) lalu paksa ke bawah
     requestAnimationFrame(() => requestAnimationFrame(applyScroll))
-    setTimeout(() => {
-      if (isAtBottomRef.current) applyScroll()
-    }, 100)
+    setTimeout(applyScroll, 50)
+    setTimeout(applyScroll, 150)
   }
 
   useEffect(() => {
@@ -943,7 +946,6 @@ export default function ChatHubPage() {
 
     // Kontak baru dipilih / obrolan pertama dibuka → paksa ke pesan terbaru
     if (loadedContactRef.current !== activeContactId) {
-      loadedContactRef.current = activeContactId
       scrollToLatest()
       return
     }
@@ -952,6 +954,7 @@ export default function ChatHubPage() {
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140
     isAtBottomRef.current = nearBottom
     if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, activeContactId, messagesLoading])
 
   function handleMessagesScroll() {
@@ -1049,6 +1052,7 @@ export default function ChatHubPage() {
 
   function handleSelectContact(contactId) {
     setActiveContactId(contactId)
+    loadedContactRef.current = null
     setShowMobileList(false)
     setUnreadMap(prev => ({ ...prev, [contactId]: 0 }))
     setReplyTo(null)
