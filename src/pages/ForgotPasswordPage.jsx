@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { isRateLimitError } from '../utils/authErrors'
+import { isRateLimitError, toErrorMessage } from '../utils/authErrors'
 import FormErrorSummary from '../components/FormErrorSummary'
 import useSEO from '../hooks/useSEO'
 
@@ -40,21 +40,28 @@ export default function ForgotPasswordPage() {
       })
 
       if (authError) {
-        if (isRateLimitError(authError)) {
-          const msg = t('forgot_password.too_many_attempts')
-          showToast(msg, 'error')
-          setError(msg)
-          return
-        }
-        setError(authError.message)
+        handleSubmitError(authError)
         return
       }
 
       setSent(true)
       showToast(t('forgot_password.success'), 'success')
+    } catch (err) {
+      handleSubmitError(err)
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleSubmitError(err) {
+    const message = toErrorMessage(err) || t('forgot_password.error_generic')
+    if (isRateLimitError(err)) {
+      const msg = t('forgot_password.too_many_attempts')
+      showToast(msg, 'error')
+      setError(msg)
+      return
+    }
+    setError(message)
   }
 
   const loadingBtnClass = loading

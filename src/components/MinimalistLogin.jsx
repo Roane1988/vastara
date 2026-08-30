@@ -3,17 +3,12 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { isRateLimitError } from '../utils/authErrors'
+import { isRateLimitError, toErrorMessage } from '../utils/authErrors'
 import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp'
 import FormErrorSummary from './FormErrorSummary'
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
-
-function toErrorMessage(err) {
-  if (typeof err === 'string') return err
-  if (err && typeof err.message === 'string' && err.message.trim()) return err.message
-  return ''
-}
+const EMAIL_REGEX = /^\S+@\S+\.\S+$/
 
 function EyeIcon({ visible }) {
   return (
@@ -70,6 +65,8 @@ export default function MinimalistLogin({ onLoginSuccess }) {
   const [passwordError, setPasswordError] = useState('')
   const [confirmError, setConfirmError] = useState('')
   const [waError, setWaError] = useState('')
+  const [oauthLoading, setOauthLoading] = useState(false)
+  const [checkEmail, setCheckEmail] = useState(false)
 
   const errorTitle = isLogin ? t('login.error_title') : t('login.error_title_signup')
 
@@ -112,9 +109,27 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
   async function handleAuth(e) {
     e.preventDefault()
+    if (loading) return
     setError(null)
+    setCheckEmail(false)
 
     if (!isLogin) {
+      if (!firstName.trim()) {
+        setError(t('login.error_name_required'))
+        return
+      }
+      if (!email.trim()) {
+        setError(t('login.error_email_required'))
+        return
+      }
+      if (!EMAIL_REGEX.test(email)) {
+        setError(t('login.error_email_invalid'))
+        return
+      }
+      if (!password) {
+        setError(t('login.error_password_required'))
+        return
+      }
       if (!validatePassword(password)) return
 
       if (password !== confirmPassword) {
@@ -122,6 +137,10 @@ export default function MinimalistLogin({ onLoginSuccess }) {
         return
       }
 
+      if (!whatsapp.trim()) {
+        setError(t('login.error_whatsapp_required'))
+        return
+      }
       if (!validateWa(whatsapp)) return
     }
 
@@ -134,13 +153,15 @@ export default function MinimalistLogin({ onLoginSuccess }) {
           handleAuthError(authError)
           return
         }
+        onLoginSuccess?.()
+        return
       } else {
         const normalizedWa = normalizeWhatsAppNumber(whatsapp)
-        const { error: authError } = await supabase.auth.signUp({
+        const { data, error: authError } = await supabase.auth.signUp({
           email, password,
           options: {
             data: {
-              first_name: firstName,
+              first_name: firstName.trim(),
               whatsapp: normalizedWa,
               whatsapp_verified: false,
             },
@@ -150,13 +171,40 @@ export default function MinimalistLogin({ onLoginSuccess }) {
           handleAuthError(authError)
           return
         }
-      }
 
-      onLoginSuccess?.()
+        if (data?.session) {
+          onLoginSuccess?.()
+          return
+        }
+
+        if (data?.user) {
+          if ((data.user.identities?.length ?? 1) === 0) {
+            setError(t('login.error_email_taken'))
+            return
+          }
+          setCheckEmail(true)
+          showToast(t('login.signup_check_email_title'), 'success')
+          return
+        }
+
+        onLoginSuccess?.()
+      }
     } catch (err) {
       handleAuthError(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleGoogleLogin() {
+    if (loading || oauthLoading) return
+    setOauthLoading(true)
+    try {
+      await supabase.auth.signInWithOAuth({ provider: 'google' })
+    } catch (err) {
+      handleAuthError(err)
+    } finally {
+      setOauthLoading(false)
     }
   }
 
@@ -253,18 +301,19 @@ export default function MinimalistLogin({ onLoginSuccess }) {
 
             <button
               type="button"
-              onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
-              className="w-full py-3 flex items-center justify-center gap-2.5 text-sm font-medium text-brand-text bg-brand-surface border border-brand-border rounded-lg hover:bg-brand-bg transition-colors"
+              onClick={handleGoogleLogin}
+              disabled={oauthLoading}
+              className="w-full py-3 flex items-center justify-center gap-2.5 text-sm font-medium text-brand-text bg-brand-surface border border-brand-border rounded-lg hover:bg-brand-bg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <GoogleIcon />
-              {t('login.google')}
+              {oauthLoading ? t('login.processing') : t('login.google')}
             </button>
 
             <p className="mt-8 text-center text-xs text-brand-muted">
               {t('login.no_account')}{' '}
               <button
                 type="button"
-                onClick={() => { setIsLogin(false); setError(null); setPasswordError(''); setConfirmError(''); setWaError('') }}
+                onClick={() => { setIsLogin(false); setError(null); setCheckEmail(false); setPasswordError(''); setConfirmError(''); setWaError('') }}
                 className="font-semibold text-brand-primary hover:text-brand-accent transition-colors"
               >
                 {t('login.register_link')}
@@ -288,6 +337,12 @@ export default function MinimalistLogin({ onLoginSuccess }) {
             </div>
 
             <form onSubmit={handleAuth} noValidate className="space-y-4">
+              {checkEmail && (
+                <div className="p-4 rounded-2xl bg-brand-verified/10 border border-brand-verified/30 text-sm text-brand-text">
+                  <p className="font-semibold mb-1">{t('login.signup_check_email_title')}</p>
+                  <p className="text-brand-muted">{t('login.signup_check_email_desc', { email })}</p>
+                </div>
+              )}
               {error && <FormErrorSummary errors={[error]} title={errorTitle} />}
 
               <div>
@@ -403,7 +458,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
               {t('login.has_account')}{' '}
               <button
                 type="button"
-                onClick={() => { setIsLogin(true); setError(null); setPasswordError(''); setConfirmError(''); setWaError('') }}
+                onClick={() => { setIsLogin(true); setError(null); setCheckEmail(false); setPasswordError(''); setConfirmError(''); setWaError('') }}
                 className="font-semibold text-brand-primary hover:text-brand-accent transition-colors"
               >
                 {t('login.login_link')}

@@ -13,3 +13,9 @@ export function isRateLimitError(error) {
   const message = error.message || String(error)
   return RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(message))
 }
+
+export function toErrorMessage(err) {
+  if (typeof err === 'string' && err.trim()) return err
+  if (err && typeof err.message === 'string' && err.message.trim()) return err.message
+  return ''
+}

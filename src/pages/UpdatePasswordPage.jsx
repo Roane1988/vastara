@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { isRateLimitError } from '../utils/authErrors'
+import { isRateLimitError, toErrorMessage } from '../utils/authErrors'
 import FormErrorSummary from '../components/FormErrorSummary'
 import useSEO from '../hooks/useSEO'
 
@@ -39,7 +39,7 @@ function SpinnerIcon() {
 
 export default function UpdatePasswordPage() {
   const { t } = useTranslation()
-  const { showToast } = useAuth()
+  const { showToast, session } = useAuth()
   const navigate = useNavigate()
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -56,7 +56,11 @@ export default function UpdatePasswordPage() {
   })
 
   function validatePassword(value) {
-    if (value && !PASSWORD_REGEX.test(value)) {
+    if (!value) {
+      setPasswordError(t('update_password.password_required'))
+      return false
+    }
+    if (!PASSWORD_REGEX.test(value)) {
       setPasswordError(t('update_password.password_weak'))
       return false
     }
@@ -81,6 +85,11 @@ export default function UpdatePasswordPage() {
     e.preventDefault()
     setError(null)
 
+    if (!session?.user) {
+      setError(t('update_password.session_missing'))
+      return
+    }
+
     const isPasswordValid = validatePassword(newPassword)
     if (!isPasswordValid) return
 
@@ -95,21 +104,28 @@ export default function UpdatePasswordPage() {
       const { error: authError } = await supabase.auth.updateUser({ password: newPassword })
 
       if (authError) {
-        if (isRateLimitError(authError)) {
-          const msg = t('update_password.too_many_attempts')
-          showToast(msg, 'error')
-          setError(msg)
-          return
-        }
-        setError(authError.message)
+        handleSubmitError(authError)
         return
       }
 
       showToast(t('update_password.success'), 'success')
       navigate('/')
+    } catch (err) {
+      handleSubmitError(err)
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleSubmitError(err) {
+    const message = toErrorMessage(err) || t('update_password.error_generic')
+    if (isRateLimitError(err)) {
+      const msg = t('update_password.too_many_attempts')
+      showToast(msg, 'error')
+      setError(msg)
+      return
+    }
+    setError(message)
   }
 
   const loadingBtnClass = loading
