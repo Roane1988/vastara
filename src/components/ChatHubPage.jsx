@@ -552,8 +552,8 @@ export default function ChatHubPage() {
     const el = messagesScrollRef.current
     if (!el) return
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140
-    if (nearBottom) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+  }, [messages, activeContactId])
 
   function handleSelectContact(contactId) {
     setActiveContactId(contactId)
