@@ -1,6 +1,18 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 29 Agustus 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 30 Agustus 2026.
+
+## Changelog — Chat Mobile UX: Bubble Responsif, Lightbox Foto, Aksi Pesan, Pencarian Flash, Layout dvh (30 Agustus 2026)
+- **Bubble pesan & kartu properti responsif mobile** (`ChatHubPage.jsx`, `7eab9f2`): lebar bubble pesan dan kartu konteks properti (gambar + judul + harga + tombol aksi Chat/WhatsApp) menyesuaikan layar sempit; action yang bersifat hover-only disembunyikan di mobile (touch-first) agar tidak menumpuk dan tidak "stuck" terbuka.
+- **Lightbox gambar fullscreen** (`7c6eabf`): foto dalam chat bisa diketuk → modal lightbox layar penuh (backdrop gelap, `framer-motion` scale-in), navigasi **Prev/Next** antar foto, tombol **Download** (fetch foto sebagai blob lalu unduh otomatis), tombol close, serta Esc/klik backdrop untuk menutup.
+- **Auto-scroll hasil pencarian + flash highlight** (`79ee721` + `5d1f38d`): navigasi hasil pencarian pesan kini auto-scroll ke pesan yang cocok dengan indikator posisi `X/Y`; pesan hasil diberi **flash highlight** — overlay `.search-flash-overlay` + keyframe `search-flash-fade` di `index.css` yang menyala 2 detik lalu memudar (state `flashMessageId` + timeout, dibersihkan saat unmount/navigasi), memudahkan menemukan match di riwayat yang panjang.
+- **Menu aksi pesan di mobile (bottom sheet)** (`5d1f38d`): tombol `⋯` (MoreHorizontal) di footer bubble — tampil khusus di layar `<lg` — membuka sheet "Opsi Pesan" berisi **Balas**, **Salin Teks**, **Sematkan/Lepas Sematan**, **Hapus** (hapus hanya tersedia untuk pesan milik sendiri, lanjut ke ConfirmModal). Di desktop, hover-action kini punya tombol **Salin** (baru) dan disembunyikan di layar sentuh (`hidden lg:flex`).
+- **Auto-detect link & nomor telepon** (`5d1f38d`): komponen baru `MessageText` + helper `tokenizeMessage`/`normalizePhone` — URL `http(s)` jadi `<a target="_blank" rel="noopener">` dengan `break-all`; nomor `08`/`62` (9–14 digit) jadi link **`https://wa.me/<nomor>`** (awalan `0` otomatis → `62`); tetap kompatibel dengan highlight kata kunci pencarian (`HighlightText`).
+- **Salin teks pesan** (`5d1f38d`): `handleCopyMessage` memakai `navigator.clipboard.writeText`, fallback ke hidden textarea + `document.execCommand('copy')` untuk WebView/browser lama; sukses → toast global.
+- **Perbaikan layout mobile (kotak input "tenggelam")** (`452be3d`):
+  - Tinggi kontainer utama chat `h-[calc(100vh-56px)]` → **`h-[calc(100dvh-56px)]`** — `dvh` (Dynamic Viewport Height) ikut menyesuaikan saat URL bar browser mobile menyusut/mengembang, sehingga baris input (`bottom-0`) tidak pernah tertutup navigasi sistem HP.
+  - **Footer global disembunyikan di halaman chat**: di `App.jsx`, `<Footer />` tidak dirender saat `location.pathname.startsWith('/chat')` (kembalikan `null` untuk layout chat).
+  - **Safe-area padding** di area input: `py-3` → `pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]` agar kotak input + tombol Kirim tidak berbenturan dengan gesture bar iOS/Android; tetap 12px di desktop (env = 0).
 
 ## Changelog — Hapus Fitur Tren & Perubahan Harga (Tren Harga / Turun Harga) (28 Agustus 2026)
 - **Landing (ExplorePage)**: hapus shortcut "Turun Harga" & "Tren Harga" dari **Layanan cepat** (QUICK_MENU) dan dari **sticky search bar**; grid quick services di-balance `grid-cols-4 sm:grid-cols-8` → `grid-cols-5` (5 item simetris di mobile & desktop). Import tak terpakai `TrendingUp`/`TrendingDown` dibersihkan.
@@ -213,7 +225,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 | `/sell` | SellPropertyPage (3-step) | Ya | + edit via `?edit=ID`, beforeunload guard, draft autosave |
 | `/my-listings` | MyListingsPage | Ya | Edit & **Tandai Terjual** (verified→sold), status timeline **vertikal di mobile** (tidak terpotong), card sold diredupkan + catatan "Iklan telah ditandai terjual", **tab Leads** (`whatsapp_leads` per listing) |
 | `/seller/:id` | SellerProfilePage | Tidak | profil penjual publik — statistik, listing, ulasan, forum posts, sticky action bar mobile, personalisasi budget |
-| `/chat` | ChatHubPage (realtime DM) | Tidak (login prompt) | ArrowLeft lucide icon |
+| `/chat` | ChatHubPage (realtime DM) | Tidak (login prompt) | ArrowLeft lucide icon; **mobile UX (30 Aug 2026)**: bubble responsif, lightbox foto + download, bottom sheet aksi pesan, auto-link WA, search flash, layout `dvh` tanpa footer + safe-area input |
 | `/forum` | ForumPage | Tidak | hero stats, category pills, sort tabs, search + filter tag via `?tag=` + **filter author via `?author=`** |
 | `/forum/:id` | ForumDetailPage | Tidak | views counter, reactions, poll, best answer, related threads, share |
 | `/property/:id` | PropertyDetailPage | Tidak | **mobile bottom price bar (sticky)**, **spec tiles** (KT/KM/luas/sertifikat), **map card**, harga di sidebar desktop, Properti Serupa, KPR simulator, lightbox gallery, **share → toast sukses/gagal**, **alamat area-only + gate alamat lengkap via kontak agent** |
@@ -287,6 +299,8 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - **Badge unread di top navbar** (`TopNavbar`) + badge di item Chat drawer (perhitungan konsisten via `read_at`)
 - **Typing indicator**, **paginasi** (load older messages), **date separator**, header & bubble UI yang diperhalus, **kartu konteks properti** dalam chat
 - ArrowLeft icon dari lucide-react (bukan custom SVG)
+- **Mobile UX (30 Aug 2026)**: bubble & share-card responsif, lightbox foto fullscreen (Prev/Next + **download blob**), search auto-scroll + **flash highlight** + indikator `X/Y`, bottom action sheet (`⋯` → Balas/Salin/Sematkan/Hapus), auto-link URL & `wa.me` untuk nomor, tombol **Salin** dengan fallback `execCommand`, linkify kompatibel dengan highlight pencarian
+- **Layout mobile (30 Aug 2026)**: tinggi `h-[calc(100dvh-56px)]` (dvh menggantikan vh agar input tidak tenggelam saat URL bar mobile berubah); `<Footer />` tidak dirender di `/chat` (`App.jsx`); area input pakai safe-area padding `pb-[calc(env(safe-area-inset-bottom)+0.75rem)]`
 
 ### 7. Admin Dashboard
 - **5-tab**: Overview (analytics + pending table), **Agen** (review pendaftaran agent eksternal), **Harga** (antrian perubahan harga — AdminPriceChangeQueue), Users (role management via dropdown), Audit Trail (log)
