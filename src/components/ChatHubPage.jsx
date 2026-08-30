@@ -520,6 +520,7 @@ export default function ChatHubPage() {
   const plusMenuRef = useRef(null)
   const pendingImageUrlRef = useRef(null)
   const isAtBottomRef = useRef(true)
+  const loadedContactRef = useRef(null)
 
   const activeContact = contacts.find((c) => c.id === activeContactId) || null
 
@@ -919,11 +920,24 @@ export default function ChatHubPage() {
 
   useEffect(() => {
     const el = messagesScrollRef.current
-    if (!el) return
+    if (!activeContactId || !el || messagesLoading) return
+
+    // Kontak baru dipilih / obrolan pertama dibuka → langsung ke pesan terbaru
+    if (loadedContactRef.current !== activeContactId) {
+      loadedContactRef.current = activeContactId
+      el.scrollTop = el.scrollHeight
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
+      isAtBottomRef.current = true
+      setNewMsgFAB(false)
+      setNewMsgCount(0)
+      return
+    }
+
+    // Pesan masuk real-time → auto-scroll hanya jika posisi sudah dekat bawah
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140
     isAtBottomRef.current = nearBottom
     if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-  }, [messages, activeContactId])
+  }, [messages, activeContactId, messagesLoading])
 
   function handleMessagesScroll() {
     const el = messagesScrollRef.current
