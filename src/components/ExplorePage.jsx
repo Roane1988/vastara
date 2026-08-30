@@ -366,7 +366,7 @@ export default function ExplorePage() {
       if (searchCategory === 'disewa' && p.category !== 'Disewa') return false
       if (searchCategory === 'baru' && !isNewListing(p)) return false
 
-      if (searchText.trim()) {
+      if (searchText.trim() && !isAiSearch) {
         const q = searchText.trim().toLowerCase()
         const haystack = [p.title, p.address, p.location, p.city, p.district, p.description_id]
           .filter(Boolean)
@@ -399,7 +399,7 @@ export default function ExplorePage() {
       if (sortIndex === 1) return normalized(a) - normalized(b)
       return normalized(b) - normalized(a)
     })
-  }, [properties, searchCategory, searchText, filterType, filterBeds, filterPrice, filterPremium, sortIndex, priceBands])
+  }, [properties, searchCategory, searchText, isAiSearch, filterType, filterBeds, filterPrice, filterPremium, sortIndex, priceBands])
 
   const isSearching = hasActiveSearch || isAiSearch
   const isSearchEmpty = isSearching && sorted.length === 0

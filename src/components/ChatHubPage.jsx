@@ -191,7 +191,11 @@ export default function ChatHubPage() {
   const navigate = useNavigate()
   const { session, user, showToast } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
-  const cancelledRef = useRef(false)
+  const contactsCancelledRef = useRef(false)
+  const messagesCancelledRef = useRef(false)
+  const realtimeCancelledRef = useRef(false)
+  const sendMountedRef = useRef(true)
+  useEffect(() => () => { sendMountedRef.current = false }, [])
   const messagesEndRef = useRef(null)
   const messagesScrollRef = useRef(null)
   const inputRef = useRef(null)
@@ -241,7 +245,7 @@ export default function ChatHubPage() {
       return
     }
 
-    cancelledRef.current = false
+    contactsCancelledRef.current = false
 
     async function fetchContacts() {
       try {
@@ -252,7 +256,7 @@ export default function ChatHubPage() {
           .order('created_at', { ascending: false })
           .limit(500)
 
-        if (cancelledRef.current) return
+        if (contactsCancelledRef.current) return
 
         if (msgErr) {
           console.warn('Gagal memuat pesan:', msgErr.message)
@@ -278,7 +282,7 @@ export default function ChatHubPage() {
           .in('role', ['agent', 'developer', 'admin'])
           .neq('id', userId)
 
-        if (cancelledRef.current) return
+        if (contactsCancelledRef.current) return
 
         if (!agentErr && agents) {
           agents.forEach((a) => contactIds.add(a.id))
@@ -286,7 +290,7 @@ export default function ChatHubPage() {
 
         const ids = [...contactIds]
         if (ids.length === 0) {
-          if (!cancelledRef.current) {
+          if (!contactsCancelledRef.current) {
             setContacts([])
             setLoading(false)
           }
@@ -298,7 +302,7 @@ export default function ChatHubPage() {
           .select('id, first_name, role')
           .in('id', ids)
 
-        if (cancelledRef.current) return
+        if (contactsCancelledRef.current) return
 
         if (profErr) {
           console.warn('Gagal memuat profil kontak:', profErr.message)
@@ -320,18 +324,18 @@ export default function ChatHubPage() {
           return (a.first_name || '').localeCompare(b.first_name || '')
         })
 
-        if (!cancelledRef.current) {
+        if (!contactsCancelledRef.current) {
           setContacts(merged)
           setUnreadMap(unreadCounts)
         }
       } catch (err) {
-        if (!cancelledRef.current) console.warn('Gagal memuat kontak:', err.message)
+        if (!contactsCancelledRef.current) console.warn('Gagal memuat kontak:', err.message)
       }
-      if (!cancelledRef.current) setLoading(false)
+      if (!contactsCancelledRef.current) setLoading(false)
     }
 
     fetchContacts()
-    return () => { cancelledRef.current = true }
+    return () => { contactsCancelledRef.current = true }
   }, [userId])
 
   const openUserId = searchParams.get('user')
@@ -374,7 +378,7 @@ export default function ChatHubPage() {
       return
     }
 
-    cancelledRef.current = false
+    messagesCancelledRef.current = false
 
     async function fetchMessages() {
       setMessagesLoading(true)
@@ -388,7 +392,7 @@ export default function ChatHubPage() {
           .order('created_at', { ascending: false })
           .limit(PAGE_SIZE)
 
-        if (cancelledRef.current) return
+        if (messagesCancelledRef.current) return
 
         if (error) {
           console.warn('Gagal memuat pesan:', error.message)
@@ -397,13 +401,13 @@ export default function ChatHubPage() {
           setHasMore(data.length === PAGE_SIZE)
         }
       } catch (err) {
-        if (!cancelledRef.current) console.warn('Gagal memuat pesan:', err.message)
+        if (!messagesCancelledRef.current) console.warn('Gagal memuat pesan:', err.message)
       }
-      if (!cancelledRef.current) setMessagesLoading(false)
+      if (!messagesCancelledRef.current) setMessagesLoading(false)
     }
 
     fetchMessages()
-    return () => { cancelledRef.current = true }
+    return () => { messagesCancelledRef.current = true }
   }, [activeContactId, userId])
 
   async function loadEarlier() {
@@ -419,6 +423,7 @@ export default function ChatHubPage() {
         .lt('created_at', messages[0].created_at)
         .order('created_at', { ascending: false })
         .limit(PAGE_SIZE)
+      if (messagesCancelledRef.current) return
       if (error) {
         console.warn('Gagal memuat pesan sebelumnya:', error.message)
       } else if (data) {
@@ -426,9 +431,9 @@ export default function ChatHubPage() {
         setHasMore(data.length === PAGE_SIZE)
       }
     } catch (err) {
-      console.warn('Gagal memuat pesan sebelumnya:', err.message)
+      if (!messagesCancelledRef.current) console.warn('Gagal memuat pesan sebelumnya:', err.message)
     }
-    setLoadingEarlier(false)
+    if (!messagesCancelledRef.current) setLoadingEarlier(false)
   }
 
   useEffect(() => {
@@ -473,6 +478,7 @@ export default function ChatHubPage() {
 
   useEffect(() => {
     if (!userId) return
+    realtimeCancelledRef.current = false
 
     const channel = supabase
       .channel(`direct-messages-${userId}`)
@@ -485,7 +491,7 @@ export default function ChatHubPage() {
           filter: `or(sender_id.eq.${userId},receiver_id.eq.${userId})`,
         },
         (payload) => {
-          if (cancelledRef.current) return
+          if (realtimeCancelledRef.current) return
           const msg = payload.new
           const otherId = getOtherId(msg, userId)
 
@@ -515,7 +521,7 @@ export default function ChatHubPage() {
             const existingIds = new Set(prev.map(c => c.id))
             if (!existingIds.has(otherId)) {
               supabase.from('profiles').select('id, first_name, role').eq('id', otherId).single().then(({ data }) => {
-                if (data && !cancelledRef.current) {
+                if (data && !realtimeCancelledRef.current) {
                   setContacts(p => {
                     if (p.some(c => c.id === data.id)) return p
                     return [{ ...data, last_message: msg.content, last_message_at: msg.created_at }, ...p]
@@ -536,7 +542,7 @@ export default function ChatHubPage() {
           filter: `or(sender_id.eq.${userId},receiver_id.eq.${userId})`,
         },
         (payload) => {
-          if (cancelledRef.current) return
+          if (realtimeCancelledRef.current) return
           const msg = payload.new
           setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, read_at: msg.read_at } : m)))
         }
@@ -544,6 +550,7 @@ export default function ChatHubPage() {
       .subscribe()
 
     return () => {
+      realtimeCancelledRef.current = true
       supabase.removeChannel(channel)
     }
   }, [userId, activeContactId, showToast])
@@ -592,7 +599,7 @@ export default function ChatHubPage() {
         content: text,
       }).select()
 
-      if (cancelledRef.current) return
+      if (!sendMountedRef.current) return
 
       if (error) {
         showToast(error.message, 'error')
@@ -601,12 +608,13 @@ export default function ChatHubPage() {
         setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
       }
     } catch (err) {
-      if (!cancelledRef.current) {
+      if (sendMountedRef.current) {
         showToast(err.message || 'Gagal mengirim pesan', 'error')
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       }
+    } finally {
+      if (sendMountedRef.current) setSending(false)
     }
-    if (!cancelledRef.current) setSending(false)
   }
 
   function handleInputChange(e) {
@@ -669,6 +677,7 @@ export default function ChatHubPage() {
   useEffect(() => {
     if (!showNewChat) return
     let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAllUsersLoading(true)
     async function loadUsers() {
       try {

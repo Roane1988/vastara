@@ -578,6 +578,7 @@ export default function SellPropertyPage() {
       const normalizeWa = (raw) => {
         let digits = String(raw || '').replace(/\D/g, '')
         if (digits.startsWith('0')) digits = '62' + digits.slice(1)
+        else if (digits.startsWith('8')) digits = '628' + digits.slice(1)
         if (digits.startsWith('620')) digits = '62' + digits.slice(2)
         return digits
       }

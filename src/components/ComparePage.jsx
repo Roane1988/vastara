@@ -98,15 +98,48 @@ export default function ComparePage() {
     const ids = raw.split(',').map((s) => s.trim()).filter(Boolean)
     setSearchParams({}, { replace: true })
     if (ids.length === 0) return
+    let cancelled = false
     ;(async () => {
-      const { data } = await supabase
-        .from('properties')
-        .select('id, title, price, image_url, category, price_period')
-        .in('id', ids)
-      if (!data || data.length === 0) return
-      data.forEach((p) => addToCompare(p))
+      let data = []
+      try {
+        const res = await supabase
+          .from('properties')
+          .select('id, title, price, image_url, category, price_period')
+          .in('id', ids)
+        data = res?.data || []
+      } catch {
+        if (!cancelled) showToast('Gagal memuat tautan perbandingan.', 'error')
+        return
+      }
+      if (cancelled || data.length === 0) return
+
+      let typeReplaced = false
+      let maxHit = false
+      data.forEach((p) => {
+        const result = addToCompare(p)
+        if (result === 'type_mismatch') {
+          typeReplaced = true
+          clearCompare()
+          data.forEach((q) => {
+            const r2 = addToCompare(q)
+            if (r2 === 'max') maxHit = true
+          })
+        } else if (result === 'max') {
+          maxHit = true
+        }
+      })
+
+      setTimeout(() => {
+        if (typeReplaced) {
+          showToast('Daftar perbandingan diganti agar sesuai dengan jenis properti pada tautan.', 'info')
+        }
+        if (maxHit) {
+          showToast(`Daftar perbandingan sudah penuh (maksimal ${MAX_ITEMS}).`, 'error')
+        }
+      }, 0)
     })()
-  }, [searchParams, setSearchParams, addToCompare])
+    return () => { cancelled = true }
+  }, [searchParams, setSearchParams, addToCompare, clearCompare, showToast])
 
   const shareCompare = async () => {
     const ids = fullData.map((p) => p.id)
