@@ -459,7 +459,7 @@ export default function ChatHubPage() {
   const sendMountedRef = useRef(true)
   useEffect(() => () => { sendMountedRef.current = false }, [])
   const messagesEndRef = useRef(null)
-  const messagesScrollRef = useRef(null)
+  const messagesContainerRef = useRef(null)
   const inputRef = useRef(null)
   const contactsRef = useRef([])
 
@@ -918,18 +918,33 @@ export default function ChatHubPage() {
     }
   }, [userId, activeContactId, showToast])
 
-  useEffect(() => {
-    const el = messagesScrollRef.current
-    if (!activeContactId || !el || messagesLoading) return
-
-    // Kontak baru dipilih / obrolan pertama dibuka → langsung ke pesan terbaru
-    if (loadedContactRef.current !== activeContactId) {
-      loadedContactRef.current = activeContactId
-      el.scrollTop = el.scrollHeight
+  function scrollToLatest() {
+    const applyScroll = () => {
+      const container = messagesContainerRef.current
+      if (container) {
+        container.scrollTop = container.scrollHeight
+        container.scrollTop = container.scrollHeight
+      }
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
       isAtBottomRef.current = true
       setNewMsgFAB(false)
       setNewMsgCount(0)
+    }
+    // Pastikan DOM selesai merender (bubble, gambar) sebelum scroll dipicu
+    requestAnimationFrame(() => requestAnimationFrame(applyScroll))
+    setTimeout(() => {
+      if (isAtBottomRef.current) applyScroll()
+    }, 100)
+  }
+
+  useEffect(() => {
+    const el = messagesContainerRef.current
+    if (!activeContactId || !el || messagesLoading) return
+
+    // Kontak baru dipilih / obrolan pertama dibuka → paksa ke pesan terbaru
+    if (loadedContactRef.current !== activeContactId) {
+      loadedContactRef.current = activeContactId
+      scrollToLatest()
       return
     }
 
@@ -940,7 +955,7 @@ export default function ChatHubPage() {
   }, [messages, activeContactId, messagesLoading])
 
   function handleMessagesScroll() {
-    const el = messagesScrollRef.current
+    const el = messagesContainerRef.current
     if (!el) return
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60
     isAtBottomRef.current = nearBottom
@@ -951,7 +966,7 @@ export default function ChatHubPage() {
   }
 
   function scrollToBottom() {
-    const el = messagesScrollRef.current
+    const el = messagesContainerRef.current
     if (!el) return
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
     isAtBottomRef.current = true
@@ -1659,7 +1674,7 @@ export default function ChatHubPage() {
 
               {/* Messages */}
               <div className="relative flex-1 min-h-0">
-              <div ref={messagesScrollRef} onScroll={handleMessagesScroll} className="h-full overflow-y-auto py-2">
+              <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="h-full overflow-y-auto py-2">
                 {messagesLoading ? (
                   <div className="px-4 space-y-4 py-4">
                     <div className="flex justify-start">
