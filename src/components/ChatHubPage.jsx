@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, Paperclip, Pin, PinOff, Download } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import { compressImage } from '../utils/imageCompression'
 
@@ -138,9 +138,9 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick }) {
+function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive }) {
   return (
-    <div className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
+    <div id={`message-${message.id}`} className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
         <div className="w-7 shrink-0 mr-2 self-end flex justify-center">
           {lastInGroup && (
@@ -159,7 +159,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
             isOwn
               ? 'bg-gradient-to-br from-brand-primary to-[#2f6690] text-white rounded-br-md'
               : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
-          }`}>
+          } ${isSearchActive ? 'ring-2 ring-brand-accent' : ''}`}>
             {repliedMessage && (
               <div className={`mb-1.5 mt-0.5 rounded-lg px-2 py-1 ${isOwn ? 'bg-white/15' : 'bg-brand-bg'}`}>
                 <p className={`text-[10px] font-bold ${isOwn ? 'text-white/80' : 'text-brand-accent'} truncate`}>
@@ -428,6 +428,7 @@ export default function ChatHubPage() {
   const [newMsgCount, setNewMsgCount] = useState(0)
   const [chatSearchOpen, setChatSearchOpen] = useState(false)
   const [chatSearchQ, setChatSearchQ] = useState('')
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0)
   const [connected, setConnected] = useState(false)
   const [otherTypingContacts, setOtherTypingContacts] = useState({})
   const [onlineIds, setOnlineIds] = useState({})
@@ -438,6 +439,10 @@ export default function ChatHubPage() {
   const isAtBottomRef = useRef(true)
 
   const activeContact = contacts.find((c) => c.id === activeContactId) || null
+
+  const searchMatches = chatSearchQ.trim() && activeContactId
+    ? messages.filter((m) => m.content && m.content.toLowerCase().includes(chatSearchQ.trim().toLowerCase()))
+    : []
 
   useEffect(() => {
     contactsRef.current = contacts
@@ -880,6 +885,15 @@ export default function ChatHubPage() {
   }, [selectedImage])
 
   useEffect(() => {
+    if (searchMatches.length === 0 || !chatSearchQ.trim()) return
+    const activeMatch = searchMatches[Math.min(currentSearchIndex, searchMatches.length - 1)]
+    if (!activeMatch) return
+    const el = document.getElementById(`message-${activeMatch.id}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatSearchQ, currentSearchIndex])
+
+  useEffect(() => {
     if (!showPropertyPicker) return
     let cancelled = false
     const q = propertySearch.trim()
@@ -1069,6 +1083,16 @@ export default function ChatHubPage() {
     } finally {
       setDownloading(false)
     }
+  }
+
+  function goToPrevSearchMatch() {
+    if (searchMatches.length < 2) return
+    setCurrentSearchIndex((prev) => (prev - 1 + searchMatches.length) % searchMatches.length)
+  }
+
+  function goToNextSearchMatch() {
+    if (searchMatches.length < 2) return
+    setCurrentSearchIndex((prev) => (prev + 1) % searchMatches.length)
   }
 
   async function handleSend(e) {
@@ -1579,6 +1603,7 @@ export default function ChatHubPage() {
                             onPin={handleTogglePin}
                             isPinned={!!pinnedMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
                             onImageClick={setSelectedImage}
+                            isSearchActive={msg.id === searchMatches[currentSearchIndex]?.id}
                           />
                         </div>
                       )
@@ -1608,11 +1633,37 @@ export default function ChatHubPage() {
                     <input
                       type="text"
                       value={chatSearchQ}
-                      onChange={(e) => setChatSearchQ(e.target.value)}
+                      onChange={(e) => { setChatSearchQ(e.target.value); setCurrentSearchIndex(0) }}
                       placeholder="Cari di riwayat..."
                       className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
                     />
-                    <span className="text-[10px] text-brand-muted">{messages.filter(m => m.content && m.content.toLowerCase().includes(chatSearchQ.trim().toLowerCase())).length} hasil</span>
+                    <span className="text-[10px] text-brand-muted shrink-0">
+                      {chatSearchQ.trim() ? (
+                        searchMatches.length > 0
+                          ? `${Math.min(currentSearchIndex, searchMatches.length - 1) + 1}/${searchMatches.length}`
+                          : '0 hasil'
+                      ) : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={goToPrevSearchMatch}
+                      disabled={searchMatches.length < 2}
+                      aria-label="Hasil sebelumnya"
+                      title="Hasil sebelumnya"
+                      className="shrink-0 p-1 rounded-md text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goToNextSearchMatch}
+                      disabled={searchMatches.length < 2}
+                      aria-label="Hasil berikutnya"
+                      title="Hasil berikutnya"
+                      className="shrink-0 p-1 rounded-md text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                    >
+                      <ChevronDown size={14} />
+                    </button>
                   </div>
                 </div>
               )}
