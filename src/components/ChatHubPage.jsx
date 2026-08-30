@@ -132,7 +132,7 @@ function PropertyMessage({ propertyId }) {
 
 function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight }) {
   return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
+    <div className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
         <div className="w-7 shrink-0 mr-2 self-end flex justify-center">
           {lastInGroup && (
@@ -805,6 +805,13 @@ export default function ChatHubPage() {
     return () => { cancelled = true; clearTimeout(t) }
   }, [propertySearch, showPropertyPicker])
 
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 132)}px`
+  }, [inputValue])
+
   function handleSelectContact(contactId) {
     setActiveContactId(contactId)
     setShowMobileList(false)
@@ -1402,13 +1409,19 @@ export default function ChatHubPage() {
                       )}
                     </div>
                   )}
-                  <input
+                  <textarea
                     ref={inputRef}
-                    type="text"
+                    rows={1}
                     value={inputValue}
                     onChange={handleInputChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleSend(e)
+                      }
+                    }}
                     placeholder="Tulis pesan..."
-                    className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted"
+                    className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted resize-none overflow-y-auto leading-snug"
                     disabled={sending}
                   />
                 </div>
