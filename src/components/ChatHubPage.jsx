@@ -111,18 +111,18 @@ function PropertyMessage({ propertyId }) {
   if (!prop && !err) return <div className="w-full h-20 animate-pulse rounded-xl" />
   if (err || !prop) return <p className="text-xs text-brand-muted italic">Properti tidak tersedia</p>
   return (
-    <Link to={`/property/${prop.id}`} className="block mt-1.5 overflow-hidden rounded-xl bg-white border border-brand-border/70 shadow-sm hover:shadow-md transition-shadow group">
-      <div className="flex items-center gap-3 p-2.5">
+    <Link to={`/property/${prop.id}`} className="block mt-1.5 w-full overflow-hidden rounded-xl bg-white border border-brand-border/70 shadow-sm hover:shadow-md transition-shadow group">
+      <div className="flex items-center gap-3 p-2.5 min-w-0">
         {prop.image_url ? (
-          <img src={getImageSrc(prop.image_url)} alt={prop.title} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+          <img src={getImageSrc(prop.image_url)} alt={prop.title} className="w-full h-auto max-w-[48px] aspect-square rounded-lg object-cover shrink-0" />
         ) : (
           <div className="w-12 h-12 rounded-lg bg-brand-bg flex items-center justify-center shrink-0">
             <Building2 size={18} className="text-brand-muted" />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-brand-text truncate group-hover:text-brand-accent transition-colors">{prop.title || 'Properti'}</p>
-          <p className="text-[10px] text-brand-muted truncate">{prop.city || 'Indonesia'}</p>
+          <p className="text-xs font-bold text-brand-text break-words line-clamp-2 group-hover:text-brand-accent transition-colors">{prop.title || 'Properti'}</p>
+          <p className="text-[10px] text-brand-muted break-words line-clamp-1">{prop.city || 'Indonesia'}</p>
           <p className="text-[11px] font-bold text-brand-primary mt-0.5">{Number(prop.price) > 0 ? formatPriceDisplay(prop) : 'Harga Hubungi'}</p>
         </div>
       </div>
@@ -145,9 +145,9 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
           )}
         </div>
       )}
-      <div className="relative max-w-[80%] sm:max-w-[70%] group/message">
+      <div className="relative w-full max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] overflow-hidden group/message">
         <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-          <div className={`relative rounded-2xl px-4 py-2.5 shadow-sm ${
+          <div className={`relative rounded-2xl px-4 py-2.5 shadow-sm min-w-0 max-w-full overflow-hidden ${
             isOwn
               ? 'bg-gradient-to-br from-brand-primary to-[#2f6690] text-white rounded-br-md'
               : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
@@ -164,7 +164,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
             )}
             {message.property_id && <PropertyMessage propertyId={message.property_id} />}
             {message.image_url && (
-              <img src={message.image_url} alt="Lampiran" className="mt-1 max-h-60 w-full object-cover rounded-xl" />
+              <img src={message.image_url} alt="Lampiran" className="mt-1 w-full h-auto max-h-72 object-cover rounded-xl" />
             )}
             {message.content && (
               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">
