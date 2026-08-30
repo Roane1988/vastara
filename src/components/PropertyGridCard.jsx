@@ -26,7 +26,7 @@ export default function PropertyGridCard({ p, getTranslated = null, maxRent = 0,
   const { showToast } = useAuth()
   const { t } = useTranslation()
   const [saved, setSaved] = useState(getFavorites())
-  const { compareSet, toggleCompare } = useCompare(showToast)
+  const { compareSet, toggleCompare } = useCompare()
 
   const drop = p.original_price && Number(p.original_price) > Number(p.price)
   const isRent = isRentalProperty(p)

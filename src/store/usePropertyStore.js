@@ -49,6 +49,7 @@ export const usePropertyStore = create(
     (set, get) => ({
       compareList: [],
       recentlyViewed: [],
+      compareNotice: null,
 
       addToCompare: (property) => {
         if (!property?.id) return 'invalid'
@@ -70,6 +71,10 @@ export const usePropertyStore = create(
 
       clearCompare: () => set({ compareList: [] }),
 
+      setCompareNotice: (notice) => set({ compareNotice: notice }),
+
+      clearCompareNotice: () => set({ compareNotice: null }),
+
       isInCompare: (propertyId) => get().compareList.some((p) => p.id === propertyId),
 
       addRecentlyViewed: (property) => {
@@ -89,6 +94,10 @@ export const usePropertyStore = create(
     {
       name: STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        compareList: state.compareList,
+        recentlyViewed: state.recentlyViewed,
+      }),
       merge: (persisted, current) => {
         if (!persisted) {
           const merged = { ...current }

@@ -88,7 +88,7 @@ export default function ExplorePage() {
   const [showFinBanner, setShowFinBanner] = useState(false)
   const [finProfile, setFinProfile] = useState(null)
   const [stickySearch, setStickySearch] = useState(false)
-  const { compareSet, toggleCompare } = useCompare(showToast)
+  const { compareSet, toggleCompare } = useCompare()
   const { totalNew } = useSavedSearchAlerts()
   const [ctaOpen, setCtaOpen] = useState(false)
 

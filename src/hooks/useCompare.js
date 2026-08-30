@@ -1,12 +1,11 @@
 import { useCallback, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { usePropertyStore, MAX_ITEMS } from '../store/usePropertyStore'
+import { usePropertyStore } from '../store/usePropertyStore'
 
-export function useCompare(showToast) {
-  const { t } = useTranslation()
+export function useCompare() {
   const compareList = usePropertyStore((s) => s.compareList)
   const addToCompare = usePropertyStore((s) => s.addToCompare)
   const removeFromCompare = usePropertyStore((s) => s.removeFromCompare)
+  const setCompareNotice = usePropertyStore((s) => s.setCompareNotice)
 
   const compareSet = useMemo(() => new Set(compareList.map(p => p.id)), [compareList])
 
@@ -16,12 +15,10 @@ export function useCompare(showToast) {
       return
     }
     const result = addToCompare(property)
-    if (result === 'max') {
-      showToast?.(t('compare.toast_max', { max: MAX_ITEMS }), 'error')
-    } else if (result === 'type_mismatch') {
-      showToast?.(t('compare.toast_type_mismatch'), 'error')
+    if (result === 'max' || result === 'type_mismatch') {
+      setCompareNotice(result)
     }
-  }, [compareSet, addToCompare, removeFromCompare, showToast, t])
+  }, [compareSet, addToCompare, removeFromCompare, setCompareNotice])
 
   return { compareSet, toggleCompare }
 }
