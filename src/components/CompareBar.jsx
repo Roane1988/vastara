@@ -23,7 +23,7 @@ export default function CompareBar() {
   if (items.length === 0) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40">
+    <div className="fixed bottom-0 left-0 right-0 z-[60]">
       {compareNotice && (
         <div className="max-w-7xl mx-auto px-4 mb-2 animate-fadeIn">
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 border border-red-500/40 text-red-700 shadow-sm">

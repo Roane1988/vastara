@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useDragControls } from 'framer-motion'
-import { Home, Map, Building2, Store, Briefcase, Warehouse, ShoppingBag, Factory, Hotel, BedDouble, TreePine, BellRing, Megaphone, Users, MessageCircle, LayoutGrid, List, ChevronRight } from 'lucide-react'
+import { Home, Map, Building2, Store, Briefcase, TreePine, BellRing, Megaphone, Users, MessageCircle, LayoutGrid, List, ChevronRight } from 'lucide-react'
 
 const TOP_SERVICES = [
   { label: 'Iklankan Properti', icon: Megaphone, path: '/sell-role' },
@@ -18,17 +18,17 @@ const SECTIONS = [
       { label: 'Apartemen', icon: Building2, description: 'Hunian vertikal di pusat kota', to: '/explore?category=dijual&type=Apartemen' },
       { label: 'Ruko', icon: Store, description: 'Ruang niaga untuk bisnismu', to: '/explore?category=dijual&type=Ruko' },
       { label: 'Perkantoran', icon: Briefcase, description: 'Kantor strategis untuk perusahaan', to: '/explore?category=dijual&type=Kantor' },
-      { label: 'Gudang', icon: Warehouse, description: 'Ruang simpan luas & aman', to: '/explore?category=dijual&type=Gudang' },
+      { label: 'Villa', icon: TreePine, description: 'Hunian eksklusif untuk tinggal atau investasi', to: '/explore?category=dijual&type=Villa' },
     ],
   },
   {
     title: 'Cari Properti Disewa',
     items: [
-      { label: 'Ruang Usaha', icon: ShoppingBag, description: 'Sewa tempat untuk mulai bisnis', to: '/explore?category=disewa&type=Ruang Usaha' },
-      { label: 'Pabrik', icon: Factory, description: 'Lokasi produksi skala besar', to: '/explore?category=disewa&type=Pabrik' },
-      { label: 'Hotel', icon: Hotel, description: 'Kelola & sewa akomodasi', to: '/explore?category=disewa&type=Hotel', isNew: true },
-      { label: 'Kost', icon: BedDouble, description: 'Kamar sewa dengan harga ramah', to: '/explore?category=disewa&type=Kost', isNew: true },
-      { label: 'Villa', icon: TreePine, description: 'Liburan nyaman jauh dari kota', to: '/explore?category=disewa&type=Villa', isNew: true },
+      { label: 'Rumah', icon: Home, description: 'Rumah sewa untuk keluarga', to: '/explore?category=disewa&type=Rumah' },
+      { label: 'Apartemen', icon: Building2, description: 'Hunian vertikal di pusat kota', to: '/explore?category=disewa&type=Apartemen' },
+      { label: 'Ruko', icon: Store, description: 'Sewa ruang niaga untuk bisnismu', to: '/explore?category=disewa&type=Ruko' },
+      { label: 'Kantor', icon: Briefcase, description: 'Ruang perkantoran strategis', to: '/explore?category=disewa&type=Kantor' },
+      { label: 'Villa', icon: TreePine, description: 'Liburan nyaman jauh dari kota', to: '/explore?category=disewa&type=Villa' },
     ],
   },
   {

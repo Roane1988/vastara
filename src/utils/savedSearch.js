@@ -1,3 +1,5 @@
+import { estimateMonthlyRent } from './financialProfile'
+
 export function serializeFilters({ searchCategory, searchText, filterType, filterPrice, filterBeds, filterPremium }) {
   const f = {}
   if (searchCategory) f.category = searchCategory
@@ -54,11 +56,18 @@ export function matchesFilters(p, filters = {}) {
 
   const isRent = p.category === 'Disewa' || p.typeLabel === 'Disewa'
 
-  if (f.price && !isRent) {
-    const price = Number(p.price) || 0
-    if (f.price === '0-1M' && price >= 1_000_000_000) return false
-    if (f.price === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false
-    if (f.price === '3M+' && price <= 3_000_000_000) return false
+  if (f.price) {
+    if (isRent) {
+      const rent = estimateMonthlyRent(p)
+      if (f.price === '0-1jt' && rent >= 1_000_000) return false
+      if (f.price === '1-3jt' && (rent < 1_000_000 || rent >= 3_000_000)) return false
+      if (f.price === '3jt+' && rent < 3_000_000) return false
+    } else {
+      const price = Number(p.price) || 0
+      if (f.price === '0-1M' && price >= 1_000_000_000) return false
+      if (f.price === '1-3M' && (price < 1_000_000_000 || price > 3_000_000_000)) return false
+      if (f.price === '3M+' && price <= 3_000_000_000) return false
+    }
   }
 
   return true
@@ -86,6 +95,9 @@ export function describeFilters(filters = {}, t) {
     '0-1M': t('explore.filter.price_options.under_1b'),
     '1-3M': t('explore.filter.price_options.one_to_3b'),
     '3M+': t('explore.filter.price_options.above_3b'),
+    '0-1jt': t('explore.filter.price_options.rent_under_1jt'),
+    '1-3jt': t('explore.filter.price_options.rent_1_3jt'),
+    '3jt+': t('explore.filter.price_options.rent_above_3jt'),
   }
   if (f.price && priceLabels[f.price]) chips.push(priceLabels[f.price])
 

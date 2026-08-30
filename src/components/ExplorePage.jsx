@@ -80,6 +80,8 @@ export default function ExplorePage() {
   const [savingSearch, setSavingSearch] = useState(false)
   const [savedSearchOk, setSavedSearchOk] = useState(false)
   const cancelledRef = useRef(false)
+  const allPropertiesRef = useRef([])
+  const aiModeRef = useRef(false)
   const aiSearchRequestRef = useRef(0)
   const listingRef = useRef(null)
   const searchInputRef = useRef(null)
@@ -130,6 +132,7 @@ export default function ExplorePage() {
       if (cancelledRef.current) return
 
       if (!error && data) {
+        allPropertiesRef.current = data
         setProperties(data)
       } else if (error) {
         if (cancelledRef.current) return
@@ -152,26 +155,30 @@ export default function ExplorePage() {
   }, [])
 
   useEffect(() => {
+    aiModeRef.current = isAiSearch
+  }, [isAiSearch])
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search)
-    let changed = false
-    const setIf = (v) => v && v.length > 0
-    const q = params.get('q')
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (setIf(q)) { setSearchText(q); changed = true }
-    const type = params.get('type')
-    if (setIf(type)) { setFilterType(type); changed = true }
-    const price = params.get('price')
-    if (setIf(price)) { setFilterPrice(price); changed = true }
-    const beds = params.get('beds')
-    if (setIf(beds)) { setFilterBeds(beds); changed = true }
-    if (params.get('premium')) { setFilterPremium(true); changed = true }
-    const category = params.get('category')
-    if (category === 'dijual' || category === 'disewa' || category === 'baru') {
-      setSearchCategory(category)
-      changed = true
+    const read = (key) => {
+      const v = params.get(key)
+      return v && v.length > 0 ? v : ''
     }
+    const category = params.get('category')
+    const hadParams = params.toString() !== ''
+
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setSearchText(read('q'))
+    setFilterType(read('type'))
+    setFilterPrice(read('price'))
+    setFilterBeds(read('beds'))
+    setFilterPremium(!!params.get('premium'))
+    setSearchCategory(category === 'dijual' || category === 'disewa' || category === 'baru' ? category : 'dijual')
+    if (aiModeRef.current) setProperties(allPropertiesRef.current || [])
+    setIsAiSearch(false)
     /* eslint-enable react-hooks/set-state-in-effect */
-    if (changed) {
+
+    if (hadParams) {
       setTimeout(() => scrollToSearch({ focus: false }), 300)
     }
   }, [location.search])
@@ -276,6 +283,15 @@ export default function ExplorePage() {
     searchInputRef.current?.blur()
   }
 
+  function handleSearchTextChange(value) {
+    setSearchText(value)
+    if (aiModeRef.current) {
+      aiModeRef.current = false
+      setIsAiSearch(false)
+      setProperties(allPropertiesRef.current || [])
+    }
+  }
+
   function scrollToSearch({ focus = true } = {}) {
     const el = searchCardRef.current
     const top = el?.getBoundingClientRect().top ?? 0
@@ -286,6 +302,7 @@ export default function ExplorePage() {
   }
 
   function resetAllSearch() {
+    aiModeRef.current = false
     setIsAiSearch(false)
     setSearchText('')
     setFilterType('')
@@ -295,6 +312,7 @@ export default function ExplorePage() {
     setProperties([])
     fetchProperties().catch(() => {})
     searchInputRef.current?.focus()
+    if (location.search) navigate(location.pathname, { replace: true })
   }
 
   async function handleSaveSearch() {
@@ -577,7 +595,7 @@ export default function ExplorePage() {
                 ref={searchInputRef}
                 type="text"
                 value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={(e) => handleSearchTextChange(e.target.value)}
                 placeholder={
                   searchCategory === 'dijual'
                     ? t('explore.search.placeholder_sale')
@@ -591,7 +609,7 @@ export default function ExplorePage() {
               {searchText.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => { setSearchText(''); searchInputRef.current?.focus() }}
+                  onClick={() => { handleSearchTextChange(''); searchInputRef.current?.focus() }}
                   className="shrink-0 text-brand-muted/60 hover:text-brand-text transition-colors p-1"
                   aria-label="Hapus pencarian"
                 >
