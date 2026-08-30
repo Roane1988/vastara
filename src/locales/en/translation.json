@@ -220,6 +220,8 @@
   "login": {
     "title": "Sign in to your account",
     "error_title": "Sign in failed",
+    "error_title_signup": "Sign up failed",
+    "error_generic": "Something went wrong. Please try again.",
     "subtitle": "trusted property platform",
     "email_label": "Email",
     "email_placeholder": "Email",

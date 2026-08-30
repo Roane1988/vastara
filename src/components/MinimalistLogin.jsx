@@ -9,6 +9,12 @@ import FormErrorSummary from './FormErrorSummary'
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
 
+function toErrorMessage(err) {
+  if (typeof err === 'string') return err
+  if (err && typeof err.message === 'string' && err.message.trim()) return err.message
+  return ''
+}
+
 function EyeIcon({ visible }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -64,6 +70,8 @@ export default function MinimalistLogin({ onLoginSuccess }) {
   const [passwordError, setPasswordError] = useState('')
   const [confirmError, setConfirmError] = useState('')
   const [waError, setWaError] = useState('')
+
+  const errorTitle = isLogin ? t('login.error_title') : t('login.error_title_signup')
 
   function validatePassword(value) {
     if (value && !PASSWORD_REGEX.test(value)) {
@@ -145,19 +153,22 @@ export default function MinimalistLogin({ onLoginSuccess }) {
       }
 
       onLoginSuccess?.()
+    } catch (err) {
+      handleAuthError(err)
     } finally {
       setLoading(false)
     }
   }
 
-  function handleAuthError(authError) {
-    if (isRateLimitError(authError)) {
-      const message = t('login.too_many_attempts')
-      showToast(message, 'error')
-      setError(message)
+  function handleAuthError(err) {
+    const message = toErrorMessage(err) || t('login.error_generic')
+    if (isRateLimitError(err)) {
+      const rateMsg = t('login.too_many_attempts')
+      showToast(rateMsg, 'error')
+      setError(rateMsg)
       return
     }
-    setError(authError.message)
+    setError(message)
   }
 
   const loadingBtnClass = loading
@@ -181,7 +192,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
             </h2>
 
             <form onSubmit={handleAuth} noValidate className="space-y-5">
-              {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
+              {error && <FormErrorSummary errors={[error]} title={errorTitle} />}
 
               <div>
                 <label htmlFor="email" className="sr-only">{t('login.email_label')}</label>
@@ -277,7 +288,7 @@ export default function MinimalistLogin({ onLoginSuccess }) {
             </div>
 
             <form onSubmit={handleAuth} noValidate className="space-y-4">
-              {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
+              {error && <FormErrorSummary errors={[error]} title={errorTitle} />}
 
               <div>
                 <label htmlFor="firstName" className="text-xs font-medium text-brand-muted mb-1.5 block">

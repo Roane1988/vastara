@@ -22,7 +22,17 @@ export default function FormErrorSummary({
   variant = 'error',
   icon: Icon = AlertCircle,
 }) {
-  const list = Array.isArray(errors) ? errors.filter(Boolean) : []
+  const list = Array.isArray(errors)
+    ? errors
+        .filter(Boolean)
+        .map((msg) =>
+          typeof msg === 'string'
+            ? msg
+            : typeof msg?.message === 'string'
+              ? msg.message
+              : JSON.stringify(msg?.message ?? msg)
+        )
+    : []
   if (list.length === 0) return null
 
   const s = VARIANT_STYLES[variant] || VARIANT_STYLES.error

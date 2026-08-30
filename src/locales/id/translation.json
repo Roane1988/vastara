@@ -220,6 +220,8 @@
   "login": {
     "title": "Masuk ke akun Anda",
     "error_title": "Gagal masuk",
+    "error_title_signup": "Gagal mendaftar",
+    "error_generic": "Terjadi kesalahan. Silakan coba lagi.",
     "subtitle": "platform properti terpercaya",
     "email_label": "Email",
     "email_placeholder": "Email",
