@@ -27,6 +27,14 @@ function dayLabel(ts) {
   }
 }
 
+function getDownloadFileName(url) {
+  try {
+    const path = new URL(url).pathname.split('/').pop()
+    if (path) return decodeURIComponent(path)
+  } catch { /* fallback below */ }
+  return 'gambar-hunione.jpg'
+}
+
 function DateSeparator({ date }) {
   return (
     <div className="flex items-center justify-center my-4 px-4">
@@ -130,7 +138,7 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned }) {
+function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick }) {
   return (
     <div className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -164,7 +172,12 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
             )}
             {message.property_id && <PropertyMessage propertyId={message.property_id} />}
             {message.image_url && (
-              <img src={message.image_url} alt="Lampiran" className="mt-1 w-full h-auto max-h-72 object-cover rounded-xl" />
+              <img
+                src={message.image_url}
+                alt="Lampiran"
+                onClick={() => onImageClick?.(message.image_url)}
+                className="mt-1 w-full h-auto max-h-72 object-cover rounded-xl cursor-pointer"
+              />
             )}
             {message.content && (
               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">
@@ -401,6 +414,8 @@ export default function ChatHubPage() {
   const [pendingImage, setPendingImage] = useState(null)
   const [pendingImageUrl, setPendingImageUrl] = useState(null)
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [downloading, setDownloading] = useState(false)
   const [caption, setCaption] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
   const [shareProperty, setShareProperty] = useState(null)
@@ -858,6 +873,13 @@ export default function ChatHubPage() {
   }, [plusMenuOpen])
 
   useEffect(() => {
+    if (!selectedImage) return
+    const onKey = (e) => { if (e.key === 'Escape') setSelectedImage(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [selectedImage])
+
+  useEffect(() => {
     if (!showPropertyPicker) return
     let cancelled = false
     const q = propertySearch.trim()
@@ -1025,6 +1047,28 @@ export default function ChatHubPage() {
     setShowPropertyPicker(false)
     setPlusMenuOpen(false)
     inputRef.current?.focus()
+  }
+
+  async function handleDownload() {
+    if (!selectedImage || downloading) return
+    setDownloading(true)
+    try {
+      const res = await fetch(selectedImage)
+      if (!res.ok) throw new Error('Gagal mengambil gambar')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = getDownloadFileName(selectedImage)
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      showToast('Gagal mengunduh gambar: ' + (err.message || 'coba lagi'), 'error')
+    } finally {
+      setDownloading(false)
+    }
   }
 
   async function handleSend(e) {
@@ -1534,6 +1578,7 @@ export default function ChatHubPage() {
                             highlight={chatSearchQ}
                             onPin={handleTogglePin}
                             isPinned={!!pinnedMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
+                            onImageClick={setSelectedImage}
                           />
                         </div>
                       )
@@ -1861,6 +1906,44 @@ export default function ChatHubPage() {
           </div>
         </div>
       </>
+    )}
+
+    {selectedImage && (
+      <div
+        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center animate-fadeIn"
+        onClick={() => setSelectedImage(null)}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Pratinjau gambar"
+      >
+        <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleDownload() }}
+            disabled={downloading}
+            aria-label="Unduh gambar"
+            title="Unduh gambar"
+            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors disabled:opacity-50"
+          >
+            {downloading ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setSelectedImage(null) }}
+            aria-label="Tutup"
+            title="Tutup"
+            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+          >
+            <X size={22} />
+          </button>
+        </div>
+        <img
+          src={selectedImage}
+          alt="Lampiran"
+          onClick={(e) => e.stopPropagation()}
+          className="max-w-full max-h-full object-contain p-4"
+        />
+      </div>
     )}
 
     <ConfirmModal
