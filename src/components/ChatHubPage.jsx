@@ -643,7 +643,23 @@ export default function ChatHubPage() {
     setDeleteTarget(null)
   }
 
-  async function handleStartNewChat(contactId) {
+  function handleStartNewChat(contactId) {
+    const user = allUsers.find((u) => u.id === contactId)
+    if (user) {
+      setContacts((prev) => {
+        if (prev.some((c) => c.id === contactId)) return prev
+        return [
+          {
+            id: user.id,
+            first_name: user.first_name,
+            role: user.role,
+            last_message: null,
+            last_message_at: null,
+          },
+          ...prev,
+        ]
+      })
+    }
     setShowNewChat(false)
     setActiveContactId(contactId)
     setShowMobileList(false)
@@ -653,15 +669,28 @@ export default function ChatHubPage() {
   useEffect(() => {
     if (!showNewChat) return
     let cancelled = false
-    supabase.from('profiles').select('id, first_name, role').neq('id', userId).then(({ data }) => {
-      if (!cancelled) setAllUsers(data || [])
-    }).catch(() => {
-      if (!cancelled) setAllUsers([])
-    }).finally(() => {
-      if (!cancelled) setAllUsersLoading(false)
-    })
+    setAllUsersLoading(true)
+    async function loadUsers() {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, role')
+          .neq('id', userId)
+        if (cancelled) return
+        if (error) throw error
+        setAllUsers(data || [])
+      } catch (err) {
+        if (!cancelled) {
+          setAllUsers([])
+          showToast(err.message || 'Gagal memuat daftar pengguna', 'error')
+        }
+      } finally {
+        if (!cancelled) setAllUsersLoading(false)
+      }
+    }
+    loadUsers()
     return () => { cancelled = true }
-  }, [showNewChat, userId])
+  }, [showNewChat, userId, showToast])
 
   if (!userId) {
     return <LoginPrompt />
