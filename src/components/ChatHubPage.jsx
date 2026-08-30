@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import { compressImage } from '../utils/imageCompression'
 
@@ -96,6 +96,66 @@ function HighlightText({ text, query, className }) {
   )
 }
 
+function normalizePhone(num) {
+  let digits = num.replace(/\D/g, '')
+  if (digits.startsWith('0')) digits = '62' + digits.slice(1)
+  return digits
+}
+
+function tokenizeMessage(text) {
+  const tokens = []
+  const re = /(\bhttps?:\/\/[^\s<]+)|(\b0\d{8,12}\b|\b62\d{8,13}\b)/g
+  let last = 0
+  let m
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) tokens.push({ type: 'text', value: text.slice(last, m.index) })
+    if (m[1]) {
+      tokens.push({ type: 'link', value: m[1].replace(/[.,;:!?\])]+$/g, '') })
+    } else if (m[2]) {
+      tokens.push({ type: 'phone', value: m[2] })
+    }
+    last = m.index + m[0].length
+  }
+  if (last < text.length) tokens.push({ type: 'text', value: text.slice(last) })
+  return tokens
+}
+
+function MessageText({ text, query, className }) {
+  const tokens = tokenizeMessage(text)
+  if (tokens.length === 1 && tokens[0].type === 'text') {
+    return <HighlightText text={text} query={query} className={className} />
+  }
+  return tokens.map((t, i) => {
+    if (t.type === 'link') {
+      return (
+        <a
+          key={i}
+          href={t.value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 font-medium break-all hover:opacity-80"
+        >
+          {t.value}
+        </a>
+      )
+    }
+    if (t.type === 'phone') {
+      return (
+        <a
+          key={i}
+          href={`https://wa.me/${normalizePhone(t.value)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 font-medium hover:opacity-80"
+        >
+          {t.value}
+        </a>
+      )
+    }
+    return <HighlightText key={i} text={t.value} query={query} className={className} />
+  })
+}
+
 function PropertyMessage({ propertyId }) {
   const [prop, setProp] = useState(null)
   const [err, setErr] = useState(false)
@@ -138,7 +198,7 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive }) {
+function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed }) {
   return (
     <div id={`message-${message.id}`} className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -160,6 +220,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
               ? 'bg-gradient-to-br from-brand-primary to-[#2f6690] text-white rounded-br-md'
               : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
           } ${isSearchActive ? 'ring-2 ring-brand-accent' : ''}`}>
+            {isFlashed && <span className="search-flash-overlay" aria-hidden="true" />}
             {repliedMessage && (
               <div className={`mb-1.5 mt-0.5 rounded-lg px-2 py-1 ${isOwn ? 'bg-white/15' : 'bg-brand-bg'}`}>
                 <p className={`text-[10px] font-bold ${isOwn ? 'text-white/80' : 'text-brand-accent'} truncate`}>
@@ -181,7 +242,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
             )}
             {message.content && (
               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">
-                <HighlightText text={message.content} query={highlight} />
+                <MessageText text={message.content} query={highlight} />
               </p>
             )}
             <div className={`text-[10px] mt-1 flex items-center justify-end gap-1.5 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
@@ -191,9 +252,18 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
                   {message.read_at ? '✓✓' : '✓'}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => onMoreClick?.(message)}
+                aria-label="Opsi pesan"
+                title="Opsi pesan"
+                className="lg:hidden -m-1 p-1.5 rounded-full text-inherit opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <MoreHorizontal size={14} />
+              </button>
             </div>
           </div>
-          <div className={`mt-1 flex items-center gap-1 opacity-0 group-hover/message:opacity-100 transition-opacity ${isOwn ? 'justify-end' : 'justify-start'}`}>
+          <div className={`mt-1 hidden lg:flex items-center gap-1 opacity-0 group-hover/message:opacity-100 transition-opacity ${isOwn ? 'justify-end' : 'justify-start'}`}>
             <button
               type="button"
               onClick={() => onReply?.(message)}
@@ -201,6 +271,15 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
               className="inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent transition-colors px-1"
             >
               <CornerUpLeft size={11} /> Balas
+            </button>
+            <button
+              type="button"
+              onClick={() => onCopy?.(message)}
+              aria-label="Salin pesan"
+              title="Salin pesan"
+              className="inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent transition-colors px-1"
+            >
+              <Copy size={11} /> Salin
             </button>
             <button
               type="button"
@@ -217,7 +296,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
           <button
             type="button"
             onClick={() => onDelete?.(message.id)}
-            className="absolute -top-1.5 -right-1.5 z-10 w-7 h-7 rounded-full bg-white/80 border border-brand-border shadow-sm flex items-center justify-center hover:bg-red-50 hover:border-red-300 hover:text-red-500 text-brand-muted transition-all"
+            className="absolute -top-1.5 -right-1.5 z-10 hidden lg:flex w-7 h-7 rounded-full bg-white/80 border border-brand-border shadow-sm items-center justify-center hover:bg-red-50 hover:border-red-300 hover:text-red-500 text-brand-muted transition-all"
             title="Hapus pesan"
             aria-label="Hapus pesan"
           >
@@ -429,6 +508,9 @@ export default function ChatHubPage() {
   const [chatSearchOpen, setChatSearchOpen] = useState(false)
   const [chatSearchQ, setChatSearchQ] = useState('')
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0)
+  const [flashMessageId, setFlashMessageId] = useState(null)
+  const flashTimeoutRef = useRef(null)
+  const [messageMenu, setMessageMenu] = useState(null)
   const [connected, setConnected] = useState(false)
   const [otherTypingContacts, setOtherTypingContacts] = useState({})
   const [onlineIds, setOnlineIds] = useState({})
@@ -443,6 +525,9 @@ export default function ChatHubPage() {
   const searchMatches = chatSearchQ.trim() && activeContactId
     ? messages.filter((m) => m.content && m.content.toLowerCase().includes(chatSearchQ.trim().toLowerCase()))
     : []
+
+  const messageMenuRoom = messageMenu && activeContactId ? [userId, activeContactId].sort().join('-') : null
+  const messageMenuPinned = messageMenu && messageMenuRoom ? !!pinnedMessages[messageMenuRoom]?.[messageMenu.id] : false
 
   useEffect(() => {
     contactsRef.current = contacts
@@ -889,9 +974,19 @@ export default function ChatHubPage() {
     const activeMatch = searchMatches[Math.min(currentSearchIndex, searchMatches.length - 1)]
     if (!activeMatch) return
     const el = document.getElementById(`message-${activeMatch.id}`)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFlashMessageId(activeMatch.id)
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current)
+      flashTimeoutRef.current = setTimeout(() => setFlashMessageId(null), 2000)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatSearchQ, currentSearchIndex])
+
+  useEffect(() => () => {
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current)
+  }, [])
 
   useEffect(() => {
     if (!showPropertyPicker) return
@@ -1093,6 +1188,34 @@ export default function ChatHubPage() {
   function goToNextSearchMatch() {
     if (searchMatches.length < 2) return
     setCurrentSearchIndex((prev) => (prev + 1) % searchMatches.length)
+  }
+
+  async function handleCopyMessage(msg) {
+    if (!msg?.content) {
+      showToast('Tidak ada teks untuk disalin', 'info')
+      return
+    }
+    const copyText = () => {
+      const ta = document.createElement('textarea')
+      ta.value = msg.content
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    try {
+      await navigator.clipboard.writeText(msg.content)
+      showToast('Pesan disalin ke clipboard', 'success')
+    } catch {
+      try {
+        copyText()
+        showToast('Pesan disalin ke clipboard', 'success')
+      } catch {
+        showToast('Gagal menyalin pesan', 'error')
+      }
+    }
   }
 
   async function handleSend(e) {
@@ -1604,6 +1727,9 @@ export default function ChatHubPage() {
                             isPinned={!!pinnedMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
                             onImageClick={setSelectedImage}
                             isSearchActive={msg.id === searchMatches[currentSearchIndex]?.id}
+                            onMoreClick={setMessageMenu}
+                            onCopy={handleCopyMessage}
+                            isFlashed={msg.id === flashMessageId}
                           />
                         </div>
                       )
@@ -1995,6 +2121,53 @@ export default function ChatHubPage() {
           className="max-w-full max-h-full object-contain p-4"
         />
       </div>
+    )}
+
+    {messageMenu && (
+      <>
+        <button type="button" aria-label="Tutup" onClick={() => setMessageMenu(null)} className="fixed inset-0 bg-black/40 z-40 cursor-default p-0 border-0" />
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl py-6 px-2 pb-10 max-h-[70vh] overflow-y-auto animate-slide-up">
+          <div className="flex items-center justify-between px-4 mb-3">
+            <h3 className="text-base font-bold text-brand-text">Opsi Pesan</h3>
+            <button type="button" aria-label="Tutup" onClick={() => setMessageMenu(null)} className="text-brand-muted hover:text-brand-text">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="space-y-1 px-2">
+            <button
+              type="button"
+              onClick={() => { handleReply(messageMenu); setMessageMenu(null) }}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
+            >
+              <CornerUpLeft size={17} className="text-brand-accent shrink-0" /> Balas
+            </button>
+            <button
+              type="button"
+              onClick={() => { handleCopyMessage(messageMenu); setMessageMenu(null) }}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
+            >
+              <Copy size={17} className="text-brand-accent shrink-0" /> Salin Teks
+            </button>
+            <button
+              type="button"
+              onClick={() => { handleTogglePin(messageMenu); setMessageMenu(null) }}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
+            >
+              {messageMenuPinned ? <PinOff size={17} className="text-brand-accent shrink-0" /> : <Pin size={17} className="text-brand-accent shrink-0" />}
+              {messageMenuPinned ? 'Lepas Sematan' : 'Sematkan'}
+            </button>
+            {messageMenu.sender_id === userId && (
+              <button
+                type="button"
+                onClick={() => { setDeleteTarget(messageMenu.id); setMessageMenu(null) }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-danger/10 transition-colors text-sm font-semibold text-brand-danger text-left"
+              >
+                <Trash2 size={17} className="shrink-0" /> Hapus
+              </button>
+            )}
+          </div>
+        </div>
+      </>
     )}
 
     <ConfirmModal

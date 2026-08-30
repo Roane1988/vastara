@@ -78,3 +78,18 @@ html {
 .typing-dot {
   animation: typing-bounce 1s infinite ease-in-out;
 }
+
+@keyframes search-flash-fade {
+  0% { opacity: 0.35; }
+  100% { opacity: 0; }
+}
+
+.search-flash-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  background-color: var(--color-brand-accent);
+  opacity: 0;
+  pointer-events: none;
+  animation: search-flash-fade 1.8s ease-out forwards;
+}
