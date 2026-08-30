@@ -468,7 +468,8 @@ export default function ChatHubPage() {
   const [contacts, setContacts] = useState([])
   const [messages, setMessages] = useState([])
   const [activeContactId, setActiveContactId] = useState(null)
-  const [inputValue, setInputValue] = useState('')
+  const [drafts, setDrafts] = useState({})
+  const inputValue = activeContactId ? (drafts[activeContactId] || '') : ''
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showMobileList, setShowMobileList] = useState(true)
@@ -1091,7 +1092,7 @@ export default function ChatHubPage() {
   }
 
   function handleSuggested(text) {
-    setInputValue(text)
+    setDrafts(prev => ({ ...prev, [activeContactId]: text }))
     inputRef.current?.focus()
   }
 
@@ -1254,7 +1255,11 @@ export default function ChatHubPage() {
       property_id: shareProperty?.id || null,
     }
     setMessages(prev => [...prev, optimisticMsg])
-    setInputValue('')
+    setDrafts(prev => {
+      const next = { ...prev }
+      delete next[activeContactId]
+      return next
+    })
     setReplyTo(null)
     setShareProperty(null)
     if (pendingImageUrlRef.current) {
@@ -1362,7 +1367,7 @@ export default function ChatHubPage() {
 
   function handleInputChange(e) {
     const val = e.target.value
-    setInputValue(val)
+    setDrafts(prev => ({ ...prev, [activeContactId]: val }))
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     if (!typingChannelRef.current) return
     if (val.trim()) {
@@ -1530,12 +1535,12 @@ export default function ChatHubPage() {
         <div
           className={`${
             !showMobileList ? 'flex' : 'hidden'
-          } lg:flex flex-col flex-1 bg-brand-surface/50`}
+          } lg:flex flex-col flex-1 min-h-0 bg-brand-surface/50`}
         >
           {activeContact ? (
             <>
               {/* Chat Header */}
-              <div className="flex items-center gap-3 px-4 h-14 border-b border-brand-border bg-brand-surface">
+              <div className="sticky top-14 z-10 shrink-0 flex items-center gap-3 px-4 h-14 border-b border-brand-border bg-brand-surface">
                 <button
                   type="button"
                   onClick={handleBackToList}
@@ -1601,7 +1606,7 @@ export default function ChatHubPage() {
 
               {/* Property context card */}
               {contextProperty && showContextCard && (
-                <div className="px-4 py-3 border-b border-brand-border bg-brand-bg/60">
+                <div className="shrink-0 px-4 py-3 border-b border-brand-border bg-brand-bg/60">
                   <div className="flex items-center gap-3 rounded-xl border border-brand-border bg-brand-surface p-2.5 pr-1">
                     <Link
                       to={`/property/${contextProperty.id}`}
@@ -1639,7 +1644,7 @@ export default function ChatHubPage() {
               )}
 
               {/* Messages */}
-              <div className="relative flex-1">
+              <div className="relative flex-1 min-h-0">
               <div ref={messagesScrollRef} onScroll={handleMessagesScroll} className="absolute inset-0 overflow-y-auto py-2">
                 {messagesLoading ? (
                   <div className="px-4 space-y-4 py-4">
@@ -1801,7 +1806,7 @@ export default function ChatHubPage() {
               {/* Input Bar */}
               <form
                 onSubmit={handleSend}
-                className="shrink-0 flex items-end gap-2 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] border-t border-brand-border bg-brand-surface"
+                className="shrink-0 flex items-end gap-2 px-4 pt-3 pb-[env(safe-area-inset-bottom)] border-t border-brand-border bg-brand-surface"
               >
                 <div ref={plusMenuRef} className="relative shrink-0">
                   <button

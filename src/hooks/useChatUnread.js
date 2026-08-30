@@ -63,17 +63,18 @@ export function useChatUnread(userId, scope = 'default') {
     }
   }, [userId, scope])
 
-  const markRead = useCallback(async () => {
-    if (!userId) return
-    setUnread(0)
+  const markRead = useCallback(async (contactId) => {
+    if (!userId || !contactId) return
+    let query = supabase
+      .from('direct_messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('receiver_id', userId)
+      .is('read_at', null)
+    if (contactId) query = query.eq('sender_id', contactId)
     try {
-      await supabase
-        .from('direct_messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('receiver_id', userId)
-        .is('read_at', null)
+      await query
     } catch {
-      /* non-blocking */
+      /* non-blocking; realtime UPDATE events will sync the badge */
     }
   }, [userId])
 

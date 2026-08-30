@@ -17,7 +17,7 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
   const { t, i18n } = useTranslation()
   const { role, user } = useAuth()
   const { totalNew } = useSavedSearchAlerts()
-  const { unread: chatUnread, markRead: markChatRead } = useChatUnread(user?.id, 'navbar')
+  const { unread: chatUnread } = useChatUnread(user?.id, 'navbar')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const langRef = useRef(null)
@@ -88,7 +88,7 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
             {isAuth && (
               <button
                 type="button"
-                onClick={() => { markChatRead(); navigate('/chat') }}
+                onClick={() => navigate('/chat')}
                 className="relative p-2 rounded-xl text-brand-muted hover:bg-brand-bg hover:text-brand-text transition-colors"
                 aria-label={t('navbar.chat')}
                 title={t('navbar.chat')}

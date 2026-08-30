@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
@@ -93,7 +93,7 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
   const { t, i18n } = useTranslation()
   const { role, user } = useAuth()
   const reduced = usePrefersReducedMotion()
-  const { unread, markRead } = useChatUnread(user?.id)
+  const { unread } = useChatUnread(user?.id)
   const { totalNew: savedNew } = useSavedSearchAlerts()
 
   const [loggingOut, setLoggingOut] = useState(false)
@@ -110,7 +110,6 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
   }
 
   const handleChat = () => {
-    markRead()
     onClose()
     navigate('/chat')
   }
@@ -131,10 +130,6 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
       onClose()
     }
   }
-
-  useEffect(() => {
-    if (pathname === '/chat') markRead()
-  }, [pathname, markRead])
 
   const exploreActive = pathname === '/' || pathname === '/explore'
   const chatActive = pathname === '/chat'
