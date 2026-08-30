@@ -105,6 +105,12 @@ export default function ForumPage() {
     return () => { cancelled = true }
   }, [filterAuthor])
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFilterTag(searchParams.get('tag') || '')
+    setFilterAuthor(searchParams.get('author') || '')
+  }, [searchParams])
+
   async function fetchStats() {
     try {
       const [{ count: replies }, { count: members }] = await Promise.all([

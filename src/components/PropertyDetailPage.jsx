@@ -441,6 +441,7 @@ export default function PropertyDetailPage() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const agentCardRef = useRef(null)
+  const mountedRef = useRef(true)
   const [showFloatingBtn, setShowFloatingBtn] = useState(true)
   const [similar, setSimilar] = useState([])
   const [sellerPortfolioCount, setSellerPortfolioCount] = useState(0)
@@ -459,8 +460,10 @@ export default function PropertyDetailPage() {
   const images = property ? parseImages(property.image_url) : []
 
   useEffect(() => {
+    mountedRef.current = true
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsSaved(id ? getFavorites().includes(id) : false)
+    return () => { mountedRef.current = false }
   }, [id])
 
   const transFields = property ? {
@@ -521,6 +524,7 @@ export default function PropertyDetailPage() {
   async function toggleSave() {
     if (!property?.id) return
     const updated = await toggleFav(property.id)
+    if (!mountedRef.current) return
     setIsSaved(updated.includes(property.id))
     showToast(updated.includes(property.id)
       ? (lang === 'en' ? 'Property saved to favorites' : 'Properti disimpan ke favorit')

@@ -80,6 +80,7 @@ export default function ExplorePage() {
   const [savingSearch, setSavingSearch] = useState(false)
   const [savedSearchOk, setSavedSearchOk] = useState(false)
   const cancelledRef = useRef(false)
+  const aiSearchRequestRef = useRef(0)
   const listingRef = useRef(null)
   const searchInputRef = useRef(null)
   const searchCardRef = useRef(null)
@@ -186,6 +187,8 @@ export default function ExplorePage() {
       showToast('Silakan ketik kriteria pencarian terlebih dahulu.', 'error')
       return
     }
+    const requestId = ++aiSearchRequestRef.current
+    const isLatest = () => aiSearchRequestRef.current === requestId && !cancelledRef.current
     setIsSmartSearching(true)
 
     try {
@@ -213,12 +216,12 @@ export default function ExplorePage() {
       try {
         parsed = JSON.parse(cleaned)
       } catch {
-        if (cancelledRef.current) return
+        if (!isLatest()) return
         showToast('Maaf, AI gagal merangkai format data dengan utuh karena antrean panjang. Silakan coba pencarian sekali lagi.', 'error')
         return
       }
 
-      if (cancelledRef.current) return
+      if (!isLatest()) return
 
       let query = supabase
         .from('properties')
@@ -240,7 +243,7 @@ export default function ExplorePage() {
 
       const { data: results, error } = await query
 
-      if (cancelledRef.current) return
+      if (!isLatest()) return
 
       if (!error && results) {
         setIsAiSearch(true)
@@ -250,7 +253,7 @@ export default function ExplorePage() {
         throw new Error(error.message)
       }
     } catch {
-      if (cancelledRef.current) return
+      if (!isLatest()) return
       try {
         const { data: fallback, error } = await supabase
           .from('properties')
@@ -258,14 +261,14 @@ export default function ExplorePage() {
           .eq('status', 'verified')
           .ilike('title', `%${text.trim()}%`)
           .order('created_at', { ascending: false })
-        if (!error && fallback) {
+        if (!error && fallback && isLatest()) {
           setIsAiSearch(true)
           setProperties(fallback)
         }
       } catch { /* silent */ }
-      showToast('Gagal memproses pencarian AI. Menampilkan hasil pencarian biasa.', 'error')
+      if (isLatest()) showToast('Gagal memproses pencarian AI. Menampilkan hasil pencarian biasa.', 'error')
     }
-    if (!cancelledRef.current) setIsSmartSearching(false)
+    if (isLatest()) setIsSmartSearching(false)
   }
 
   function handleAiSearch() {

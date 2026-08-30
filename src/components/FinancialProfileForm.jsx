@@ -82,8 +82,14 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
             purchaseGoal: profile.purchase_goal || 'rumah_pertama',
           })
         }
-      } catch {
-        if (!cancelled) setIsAuthenticated(false)
+      } catch (e) {
+        if (cancelled) return
+        setIsAuthenticated(true)
+        setError(
+          isNetworkError(e)
+            ? 'Gagal memuat profil keuangan. Periksa koneksi internet kamu lalu coba lagi.'
+            : (e?.message || 'Terjadi kesalahan saat memuat profil keuangan.')
+        )
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -128,12 +134,11 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
     if (isFilled(values.monthlyIncome)) n += 1
     if (isFilled(values.monthlyCommitments)) n += 1
     if (isFilled(values.monthlyBudget)) n += 1
-    n += 1
     return n
   }, [values.monthlyIncome, values.monthlyCommitments, values.monthlyBudget])
 
-  const progressPct = Math.min(100, Math.round((filledCount / 4) * 100))
-  const isComplete = filledCount >= 4
+  const progressPct = Math.min(100, Math.round((filledCount / 3) * 100))
+  const isComplete = filledCount >= 3
 
   const budgetStatus = useMemo(() => {
     if (!isFilled(values.monthlyBudget)) return null

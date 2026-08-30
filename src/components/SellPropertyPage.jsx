@@ -4,6 +4,7 @@ import { CheckCircle, X, Plus, Sparkles, Info, Loader2, Wand2 } from 'lucide-rea
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../utils/format'
+import { getImageSrc } from '../utils/images'
 import useSEO from '../hooks/useSEO'
 import { getAuthHeaders } from '../utils/groqClient'
 import { compressImage } from '../utils/imageCompression'
@@ -667,6 +668,28 @@ export default function SellPropertyPage() {
         status: editId ? undefined : 'pending',
       }
 
+      const newPrice = Number(form.estimasi_harga)
+      const sentToReview = Boolean(
+        editId &&
+        originalPrice > 0 &&
+        Number.isFinite(newPrice) &&
+        Math.abs(newPrice - originalPrice) > originalPrice * 0.15
+      )
+
+      if (editId) {
+        if (sentToReview) {
+          payload.price = originalPrice
+          payload.price_change_status = 'pending'
+          payload.price_requested = newPrice
+          payload.price_requested_at = new Date().toISOString()
+        } else {
+          payload.price = newPrice
+          payload.price_change_status = 'none'
+          payload.price_requested = null
+          payload.price_requested_at = null
+        }
+      }
+
       if (!editId) {
         payload.seller_type = listingType
       }
@@ -695,11 +718,9 @@ export default function SellPropertyPage() {
       clearDraft()
       setSubmitting(false)
       if (editId) {
-        const newPrice = Number(form.estimasi_harga)
-        const sentToReview =
-          originalPrice > 0 &&
-          Number.isFinite(newPrice) &&
-          Math.abs(newPrice - originalPrice) > originalPrice * 0.15
+        setPriceChangeStatus(sentToReview ? 'pending' : 'none')
+        setPriceRequested(sentToReview ? newPrice : null)
+        setOriginalPrice(sentToReview ? originalPrice : newPrice)
         showToast(
           sentToReview
             ? 'Perubahan harga dikirim untuk persetujuan admin. Harga publik belum berubah.'
@@ -722,7 +743,13 @@ export default function SellPropertyPage() {
     return () => { imagePreviews.forEach((u) => URL.revokeObjectURL(u)) }
   }, [imagePreviews])
 
-  const previewSrc = imagePreviews[imageFiles.findIndex((f) => f.size > 0)]
+  const imageSources = useMemo(
+    () => imageFiles.map((f, i) => (f.size > 0 ? imagePreviews[i] : getImageSrc(f.name))),
+    [imageFiles, imagePreviews]
+  )
+
+  const firstUploadIndex = imageFiles.findIndex((f) => f.size > 0)
+  const previewSrc = imageSources[firstUploadIndex] || imageSources[0]
 
   function renderStep() {
     switch (step) {
@@ -992,7 +1019,7 @@ export default function SellPropertyPage() {
                     >
                       <div className="cursor-grab active:cursor-grabbing"><GripIcon /></div>
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-brand-bg border border-brand-border shrink-0">
-                        <img src={imagePreviews[i]} alt="" className="w-full h-full object-cover" />
+                        <img src={imageSources[i]} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-brand-text truncate">{file.name}</p>

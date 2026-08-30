@@ -153,18 +153,6 @@ export default function ForumDetailPage() {
           }
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'forum_reactions',
-          filter: `target_id=eq.${id}`,
-        },
-        () => {
-          if (!cancelledRef.current) fetchReactions(repliesRef.current.map((r) => r.id))
-        }
-      )
       .subscribe()
 
     return () => {
@@ -173,6 +161,33 @@ export default function ForumDetailPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  const replyIds = replies.map((r) => r.id)
+  const replyIdsKey = replyIds.join(',')
+  useEffect(() => {
+    if (!id) return
+    const targetIds = [id, ...replyIds]
+    const reactionChannel = supabase
+      .channel(`forum-reactions-${id}-${replyIdsKey}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'forum_reactions',
+          filter: `target_id=in.(${targetIds.join(',')})`,
+        },
+        () => {
+          fetchReactions(targetIds).catch(() => {})
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(reactionChannel)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, replyIdsKey])
 
   async function fetchPost() {
     try {
