@@ -1450,7 +1450,7 @@ export default function ChatHubPage() {
 
   return (
     <>
-    <div className="h-[calc(100vh-56px)] overflow-hidden bg-brand-bg flex flex-col">
+    <div className="h-[calc(100dvh-56px)] overflow-hidden bg-brand-bg flex flex-col">
       <div className="flex-1 flex flex-col lg:flex-row lg:max-w-7xl lg:mx-auto lg:w-full lg:border-x lg:border-brand-border overflow-hidden">
         {/* ─── Contact List ───────────────────────────────────── */}
         <div
@@ -1801,7 +1801,7 @@ export default function ChatHubPage() {
               {/* Input Bar */}
               <form
                 onSubmit={handleSend}
-                className="shrink-0 flex items-end gap-2 px-4 py-3 border-t border-brand-border bg-brand-surface"
+                className="shrink-0 flex items-end gap-2 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] border-t border-brand-border bg-brand-surface"
               >
                 <div ref={plusMenuRef} className="relative shrink-0">
                   <button

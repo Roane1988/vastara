@@ -136,7 +136,7 @@ function AppContent() {
             </Routes>
           </Suspense>
         </div>
-        <Footer />
+        {!location.pathname.startsWith('/chat') && <Footer />}
         <Suspense fallback={null}>
           <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userName={userName} />
           <HuniBot />
