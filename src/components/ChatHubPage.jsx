@@ -400,6 +400,8 @@ export default function ChatHubPage() {
   const [replyTo, setReplyTo] = useState(null)
   const [pendingImage, setPendingImage] = useState(null)
   const [pendingImageUrl, setPendingImageUrl] = useState(null)
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
+  const [caption, setCaption] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
   const [shareProperty, setShareProperty] = useState(null)
   const [showPropertyPicker, setShowPropertyPicker] = useState(false)
@@ -942,6 +944,19 @@ export default function ChatHubPage() {
     pendingImageUrlRef.current = url
     setPendingImage(file)
     setPendingImageUrl(url)
+    setCaption('')
+    setImagePreviewOpen(true)
+  }
+
+  function closeImagePreview() {
+    if (pendingImageUrlRef.current) {
+      URL.revokeObjectURL(pendingImageUrlRef.current)
+      pendingImageUrlRef.current = null
+    }
+    setPendingImage(null)
+    setPendingImageUrl(null)
+    setCaption('')
+    setImagePreviewOpen(false)
   }
 
   function handleSuggested(text) {
@@ -1067,6 +1082,70 @@ export default function ChatHubPage() {
         reply_to_id: optimisticMsg.reply_to_id,
         image_url: optimisticMsg.image_url,
         property_id: optimisticMsg.property_id,
+      }).select()
+
+      if (!sendMountedRef.current) return
+
+      if (error) {
+        showToast(error.message, 'error')
+        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
+      } else if (data?.[0]) {
+        setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
+      }
+    } catch (err) {
+      if (sendMountedRef.current) {
+        showToast(err.message || 'Gagal mengirim pesan', 'error')
+        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
+      }
+    } finally {
+      if (sendMountedRef.current) {
+        setSending(false)
+        setImageUploading(false)
+      }
+    }
+  }
+
+  async function handleSendImage() {
+    if (!pendingImage || !userId || !activeContactId || sending || imageUploading) return
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    typingChannelRef.current?.untrack()
+
+    setSending(true)
+    setImageUploading(true)
+
+    let imageUrl
+    try {
+      imageUrl = await uploadChatImage(pendingImage)
+    } catch (err) {
+      showToast('Gagal mengunggah gambar: ' + (err.message || 'coba lagi'), 'error')
+      setSending(false)
+      setImageUploading(false)
+      return
+    }
+
+    const text = caption.trim()
+    const optimisticMsg = {
+      id: `temp-${Date.now()}`,
+      sender_id: userId,
+      receiver_id: activeContactId,
+      content: text,
+      created_at: new Date().toISOString(),
+      read_at: null,
+      reply_to_id: replyTo?.id || null,
+      image_url: imageUrl,
+      property_id: null,
+    }
+    setMessages(prev => [...prev, optimisticMsg])
+    closeImagePreview()
+    inputRef.current?.focus()
+
+    try {
+      const { data, error } = await supabase.from('direct_messages').insert({
+        sender_id: userId,
+        receiver_id: activeContactId,
+        content: text,
+        reply_to_id: optimisticMsg.reply_to_id,
+        image_url: optimisticMsg.image_url,
       }).select()
 
       if (!sendMountedRef.current) return
@@ -1533,43 +1612,22 @@ export default function ChatHubPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  {(pendingImage || shareProperty) && (
+                  {shareProperty && (
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      {pendingImageUrl && (
-                        <span className="inline-flex items-center gap-2 rounded-lg border border-brand-border bg-brand-bg p-1 pr-2">
-                          <img src={pendingImageUrl} alt="" className="w-8 h-8 rounded object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (pendingImageUrlRef.current) URL.revokeObjectURL(pendingImageUrlRef.current)
-                              pendingImageUrlRef.current = null
-                              setPendingImage(null)
-                              setPendingImageUrl(null)
-                            }}
-                            aria-label="Hapus gambar"
-                            className="text-brand-muted hover:text-brand-danger"
-                          >
-                            <X size={14} />
-                          </button>
-                        </span>
-                      )}
-                      {shareProperty && (
-                        <span className="inline-flex items-center gap-2 rounded-lg border border-brand-border bg-brand-bg px-2 py-1.5">
-                          <Building2 size={14} className="text-brand-accent shrink-0" />
-                          <span className="text-xs text-brand-text truncate max-w-[10rem]">{shareProperty.title || 'Properti'}</span>
-                          <button
-                            type="button"
-                            onClick={() => setShareProperty(null)}
-                            aria-label="Hapus properti"
-                            className="text-brand-muted hover:text-brand-danger"
-                          >
-                            <X size={14} />
-                          </button>
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-2 rounded-lg border border-brand-border bg-brand-bg px-2 py-1.5">
+                        <Building2 size={14} className="text-brand-accent shrink-0" />
+                        <span className="text-xs text-brand-text truncate max-w-[10rem]">{shareProperty.title || 'Properti'}</span>
+                        <button
+                          type="button"
+                          onClick={() => setShareProperty(null)}
+                          aria-label="Hapus properti"
+                          className="text-brand-muted hover:text-brand-danger"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
                     </div>
-                  )}
-                  <textarea
+                  )}                  <textarea
                     ref={inputRef}
                     rows={1}
                     value={inputValue}
@@ -1606,6 +1664,68 @@ export default function ChatHubPage() {
         </div>
       </div>
     </div>
+
+    {imagePreviewOpen && pendingImageUrl && (
+      <div className="fixed inset-0 z-[60] bg-black/90 flex flex-col animate-fadeIn">
+        <div className="flex items-center justify-between px-4 h-14 shrink-0">
+          <button
+            type="button"
+            onClick={closeImagePreview}
+            disabled={imageUploading}
+            aria-label="Batal"
+            className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+          >
+            <X size={22} />
+          </button>
+          <span className="text-sm font-semibold text-white/90">Pratinjau Foto</span>
+          <span className="w-9" />
+        </div>
+
+        <div className="flex-1 min-h-0 flex items-center justify-center px-4">
+          <img
+            src={pendingImageUrl}
+            alt="Pratinjau"
+            className="max-h-full max-w-full object-contain rounded-lg"
+          />
+        </div>
+
+        <div className="shrink-0 px-4 py-3 bg-black/60 border-t border-white/10">
+          <div className="flex items-end gap-2">
+            <textarea
+              rows={1}
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  if (!imageUploading) handleSendImage()
+                }
+              }}
+              placeholder="Tambahkan keterangan..."
+              autoFocus={false}
+              className="flex-1 border border-white/20 rounded-xl py-3 px-4 text-sm text-white bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-accent/40 placeholder:text-white/50 resize-none overflow-y-auto max-h-28"
+              disabled={imageUploading}
+            />
+            <button
+              type="button"
+              onClick={handleSendImage}
+              disabled={imageUploading}
+              aria-label="Kirim foto"
+              className="shrink-0 w-11 h-11 rounded-full bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-95 transition-all disabled:opacity-50"
+            >
+              {imageUploading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send size={18} />
+              )}
+            </button>
+          </div>
+          {imageUploading && (
+            <p className="text-[10px] text-white/60 mt-2">Mengunggah & mengirim foto...</p>
+          )}
+        </div>
+      </div>
+    )}
 
     {showNewChat && (
       <>
