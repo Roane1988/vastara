@@ -69,3 +69,12 @@ html {
 .animate-page-in {
   animation: page-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+
+.typing-dot {
+  animation: typing-bounce 1s infinite ease-in-out;
+}

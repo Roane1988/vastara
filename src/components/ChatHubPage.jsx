@@ -7,8 +7,9 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2 } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, Paperclip } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
+import { compressImage } from '../utils/imageCompression'
 
 
 function dayLabel(ts) {
@@ -36,7 +37,100 @@ function DateSeparator({ date }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, lang, firstInGroup, lastInGroup, otherName, otherColor }) {
+function TypingDots({ color }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="typing-dot rounded-full"
+          style={{ width: 7, height: 7, backgroundColor: color, animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </span>
+  )
+}
+
+function ReplyPreview({ message, onCancel, otherName }) {
+  const isOwn = message.sender_id === undefined
+  const label = isOwn ? 'Kamu' : (otherName || '')
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 border-t border-brand-border bg-brand-highlight/60">
+      <CornerUpLeft size={14} className="text-brand-accent shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold text-brand-accent">{label}</p>
+        <p className="text-xs text-brand-muted truncate">{message.content}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onCancel}
+        aria-label="Batalkan balasan"
+        className="text-brand-muted hover:text-brand-text shrink-0"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  )
+}
+
+function HighlightText({ text, query, className }) {
+  if (!query || !text) return <span className={className}>{text}</span>
+  const lower = text.toLowerCase()
+  const q = query.trim().toLowerCase()
+  if (!q || !lower.includes(q)) return <span className={className}>{text}</span>
+  const idx = lower.indexOf(q)
+  return (
+    <span className={className}>
+      {text.slice(0, idx)}
+      <mark className="bg-brand-accent/20 text-inherit rounded-sm px-0.5">{text.slice(idx, idx + q.length)}</mark>
+      {text.slice(idx + q.length)}
+    </span>
+  )
+}
+
+function PropertyMessage({ propertyId }) {
+  const [prop, setProp] = useState(null)
+  const [err, setErr] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    if (!propertyId) return
+    supabase.from('properties')
+      .select('id, title, price, category, price_period, image_url, address, city, status')
+      .eq('id', propertyId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error || !data) { setErr(true); return }
+        setProp(data)
+      })
+      .catch(() => { if (!cancelled) setErr(true) })
+    return () => { cancelled = true }
+  }, [propertyId])
+
+  if (!propertyId) return null
+  if (!prop && !err) return <div className="w-full h-20 animate-pulse rounded-xl" />
+  if (err || !prop) return <p className="text-xs text-brand-muted italic">Properti tidak tersedia</p>
+  return (
+    <Link to={`/property/${prop.id}`} className="block mt-1.5 overflow-hidden rounded-xl bg-white border border-brand-border/70 shadow-sm hover:shadow-md transition-shadow group">
+      <div className="flex items-center gap-3 p-2.5">
+        {prop.image_url ? (
+          <img src={getImageSrc(prop.image_url)} alt={prop.title} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+        ) : (
+          <div className="w-12 h-12 rounded-lg bg-brand-bg flex items-center justify-center shrink-0">
+            <Building2 size={18} className="text-brand-muted" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold text-brand-text truncate group-hover:text-brand-accent transition-colors">{prop.title || 'Properti'}</p>
+          <p className="text-[10px] text-brand-muted truncate">{prop.city || 'Indonesia'}</p>
+          <p className="text-[11px] font-bold text-brand-primary mt-0.5">{Number(prop.price) > 0 ? formatPriceDisplay(prop) : 'Harga Hubungi'}</p>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight }) {
   return (
     <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -51,7 +145,50 @@ function MessageBubble({ message, isOwn, onDelete, lang, firstInGroup, lastInGro
           )}
         </div>
       )}
-      <div className="relative max-w-[80%] sm:max-w-[70%]">
+      <div className="relative max-w-[80%] sm:max-w-[70%] group/message">
+        <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+          <div className={`relative rounded-2xl px-4 py-2.5 shadow-sm ${
+            isOwn
+              ? 'bg-gradient-to-br from-brand-primary to-[#2f6690] text-white rounded-br-md'
+              : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
+          }`}>
+            {repliedMessage && (
+              <div className={`mb-1.5 mt-0.5 rounded-lg px-2 py-1 ${isOwn ? 'bg-white/15' : 'bg-brand-bg'}`}>
+                <p className={`text-[10px] font-bold ${isOwn ? 'text-white/80' : 'text-brand-accent'} truncate`}>
+                  {repliedMessage.sender_id === message.sender_id ? 'Balasanmu' : otherName || 'Balasan'}
+                </p>
+                <p className={`text-xs ${isOwn ? 'text-white/90' : 'text-brand-muted'} truncate`}>
+                  {repliedMessage.content}
+                </p>
+              </div>
+            )}
+            {message.property_id && <PropertyMessage propertyId={message.property_id} />}
+            {message.image_url && (
+              <img src={message.image_url} alt="Lampiran" className="mt-1 max-h-60 w-full object-cover rounded-xl" />
+            )}
+            {message.content && (
+              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">
+                <HighlightText text={message.content} query={highlight} />
+              </p>
+            )}
+            <div className={`text-[10px] mt-1 flex items-center justify-end gap-1.5 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
+              <span>{timeAgo(message.created_at, lang)}</span>
+              {isOwn && (
+                <span className="font-bold tracking-tighter">
+                  {message.read_at ? '✓✓' : '✓'}
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onReply?.(message)}
+            aria-label="Balas pesan"
+            className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent opacity-0 group-hover/message:opacity-100 transition-opacity px-1"
+          >
+            <CornerUpLeft size={11} /> Balas
+          </button>
+        </div>
         {isOwn && (
           <button
             type="button"
@@ -63,27 +200,12 @@ function MessageBubble({ message, isOwn, onDelete, lang, firstInGroup, lastInGro
             <Trash2 size={12} />
           </button>
         )}
-        <div className={`rounded-2xl px-4 py-2.5 ${
-          isOwn
-            ? 'bg-brand-primary text-white rounded-br-md'
-            : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
-        }`}>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-          <div className={`text-[10px] mt-1 flex items-center justify-end gap-1.5 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
-            <span>{timeAgo(message.created_at, lang)}</span>
-            {isOwn && (
-              <span className="font-bold tracking-tighter">
-                {message.read_at ? '✓✓' : '✓'}
-              </span>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   )
 }
 
-function ContactItem({ contact, isActive, onClick, lang }) {
+function ContactItem({ contact, isActive, onClick, lang, isTyping, unread }) {
   const avatarColor = getAvatarColor(contact.id)
   const initials = getInitials(contact.first_name)
   const roleLabel = contact.role === 'admin' ? 'Admin Internal'
@@ -111,17 +233,29 @@ function ContactItem({ contact, isActive, onClick, lang }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-semibold text-brand-text truncate">{contact.first_name || 'User'}</span>
-          {contact.last_message_at && (
-            <span className="text-[10px] text-brand-muted shrink-0">{timeAgo(contact.last_message_at, lang)}</span>
+          {unread > 0 ? (
+            <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-accent text-white text-[10px] font-bold flex items-center justify-center">
+              {unread > 99 ? '99+' : unread}
+            </span>
+          ) : (
+            contact.last_message_at && (
+              <span className="text-[10px] text-brand-muted shrink-0">{timeAgo(contact.last_message_at, lang)}</span>
+            )
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          {contact.role && (
-            <span className="text-[10px] font-medium text-brand-accent shrink-0">{roleLabel}</span>
+          {isTyping ? (
+            <p className="text-xs text-brand-accent truncate"><TypingDots color="var(--color-brand-accent)" /></p>
+          ) : (
+            <>
+              {contact.role && (
+                <span className="text-[10px] font-medium text-brand-accent shrink-0">{roleLabel}</span>
+              )}
+              <p className={`text-xs truncate ${unread > 0 ? 'text-brand-text font-semibold' : 'text-brand-muted'}`}>
+                {contact.last_message || 'Belum ada pesan'}
+              </p>
+            </>
           )}
-          <p className="text-xs text-brand-muted truncate">
-            {contact.last_message || 'Belum ada pesan'}
-          </p>
         </div>
       </div>
     </button>
@@ -144,11 +278,16 @@ function ContactListSkeleton() {
   )
 }
 
-function EmptyChat({ contactName }) {
+function EmptyChat({ contactName, onSuggested }) {
+  const suggestions = [
+    'Halo, saya tertarik dengan properti ini',
+    'Apakah masih tersedia?',
+    'Boleh info lebih lanjut?',
+  ]
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-      <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center mb-4">
-        <MessageCircle size={28} className="text-brand-muted" />
+      <div className="w-16 h-16 rounded-full bg-brand-highlight flex items-center justify-center mb-4">
+        <MessageCircle size={28} className="text-brand-accent" />
       </div>
       <h3 className="text-base font-bold text-brand-text">Mulai Obrolan</h3>
       <p className="text-sm text-brand-muted mt-1 max-w-xs leading-relaxed">
@@ -156,6 +295,20 @@ function EmptyChat({ contactName }) {
           ? `Kirim pesan pertama ke ${contactName}`
           : 'Pilih kontak untuk memulai obrolan'}
       </p>
+      {contactName && (
+        <div className="mt-5 flex flex-col gap-2 w-full max-w-xs">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onSuggested?.(s)}
+              className="text-xs text-brand-accent bg-brand-highlight border border-brand-border rounded-full px-4 py-2 hover:bg-brand-accent/10 transition-colors"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -227,6 +380,26 @@ export default function ChatHubPage() {
   const PAGE_SIZE = 50
   const [contextProperty, setContextProperty] = useState(null)
   const [showContextCard, setShowContextCard] = useState(false)
+  const [replyTo, setReplyTo] = useState(null)
+  const [pendingImage, setPendingImage] = useState(null)
+  const [pendingImageUrl, setPendingImageUrl] = useState(null)
+  const [imageUploading, setImageUploading] = useState(false)
+  const [shareProperty, setShareProperty] = useState(null)
+  const [showPropertyPicker, setShowPropertyPicker] = useState(false)
+  const [propertySearch, setPropertySearch] = useState('')
+  const [propertyResults, setPropertyResults] = useState([])
+  const [propertySearching, setPropertySearching] = useState(false)
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false)
+  const [newMsgFAB, setNewMsgFAB] = useState(false)
+  const [newMsgCount, setNewMsgCount] = useState(0)
+  const [chatSearchOpen, setChatSearchOpen] = useState(false)
+  const [chatSearchQ, setChatSearchQ] = useState('')
+  const [connected, setConnected] = useState(false)
+  const [otherTypingContacts, setOtherTypingContacts] = useState({})
+  const fileInputRef = useRef(null)
+  const plusMenuRef = useRef(null)
+  const pendingImageUrlRef = useRef(null)
+  const isAtBottomRef = useRef(true)
 
   const activeContact = contacts.find((c) => c.id === activeContactId) || null
 
@@ -457,6 +630,7 @@ export default function ChatHubPage() {
     if (!userId || !activeContactId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setOtherTyping(false)
+      setOtherTypingContacts({})
       return
     }
     const room = [userId, activeContactId].sort().join('-')
@@ -467,6 +641,7 @@ export default function ChatHubPage() {
         .flat()
         .filter((p) => p.userId !== userId && p.typing)
       setOtherTyping(others.length > 0)
+      setOtherTypingContacts(prev => ({ ...prev, [activeContactId]: others.length > 0 }))
     }).subscribe()
 
     return () => {
@@ -508,6 +683,10 @@ export default function ChatHubPage() {
           } else {
             supabase.from('direct_messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id).then(() => {}).catch(() => {})
             setUnreadMap(prev => ({ ...prev, [otherId]: 0 }))
+            if (msg.sender_id !== userId && !isAtBottomRef.current) {
+              setNewMsgCount(c => c + 1)
+              setNewMsgFAB(true)
+            }
           }
 
           setContacts((prev) => {
@@ -547,7 +726,10 @@ export default function ChatHubPage() {
           setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, read_at: msg.read_at } : m)))
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (realtimeCancelledRef.current) return
+        setConnected(status === 'SUBSCRIBED')
+      })
 
     return () => {
       realtimeCancelledRef.current = true
@@ -559,37 +741,193 @@ export default function ChatHubPage() {
     const el = messagesScrollRef.current
     if (!el) return
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140
+    isAtBottomRef.current = nearBottom
     if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [messages, activeContactId])
+
+  function handleMessagesScroll() {
+    const el = messagesScrollRef.current
+    if (!el) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60
+    isAtBottomRef.current = nearBottom
+    if (nearBottom) {
+      setNewMsgFAB(false)
+      setNewMsgCount(0)
+    }
+  }
+
+  function scrollToBottom() {
+    const el = messagesScrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    isAtBottomRef.current = true
+    setNewMsgFAB(false)
+    setNewMsgCount(0)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (pendingImageUrlRef.current) {
+        URL.revokeObjectURL(pendingImageUrlRef.current)
+        pendingImageUrlRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!plusMenuOpen) return
+    const onClick = (ev) => {
+      if (plusMenuRef.current && !plusMenuRef.current.contains(ev.target)) setPlusMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [plusMenuOpen])
+
+  useEffect(() => {
+    if (!showPropertyPicker) return
+    let cancelled = false
+    const q = propertySearch.trim()
+    const run = async () => {
+      setPropertySearching(true)
+      try {
+        let query = supabase.from('properties').select('id, title, price, category, price_period, image_url, city')
+        if (q) {
+          query = query.or(`title.ilike.%${q}%,city.ilike.%${q}%`)
+        } else {
+          query = query.order('created_at', { ascending: false })
+        }
+        const { data, error } = await query.limit(20)
+        if (!cancelled && !error && data) setPropertyResults(data)
+      } catch { /* ignore */ }
+      if (!cancelled) setPropertySearching(false)
+    }
+    const t = setTimeout(run, q ? 300 : 0)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [propertySearch, showPropertyPicker])
 
   function handleSelectContact(contactId) {
     setActiveContactId(contactId)
     setShowMobileList(false)
     setUnreadMap(prev => ({ ...prev, [contactId]: 0 }))
+    setReplyTo(null)
+    setChatSearchQ('')
+    setChatSearchOpen(false)
+    setNewMsgFAB(false)
+    setNewMsgCount(0)
+    setPlusMenuOpen(false)
+    setShowPropertyPicker(false)
+    if (pendingImageUrlRef.current) {
+      URL.revokeObjectURL(pendingImageUrlRef.current)
+      pendingImageUrlRef.current = null
+    }
+    setPendingImage(null)
+    setPendingImageUrl(null)
+    setShareProperty(null)
   }
 
   function handleBackToList() {
     setShowMobileList(true)
   }
 
+  async function uploadChatImage(file) {
+    const compressed = await compressImage(file)
+    const safeName = (file.name || 'image').replace(/[^a-zA-Z0-9._-]/g, '_')
+    const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`
+    const { error: uploadErr } = await supabase.storage
+      .from('CHAT_IMAGES')
+      .upload(fileName, compressed, { contentType: compressed.type || file.type, upsert: false })
+    if (uploadErr) throw new Error(uploadErr.message)
+    const { data: { publicUrl } } = supabase.storage.from('CHAT_IMAGES').getPublicUrl(fileName)
+    return publicUrl
+  }
+
+  function openImagePicker() {
+    setPlusMenuOpen(false)
+    fileInputRef.current?.click()
+  }
+
+  async function handlePickImage(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!/^image\/(jpeg|png|webp|avif)$/i.test(file.type)) {
+      showToast('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.', 'error')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Ukuran file maksimal 5MB per gambar.', 'error')
+      return
+    }
+    if (pendingImageUrlRef.current) URL.revokeObjectURL(pendingImageUrlRef.current)
+    const url = URL.createObjectURL(file)
+    pendingImageUrlRef.current = url
+    setPendingImage(file)
+    setPendingImageUrl(url)
+  }
+
+  function handleSuggested(text) {
+    setInputValue(text)
+    inputRef.current?.focus()
+  }
+
+  function handleReply(message) {
+    setReplyTo(message)
+    setPlusMenuOpen(false)
+    inputRef.current?.focus()
+  }
+
+  function handleShareProperty(prop) {
+    setShareProperty(prop)
+    setShowPropertyPicker(false)
+    setPlusMenuOpen(false)
+    inputRef.current?.focus()
+  }
+
   async function handleSend(e) {
     e?.preventDefault()
     const text = inputValue.trim()
-    if (!text || !userId || !activeContactId || sending) return
+    const hasContent = text || pendingImage || shareProperty
+    if (!hasContent || !userId || !activeContactId || sending || imageUploading) return
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     typingChannelRef.current?.untrack()
 
     setSending(true)
+    setImageUploading(true)
+
+    let imageUrl = null
+    if (pendingImage) {
+      try {
+        imageUrl = await uploadChatImage(pendingImage)
+      } catch (err) {
+        showToast('Gagal mengunggah gambar: ' + (err.message || 'coba lagi'), 'error')
+        setSending(false)
+        setImageUploading(false)
+        return
+      }
+    }
+
     const optimisticMsg = {
       id: `temp-${Date.now()}`,
       sender_id: userId,
       receiver_id: activeContactId,
       content: text,
       created_at: new Date().toISOString(),
+      read_at: null,
+      reply_to_id: replyTo?.id || null,
+      image_url: imageUrl,
+      property_id: shareProperty?.id || null,
     }
     setMessages(prev => [...prev, optimisticMsg])
     setInputValue('')
+    setReplyTo(null)
+    setShareProperty(null)
+    if (pendingImageUrlRef.current) {
+      URL.revokeObjectURL(pendingImageUrlRef.current)
+      pendingImageUrlRef.current = null
+    }
+    setPendingImage(null)
+    setPendingImageUrl(null)
     inputRef.current?.focus()
 
     try {
@@ -597,6 +935,9 @@ export default function ChatHubPage() {
         sender_id: userId,
         receiver_id: activeContactId,
         content: text,
+        reply_to_id: optimisticMsg.reply_to_id,
+        image_url: optimisticMsg.image_url,
+        property_id: optimisticMsg.property_id,
       }).select()
 
       if (!sendMountedRef.current) return
@@ -613,7 +954,10 @@ export default function ChatHubPage() {
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       }
     } finally {
-      if (sendMountedRef.current) setSending(false)
+      if (sendMountedRef.current) {
+        setSending(false)
+        setImageUploading(false)
+      }
     }
   }
 
@@ -773,12 +1117,9 @@ export default function ChatHubPage() {
                     isActive={contact.id === activeContactId}
                     onClick={handleSelectContact}
                     lang={i18n.language}
+                    isTyping={!!otherTypingContacts[contact.id]}
+                    unread={contact.id !== activeContactId ? (unreadMap[contact.id] || 0) : 0}
                   />
-                  {(unreadMap[contact.id] || 0) > 0 && contact.id !== activeContactId && (
-                    <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                      {unreadMap[contact.id]}
-                    </span>
-                  )}
                 </div>
               ))
             )}
@@ -814,7 +1155,15 @@ export default function ChatHubPage() {
                     {activeContact.first_name || 'User'}
                   </p>
                   {otherTyping ? (
-                    <p className="text-xs text-brand-accent font-medium">sedang mengetik...</p>
+                    <p className="text-xs text-brand-accent font-medium flex items-center gap-1">
+                      sedang mengetik
+                      <TypingDots color="var(--color-brand-accent)" />
+                    </p>
+                  ) : !connected ? (
+                    <p className="text-xs text-brand-muted flex items-center gap-1">
+                      Menyambung kembali
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-pending animate-pulse" />
+                    </p>
                   ) : activeContact.role ? (
                     <p className="text-xs text-brand-muted">
                       {activeContact.role === 'admin' ? 'Admin Internal'
@@ -825,6 +1174,15 @@ export default function ChatHubPage() {
                     </p>
                   ) : null}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => { setChatSearchOpen(v => !v); setChatSearchQ('') }}
+                  aria-label="Cari di riwayat"
+                  title="Cari di riwayat"
+                  className={`ml-auto p-2 rounded-full transition-colors ${chatSearchOpen ? 'bg-brand-accent/10 text-brand-accent' : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'}`}
+                >
+                  <Search size={18} />
+                </button>
               </div>
 
               {/* Property context card */}
@@ -867,7 +1225,8 @@ export default function ChatHubPage() {
               )}
 
               {/* Messages */}
-              <div ref={messagesScrollRef} className="flex-1 overflow-y-auto py-2">
+              <div className="relative flex-1">
+              <div ref={messagesScrollRef} onScroll={handleMessagesScroll} className="absolute inset-0 overflow-y-auto py-2">
                 {messagesLoading ? (
                   <div className="px-4 space-y-4 py-4">
                     <div className="flex justify-start">
@@ -891,7 +1250,7 @@ export default function ChatHubPage() {
                     </div>
                   </div>
                 ) : messages.length === 0 ? (
-                  <EmptyChat contactName={activeContact.first_name} />
+                  <EmptyChat contactName={activeContact.first_name} onSuggested={handleSuggested} />
                 ) : (
                   <>
                     {hasMore && (
@@ -913,6 +1272,7 @@ export default function ChatHubPage() {
                       const newDay = !prev || dayLabel(prev.created_at) !== dayLabel(msg.created_at)
                       const firstInGroup = !prev || prev.sender_id !== msg.sender_id || newDay
                       const lastInGroup = !next || next.sender_id !== msg.sender_id || dayLabel(next.created_at) !== dayLabel(msg.created_at)
+                      const repliedMessage = msg.reply_to_id ? messages.find((m) => m.id === msg.reply_to_id) : null
                       return (
                         <div key={msg.id}>
                           {newDay && i > 0 && <DateSeparator date={dayLabel(msg.created_at)} />}
@@ -920,11 +1280,14 @@ export default function ChatHubPage() {
                             message={msg}
                             isOwn={msg.sender_id === userId}
                             onDelete={setDeleteTarget}
+                            onReply={handleReply}
                             lang={i18n.language}
                             firstInGroup={firstInGroup}
                             lastInGroup={lastInGroup}
                             otherName={activeContact.first_name}
                             otherColor={getAvatarColor(activeContact.id)}
+                            repliedMessage={repliedMessage}
+                            highlight={chatSearchQ}
                           />
                         </div>
                       )
@@ -933,13 +1296,112 @@ export default function ChatHubPage() {
                 )}
                 <div ref={messagesEndRef} />
               </div>
+                {newMsgFAB && (
+                  <button
+                    type="button"
+                    onClick={scrollToBottom}
+                    className="absolute bottom-3 right-4 z-20 inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full bg-brand-accent text-white text-xs font-bold shadow-lg hover:brightness-95 active:scale-95 transition-all animate-fadeIn"
+                    aria-label="Gulir ke pesan terbaru"
+                  >
+                    Pesan baru {newMsgCount > 0 ? `(${newMsgCount})` : ''}
+                    <ChevronDown size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Chat search */}
+              {chatSearchOpen && (
+                <div className="shrink-0 border-t border-brand-border bg-brand-surface px-4 py-2">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-brand-bg border border-brand-border rounded-lg">
+                    <Search size={14} className="text-brand-muted shrink-0" />
+                    <input
+                      type="text"
+                      value={chatSearchQ}
+                      onChange={(e) => setChatSearchQ(e.target.value)}
+                      placeholder="Cari di riwayat..."
+                      className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+                    />
+                    <span className="text-[10px] text-brand-muted">{messages.filter(m => m.content && m.content.toLowerCase().includes(chatSearchQ.trim().toLowerCase())).length} hasil</span>
+                  </div>
+                </div>
+              )}
+
+              {replyTo && (
+                <ReplyPreview message={replyTo} onCancel={() => setReplyTo(null)} otherName={activeContact.first_name} />
+              )}
 
               {/* Input Bar */}
               <form
                 onSubmit={handleSend}
                 className="shrink-0 flex items-end gap-2 px-4 py-3 border-t border-brand-border bg-brand-surface"
               >
-                <div className="flex-1 relative">
+                <div ref={plusMenuRef} className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPlusMenuOpen(v => !v)}
+                    aria-label="Lampiran"
+                    title="Lampiran"
+                    className="w-10 h-10 rounded-xl bg-brand-bg border border-brand-border text-brand-muted hover:text-brand-accent flex items-center justify-center"
+                  >
+                    <Paperclip size={17} />
+                  </button>
+                  {plusMenuOpen && (
+                    <div className="absolute bottom-12 left-0 z-30 w-48 rounded-xl bg-brand-surface border border-brand-border shadow-lg p-1.5 animate-fadeIn">
+                      <button
+                        type="button"
+                        onClick={() => { setPlusMenuOpen(false); setShowPropertyPicker(true) }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-brand-text hover:bg-brand-bg text-left"
+                      >
+                        <Building2 size={16} className="text-brand-accent shrink-0" /> Bagikan properti
+                      </button>
+                      <button
+                        type="button"
+                        onClick={openImagePicker}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-brand-text hover:bg-brand-bg text-left"
+                      >
+                        <ImagePlus size={16} className="text-brand-accent shrink-0" /> Kirim gambar
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  {(pendingImage || shareProperty) && (
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      {pendingImageUrl && (
+                        <span className="inline-flex items-center gap-2 rounded-lg border border-brand-border bg-brand-bg p-1 pr-2">
+                          <img src={pendingImageUrl} alt="" className="w-8 h-8 rounded object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (pendingImageUrlRef.current) URL.revokeObjectURL(pendingImageUrlRef.current)
+                              pendingImageUrlRef.current = null
+                              setPendingImage(null)
+                              setPendingImageUrl(null)
+                            }}
+                            aria-label="Hapus gambar"
+                            className="text-brand-muted hover:text-brand-danger"
+                          >
+                            <X size={14} />
+                          </button>
+                        </span>
+                      )}
+                      {shareProperty && (
+                        <span className="inline-flex items-center gap-2 rounded-lg border border-brand-border bg-brand-bg px-2 py-1.5">
+                          <Building2 size={14} className="text-brand-accent shrink-0" />
+                          <span className="text-xs text-brand-text truncate max-w-[10rem]">{shareProperty.title || 'Properti'}</span>
+                          <button
+                            type="button"
+                            onClick={() => setShareProperty(null)}
+                            aria-label="Hapus properti"
+                            className="text-brand-muted hover:text-brand-danger"
+                          >
+                            <X size={14} />
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <input
                     ref={inputRef}
                     type="text"
@@ -952,16 +1414,17 @@ export default function ChatHubPage() {
                 </div>
                 <button
                   type="submit"
-                  disabled={sending || !inputValue.trim()}
+                  disabled={sending || imageUploading || (!inputValue.trim() && !pendingImage && !shareProperty)}
                   className="shrink-0 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Kirim pesan"
                 >
-                  {sending ? (
+                  {sending || imageUploading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <Send size={16} />
                   )}
                 </button>
+                <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePickImage} />
               </form>
             </>
           ) : (
@@ -1031,6 +1494,76 @@ export default function ChatHubPage() {
               </div>
             ) : allUsers.length === 0 ? (
               <p className="text-sm text-brand-muted text-center py-8">Tidak ada pengguna lain.</p>
+            ) : null}
+          </div>
+        </div>
+      </>
+    )}
+
+    {showPropertyPicker && (
+      <>
+        <button type="button" aria-label="Tutup" onClick={() => setShowPropertyPicker(false)} className="fixed inset-0 bg-black/40 z-40 cursor-default p-0 border-0" />
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl p-6 pb-10 max-h-[70vh] overflow-y-auto animate-slide-up">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-brand-text">Bagikan Properti</h2>
+            <button
+              type="button"
+              aria-label="Tutup"
+              onClick={() => { setShowPropertyPicker(false); setPropertySearch('') }}
+              className="text-brand-muted hover:text-brand-text"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-brand-bg border border-brand-border rounded-xl mb-4">
+            <Search size={14} className="text-brand-muted shrink-0" />
+            <input
+              type="text"
+              value={propertySearch}
+              onChange={(e) => setPropertySearch(e.target.value)}
+              placeholder="Cari properti..."
+              className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+            />
+            {propertySearch && (
+              <button type="button" aria-label="Bersihkan pencarian" onClick={() => setPropertySearch('')} className="text-brand-muted hover:text-brand-text">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <div className="space-y-1">
+            {propertyResults.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  handleShareProperty(p)
+                  setPropertySearch('')
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-brand-bg transition-colors text-left"
+              >
+                {p.image_url ? (
+                  <img src={getImageSrc(p.image_url)} alt={p.title} className="w-11 h-11 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <div className="w-11 h-11 rounded-lg bg-brand-bg flex items-center justify-center shrink-0">
+                    <Building2 size={18} className="text-brand-muted" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-brand-text truncate">{p.title || 'Tanpa judul'}</p>
+                  <p className="text-xs text-brand-muted truncate">{p.city || 'Indonesia'}</p>
+                </div>
+                <span className="text-xs font-bold text-brand-primary shrink-0">
+                  {Number(p.price) > 0 ? formatPriceDisplay(p) : 'Harga Hubungi'}
+                </span>
+              </button>
+            ))}
+            {propertySearching ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-brand-muted">
+                <Loader2 size={16} className="animate-spin" />
+                <span className="text-sm">Mencari properti...</span>
+              </div>
+            ) : propertyResults.length === 0 ? (
+              <p className="text-sm text-brand-muted text-center py-8">Tidak ada properti ditemukan.</p>
             ) : null}
           </div>
         </div>
