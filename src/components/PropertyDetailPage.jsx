@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { MessageCircle, MessageSquare, Phone, ChevronDown, ChevronRight, X, ChevronLeft, Calendar, Share2, MapPin, Tag, TrendingDown, Flag, CheckCircle2, AlertTriangle, Wallet, Heart, Images } from 'lucide-react'
+import { MessageCircle, MessageSquare, ChevronDown, ChevronRight, X, ChevronLeft, Calendar, Share2, MapPin, Tag, TrendingDown, Flag, CheckCircle2, AlertTriangle, Wallet, Heart, Images } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getFavorites, toggleFavorite as toggleFav } from '../utils/favorites'
 import { supabase } from '../supabaseClient'
@@ -752,7 +752,13 @@ export default function PropertyDetailPage() {
     : property.seller_type === 'agent' ? 'Agen Properti'
     : 'Pemilik Langsung'
 
-  const phoneShort = waNumber ? `+${waNumber.slice(0, 4)}...${waNumber.slice(-3)}` : null
+  const handleChatClick = () => {
+    if (!user) {
+      navigate('/login', { state: { from: window.location.pathname } })
+      return
+    }
+    navigate(`/chat?user=${property.seller_id}&property=${property.id}`)
+  }
 
   return (
     <div className="min-h-screen bg-brand-bg flex flex-col">
@@ -1068,17 +1074,15 @@ export default function PropertyDetailPage() {
                   </Link>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {waLink && (
-                    <a
-                      href={waLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={trackWaClick}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-brand-text border border-brand-border hover:bg-brand-bg transition-colors active:scale-[0.98]"
+                  {property.seller_id && (
+                    <button
+                      type="button"
+                      onClick={handleChatClick}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-brand-primary hover:brightness-95 active:scale-[0.98] transition-all duration-200 shadow-sm"
                     >
-                      <Phone size={16} className="text-brand-muted" />
-                      {phoneShort}
-                    </a>
+                      <MessageSquare size={16} />
+                      Chat di HuniOne
+                    </button>
                   )}
                   <button
                     type="button"
@@ -1088,27 +1092,6 @@ export default function PropertyDetailPage() {
                     <Calendar size={16} className="text-brand-muted" />
                     {isRent ? 'Jadwal Inspeksi' : 'Jadwal Survei'}
                   </button>
-                  {waLink && (
-                    <a
-                      href={waLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={trackWaClick}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors active:scale-[0.98]"
-                    >
-                      <MessageCircle size={16} />
-                      WhatsApp
-                    </a>
-                  )}
-                  {property.seller_id && (
-                    <Link
-                      to={`/chat?user=${property.seller_id}&property=${property.id}`}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-brand-primary bg-brand-primary/5 border border-brand-primary/20 hover:bg-brand-primary/10 transition-colors active:scale-[0.98]"
-                    >
-                      <MessageSquare size={16} />
-                      Chat di HuniOne
-                    </Link>
-                  )}
                 </div>
               </div>
             </div>
