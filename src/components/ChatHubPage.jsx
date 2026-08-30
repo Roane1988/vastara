@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, Paperclip } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, Paperclip, Pin, PinOff, Download } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import { compressImage } from '../utils/imageCompression'
 
@@ -130,7 +130,7 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight }) {
+function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned }) {
   return (
     <div className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -180,14 +180,25 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
               )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => onReply?.(message)}
-            aria-label="Balas pesan"
-            className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent opacity-0 group-hover/message:opacity-100 transition-opacity px-1"
-          >
-            <CornerUpLeft size={11} /> Balas
-          </button>
+          <div className={`mt-1 flex items-center gap-1 opacity-0 group-hover/message:opacity-100 transition-opacity ${isOwn ? 'justify-end' : 'justify-start'}`}>
+            <button
+              type="button"
+              onClick={() => onReply?.(message)}
+              aria-label="Balas pesan"
+              className="inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent transition-colors px-1"
+            >
+              <CornerUpLeft size={11} /> Balas
+            </button>
+            <button
+              type="button"
+              onClick={() => onPin?.(message)}
+              aria-label={isPinned ? 'Lepas sematan' : 'Sematkan pesan'}
+              title={isPinned ? 'Lepas sematan' : 'Sematkan'}
+              className={`inline-flex items-center gap-0.5 text-[10px] transition-colors px-1 ${isPinned ? 'text-brand-accent' : 'text-brand-muted hover:text-brand-accent'}`}
+            >
+              {isPinned ? <PinOff size={11} /> : <Pin size={11} />} {isPinned ? 'Disematkan' : 'Sematkan'}
+            </button>
+          </div>
         </div>
         {isOwn && (
           <button
@@ -205,7 +216,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
   )
 }
 
-function ContactItem({ contact, isActive, onClick, lang, isTyping, unread }) {
+function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnline }) {
   const avatarColor = getAvatarColor(contact.id)
   const initials = getInitials(contact.first_name)
   const roleLabel = contact.role === 'admin' ? 'Admin Internal'
@@ -224,11 +235,17 @@ function ContactItem({ contact, isActive, onClick, lang, isTyping, unread }) {
           : 'hover:bg-brand-bg border-l-2 border-transparent'
       }`}
     >
-      <div
-        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-        style={{ backgroundColor: avatarColor }}
-      >
-        {initials}
+      <div className="relative shrink-0">
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
+          style={{ backgroundColor: avatarColor }}
+        >
+          {initials}
+        </div>
+        <span
+          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white transition-colors ${isOnline ? 'bg-green-500' : 'bg-gray-300'}`}
+          title={isOnline ? 'Online' : 'Offline'}
+        />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
@@ -396,6 +413,8 @@ export default function ChatHubPage() {
   const [chatSearchQ, setChatSearchQ] = useState('')
   const [connected, setConnected] = useState(false)
   const [otherTypingContacts, setOtherTypingContacts] = useState({})
+  const [onlineIds, setOnlineIds] = useState({})
+  const [pinnedMessages, setPinnedMessages] = useState({})
   const fileInputRef = useRef(null)
   const plusMenuRef = useRef(null)
   const pendingImageUrlRef = useRef(null)
@@ -653,6 +672,59 @@ export default function ChatHubPage() {
 
   useEffect(() => {
     if (!userId) return
+    const presenceChannel = supabase.channel('app-online')
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const users = Object.values(presenceChannel.presenceState() || {})
+          .flat()
+          .map((p) => p.userId)
+          .filter(Boolean)
+        setOnlineIds(() => {
+          const next = {}
+          users.forEach((id) => { next[id] = true })
+          return next
+        })
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          presenceChannel.track({ userId, online_at: new Date().toISOString() })
+        }
+      })
+    return () => { supabase.removeChannel(presenceChannel) }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId || !activeContactId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPinnedMessages({})
+      return
+    }
+    const room = [userId, activeContactId].sort().join('-')
+    setPinnedMessages((prev) => {
+      const next = { ...prev }
+      if (!next[room]) next[room] = {}
+      return next
+    })
+    let cancelled = false
+    supabase
+      .from('pinned_messages')
+      .select('message_id')
+      .eq('user_id', userId)
+      .eq('chat_id', room)
+      .then(async ({ data, error }) => {
+        if (cancelled || error || !data || data.length === 0) return
+        const ids = data.map((r) => r.message_id)
+        const { data: msgs } = await supabase.from('direct_messages').select('*').in('id', ids)
+        if (cancelled || !msgs) return
+        const map = {}
+        msgs.forEach((m) => { map[m.id] = m })
+        setPinnedMessages((prev) => ({ ...prev, [room]: map }))
+      })
+    return () => { cancelled = true }
+  }, [userId, activeContactId])
+
+  useEffect(() => {
+    if (!userId) return
     realtimeCancelledRef.current = false
 
     const channel = supabase
@@ -881,6 +953,56 @@ export default function ChatHubPage() {
     setReplyTo(message)
     setPlusMenuOpen(false)
     inputRef.current?.focus()
+  }
+
+  async function handleTogglePin(message) {
+    if (!userId || !activeContactId) return
+    const room = [userId, activeContactId].sort().join('-')
+    const isPinned = !!pinnedMessages[room]?.[message.id]
+    if (isPinned) {
+      const { error } = await supabase.from('pinned_messages').delete().eq('user_id', userId).eq('message_id', message.id)
+      if (!error) {
+        setPinnedMessages((prev) => {
+          const next = { ...prev }
+          const roomPins = { ...(next[room] || {}) }
+          delete roomPins[message.id]
+          if (Object.keys(roomPins).length === 0) delete next[room]
+          else next[room] = roomPins
+          return next
+        })
+        showToast('Pesan dilepas dari sematan', 'info')
+      }
+    } else {
+      const { error } = await supabase.from('pinned_messages').insert({ user_id: userId, chat_id: room, message_id: message.id })
+      if (!error) {
+        setPinnedMessages((prev) => ({ ...prev, [room]: { ...(prev[room] || {}), [message.id]: message } }))
+        showToast('Pesan disematkan', 'success')
+      }
+    }
+  }
+
+  function handleExportChat() {
+    if (!activeContact || messages.length === 0) {
+      showToast('Belum ada pesan untuk diekspor', 'info')
+      return
+    }
+    const rows = messages.map((m) => {
+      const sender = m.sender_id === userId ? 'Saya' : (activeContact.first_name || 'Lawan bicara')
+      const time = new Date(m.created_at).toLocaleString('id-ID')
+      const content = m.image_url ? '[Gambar]' : m.property_id ? '[Kartu properti]' : (m.content || '').replace(/[\r\n]+/g, ' ')
+      return `${time};${sender};${content}`
+    })
+    const csv = '\uFEFF' + ['Waktu;Pengirim;Pesan', ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `chat-${activeContact.first_name || activeContact.id}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    showToast('Riwayat chat diekspor', 'success')
   }
 
   function handleShareProperty(prop) {
@@ -1126,6 +1248,7 @@ export default function ChatHubPage() {
                     lang={i18n.language}
                     isTyping={!!otherTypingContacts[contact.id]}
                     unread={contact.id !== activeContactId ? (unreadMap[contact.id] || 0) : 0}
+                    isOnline={!!onlineIds[contact.id]}
                   />
                 </div>
               ))
@@ -1171,6 +1294,11 @@ export default function ChatHubPage() {
                       Menyambung kembali
                       <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-pending animate-pulse" />
                     </p>
+                  ) : onlineIds[activeContact.id] ? (
+                    <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+                      Online
+                    </p>
                   ) : activeContact.role ? (
                     <p className="text-xs text-brand-muted">
                       {activeContact.role === 'admin' ? 'Admin Internal'
@@ -1183,10 +1311,19 @@ export default function ChatHubPage() {
                 </div>
                 <button
                   type="button"
+                  onClick={handleExportChat}
+                  aria-label="Ekspor riwayat chat"
+                  title="Ekspor riwayat chat"
+                  className="ml-auto p-2 rounded-full text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
+                >
+                  <Download size={18} />
+                </button>
+                <button
+                  type="button"
                   onClick={() => { setChatSearchOpen(v => !v); setChatSearchQ('') }}
                   aria-label="Cari di riwayat"
                   title="Cari di riwayat"
-                  className={`ml-auto p-2 rounded-full transition-colors ${chatSearchOpen ? 'bg-brand-accent/10 text-brand-accent' : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'}`}
+                  className={`p-2 rounded-full transition-colors ${chatSearchOpen ? 'bg-brand-accent/10 text-brand-accent' : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'}`}
                 >
                   <Search size={18} />
                 </button>
@@ -1260,6 +1397,27 @@ export default function ChatHubPage() {
                   <EmptyChat contactName={activeContact.first_name} onSuggested={handleSuggested} />
                 ) : (
                   <>
+                    {pinnedMessages[[userId, activeContactId].sort().join('-')] &&
+                      Object.keys(pinnedMessages[[userId, activeContactId].sort().join('-')]).length > 0 && (
+                        <div className="px-4 pt-3">
+                          <div className="flex items-start gap-2.5 rounded-xl border border-brand-border bg-brand-bg/70 px-3 py-2.5">
+                            <Pin size={14} className="text-brand-accent shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-bold text-brand-accent uppercase tracking-wide">Pesan disematkan</p>
+                              {(() => {
+                                const pins = pinnedMessages[[userId, activeContactId].sort().join('-')]
+                                const firstKey = Object.keys(pins)[0]
+                                const pinned = pins[firstKey]
+                                return (
+                                  <p className="text-xs text-brand-text truncate mt-0.5">
+                                    {pinned.image_url ? '[Gambar]' : pinned.property_id ? '[Kartu properti]' : pinned.content}
+                                  </p>
+                                )
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     {hasMore && (
                       <div className="px-4 py-2 flex justify-center">
                         <button
@@ -1295,6 +1453,8 @@ export default function ChatHubPage() {
                             otherColor={getAvatarColor(activeContact.id)}
                             repliedMessage={repliedMessage}
                             highlight={chatSearchQ}
+                            onPin={handleTogglePin}
+                            isPinned={!!pinnedMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
                           />
                         </div>
                       )
