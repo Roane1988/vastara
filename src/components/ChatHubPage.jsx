@@ -1540,7 +1540,7 @@ export default function ChatHubPage() {
           {activeContact ? (
             <>
               {/* Chat Header */}
-              <div className="sticky top-14 z-10 shrink-0 flex items-center gap-3 px-4 h-14 border-b border-brand-border bg-brand-surface">
+              <div className="shrink-0 flex items-center gap-3 px-4 h-14 border-b border-brand-border bg-brand-surface">
                 <button
                   type="button"
                   onClick={handleBackToList}
@@ -1645,7 +1645,7 @@ export default function ChatHubPage() {
 
               {/* Messages */}
               <div className="relative flex-1 min-h-0">
-              <div ref={messagesScrollRef} onScroll={handleMessagesScroll} className="absolute inset-0 overflow-y-auto py-2">
+              <div ref={messagesScrollRef} onScroll={handleMessagesScroll} className="h-full overflow-y-auto py-2">
                 {messagesLoading ? (
                   <div className="px-4 space-y-4 py-4">
                     <div className="flex justify-start">
