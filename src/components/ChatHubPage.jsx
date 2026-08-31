@@ -936,12 +936,13 @@ export default function ChatHubPage() {
           event: 'INSERT',
           schema: 'public',
           table: 'direct_messages',
-          filter: `or(sender_id.eq.${userId},receiver_id.eq.${userId})`,
         },
         (payload) => {
           if (realtimeCancelledRef.current) return
           const msg = payload.new
-          if (!msg || msg.sender_id === userId) return
+          if (!msg) return
+          if (msg.sender_id !== userId && msg.receiver_id !== userId) return
+          if (msg.sender_id === userId) return
           const otherId = getOtherId(msg, userId)
           if (!otherId || otherId === HUNIBOT_ID) return
 
@@ -1001,11 +1002,12 @@ export default function ChatHubPage() {
           event: 'UPDATE',
           schema: 'public',
           table: 'direct_messages',
-          filter: `or(sender_id.eq.${userId},receiver_id.eq.${userId})`,
         },
         (payload) => {
           if (realtimeCancelledRef.current) return
           const msg = payload.new
+          if (!msg) return
+          if (msg.sender_id !== userId && msg.receiver_id !== userId) return
           setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, read_at: msg.read_at, deleted_at: msg.deleted_at } : m)))
         }
       )
