@@ -17,6 +17,18 @@ const DRAFT_KEY = 'hunione_sell_draft'
 const MAX_IMAGES = 10
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
 
+const UPLOAD_TIMEOUT_MS = 45000
+
+function withTimeout(promise, ms, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message || 'Operasi memakan waktu terlalu lama. Coba lagi.')), ms)
+    promise.then(
+      (val) => { clearTimeout(timer); resolve(val) },
+      (err) => { clearTimeout(timer); reject(err) }
+    )
+  })
+}
+
 const PROPERTY_TYPE_OPTIONS = ['Rumah', 'Apartemen', 'Villa', 'Tanah', 'Kantor', 'Ruko']
 
 const digitsOnly = (value = '') => String(value).replace(/[^0-9]/g, '')
@@ -232,6 +244,7 @@ export default function SellPropertyPage() {
   })
   const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [statusText, setStatusText] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [touched, setTouched] = useState({})
   const [draftSavedSnapshot, setDraftSavedSnapshot] = useState(() => JSON.stringify(form))
@@ -556,17 +569,20 @@ export default function SellPropertyPage() {
 
   const handleSubmit = async () => {
     setSubmitting(true)
+    setStatusText('Memeriksa akun...')
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         showToast('Sesi habis, silakan login ulang.', 'error')
         setSubmitting(false)
+        setStatusText('')
         return
       }
 
       if (requestedRole !== 'owner' && !accountRole) {
         showToast('Role akun belum dapat diverifikasi. Silakan muat ulang halaman.', 'error')
         setSubmitting(false)
+        setStatusText('')
         return
       }
 
@@ -588,6 +604,7 @@ export default function SellPropertyPage() {
       if (formWa && profileWa && formWa !== profileWa) {
         showToast('Nomor WhatsApp pada listing harus sama dengan nomor yang terdaftar di profil akun Anda.', 'error')
         setSubmitting(false)
+        setStatusText('')
         return
       }
 
@@ -602,21 +619,20 @@ export default function SellPropertyPage() {
       if (!editId && imageFiles.length > 0 && realFiles.length + existingImageNames.length === 0) {
         showToast('Foto draft sudah tidak tersedia di perangkat ini — silakan unggah ulang foto properti.', 'error')
         setSubmitting(false)
+        setStatusText('')
         return
       }
 
       if (realFiles.length > 0) {
         try {
-          const uploads = realFiles.map(async (file, idx) => {
+          uploadedImageUrls = []
+          for (let idx = 0; idx < realFiles.length; idx++) {
+            const file = realFiles[idx]
             if (!ALLOWED_MIME_TYPES.includes(file.type)) {
               throw new Error('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.')
             }
             if (file.size > 5 * 1024 * 1024) {
               throw new Error('Ukuran file maksimal 5MB per gambar.')
-            }
-            const compressed = await compressImage(file)
-            if (!ALLOWED_MIME_TYPES.includes(compressed.type)) {
-              throw new Error('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.')
             }
             const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
             const ext = (file.name.split('.').pop() || '').toLowerCase()
@@ -624,20 +640,36 @@ export default function SellPropertyPage() {
             if (!allowedExt.includes(ext)) {
               throw new Error('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.')
             }
+
+            setStatusText(`Mengompresi gambar ${idx + 1} dari ${realFiles.length}...`)
+            const compressed = await withTimeout(
+              compressImage(file),
+              UPLOAD_TIMEOUT_MS,
+              'Kompresi gambar memakan waktu terlalu lama. Coba lagi.'
+            )
+            if (!ALLOWED_MIME_TYPES.includes(compressed.type)) {
+              throw new Error('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.')
+            }
+
             const fileName = `${user.id}-${Date.now()}-${idx}-${safeName}`
-            const { error: uploadErr } = await supabase.storage
-              .from('PROPERTIES_IMAGE')
-              .upload(fileName, compressed, { contentType: compressed.type || file.type, upsert: false })
+            setStatusText(`Mengunggah foto ${idx + 1} dari ${realFiles.length}...`)
+            const { error: uploadErr } = await withTimeout(
+              supabase.storage
+                .from('PROPERTIES_IMAGE')
+                .upload(fileName, compressed, { contentType: compressed.type || file.type, upsert: false }),
+              UPLOAD_TIMEOUT_MS,
+              'Upload foto memakan waktu terlalu lama. Periksa koneksi lalu coba lagi.'
+            )
             if (uploadErr) throw new Error(uploadErr.message)
             const { data: { publicUrl } } = supabase.storage
               .from('PROPERTIES_IMAGE')
               .getPublicUrl(fileName)
-            return publicUrl
-          })
-          uploadedImageUrls = await Promise.all(uploads)
+            uploadedImageUrls.push(publicUrl)
+          }
         } catch (err) {
-          showToast('Gagal mengunggah gambar: ' + err.message, 'error')
+          showToast('Gagal mengunggah gambar: ' + (err.message || 'Silakan coba lagi.'), 'error')
           setSubmitting(false)
+          setStatusText('')
           return
         }
       }
@@ -701,6 +733,7 @@ export default function SellPropertyPage() {
       }
 
       let queryError
+      setStatusText('Menyimpan data properti...')
       if (editId) {
         const { error } = await supabase.from('properties').update(payload).eq('id', editId)
         queryError = error
@@ -712,11 +745,13 @@ export default function SellPropertyPage() {
       if (queryError) {
         showToast(queryError.message, 'error')
         setSubmitting(false)
+        setStatusText('')
         return
       }
 
       clearDraft()
       setSubmitting(false)
+      setStatusText('')
       if (editId) {
         setPriceChangeStatus(sentToReview ? 'pending' : 'none')
         setPriceRequested(sentToReview ? newPrice : null)
@@ -734,6 +769,7 @@ export default function SellPropertyPage() {
     } catch (err) {
       showToast('Terjadi kesalahan: ' + (err.message || 'Silakan coba lagi.'), 'error')
       setSubmitting(false)
+      setStatusText('')
     }
   }
 
@@ -1181,12 +1217,18 @@ export default function SellPropertyPage() {
                   {step < STEPS.length - 1 ? (
                     <button type="button" onClick={nextStep} disabled={!canProceed()} className="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-brand-primary hover:brightness-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">Lanjut</button>
                   ) : (
-                    <button type="button" onClick={handleSubmit} disabled={submitting} className="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:brightness-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]">
+                    <button type="button" onClick={handleSubmit} disabled={submitting} className="flex-1 py-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:brightness-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]">
                       {submitting && <SpinnerIcon />}
                       {submitting ? 'Mengirim...' : 'Kirim Iklan'}
                     </button>
                   )}
                 </div>
+                {submitting && statusText && (
+                  <p className="mt-2 text-center text-xs text-brand-muted flex items-center justify-center gap-1.5 max-w-lg mx-auto">
+                    <Loader2 size={13} className="animate-spin" />
+                    {statusText}
+                  </p>
+                )}
               </div>
 
               <div className="h-24" />

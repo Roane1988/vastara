@@ -2,6 +2,14 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Changelog — Perbaikan Submit Listing yang "Mengirim..." Stuck/Lama di SellPropertyPage (31 Agustus 2026)
+- **Analisis penyebab stuck**: tombol Kirim (state `submitting`) sebelumnya bisa menggantung tanpa feedback. Akar masalah: fase upload gambar memakai `Promise.all` paralel **tanpa timeout** — bila kompresi (`browser-image-compression`) atau upload storage (`PROPERTIES_IMAGE`) lambat/macet di jaringan, promise menunggu selamanya dan tombol tetap "Mengirim...". RLS **bukan penyebab**: policy `properties` insert (`with check auth.uid() = seller_id`, migration `20260730_properties_rls_policies.sql`) bersifat role-agnostik, jadi akun `pembeli` tetap boleh membuat listing selama `seller_id = user.id` (sudah diisi kode).
+- **Progress transparan** (`SellPropertyPage.jsx`): state baru `statusText` → teks status beranimasi di bawah tombol: "Memeriksa akun...", "Mengompresi gambar X dari Y...", "Mengunggah foto X dari Y...", "Menyimpan data properti...". Upload diubah dari paralel `Promise.all` menjadi **sekuensial** agar progres terlihat dan akurat.
+- **Timeout anti-hang** (`SellPropertyPage.jsx`): helper `withTimeout(promise, ms, message)` di-warp pada kompresi & tiap upload (45 detik, `UPLOAD_TIMEOUT_MS`) → jika lewat batas, throw error yang jelas ("memakan waktu terlalu lama...") dan masuk ke handle error.
+- **Error feedback komprehensif**: semua jalur gagal kini `setSubmitting(false)` + `setStatusText('')` + `showToast` dengan pesan spesifik (gagal kompresi/upload/database/RLS). Error DB (`queryError`) juga menampilkan `queryError.message` via toast, bukan gagal senyap.
+- **Murni frontend** — tidak ada perubahan database; aman di-commit & push.
+
+
 ## Changelog — User Dashboard Peran (Buyer & Seller/Agen) + Analytics & Atribusi Terjual (31 Agustus 2026)
 - **Route baru `/dashboard`** (`App.jsx` + `DashboardPage.jsx` baru): halaman **User Dashboard** dinamis berdasarkan role dari `useAuth().role`. Mode **Pembeli** untuk role `pembeli`; mode **Penjual/Agen** untuk role `owner`, `agent`, `developer` (const `SELLER_ROLES`).
 - **Buyer Mode** (`DashboardPage.jsx`): kartu ringkasan **Properti Tersimpan** (`getFavorites` + join `properties`), **Jadwal Kunjungan** (`site_visits` by `buyer_id` + join `properties`), **Pencarian Tersimpan** (`saved_searches` own), dan **Profil Keuangan** (`getFinancialProfile`) dengan status "Terisi/Belum diisi" + hint referensi KPR. Masing-masing punya daftar/empty-state + CTA ke halaman terkait.
