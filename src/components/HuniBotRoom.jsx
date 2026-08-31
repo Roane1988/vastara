@@ -5,6 +5,7 @@ import { getAuthHeaders } from '../utils/groqClient'
 
 const RATE_LIMIT_MS = 1500
 const API_URL = '/api/groq'
+const STORAGE_KEY = 'hunione-hunibot-history'
 
 const SYSTEM_MESSAGE = {
   role: 'system',
@@ -57,7 +58,14 @@ function TypingIndicator() {
 }
 
 export default function HuniBotRoom({ firstName }) {
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY)
+      return raw ? JSON.parse(raw) : []
+    } catch {
+      return []
+    }
+  })
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef(null)
@@ -69,6 +77,14 @@ export default function HuniBotRoom({ firstName }) {
 
   useEffect(() => {
     messagesRef.current = messages
+  }, [messages])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    } catch {
+      /* sessionStorage tidak tersedia atau penuh */
+    }
   }, [messages])
 
   useEffect(() => {
@@ -85,7 +101,12 @@ export default function HuniBotRoom({ firstName }) {
   }, [])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      })
+    })
+    return () => cancelAnimationFrame(raf)
   }, [messages, isLoading])
 
   useEffect(() => {
