@@ -2,6 +2,11 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Changelog — Hybrid Dashboard (Deteksi Listing Aktif) + Integrasi Iklan Saya (31 Agustus 2026)
+- **Hybrid mode berbasis listing, bukan role** (`DashboardPage.jsx`): penentuan tampilan kini memakai pengecekan **apakah user punya listing di `properties`** (`select head count where seller_id = user.id`), bukan `role` di `profiles`. Jika punya **≥1 listing** → **Seller/Agent Dashboard** (views, leads, kunjungan, terjual, daftar iklan + Tandai Terjual) untuk **siapa pun**, termasuk akun ber-role `pembeli` yang sudah mengiklankan; jika **belum pernah mengiklankan** → Buyer Dashboard standar. Konstanta `SELLER_ROLES` & variabel `isSeller` dihapus; state `mode` ('seller'|'buyer') dipakai.
+- **Integrasi "Iklan Saya" ke dalam dashboard** (`DashboardPage.jsx`): bagian "Iklan Saya" (eks "Ringkasan Listing") kini menampilkan **semua** listing (bukan 5 teratas) lengkap dengan badge status (Aktif/Menunggu/Terjual), tombol **Edit** (→ `/sell?edit=:id`) dan **"Tandai Terjual"** (modal atribusi internal/eksternal), plus CTA **"Iklankan properti baru"**. Tidak perlu terlempar ke `/my-listings` hanya untuk melihat status iklan; link "Kelola lengkap" ke `/my-listings` tetap ada untuk fitur lanjutan (leads/jadwal kunjungan).
+- **Murni frontend** — tidak ada perubahan database; aman di-commit & push.
+
 ## Changelog — Buka Akses Dashboard untuk Semua User Login (31 Agustus 2026)
 - **TopNavbar** (`TopNavbar.jsx`): tombol **"Dashboard"** (ikon grid) kini tampil untuk **semua user yang login** → navigasi ke `/dashboard` (sebelumnya hanya admin → `/admin`). Untuk admin tetap ada tombol terpisah **"Admin"** → `/admin`.
 - **HamburgerMenu** (`HamburgerMenu.jsx`): item menu **"Dashboard"** (`hamburger.dashboard`) ditambahkan untuk semua user login di Menu Utama → `/dashboard` (state `dashboardActive` menandai rute aktif). Item admin tetap ada, labelnya diubah jadi **"Dashboard Admin"** (`hamburger.admin`).

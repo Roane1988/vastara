@@ -18,6 +18,7 @@ import {
   MessageCircle,
   TrendingUp,
   Home,
+  Plus,
   ArrowRight,
   CheckCircle2,
   ExternalLink,
@@ -25,8 +26,6 @@ import {
   Check,
   X,
 } from 'lucide-react'
-
-const SELLER_ROLES = ['owner', 'agent', 'developer']
 
 function StatCard({ icon: Icon, label, value, sub, accent }) {
   return (
@@ -79,10 +78,10 @@ const VISIT_STATUS = {
 }
 
 export default function DashboardPage() {
-  const { user, role, showToast } = useAuth()
-  const isSeller = SELLER_ROLES.includes(role)
+  const { user, showToast } = useAuth()
 
   const [loading, setLoading] = useState(true)
+  const [mode, setMode] = useState(null)
 
   // Buyer data
   const [savedProps, setSavedProps] = useState([])
@@ -200,9 +199,21 @@ export default function DashboardPage() {
     ;(async () => {
       setLoading(true)
       try {
-        if (isSeller) {
+        if (!user) return
+
+        const { count } = await supabase
+          .from('properties')
+          .select('id', { count: 'exact', head: true })
+          .eq('seller_id', user.id)
+
+        const hasListings = (count || 0) > 0
+        if (cancelled) return
+
+        if (hasListings) {
+          setMode('seller')
           await loadSellerData()
         } else {
+          setMode('buyer')
           await loadBuyerData()
         }
       } catch {
@@ -211,7 +222,7 @@ export default function DashboardPage() {
       if (!cancelled) setLoading(false)
     })()
     return () => { cancelled = true }
-  }, [isSeller, loadSellerData, loadBuyerData])
+  }, [user, loadSellerData, loadBuyerData])
 
   const openSellModal = (p) => {
     setSellTarget(p)
@@ -267,11 +278,11 @@ export default function DashboardPage() {
         </h1>
         <p className="text-sm text-brand-muted mt-1">
           {firstName ? `Halo, ${firstName}!` : 'Halo!'}
-          {' '}— ini ringkasan aktivitas {isSeller ? 'penjualan' : 'pencarian properti'} kamu di HuniOne.
+          {' '}— ini ringkasan aktivitas {mode === 'seller' ? 'penjualan' : 'pencarian properti'} kamu di HuniOne.
         </p>
       </header>
 
-      {isSeller ? (
+      {mode === 'seller' ? (
         <SellerDashboard
           listings={listings}
           viewCount={viewCount}
@@ -436,10 +447,7 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
 }
 
 function SellerDashboard({ listings, viewCount, leadCount, visitCount, soldCount, openSellModal }) {
-  const forSale = listings.filter((p) => p.status === 'verified').length
-
-  return (
-    <div className="space-y-8">
+  return (    <div className="space-y-8">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={Eye} label="Total Tayangan" value={formatCount(viewCount)} sub="kali dilihat" accent="bg-brand-highlight text-brand-accent" />
         <StatCard icon={MessageCircle} label="Total Leads" value={formatCount(leadCount)} sub="obrolan & WA masuk" accent="bg-emerald-50 text-emerald-600" />
@@ -448,23 +456,7 @@ function SellerDashboard({ listings, viewCount, leadCount, visitCount, soldCount
       </div>
 
       <section>
-        <SectionHeader title="Ringkasan Listing" to="/my-listings" cta="Kelola listing" />
-        <div className="bg-brand-surface rounded-2xl border border-brand-border p-4 mb-4">
-          <div className="flex items-center justify-between gap-3">
-            {[
-              { label: 'Total Iklan', value: listings.length },
-              { label: 'Aktif / For Sale', value: forSale },
-              { label: 'Dalam Antrian', value: listings.filter((p) => p.status === 'pending' || p.status === 'in_review').length },
-              { label: 'Terjual', value: soldCount },
-            ].map((s, i) => (
-              <div key={i} className="text-center">
-                <p className="text-2xl font-bold text-brand-text">{s.value}</p>
-                <p className="text-[11px] text-brand-muted">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
+        <SectionHeader title="Iklan Saya" to="/my-listings" cta="Kelola lengkap" />
         {listings.length === 0 ? (
           <EmptyState
             icon={Home}
@@ -475,28 +467,51 @@ function SellerDashboard({ listings, viewCount, leadCount, visitCount, soldCount
           />
         ) : (
           <div className="space-y-2">
-            {listings.slice(0, 5).map((p) => (
-              <div key={p.id} className="bg-brand-surface rounded-2xl border border-brand-border p-3 flex items-center gap-3">
-                <img src={getImageSrc(p.image_url)} alt={p.title} className="w-12 h-12 rounded-lg object-cover shrink-0" onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-brand-text truncate">{p.title}</p>
-                  <p className="text-xs text-brand-muted truncate">{formatPriceDisplay(p)}</p>
+            {listings.map((p) => {
+              const sold = p.status === 'sold'
+              const pending = p.status === 'pending' || p.status === 'in_review'
+              return (
+                <div key={p.id} className={`bg-brand-surface rounded-2xl border border-brand-border p-3 flex items-center gap-3 ${sold ? 'opacity-75' : ''}`}>
+                  <img src={getImageSrc(p.image_url)} alt={p.title} className="w-12 h-12 rounded-lg object-cover shrink-0" onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-brand-text truncate">{p.title}</p>
+                    <p className="text-xs text-brand-muted truncate">{formatPriceDisplay(p)}</p>
+                  </div>
+                  <span className={`text-[11px] font-semibold px-2 py-1 rounded-full shrink-0 ${
+                    sold ? 'bg-brand-sold/20 text-brand-sold' : pending ? 'bg-brand-pending/15 text-brand-pending' : 'bg-brand-verified-bg text-brand-verified'
+                  }`}>
+                    {sold ? 'Terjual' : pending ? 'Menunggu' : 'Aktif'}
+                  </span>
+                  {!sold && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Link
+                        to={`/sell?edit=${p.id}`}
+                        className="text-[11px] font-semibold text-brand-accent border border-brand-accent/30 hover:bg-brand-highlight rounded-lg px-3 py-1.5 transition-colors"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); openSellModal(p) }}
+                        className="text-[11px] font-semibold text-brand-danger border border-brand-danger/30 hover:bg-brand-danger/10 rounded-lg px-3 py-1.5 transition-colors"
+                      >
+                        Tandai Terjual
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {p.status === 'sold' ? (
-                  <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-brand-sold/20 text-brand-sold shrink-0">Terjual</span>
-                ) : p.status === 'pending' ? (
-                  <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-brand-pending/15 text-brand-pending shrink-0">Menunggu</span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); openSellModal(p) }}
-                    className="text-[11px] font-semibold text-brand-danger border border-brand-danger/30 hover:bg-brand-danger/10 rounded-lg px-3 py-1.5 transition-colors shrink-0"
-                  >
-                    Tandai Terjual
-                  </button>
-                )}
-              </div>
-            ))}
+              )
+            })}
+          </div>
+        )}
+        {listings.length > 0 && (
+          <div className="mt-3">
+            <Link
+              to="/sell"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors"
+            >
+              <Plus size={16} /> Iklankan properti baru
+            </Link>
           </div>
         )}
       </section>
