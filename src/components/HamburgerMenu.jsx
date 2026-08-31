@@ -136,6 +136,7 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
   const forumActive = pathname.startsWith('/forum')
   const myListingsActive = pathname === '/my-listings'
   const adminActive = pathname === '/admin'
+  const dashboardActive = pathname === '/dashboard'
   const compareActive = pathname === '/compare'
 
   const menuContent = (
@@ -222,6 +223,14 @@ export default function HamburgerMenu({ isOpen, onClose, isAuth, userName, onPro
               label={t('hamburger.my_listings')}
               active={myListingsActive}
               onClick={() => handleNavigate('/my-listings')}
+            />
+          )}
+          {isAuth && (
+            <MenuItem
+              icon={<LayoutGrid size={18} />}
+              label={t('hamburger.dashboard')}
+              active={dashboardActive}
+              onClick={() => handleNavigate('/dashboard')}
             />
           )}
           {role === 'admin' && (

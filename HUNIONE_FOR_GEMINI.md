@@ -2,6 +2,15 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Changelog — Buka Akses Dashboard untuk Semua User Login (31 Agustus 2026)
+- **TopNavbar** (`TopNavbar.jsx`): tombol **"Dashboard"** (ikon grid) kini tampil untuk **semua user yang login** → navigasi ke `/dashboard` (sebelumnya hanya admin → `/admin`). Untuk admin tetap ada tombol terpisah **"Admin"** → `/admin`.
+- **HamburgerMenu** (`HamburgerMenu.jsx`): item menu **"Dashboard"** (`hamburger.dashboard`) ditambahkan untuk semua user login di Menu Utama → `/dashboard` (state `dashboardActive` menandai rute aktif). Item admin tetap ada, labelnya diubah jadi **"Dashboard Admin"** (`hamburger.admin`).
+- **ProfileDrawer** (`ProfileDrawer.jsx`): item **"Dashboard"** → `/dashboard` ditambahkan untuk semua user login (ikon `LayoutDashboard`), di samping "Dashboard Admin" (tetap khusus admin).
+- **i18n** (id/en `translation.json`): key baru `hamburger.dashboard` = "Dashboard"; nilai `hamburger.admin` diubah dari "Dashboard" → "Dashboard Admin" untuk membedakan user dashboard vs admin dashboard.
+- **DashboardPage** (`/dashboard`): sudah mendukung **Buyer Mode** untuk role `pembeli` (saran yang mulus, tanpa error) — karena policy RLS properties insert role-agnostik, akun pembeli juga bisa mengiklankan dan melihat ringkasan aktivitasnya di dashboard.
+- **Murni frontend** — tidak ada perubahan database; aman di-commit & push.
+
+
 ## Changelog — Perbaikan Submit Listing yang "Mengirim..." Stuck/Lama di SellPropertyPage (31 Agustus 2026)
 - **Analisis penyebab stuck**: tombol Kirim (state `submitting`) sebelumnya bisa menggantung tanpa feedback. Akar masalah: fase upload gambar memakai `Promise.all` paralel **tanpa timeout** — bila kompresi (`browser-image-compression`) atau upload storage (`PROPERTIES_IMAGE`) lambat/macet di jaringan, promise menunggu selamanya dan tombol tetap "Mengirim...". RLS **bukan penyebab**: policy `properties` insert (`with check auth.uid() = seller_id`, migration `20260730_properties_rls_policies.sql`) bersifat role-agnostik, jadi akun `pembeli` tetap boleh membuat listing selama `seller_id = user.id` (sudah diisi kode).
 - **Progress transparan** (`SellPropertyPage.jsx`): state baru `statusText` → teks status beranimasi di bawah tombol: "Memeriksa akun...", "Mengompresi gambar X dari Y...", "Mengunggah foto X dari Y...", "Menyimpan data properti...". Upload diubah dari paralel `Promise.all` menjadi **sekuensial** agar progres terlihat dan akurat.

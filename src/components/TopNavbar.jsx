@@ -58,10 +58,10 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
           </button>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {role === 'admin' && (
+            {isAuth && (
               <button
                 type="button"
-                onClick={() => navigate('/admin')}
+                onClick={() => navigate('/dashboard')}
                 className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors text-sm font-medium"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -71,6 +71,15 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
                   <rect x="3" y="14" width="7" height="7" />
                 </svg>
                 Dashboard
+              </button>
+            )}
+            {role === 'admin' && (
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors text-sm font-medium"
+              >
+                Admin
               </button>
             )}
             <button

@@ -516,6 +516,14 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
             Dashboard Admin
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => handleNavigate('/dashboard')}
+          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-brand-text hover:bg-[#EDF4FD] hover:text-[#1E3A5F] transition-colors"
+        >
+          <LayoutDashboard size={18} className="text-brand-primary shrink-0" />
+          Dashboard
+        </button>
         {role === 'agent' && (
           <button
             type="button"
