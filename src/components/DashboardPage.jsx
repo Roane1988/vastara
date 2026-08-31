@@ -582,7 +582,7 @@ function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitC
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-brand-border)" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-brand-muted)' }} tickLine={false} axisLine={{ stroke: 'var(--color-brand-border)' }} interval="preserveStartEnd" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--color-brand-muted)' }} tickLine={false} tickMargin={8} axisLine={{ stroke: 'var(--color-brand-border)' }} interval="preserveStartEnd" minTickGap={28} />
                   <YAxis tick={{ fontSize: 11, fill: 'var(--color-brand-muted)' }} tickLine={false} axisLine={false} allowDecimals={false} />
                   <Tooltip
                     cursor={{ stroke: 'var(--color-brand-accent)', strokeDasharray: '3 3' }}

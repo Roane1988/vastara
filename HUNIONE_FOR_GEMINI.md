@@ -7,6 +7,7 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Sumber data**: `loadSellerData` menambah state `viewTrend` = deret harian yang digabung dari `property_views.viewed_on`. Helper `buildViewTrend(views, maxDays)` meng-agregasi tayangan per tanggal dan mengisi hari tanpa tayangan dengan `0` agar grafik kontinu.
 - **Pemilih rentang**: tombol toggle **7H / 14H / 30H** di header kartu chart (state `trendDays`, default 7); `chartData` di-slice dari deret menaik via `useMemo`.
 - **Styling konsisten**: memakai variabel brand (`--color-brand-accent/border/muted`) dengan gradient area (`viewGrad`) + **custom Tooltip** (kartu berisi hari penuh + jumlah tayangan). Menampilkan empty-state "Belum ada tayangan dalam periode ini" bila tidak ada data.
+- **Mobile-friendly**: kontainer chart `w-full h-56`, XAxis `minTickGap={28}` + `tickMargin={8}` agar label tanggal tidak saling tumpang-tindih di layar sempit (terutama rentang 30H). Diverifikasi lebar kartu tidak meluber horizontal pada viewport 375px.
 - **Murni frontend** — tidak ada perubahan database (data sudah tersedia dari property_views).
 
 ## Changelog — Dashboard Seller/Agen Optimasi Mobile (31 Agustus 2026)
