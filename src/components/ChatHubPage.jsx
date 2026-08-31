@@ -210,7 +210,7 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed }) {
+function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact }) {
   return (
     <div id={`message-${message.id}`} className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -265,6 +265,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
                 <MessageText text={message.content} query={highlight} />
               </p>
             )}
+            {renderReactionsRow(reactions, myId, onReact)}
             <div className={`text-[10px] mt-1 flex items-center justify-end gap-1.5 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
               <span>{timeAgo(message.created_at, lang)}</span>
               {isOwn && (
@@ -479,6 +480,38 @@ function getOtherId(message, userId) {
   return message.sender_id === userId ? message.receiver_id : message.sender_id
 }
 
+function aggregateReactions(reactions, myId) {
+  const map = {}
+  ;(reactions || []).forEach((r) => {
+    if (!map[r.emoji]) map[r.emoji] = { count: 0, mine: false }
+    map[r.emoji].count += 1
+    if (r.user_id === myId) map[r.emoji].mine = true
+  })
+  return Object.entries(map)
+}
+
+function renderReactionsRow(reactions, myId, onReact) {
+  const agg = aggregateReactions(reactions, myId)
+  if (agg.length === 0) return null
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+      {agg.map(([emoji, info]) => (
+        <button
+          key={emoji}
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onReact?.(emoji) }}
+          className={`inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5 border transition-colors ${
+            info.mine ? 'bg-brand-accent/15 border-brand-accent/40 text-brand-accent' : 'bg-white/70 border-brand-border text-brand-text'
+          }`}
+        >
+          <span>{emoji}</span>
+          <span className="font-semibold">{info.count}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function ChatHubPage() {
   const { i18n } = useTranslation()
   const navigate = useNavigate()
@@ -556,6 +589,7 @@ export default function ChatHubPage() {
   const [otherTypingContacts, setOtherTypingContacts] = useState({})
   const [onlineIds, setOnlineIds] = useState({})
   const [pinnedMessages, setPinnedMessages] = useState({})
+  const [reactionsMap, setReactionsMap] = useState({})
   const [contactFilter, setContactFilter] = useState('all')
   const [markAllLoading, setMarkAllLoading] = useState(false)
   const fileInputRef = useRef(null)
@@ -750,14 +784,47 @@ export default function ChatHubPage() {
   }, [propertyId])
 
   const didAutoSelectRef = useRef(false)
+  const openUserFetchRef = useRef(false)
   useEffect(() => {
     if (!openUserId || didAutoSelectRef.current) return
+    if (openUserId === HUNIBOT_ID) {
+      didAutoSelectRef.current = true
+      handleSelectContact(HUNIBOT_ID)
+      setSearchParams({}, { replace: true })
+      return
+    }
     const found = contacts.some((c) => c.id === openUserId)
     if (found) {
       didAutoSelectRef.current = true
       handleSelectContact(openUserId)
       setSearchParams({}, { replace: true })
+      return
     }
+    // Kontak belum ada di daftar (mis. pemilik baru tanpa riwayat pesan) →
+    // fetch profil dinamis, sisipkan ke daftar, lalu buka percakapannya.
+    if (openUserFetchRef.current) return
+    openUserFetchRef.current = true
+    let cancelled = false
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, role')
+        .eq('id', openUserId)
+        .maybeSingle()
+      if (cancelled) return
+      if (error || !data) {
+        setSearchParams({}, { replace: true })
+        return
+      }
+      didAutoSelectRef.current = true
+      setContacts((prev) => {
+        if (prev.some((c) => c.id === data.id)) return prev
+        return [{ ...data, last_message: null, last_message_at: null }, ...prev]
+      })
+      handleSelectContact(data.id)
+      setSearchParams({}, { replace: true })
+    })()
+    return () => { cancelled = true }
   }, [openUserId, contacts, setSearchParams])
 
   useEffect(() => {
@@ -787,8 +854,11 @@ export default function ChatHubPage() {
         if (error) {
           console.warn('Gagal memuat pesan:', error.message)
         } else if (data) {
-          setMessages(data.slice().reverse())
+          const loaded = data.slice().reverse()
+          setMessages(loaded)
           setHasMore(data.length === PAGE_SIZE)
+          // Muat reaksi historis untuk pesan yang baru dimuat
+          fetchReactionsFor(loaded.map((m) => m.id), [userId, activeContactId].sort().join('-'))
           // Paksa scroll ke pesan terbaru setelah data kontak selesai dimuat
           scrollToLatest()
         }
@@ -802,6 +872,30 @@ export default function ChatHubPage() {
     return () => { messagesCancelledRef.current = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeContactId, userId])
+
+  async function fetchReactionsFor(messageIds, room) {
+    if (!userId || !Array.isArray(messageIds) || messageIds.length === 0) return
+    try {
+      const { data, error } = await supabase
+        .from('message_reactions')
+        .select('id, message_id, user_id, emoji')
+        .in('message_id', messageIds)
+      if (error || !data || data.length === 0) return
+      const map = {}
+      data.forEach((r) => {
+        if (!map[r.message_id]) map[r.message_id] = []
+        if (!map[r.message_id].some((x) => x.user_id === r.user_id && x.emoji === r.emoji)) {
+          map[r.message_id].push({ id: r.id, user_id: r.user_id, emoji: r.emoji })
+        }
+      })
+      setReactionsMap((prev) => ({
+        ...prev,
+        [room]: { ...(prev[room] || {}), ...map },
+      }))
+    } catch {
+      /* non-blocking */
+    }
+  }
 
   async function loadEarlier() {
     if (!activeContactId || !userId || loadingEarlier || !messages[0]) return
@@ -820,8 +914,10 @@ export default function ChatHubPage() {
       if (error) {
         console.warn('Gagal memuat pesan sebelumnya:', error.message)
       } else if (data) {
-        setMessages((prev) => [...data.slice().reverse(), ...prev])
+        const loaded = data.slice().reverse()
+        setMessages((prev) => [...loaded, ...prev])
         setHasMore(data.length === PAGE_SIZE)
+        fetchReactionsFor(loaded.map((m) => m.id), [userId, activeContactId].sort().join('-'))
       }
     } catch (err) {
       if (!messagesCancelledRef.current) console.warn('Gagal memuat pesan sebelumnya:', err.message)
@@ -1011,6 +1107,48 @@ export default function ChatHubPage() {
           setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, read_at: msg.read_at, deleted_at: msg.deleted_at } : m)))
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'message_reactions' },
+        (payload) => {
+          if (realtimeCancelledRef.current) return
+          const r = payload.new
+          if (!r || !r.message_id) return
+          const activeId = activeContactIdRef.current
+          if (!activeId || activeId === HUNIBOT_ID) return
+          const room = [userId, activeId].sort().join('-')
+          setReactionsMap((prev) => {
+            const roomMap = prev[room]
+            if (!roomMap || !roomMap[r.message_id]) return prev
+            const list = roomMap[r.message_id] || []
+            if (list.some((x) => x.user_id === r.user_id && x.emoji === r.emoji)) return prev
+            return { ...prev, [room]: { ...roomMap, [r.message_id]: [...list, { id: r.id, user_id: r.user_id, emoji: r.emoji }] } }
+          })
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'message_reactions' },
+        (payload) => {
+          if (realtimeCancelledRef.current) return
+          const old = payload.old
+          if (!old || !old.message_id) return
+          const activeId = activeContactIdRef.current
+          if (!activeId || activeId === HUNIBOT_ID) return
+          const room = [userId, activeId].sort().join('-')
+          setReactionsMap((prev) => {
+            const roomMap = prev[room]
+            if (!roomMap || !roomMap[old.message_id]) return prev
+            return {
+              ...prev,
+              [room]: {
+                ...roomMap,
+                [old.message_id]: (roomMap[old.message_id] || []).filter((x) => !(x.user_id === old.user_id && x.emoji === old.emoji)),
+              },
+            }
+          })
+        }
+      )
       .subscribe((status) => {
         if (realtimeCancelledRef.current) return
         setConnected(status === 'SUBSCRIBED')
@@ -1027,7 +1165,6 @@ export default function ChatHubPage() {
     const applyScroll = () => {
       const container = messagesContainerRef.current
       if (container && container.scrollHeight > container.clientHeight) {
-        container.scrollTop = container.scrollHeight
         container.scrollTop = container.scrollHeight
       }
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
@@ -1284,6 +1421,32 @@ export default function ChatHubPage() {
         setPinnedMessages((prev) => ({ ...prev, [room]: { ...(prev[room] || {}), [message.id]: message } }))
         showToast('Pesan disematkan', 'success')
       }
+    }
+  }
+
+  function handleToggleReaction(messageId, emoji) {
+    if (!userId) return
+    const targetId = activeContactIdRef.current
+    const room = targetId ? [userId, targetId].sort().join('-') : null
+    const existing = room && (reactionsMap[room]?.[messageId] || []).find((r) => r.user_id === userId && r.emoji === emoji)
+    if (existing) {
+      setReactionsMap((prev) => {
+        if (!room) return prev
+        const roomMap = { ...(prev[room] || {}) }
+        roomMap[messageId] = (roomMap[messageId] || []).filter((r) => !(r.user_id === userId && r.emoji === emoji))
+        return { ...prev, [room]: roomMap }
+      })
+      supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', userId).eq('emoji', emoji).then(() => {}).catch(() => {})
+    } else {
+      setReactionsMap((prev) => {
+        if (!room) return prev
+        const roomMap = { ...(prev[room] || {}) }
+        const list = [...(roomMap[messageId] || [])]
+        if (!list.some((r) => r.user_id === userId && r.emoji === emoji)) list.push({ id: null, user_id: userId, emoji })
+        roomMap[messageId] = list
+        return { ...prev, [room]: roomMap }
+      })
+      supabase.from('message_reactions').insert({ message_id: messageId, user_id: userId, emoji }).then(() => {}).catch(() => {})
     }
   }
 
@@ -2032,6 +2195,9 @@ export default function ChatHubPage() {
                               onMoreClick={setMessageMenu}
                               onCopy={handleCopyMessage}
                               isFlashed={msg.id === flashMessageId}
+                              reactions={reactionsMap[[userId, activeContactId].sort().join('-')]?.[msg.id] || []}
+                              myId={userId}
+                              onReact={handleToggleReaction}
                             />
                           )}
                         </div>
