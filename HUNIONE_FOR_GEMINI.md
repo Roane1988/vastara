@@ -2,6 +2,13 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Changelog — Dashboard Seller/Agen Optimasi Mobile (31 Agustus 2026)
+- **Tab bar sticky & mobile-friendly** (`DashboardPage.jsx`): tombol tab kini `flex-wrap` dengan `flex-1 sm:flex-none` (terbagi rata penuh di layar sempit), ditambah sticky `top-14` (tepat di bawah TopNavbar yang `fixed top-0`) dengan `bg-brand-surface/95 backdrop-blur` + bottom border, agar tab selalu terlihat saat scroll. Label dipendekkan jadi "Ringkasan" / "Kelola Iklan".
+- **Grid statistik responsif**: kartu stat kini `p-3 sm:p-4`, label/sub `truncate`, dan kartu terakhir ("Terjual") diberi `col-span-2 lg:col-span-1` sehingga tidak menggantung sendiri di baris ketiga grid 2 kolom pada mobile. Label dipersingkat (Tayangan/Leads/Konversi/Kunjungan/Terjual).
+- **Filter status** (Semua/Aktif/Terjual): `flex-wrap` + `flex-1` agar terbagi rata dan tidak meluber di lebar ≤360px.
+- **Aksi Iklan (Edit / Tandai Terjual)**: pada mobile kini `flex-col` full-width `text-center` dengan `py-2` (target sentuh lebih besar); di `sm:` kembali baris sempit. Tombol tidak lagi berdesakan dengan badge status.
+- **Murni frontend** — tidak ada perubahan database.
+
 ## Changelog — Dashboard Seller/Agen Profesional: Statistik Per-Properti, Konversi, Filter & Tab (31 Agustus 2026)
 - **Statistik per-properti (#2)** (`DashboardPage.jsx`): `loadSellerData` kini men-query `property_views` & `whatsapp_leads` dengan `property_id` dan membangun peta `propertyStats { [propertyId]: { views, leads } }` (state baru). Setiap baris "Iklan Saya" menampilkan badge **"X tayangan · Y lead"** (views = jumlah tayangan properti itu; leads = buyer unik per properti dari whatsapp_leads).
 - **Tingkat konversi (#3)**: kartu statistik baru **"Konversi"** (persentase `Total Leads / Total Tayangan`) ditambahkan ke grid Ringkasan Performa — kini 5 kartu: Tayangan, Leads, **Konversi**, Jadwal Kunjungan, Terjual (grid `lg:grid-cols-5`).

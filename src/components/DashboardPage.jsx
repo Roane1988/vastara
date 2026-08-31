@@ -27,16 +27,16 @@ import {
   X,
 } from 'lucide-react'
 
-function StatCard({ icon: Icon, label, value, sub, accent }) {
+function StatCard({ icon: Icon, label, value, sub, accent, extra }) {
   return (
-    <div className="bg-brand-surface rounded-2xl border border-brand-border p-4 flex items-start gap-3">
+    <div className={`bg-brand-surface rounded-2xl border border-brand-border p-3 sm:p-4 flex items-center gap-3 ${extra || ''}`}>
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accent || 'bg-brand-highlight text-brand-accent'}`}>
         <Icon size={20} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-brand-muted">{label}</p>
+        <p className="text-xs font-medium text-brand-muted truncate">{label}</p>
         <p className="text-xl font-bold text-brand-text leading-tight">{value}</p>
-        {sub && <p className="text-xs text-brand-muted mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-brand-muted mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
   )
@@ -491,11 +491,11 @@ function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitC
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2">
-        <button type="button" onClick={() => setTab('ringkasan')} className={`${tabBtn} ${tab === 'ringkasan' ? activeTabBtn : idleTabBtn}`}>
-          Ringkasan Performa
+      <div className="flex flex-wrap gap-2 sticky top-14 z-10 -mx-4 px-4 py-2.5 bg-brand-surface/95 backdrop-blur border-b border-brand-border mb-4">
+        <button type="button" onClick={() => setTab('ringkasan')} className={`${tabBtn} flex-1 sm:flex-none ${tab === 'ringkasan' ? activeTabBtn : idleTabBtn}`}>
+          Ringkasan
         </button>
-        <button type="button" onClick={() => setTab('ikelola')} className={`${tabBtn} ${tab === 'ikelola' ? activeTabBtn : idleTabBtn}`}>
+        <button type="button" onClick={() => setTab('ikelola')} className={`${tabBtn} flex-1 sm:flex-none ${tab === 'ikelola' ? activeTabBtn : idleTabBtn}`}>
           Kelola Iklan
         </button>
       </div>
@@ -503,11 +503,11 @@ function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitC
       {tab === 'ringkasan' ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-            <StatCard icon={Eye} label="Total Tayangan" value={formatCount(viewCount)} sub="kali dilihat" accent="bg-brand-highlight text-brand-accent" />
-            <StatCard icon={MessageCircle} label="Total Leads" value={formatCount(leadCount)} sub="obrolan & WA masuk" accent="bg-emerald-50 text-emerald-600" />
+            <StatCard icon={Eye} label="Tayangan" value={formatCount(viewCount)} sub="kali dilihat" accent="bg-brand-highlight text-brand-accent" />
+            <StatCard icon={MessageCircle} label="Leads" value={formatCount(leadCount)} sub="obrolan & WA masuk" accent="bg-emerald-50 text-emerald-600" />
             <StatCard icon={TrendingUp} label="Konversi" value={`${conversionRate}%`} sub="lead / tayangan" accent="bg-cyan-50 text-cyan-600" />
-            <StatCard icon={CalendarClock} label="Jadwal Kunjungan" value={formatCount(visitCount)} sub="permintaan kunjungan" accent="bg-orange-50 text-orange-500" />
-            <StatCard icon={CheckCircle2} label="Terjual" value={formatCount(soldCount)} sub="properti laku" accent="bg-violet-50 text-violet-600" />
+            <StatCard icon={CalendarClock} label="Kunjungan" value={formatCount(visitCount)} sub="permintaan jadwal" accent="bg-orange-50 text-orange-500" />
+            <StatCard icon={CheckCircle2} label="Terjual" value={formatCount(soldCount)} sub="properti laku" accent="bg-violet-50 text-violet-600" extra="col-span-2 lg:col-span-1" />
           </div>
 
           {topListings.length > 0 && (
@@ -560,13 +560,13 @@ function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitC
                 className="w-full pl-9 pr-3 py-2 rounded-xl border border-brand-border bg-brand-surface text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {[['semua', 'Semua'], ['aktif', 'Aktif'], ['terjual', 'Terjual']].map(([key, label]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setFilter(key)}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${filter === key ? 'bg-brand-primary text-white' : 'text-brand-muted bg-brand-surface border border-brand-border hover:bg-brand-highlight'}`}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors flex-1 ${filter === key ? 'bg-brand-primary text-white' : 'text-brand-muted bg-brand-surface border border-brand-border hover:bg-brand-highlight'}`}
                 >
                   {label}
                 </button>
@@ -611,17 +611,17 @@ function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitC
                       {sold ? 'Terjual' : pending ? 'Menunggu' : 'Aktif'}
                     </span>
                     {!sold && (
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
                         <Link
                           to={`/sell?edit=${p.id}`}
-                          className="text-[11px] font-semibold text-brand-accent border border-brand-accent/30 hover:bg-brand-highlight rounded-lg px-3 py-1.5 transition-colors"
+                          className="text-[11px] font-semibold text-brand-accent border border-brand-accent/30 hover:bg-brand-highlight rounded-lg px-3 py-2 text-center transition-colors"
                         >
                           Edit
                         </Link>
                         <button
                           type="button"
                           onClick={(e) => { e.preventDefault(); openSellModal(p) }}
-                          className="text-[11px] font-semibold text-brand-danger border border-brand-danger/30 hover:bg-brand-danger/10 rounded-lg px-3 py-1.5 transition-colors"
+                          className="text-[11px] font-semibold text-brand-danger border border-brand-danger/30 hover:bg-brand-danger/10 rounded-lg px-3 py-2 text-center transition-colors"
                         >
                           Tandai Terjual
                         </button>
