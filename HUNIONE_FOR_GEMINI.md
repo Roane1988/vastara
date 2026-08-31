@@ -2,6 +2,26 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Analisis Arsitektur Fitur Chat — ChatHubPage.jsx (31 Agustus 2026)
+Ringkasan arsitektur & temuan dari analisis menyeluruh fitur chat realtime (2.490 baris, komponen multipanel: daftar kontak kiri + ruang chat kanan + panel kontak).
+
+### Alur data inti (4 lapis)
+1. **Kontak** (`useEffect [userId]`): query `direct_messages` (.or sender/receiver, limit 500, order desc) → kumpulkan `contactIds` + `lastMessageMap` + `unreadCounts` (hitung bila `receiver_id === me && !read_at`), lalu ambil profil (`first_name, role`). Kontak agen/dev/admin **tanpa percakapan** juga ditambahkan. Di-sort by `last_message_at` desc (fallback abjad). Perubahan realtime pesan masuk memutakhirkan list via `setContacts` (reorder ke atas + preview, lihat `ChatHubPage.jsx:970`).
+2. **Pesan** (`useEffect [activeContactId, userId]`): `.or(and(me→contact), and(contact→me))`, `select('*')`, order desc, `limit(PAGE_SIZE=50)`, setelah diambil di-`.reverse()` (ascending) + `scrollToLatest()`. `loadEarlier()` memuat 50 pesan sebelum `messages[0].created_at` (`.lt`).
+3. **Realtime** (`useEffect [userId, showToast]`, channel tunggal `direct-messages-${userId}`): mendengarkan `INSERT` & `UPDATE` `postgres_changes` **tanpa filter** (perbaikan #2), memakai guard client-side `sender_id/receiver_id` + RLS. Kontak aktif dibaca via `activeContactIdRef`; auto-scroll via `scrollToLatestRef`. Guard `HUNIBOT_ID` & echo sendiri (`sender_id === userId`).
+4. **Presence/typing/read/pin** (channel terpisah): `chat-typing-${room}` (presence, last message = typing), `app-online` (presence online), `pinned_messages` (fetch per room), `read_at` diupdate via bulk `.update()`.
+
+### Fitur yang ada
+Kirim teks/gambar/properti (`handleSend`/`handleSendImage` — opt-in `temp-*` id lalu diganti `data[0]`), balas/reply (`reply_to_id`), pin pesan (`pinned_messages`), hapus (soft-delete `deleted_at`), ekspor chat (file), search-in-chat (`chatSearchQ`), search-in-workspace, unread badge (`unreadMap`) + Mark All Read, status typing/online, indicator read_receipt, context property card via `?property=`, auto-select kontak via `?user=`.
+
+### Temuan penting (cek sebelum perubahan berikutnya)
+- **Kontak bergantung pada `.or()` di `direct_messages`**: `fetchContacts` & `fetchMessages` memakai operator `or(...)` pada **query (bukan realtime filter)** — ini valid & didukung, jadi tetap berfungsi. Hanya *realtime* `postgres_changes.filter` yang tidak mendukung `or` (sudah dihapus).
+- **Update `read_at` memicu event realtime `UPDATE`**: handler `UPDATE` hanya menyinkronkan `read_at`/`deleted_at` ke baris yang sama — aman, tidak mengganggu daftar kontak.
+- **Delete = soft-delete** (`deleted_at`), masih tersisa di DB; tidak ada handler `DELETE` realtime (tidak diperlukan karena soft-delete melewati `UPDATE`).
+- **`unreadMap` di-zero** saat `handleSelectContact`, `handleMarkAllRead`, dan `markRead` (bila buka chat). Konsisten dengan sidebar.
+- **Race duplikat sudah diamankan** oleh guard `sender_id === userId` (INSERT) + dedup `prev.some(id)` — pesan optimistik `temp-*` tidak dobel.
+- **PAGE_SIZE = 50**; `hasMore` di-set dari `data.length === PAGE_SIZE`.
+
 ## Changelog — Perbaikan Realtime Chat #2: Hapus Filter `or(...)` pada `postgres_changes` (31 Agustus 2026)
 - **Akar masalah baru**: selain masalah resubscribe (sudah diperbaiki sebelumnya), koneksi realtime masih gagal menangkap pesan karena `postgres_changes` tidak mendukung operator `or(...)` pada parameter `filter` (`filter: or(sender_id.eq...,receiver_id.eq...)`) → subscription diam-diam gagal menerima payload.
 - **Hapus parameter `filter`** (`ChatHubPage.jsx`): kedua handler `postgres_changes` (event `INSERT` dan `UPDATE`) pada tabel `direct_messages` kini **tanpa filter**, sehingga client menerima semua event yang diizinkan RLS.
