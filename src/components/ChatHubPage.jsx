@@ -7,9 +7,21 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
+import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
+
+const HUNIBOT_ID = 'hunibot'
+
+const HUNIBOT_CONTACT = {
+  id: HUNIBOT_ID,
+  first_name: 'HuniBot',
+  role: 'ai',
+  is_hunibot: true,
+  last_message: 'Asisten properti AI · Online',
+  last_message_at: null,
+}
 
 
 function dayLabel(ts) {
@@ -317,9 +329,11 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
 }
 
 function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnline }) {
-  const avatarColor = getAvatarColor(contact.id)
+  const isHunibot = contact.id === HUNIBOT_ID
+  const avatarColor = isHunibot ? '#7C3AED' : getAvatarColor(contact.id)
   const initials = getInitials(contact.first_name)
-  const roleLabel = contact.role === 'admin' ? 'Admin Internal'
+  const roleLabel = isHunibot ? 'AI Assistant'
+    : contact.role === 'admin' ? 'Admin Internal'
     : contact.role === 'agent' ? 'Agent'
     : contact.role === 'developer' ? 'Developer'
     : contact.role === 'owner' ? 'Owner'
@@ -340,11 +354,11 @@ function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnl
           className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
           style={{ backgroundColor: avatarColor }}
         >
-          {initials}
+          {isHunibot ? <Bot size={19} /> : initials || getInitials(contact.first_name)}
         </div>
         <span
-          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white transition-colors ${isOnline ? 'bg-green-500' : 'bg-gray-300'}`}
-          title={isOnline ? 'Online' : 'Offline'}
+          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${isHunibot ? 'bg-gradient-to-br from-brand-accent to-[#7C3AED]' : isOnline ? 'bg-green-500' : 'bg-gray-300'}`}
+          title={isHunibot ? 'Online' : (isOnline ? 'Online' : 'Offline')}
         />
       </div>
       <div className="flex-1 min-w-0">
@@ -365,7 +379,9 @@ function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnl
             <p className="text-xs text-brand-accent truncate"><TypingDots color="var(--color-brand-accent)" /></p>
           ) : (
             <>
-              {contact.role && (
+              {isHunibot ? (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gradient-to-r from-brand-primary to-[#7C3AED] text-white shrink-0">{roleLabel}</span>
+              ) : contact.role && (
                 <span className="text-[10px] font-medium text-brand-accent shrink-0">{roleLabel}</span>
               )}
               <p className={`text-xs truncate ${unread > 0 ? 'text-brand-text font-semibold' : 'text-brand-muted'}`}>
@@ -548,7 +564,8 @@ export default function ChatHubPage() {
   const isAtBottomRef = useRef(true)
   const loadedContactRef = useRef(null)
 
-  const activeContact = contacts.find((c) => c.id === activeContactId) || null
+  const activeContact = contacts.find((c) => c.id === activeContactId) || (activeContactId === HUNIBOT_ID ? HUNIBOT_CONTACT : null)
+  const isHunibotRoom = activeContactId === HUNIBOT_ID
 
   const searchMatches = chatSearchQ.trim() && activeContactId
     ? messages.filter((m) => m.content && m.content.toLowerCase().includes(chatSearchQ.trim().toLowerCase()))
@@ -593,6 +610,13 @@ export default function ChatHubPage() {
     if (contactFilter === 'owner') return c.role === 'owner'
     return true
   })
+
+  const hunibotVisible =
+    contactFilter === 'all' ||
+    (contactFilter === 'agent') ||
+    (!searchQuery.trim() || 'hunibot'.includes(searchQuery.toLowerCase()) || 'AI'.toLowerCase().includes(searchQuery.toLowerCase()))
+
+  const visibleContacts = hunibotVisible ? [HUNIBOT_CONTACT, ...filteredContacts] : filteredContacts
 
   useEffect(() => {
     if (!userId) {
@@ -727,7 +751,7 @@ export default function ChatHubPage() {
   }, [openUserId, contacts, setSearchParams])
 
   useEffect(() => {
-    if (!activeContactId || !userId) {
+    if (!activeContactId || !userId || activeContactId === HUNIBOT_ID) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([])
       setHasMore(false)
@@ -796,7 +820,7 @@ export default function ChatHubPage() {
   }
 
   useEffect(() => {
-    if (!activeContactId || !userId) return
+    if (!activeContactId || !userId || activeContactId === HUNIBOT_ID) return
     const markRead = async () => {
       setMessages((prev) => prev.map((m) => (m.sender_id === activeContactId && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m)))
       const { error } = await supabase
@@ -813,7 +837,7 @@ export default function ChatHubPage() {
   }, [activeContactId, userId])
 
   useEffect(() => {
-    if (!userId || !activeContactId) {
+    if (!userId || !activeContactId || activeContactId === HUNIBOT_ID) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setOtherTyping(false)
       setOtherTypingContacts({})
@@ -861,7 +885,7 @@ export default function ChatHubPage() {
   }, [userId])
 
   useEffect(() => {
-    if (!userId || !activeContactId) {
+    if (!userId || !activeContactId || activeContactId === HUNIBOT_ID) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPinnedMessages({})
       return
@@ -1334,6 +1358,7 @@ export default function ChatHubPage() {
 
   async function handleSend(e) {
     e?.preventDefault()
+    if (activeContactId === HUNIBOT_ID) return
     const text = inputValue.trim()
     const hasContent = text || pendingImage || shareProperty
     if (!hasContent || !userId || !activeContactId || sending || imageUploading) return
@@ -1415,6 +1440,7 @@ export default function ChatHubPage() {
   }
 
   async function handleSendImage() {
+    if (activeContactId === HUNIBOT_ID) return
     if (!pendingImage || !userId || !activeContactId || sending || imageUploading) return
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     typingChannelRef.current?.untrack()
@@ -1677,7 +1703,7 @@ export default function ChatHubPage() {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <ContactListSkeleton />
-            ) : filteredContacts.length === 0 ? (
+            ) : visibleContacts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                 <MessageCircle size={32} className="text-brand-muted/40 mb-3" />
                 <p className="text-sm text-brand-muted leading-relaxed">
@@ -1685,7 +1711,7 @@ export default function ChatHubPage() {
                 </p>
               </div>
             ) : (
-              filteredContacts.map((contact) => (
+              visibleContacts.map((contact) => (
                 <div key={contact.id} className="relative">
                   <ContactItem
                     contact={contact}
@@ -1720,7 +1746,20 @@ export default function ChatHubPage() {
                 >
                   <ArrowLeft size={18} />
                 </button>
-                {activeContact.role === 'admin' || activeContact.role === 'agent' || activeContact.role === 'developer' || activeContact.role === 'owner' ? (
+                {isHunibotRoom ? (
+                  <>
+                    <div className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white bg-gradient-to-br from-brand-primary to-[#7C3AED] shadow-sm">
+                      <Bot size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-brand-text truncate">HuniBot</p>
+                      <p className="text-xs text-brand-muted flex items-center gap-1">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-accent" />
+                        AI Assistant · Asisten properti
+                      </p>
+                    </div>
+                  </>
+                ) : activeContact.role === 'admin' || activeContact.role === 'agent' || activeContact.role === 'developer' || activeContact.role === 'owner' ? (
                   <Link
                     to={activeContact.role === 'owner' ? `/seller/${activeContact.id}` : `/agents/${activeContact.id}`}
                     className="flex items-center gap-3 min-w-0 rounded-lg hover:bg-brand-bg/60 -m-1 p-1 transition-colors group"
@@ -1801,26 +1840,34 @@ export default function ChatHubPage() {
                     </div>
                   </>
                 )}
-                <button
-                  type="button"
-                  onClick={handleExportChat}
-                  aria-label="Ekspor riwayat chat"
-                  title="Ekspor riwayat chat"
-                  className="ml-auto p-2 rounded-full text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
-                >
-                  <Download size={18} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setChatSearchOpen(v => !v); setChatSearchQ('') }}
-                  aria-label="Cari di riwayat"
-                  title="Cari di riwayat"
-                  className={`p-2 rounded-full transition-colors ${chatSearchOpen ? 'bg-brand-accent/10 text-brand-accent' : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'}`}
-                >
-                  <Search size={18} />
-                </button>
+                {!isHunibotRoom && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleExportChat}
+                      aria-label="Ekspor riwayat chat"
+                      title="Ekspor riwayat chat"
+                      className="ml-auto p-2 rounded-full text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
+                    >
+                      <Download size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setChatSearchOpen(v => !v); setChatSearchQ('') }}
+                      aria-label="Cari di riwayat"
+                      title="Cari di riwayat"
+                      className={`p-2 rounded-full transition-colors ${chatSearchOpen ? 'bg-brand-accent/10 text-brand-accent' : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'}`}
+                    >
+                      <Search size={18} />
+                    </button>
+                  </>
+                )}
               </div>
 
+              {isHunibotRoom ? (
+                <HuniBotRoom firstName={user?.user_metadata?.first_name} />
+              ) : (
+              <>
               {/* Property context card */}
               {contextProperty && showContextCard && (
                 <div className="shrink-0 px-4 py-3 border-b border-brand-border bg-brand-bg/60">
@@ -2113,6 +2160,8 @@ export default function ChatHubPage() {
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePickImage} />
               </form>
+              </>
+              )}
             </>
           ) : (
             <EmptyChat contactName={null} />

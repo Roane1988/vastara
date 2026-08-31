@@ -2,6 +2,13 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Changelog — HuniBot Sebagai Kontak Virtual di ChatHub (31 Agustus 2026)
+- **HuniBot masuk daftar kontak ChatHub** (`ChatHubPage.jsx`, `HuniBotRoom.jsx` baru): kontak virtual **"HuniBot"** (ID `'hunibot'`, non-DB) selalu tampil di posisi teratas daftar kontak dengan **avatar bot bergradien ungu** (`#7C3AED`), badge **"AI Assistant"** bergradien, dan label "Asisten properti AI · Online". Menggantikan widget melayang di halaman `/chat` (widget `HuniBot.jsx` tetap `return null` di rute chat).
+- **Room chat AI khusus** (`HuniBotRoom.jsx`): saat `activeContactId === 'hunibot'`, bukan fetch `direct_messages`, melainkan komponen AI standalone yang me-render bubble (user kanan gradien biru, bot kiri avatar bot + bubble putih), greeting + **quick replies** (KPR, BPHTB, rumah pertama, SHM/HGB), input auto-grow, dan **typing indicator** saat AI mengetik.
+- **Message hijacking**: kirim via room HuniBot **TIDAK insert ke tabel `direct_messages`** — input dipanggil ke endpoint **`/api/groq`** (`purpose: 'chat'`, model `openai/gpt-oss-120b`) dengan riwayat 10 pesan terakhir + konteks profil finansial user (`getFinancialProfile`); guard ditambah di `handleSend`/`handleSendImage` agar `activeContactId === 'hunibot'` tidak pernah menyentuh Supabase.
+- **UI disesuaikan untuk room AI**: tombol lampiran (gambar/properti), pencarian riwayat, dan export CSV **disembunyikan** di ruangan HuniBot (AI belum mendukung input gambar); header percakapan menampilkan avatar bot + "AI Assistant · Asisten properti", tanpa link profil. Efek fetch/mark-read/typing/pin/realtime di-skip saat room `'hunibot'`.
+- **Tidak ada perubahan database** — fitur ini murni frontend.
+
 ## Changelog — ChatHub UX: Mark All Read, Filter Kontak, Saran Konteks Properti, Link Profil, Draft Persisten, Soft Delete Pesan (31 Agustus 2026)
 - **Chat: tandai semua sudah dibaca** (`ChatHubPage.jsx`): tombol `CheckCheck` di header daftar kontak → `handleMarkAllRead` menandai semua `direct_messages` (receiver = user, `read_at` null) sebagai dibaca via satu UPDATE; menonaktifkan diri otomatis bila tak ada pesan belum dibaca.
 - **Chat: filter daftar kontak** (`ChatHubPage.jsx`): chip filter **Semua / Belum dibaca / Agent / Owner** beserta jumlahnya (state `contactFilter`) — menyaring `filteredContacts` berdasarkan role (`agent`/`developer`/`admin` → Agent, `owner` → Owner) atau unread (`unreadMap[id] > 0`), dikombinasikan dengan pencarian nama.
