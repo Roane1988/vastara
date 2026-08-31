@@ -91,6 +91,7 @@ export default function DashboardPage() {
 
   // Seller data
   const [listings, setListings] = useState([])
+  const [propertyStats, setPropertyStats] = useState({})
   const [viewCount, setViewCount] = useState(0)
   const [leadCount, setLeadCount] = useState(0)
   const [visitCountSeller, setVisitCountSeller] = useState(0)
@@ -147,13 +148,29 @@ export default function DashboardPage() {
     if (ids.length === 0) return
 
     const [{ data: views }, { data: leads }, { data: visits }] = await Promise.all([
-      supabase.from('property_views').select('viewed_on').in('property_id', ids),
-      supabase.from('whatsapp_leads').select('id, buyer_id, profiles!buyer_id(first_name)').in('property_id', ids),
+      supabase.from('property_views').select('property_id, viewed_on').in('property_id', ids),
+      supabase.from('whatsapp_leads').select('id, property_id, buyer_id, profiles!buyer_id(first_name)').in('property_id', ids),
       supabase.from('site_visits').select('id').in('property_id', ids),
     ])
 
     setViewCount((views || []).length)
     setVisitCountSeller((visits || []).length)
+
+    const statsByProp = {}
+    ids.forEach((id) => { statsByProp[id] = { views: 0, leads: 0 } })
+    const leadBuyerByProp = {}
+    ;(views || []).forEach((v) => {
+      if (statsByProp[v.property_id]) statsByProp[v.property_id].views += 1
+    })
+    ;(leads || []).forEach((l) => {
+      if (!statsByProp[l.property_id]) return
+      const key = `${l.property_id}:${l.buyer_id || 'anon'}`
+      if (!leadBuyerByProp[key]) {
+        leadBuyerByProp[key] = true
+        statsByProp[l.property_id].leads += 1
+      }
+    })
+    setPropertyStats(statsByProp)
 
     const buyerOptionsMap = {}
     ;(leads || []).forEach((l) => {
@@ -285,6 +302,7 @@ export default function DashboardPage() {
       {mode === 'seller' ? (
         <SellerDashboard
           listings={listings}
+          propertyStats={propertyStats}
           viewCount={viewCount}
           leadCount={leadCount}
           visitCount={visitCountSeller}
@@ -446,85 +464,187 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
   )
 }
 
-function SellerDashboard({ listings, viewCount, leadCount, visitCount, soldCount, openSellModal }) {
-  return (    <div className="space-y-8">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={Eye} label="Total Tayangan" value={formatCount(viewCount)} sub="kali dilihat" accent="bg-brand-highlight text-brand-accent" />
-        <StatCard icon={MessageCircle} label="Total Leads" value={formatCount(leadCount)} sub="obrolan & WA masuk" accent="bg-emerald-50 text-emerald-600" />
-        <StatCard icon={CalendarClock} label="Jadwal Kunjungan" value={formatCount(visitCount)} sub="permintaan kunjungan" accent="bg-orange-50 text-orange-500" />
-        <StatCard icon={CheckCircle2} label="Terjual" value={formatCount(soldCount)} sub="properti laku" accent="bg-violet-50 text-violet-600" />
+function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitCount, soldCount, openSellModal }) {
+  const [tab, setTab] = useState('ringkasan')
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('semua')
+
+  const stat = (id) => (propertyStats && propertyStats[id]) || { views: 0, leads: 0 }
+  const conversionRate = viewCount > 0 ? Math.round((leadCount / viewCount) * 1000) / 10 : 0
+
+  const q = search.trim().toLowerCase()
+  const filteredListings = listings.filter((p) => {
+    if (filter === 'aktif' && p.status === 'sold') return false
+    if (filter === 'terjual' && p.status !== 'sold') return false
+    if (q && !(p.title || '').toLowerCase().includes(q)) return false
+    return true
+  })
+
+  const topListings = [...listings]
+    .filter((p) => p.status !== 'sold')
+    .sort((a, b) => (stat(b.id).views || 0) - (stat(a.id).views || 0))
+    .slice(0, 3)
+
+  const tabBtn = 'px-4 py-2 rounded-xl text-sm font-semibold transition-colors'
+  const activeTabBtn = 'bg-brand-primary text-white'
+  const idleTabBtn = 'text-brand-muted bg-brand-surface border border-brand-border hover:bg-brand-highlight'
+
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setTab('ringkasan')} className={`${tabBtn} ${tab === 'ringkasan' ? activeTabBtn : idleTabBtn}`}>
+          Ringkasan Performa
+        </button>
+        <button type="button" onClick={() => setTab('ikelola')} className={`${tabBtn} ${tab === 'ikelola' ? activeTabBtn : idleTabBtn}`}>
+          Kelola Iklan
+        </button>
       </div>
 
-      <section>
-        <SectionHeader title="Iklan Saya" to="/my-listings" cta="Kelola lengkap" />
-        {listings.length === 0 ? (
-          <EmptyState
-            icon={Home}
-            title="Belum ada iklan properti"
-            desc="Buat listing pertamamu untuk mulai menerima leads."
-            to="/sell"
-            cta="Mulai jual properti"
-          />
-        ) : (
-          <div className="space-y-2">
-            {listings.map((p) => {
-              const sold = p.status === 'sold'
-              const pending = p.status === 'pending' || p.status === 'in_review'
-              return (
-                <div key={p.id} className={`bg-brand-surface rounded-2xl border border-brand-border p-3 flex items-center gap-3 ${sold ? 'opacity-75' : ''}`}>
-                  <img src={getImageSrc(p.image_url)} alt={p.title} className="w-12 h-12 rounded-lg object-cover shrink-0" onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-brand-text truncate">{p.title}</p>
-                    <p className="text-xs text-brand-muted truncate">{formatPriceDisplay(p)}</p>
-                  </div>
-                  <span className={`text-[11px] font-semibold px-2 py-1 rounded-full shrink-0 ${
-                    sold ? 'bg-brand-sold/20 text-brand-sold' : pending ? 'bg-brand-pending/15 text-brand-pending' : 'bg-brand-verified-bg text-brand-verified'
-                  }`}>
-                    {sold ? 'Terjual' : pending ? 'Menunggu' : 'Aktif'}
-                  </span>
-                  {!sold && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Link
-                        to={`/sell?edit=${p.id}`}
-                        className="text-[11px] font-semibold text-brand-accent border border-brand-accent/30 hover:bg-brand-highlight rounded-lg px-3 py-1.5 transition-colors"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); openSellModal(p) }}
-                        className="text-[11px] font-semibold text-brand-danger border border-brand-danger/30 hover:bg-brand-danger/10 rounded-lg px-3 py-1.5 transition-colors"
-                      >
-                        Tandai Terjual
-                      </button>
+      {tab === 'ringkasan' ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <StatCard icon={Eye} label="Total Tayangan" value={formatCount(viewCount)} sub="kali dilihat" accent="bg-brand-highlight text-brand-accent" />
+            <StatCard icon={MessageCircle} label="Total Leads" value={formatCount(leadCount)} sub="obrolan & WA masuk" accent="bg-emerald-50 text-emerald-600" />
+            <StatCard icon={TrendingUp} label="Konversi" value={`${conversionRate}%`} sub="lead / tayangan" accent="bg-cyan-50 text-cyan-600" />
+            <StatCard icon={CalendarClock} label="Jadwal Kunjungan" value={formatCount(visitCount)} sub="permintaan kunjungan" accent="bg-orange-50 text-orange-500" />
+            <StatCard icon={CheckCircle2} label="Terjual" value={formatCount(soldCount)} sub="properti laku" accent="bg-violet-50 text-violet-600" />
+          </div>
+
+          {topListings.length > 0 && (
+            <section>
+              <h2 className="text-base font-bold text-brand-text mb-3">Listing Paling Aktif</h2>
+              <div className="space-y-2">
+                {topListings.map((p, i) => (
+                  <Link
+                    key={p.id}
+                    to={`/property/${p.id}`}
+                    className="bg-brand-surface rounded-2xl border border-brand-border p-3 flex items-center gap-3 hover:shadow-md transition-shadow"
+                  >
+                    <span className="text-sm font-bold text-brand-muted w-5 text-center shrink-0">{i + 1}</span>
+                    <img src={getImageSrc(p.image_url)} alt={p.title} className="w-10 h-10 rounded-lg object-cover shrink-0" onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-brand-text truncate">{p.title}</p>
+                      <p className="text-xs text-brand-muted truncate">{formatPriceDisplay(p)}</p>
                     </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-        {listings.length > 0 && (
-          <div className="mt-3">
-            <Link
-              to="/sell"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors"
-            >
-              <Plus size={16} /> Iklankan properti baru
-            </Link>
-          </div>
-        )}
-      </section>
+                    <span className="text-[11px] font-semibold text-brand-accent bg-brand-highlight rounded-full px-2 py-1 shrink-0">
+                      {stat(p.id).views} tayangan · {stat(p.id).leads} lead
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
-      <div className="bg-brand-highlight rounded-2xl border border-brand-accent/20 p-4 flex items-start gap-3">
-        <TrendingUp size={20} className="text-brand-accent shrink-0 mt-0.5" />
-        <div className="text-sm text-brand-text">
-          <p className="font-semibold">Tips performa</p>
-          <p className="text-xs text-brand-muted mt-1">
-            Aktifkan notifikasi chat dan segera balas leads untuk meningkatkan rasio konversi. Listing dengan foto lengkap cenderung mendapat lebih banyak kunjungan.
-          </p>
+          <div className="bg-brand-highlight rounded-2xl border border-brand-accent/20 p-4 flex items-start gap-3">
+            <TrendingUp size={20} className="text-brand-accent shrink-0 mt-0.5" />
+            <div className="text-sm text-brand-text">
+              <p className="font-semibold">Tips performa</p>
+              <p className="text-xs text-brand-muted mt-1">
+                Aktifkan notifikasi chat dan segera balas leads untuk meningkatkan rasio konversi. Listing dengan foto lengkap cenderung mendapat lebih banyak tayangan.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <section>
+          <SectionHeader title="Iklan Saya" to="/my-listings" cta="Kelola lengkap" />
+
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari judul properti..."
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-brand-border bg-brand-surface text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent"
+              />
+            </div>
+            <div className="flex gap-2">
+              {[['semua', 'Semua'], ['aktif', 'Aktif'], ['terjual', 'Terjual']].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilter(key)}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${filter === key ? 'bg-brand-primary text-white' : 'text-brand-muted bg-brand-surface border border-brand-border hover:bg-brand-highlight'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {listings.length === 0 ? (
+            <EmptyState
+              icon={Home}
+              title="Belum ada iklan properti"
+              desc="Buat listing pertamamu untuk mulai menerima leads."
+              to="/sell"
+              cta="Mulai jual properti"
+            />
+          ) : filteredListings.length === 0 ? (
+            <EmptyState
+              icon={Search}
+              title="Tidak ada iklan yang cocok"
+              desc="Coba ubah kata kunci pencarian atau filter status."
+            />
+          ) : (
+            <div className="space-y-2">
+              {filteredListings.map((p) => {
+                const sold = p.status === 'sold'
+                const pending = p.status === 'pending' || p.status === 'in_review'
+                const st = stat(p.id)
+                return (
+                  <div key={p.id} className={`bg-brand-surface rounded-2xl border border-brand-border p-3 flex flex-col sm:flex-row sm:items-center gap-3 ${sold ? 'opacity-75' : ''}`}>
+                    <img src={getImageSrc(p.image_url)} alt={p.title} className="w-12 h-12 rounded-lg object-cover shrink-0" onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-brand-text truncate">{p.title}</p>
+                      <p className="text-xs text-brand-muted truncate">{formatPriceDisplay(p)}</p>
+                      <p className="text-[11px] text-brand-muted mt-1 flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1"><Eye size={12} /> {st.views} tayangan</span>
+                        <span className="inline-flex items-center gap-1"><MessageCircle size={12} /> {st.leads} lead</span>
+                      </p>
+                    </div>
+                    <span className={`text-[11px] font-semibold px-2 py-1 rounded-full shrink-0 self-start sm:self-center ${
+                      sold ? 'bg-brand-sold/20 text-brand-sold' : pending ? 'bg-brand-pending/15 text-brand-pending' : 'bg-brand-verified-bg text-brand-verified'
+                    }`}>
+                      {sold ? 'Terjual' : pending ? 'Menunggu' : 'Aktif'}
+                    </span>
+                    {!sold && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          to={`/sell?edit=${p.id}`}
+                          className="text-[11px] font-semibold text-brand-accent border border-brand-accent/30 hover:bg-brand-highlight rounded-lg px-3 py-1.5 transition-colors"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); openSellModal(p) }}
+                          className="text-[11px] font-semibold text-brand-danger border border-brand-danger/30 hover:bg-brand-danger/10 rounded-lg px-3 py-1.5 transition-colors"
+                        >
+                          Tandai Terjual
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {listings.length > 0 && (
+            <div className="mt-3">
+              <Link
+                to="/sell"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent hover:text-brand-primary transition-colors"
+              >
+                <Plus size={16} /> Iklankan properti baru
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   )
 }
