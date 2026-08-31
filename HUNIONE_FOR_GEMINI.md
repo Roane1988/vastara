@@ -2,6 +2,13 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Changelog — Perbaikan Realtime Chat #2: Hapus Filter `or(...)` pada `postgres_changes` (31 Agustus 2026)
+- **Akar masalah baru**: selain masalah resubscribe (sudah diperbaiki sebelumnya), koneksi realtime masih gagal menangkap pesan karena `postgres_changes` tidak mendukung operator `or(...)` pada parameter `filter` (`filter: or(sender_id.eq...,receiver_id.eq...)`) → subscription diam-diam gagal menerima payload.
+- **Hapus parameter `filter`** (`ChatHubPage.jsx`): kedua handler `postgres_changes` (event `INSERT` dan `UPDATE`) pada tabel `direct_messages` kini **tanpa filter**, sehingga client menerima semua event yang diizinkan RLS.
+- **Guard client-side (RLS double-check)**: di dalam callback dilakukan pengecekan manual `if (msg.sender_id !== userId && msg.receiver_id !== userId) return` sebagai pengaman ganda selain RLS. Untuk INSERT tetap ada guard `sender_id === userId` (cegah duplikat echo pesan optimistik).
+- **Konsekuensi**: subscription realtime sekarang benar-benar menyala (status `SUBSCRIBED` via callback), pesan masuk diinjeksi real-time tanpa refresh.
+- **Murni frontend** — tidak ada perubahan database. Commit: `35deea3`.
+
 ## Changelog — Perbaikan Realtime Chat `direct_messages` di ChatHubPage (31 Agustus 2026)
 - **Akar masalah**: channel realtime `direct_messages` sebelumnya dibuat ulang setiap `activeContactId` berubah (deps `[userId, activeContactId, showToast]`), dan handler memakai closure `activeContactId` yang basi → pesan masuk sering terlewat dan butuh refresh browser.
 - **Single persistent channel** (`ChatHubPage.jsx`): channel Supabase kini hanya bergantung pada `[userId, showToast]` (keduanya stabil), jadi tidak di-teardown saat ganti kontak. Kontak aktif saat ini dibaca via ref `activeContactIdRef` (selalu terbaru) sehingga handler tetap benar tanpa harus resubscribe.
