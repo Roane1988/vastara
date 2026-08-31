@@ -79,6 +79,9 @@ function AppContent() {
   const isAuth = !!session?.user
   const userName = user?.user_metadata?.first_name || ''
 
+  const AUTH_PATHS = new Set(['/login', '/register', '/forgot-password', '/update-password'])
+  const isAuthPage = AUTH_PATHS.has(location.pathname)
+
   const onNavigate = (page) => navigate('/' + page)
 
   const onLogin = () => {
@@ -143,7 +146,7 @@ function AppContent() {
         {!location.pathname.startsWith('/chat') && <Footer />}
         <Suspense fallback={null}>
           <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} userName={userName} />
-          <HuniBot />
+          {!isAuthPage && <HuniBot />}
         </Suspense>
       </div>
     </ErrorBoundary>
