@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getFavorites } from '../utils/favorites'
@@ -77,6 +78,36 @@ const VISIT_STATUS = {
   cancelled: { label: 'Dibatalkan', cls: 'bg-brand-sold/20 text-brand-sold' },
 }
 
+const TREND_DAYS = [7, 14, 30]
+const DAY_LABEL = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+
+function toISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function buildViewTrend(views, maxDays = 30) {
+  const byDay = {}
+  ;(views || []).forEach((v) => {
+    if (!v.viewed_on) return
+    byDay[v.viewed_on] = (byDay[v.viewed_on] || 0) + 1
+  })
+
+  const series = []
+  const today = new Date()
+  for (let i = maxDays - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    series.push({
+      key: toISO(d),
+      label: String(d.getDate()),
+      full: `${DAY_LABEL[d.getDay()]} ${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`,
+      views: byDay[toISO(d)] || 0,
+    })
+  }
+  return series
+}
+
 export default function DashboardPage() {
   const { user, showToast } = useAuth()
 
@@ -96,6 +127,7 @@ export default function DashboardPage() {
   const [leadCount, setLeadCount] = useState(0)
   const [visitCountSeller, setVisitCountSeller] = useState(0)
   const [soldCount, setSoldCount] = useState(0)
+  const [viewTrend, setViewTrend] = useState([])
 
   // Mark as sold modal
   const [sellTarget, setSellTarget] = useState(null)
@@ -155,6 +187,7 @@ export default function DashboardPage() {
 
     setViewCount((views || []).length)
     setVisitCountSeller((visits || []).length)
+    setViewTrend(buildViewTrend(views))
 
     const statsByProp = {}
     ids.forEach((id) => { statsByProp[id] = { views: 0, leads: 0 } })
@@ -307,6 +340,7 @@ export default function DashboardPage() {
           leadCount={leadCount}
           visitCount={visitCountSeller}
           soldCount={soldCount}
+          viewTrend={viewTrend}
           openSellModal={openSellModal}
         />
       ) : (
@@ -464,10 +498,18 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
   )
 }
 
-function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitCount, soldCount, openSellModal }) {
+function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitCount, soldCount, viewTrend, openSellModal }) {
   const [tab, setTab] = useState('ringkasan')
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('semua')
+  const [trendDays, setTrendDays] = useState(7)
+
+  const chartData = useMemo(() => {
+    // viewTrend is ascending full 30-day and already fully populated; slice keeps consistent lags
+    return viewTrend.slice(-trendDays)
+  }, [viewTrend, trendDays])
+
+  const maxViews = chartData.reduce((m, d) => Math.max(m, d.views), 0)
 
   const stat = (id) => (propertyStats && propertyStats[id]) || { views: 0, leads: 0 }
   const conversionRate = viewCount > 0 ? Math.round((leadCount / viewCount) * 1000) / 10 : 0
@@ -509,6 +551,65 @@ function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitC
             <StatCard icon={CalendarClock} label="Kunjungan" value={formatCount(visitCount)} sub="permintaan jadwal" accent="bg-orange-50 text-orange-500" />
             <StatCard icon={CheckCircle2} label="Terjual" value={formatCount(soldCount)} sub="properti laku" accent="bg-violet-50 text-violet-600" extra="col-span-2 lg:col-span-1" />
           </div>
+
+          <section className="bg-brand-surface rounded-2xl border border-brand-border p-4">
+            <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+              <div>
+                <h2 className="text-base font-bold text-brand-text">Tren Tayangan</h2>
+                <p className="text-xs text-brand-muted mt-0.5">Tayangan harian seluruh listing kamu</p>
+              </div>
+              <div className="flex gap-1 bg-brand-highlight rounded-xl p-1">
+                {TREND_DAYS.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setTrendDays(d)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${trendDays === d ? 'bg-brand-primary text-white' : 'text-brand-muted hover:text-brand-text'}`}
+                  >
+                    {d}H
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="w-full h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -22, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="viewGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-brand-accent)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--color-brand-accent)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-brand-border)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-brand-muted)' }} tickLine={false} axisLine={{ stroke: 'var(--color-brand-border)' }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 11, fill: 'var(--color-brand-muted)' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip
+                    cursor={{ stroke: 'var(--color-brand-accent)', strokeDasharray: '3 3' }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload || !payload.length) return null
+                      const d = payload[0].payload
+                      return (
+                        <div className="bg-brand-surface border border-brand-border rounded-xl px-3 py-2 shadow-md">
+                          <p className="text-xs font-bold text-brand-text mb-1">{d.full}</p>
+                          <p className="text-xs text-brand-text flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-brand-accent inline-block" />
+                            <span className="text-brand-muted font-medium">{d.views} tayangan</span>
+                          </p>
+                        </div>
+                      )
+                    }}
+                  />
+                  {maxViews > 0 && <Area type="monotone" dataKey="views" stroke="var(--color-brand-accent)" strokeWidth={2} fill="url(#viewGrad)" dot={false} activeDot={{ r: 4 }} />}
+                  {maxViews === 0 && (
+                    <text x="50%" y="50%" textAnchor="middle" fill="var(--color-brand-muted)" fontSize={12}>
+                      Belum ada tayangan dalam periode ini
+                    </text>
+                  )}
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
 
           {topListings.length > 0 && (
             <section>

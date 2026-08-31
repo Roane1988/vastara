@@ -2,6 +2,13 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Changelog — Chart "Tren Tayangan" Per Hari di Dashboard (31 Agustus 2026)
+- **Chart tren tayangan** (`DashboardPage.jsx`): tab **Ringkasan Performa** kini menampilkan **AreaChart recharts** "Tren Tayangan" — tayangan harian agregat semua listing kamu selama periode terpilih (7/14/30 hari).
+- **Sumber data**: `loadSellerData` menambah state `viewTrend` = deret harian yang digabung dari `property_views.viewed_on`. Helper `buildViewTrend(views, maxDays)` meng-agregasi tayangan per tanggal dan mengisi hari tanpa tayangan dengan `0` agar grafik kontinu.
+- **Pemilih rentang**: tombol toggle **7H / 14H / 30H** di header kartu chart (state `trendDays`, default 7); `chartData` di-slice dari deret menaik via `useMemo`.
+- **Styling konsisten**: memakai variabel brand (`--color-brand-accent/border/muted`) dengan gradient area (`viewGrad`) + **custom Tooltip** (kartu berisi hari penuh + jumlah tayangan). Menampilkan empty-state "Belum ada tayangan dalam periode ini" bila tidak ada data.
+- **Murni frontend** — tidak ada perubahan database (data sudah tersedia dari property_views).
+
 ## Changelog — Dashboard Seller/Agen Optimasi Mobile (31 Agustus 2026)
 - **Tab bar sticky & mobile-friendly** (`DashboardPage.jsx`): tombol tab kini `flex-wrap` dengan `flex-1 sm:flex-none` (terbagi rata penuh di layar sempit), ditambah sticky `top-14` (tepat di bawah TopNavbar yang `fixed top-0`) dengan `bg-brand-surface/95 backdrop-blur` + bottom border, agar tab selalu terlihat saat scroll. Label dipendekkan jadi "Ringkasan" / "Kelola Iklan".
 - **Grid statistik responsif**: kartu stat kini `p-3 sm:p-4`, label/sub `truncate`, dan kartu terakhir ("Terjual") diberi `col-span-2 lg:col-span-1` sehingga tidak menggantung sendiri di baris ketiga grid 2 kolom pada mobile. Label dipersingkat (Tayangan/Leads/Konversi/Kunjungan/Terjual).
