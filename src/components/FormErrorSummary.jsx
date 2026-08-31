@@ -25,13 +25,18 @@ export default function FormErrorSummary({
   const list = Array.isArray(errors)
     ? errors
         .filter(Boolean)
-        .map((msg) =>
-          typeof msg === 'string'
-            ? msg
-            : typeof msg?.message === 'string'
-              ? msg.message
-              : JSON.stringify(msg?.message ?? msg)
-        )
+        .map((msg) => {
+          if (typeof msg === 'string') return msg
+          if (typeof msg?.message === 'string') return msg.message
+          if (typeof msg?.message === 'object' && msg.message) {
+            try {
+              const s = JSON.stringify(msg.message)
+              if (s && s !== '{}' && s !== '"{}"') return s
+            } catch { /* ignore */ }
+          }
+          if (typeof msg?.error === 'string') return msg.error
+          return 'Terjadi kesalahan. Silakan coba lagi.'
+        })
     : []
   if (list.length === 0) return null
 

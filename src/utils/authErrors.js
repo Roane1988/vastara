@@ -16,6 +16,32 @@ export function isRateLimitError(error) {
 
 export function toErrorMessage(err) {
   if (typeof err === 'string' && err.trim()) return err
-  if (err && typeof err.message === 'string' && err.message.trim()) return err.message
+  if (err) {
+    if (typeof err.message === 'string' && err.message.trim()) return err.message
+    if (err.message && typeof err.message === 'object') {
+      try {
+        const s = JSON.stringify(err.message)
+        if (s && s !== '{}' && s !== '"{}"') return s
+      } catch { /* ignore */ }
+    }
+    if (typeof err.error === 'string' && err.error.trim()) return err.error
+    if (typeof err.error_description === 'string' && err.error_description.trim()) return err.error_description
+  }
+  return ''
+}
+
+// Normalisasi error Supabase menjadi kode stabil agar bisa dipetakan ke pesan
+// i18n yang ramah pengguna (mengembalikan string kosong jika tidak dikenali).
+export function getAuthErrorCode(err) {
+  if (!err) return ''
+  const code = typeof err.code === 'string' ? err.code : ''
+  const status = String(err.status || err.statusCode || '')
+  const msg = `${typeof err.message === 'string' ? err.message : ''} ${code} ${status}`
+
+  if (code === '23505') return 'duplicate'
+  if (/user already registered|already been registered|user already exists|email.*already.*regist/i.test(msg)) return 'email_in_use'
+  if (/email not confirmed|before you can log in|confirm your email/i.test(msg)) return 'email_not_confirmed'
+  if (/whatsapp.*(already|unique|exists)|duplicate key value.*whatsapp/i.test(msg)) return 'whatsapp_in_use'
+  if (/invalid login credentials|invalid email or password|invalid login/i.test(msg)) return 'invalid_credentials'
   return ''
 }

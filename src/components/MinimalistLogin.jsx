@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { isRateLimitError, toErrorMessage } from '../utils/authErrors'
+import { isRateLimitError, toErrorMessage, getAuthErrorCode } from '../utils/authErrors'
 import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp'
 import FormErrorSummary from './FormErrorSummary'
 
@@ -68,6 +68,12 @@ export default function MinimalistLogin({ onLoginSuccess }) {
   const [oauthLoading, setOauthLoading] = useState(false)
   const [checkEmail, setCheckEmail] = useState(false)
 
+  const AUTH_ERROR_LABELS = {
+    email_in_use: t('login.error_email_in_use'),
+    email_not_confirmed: t('login.error_email_not_confirmed'),
+    whatsapp_in_use: t('login.error_whatsapp_in_use'),
+    invalid_credentials: t('login.error_invalid_credentials'),
+  }
   const errorTitle = isLogin ? t('login.error_title') : t('login.error_title_signup')
 
   function validatePassword(value) {
@@ -209,14 +215,19 @@ export default function MinimalistLogin({ onLoginSuccess }) {
   }
 
   function handleAuthError(err) {
-    const message = toErrorMessage(err) || t('login.error_generic')
+    // Selalu normalisasi ke string agar tidak merender objek Error mentah ({}) di UI.
+    const rawMessage = toErrorMessage(err)
+    const mapped = AUTH_ERROR_LABELS[getAuthErrorCode(err)]
+    const fallback = isLogin ? t('login.error_generic') : t('login.error_generic_signup')
+    const message = mapped || rawMessage || fallback
+
     if (isRateLimitError(err)) {
       const rateMsg = t('login.too_many_attempts')
       showToast(rateMsg, 'error')
       setError(rateMsg)
       return
     }
-    setError(message)
+    setError(String(message))
   }
 
   const loadingBtnClass = loading
