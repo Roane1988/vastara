@@ -564,6 +564,16 @@ export default function ChatHubPage() {
   const isAtBottomRef = useRef(true)
   const loadedContactRef = useRef(null)
 
+  const activeContactIdRef = useRef(activeContactId)
+  useEffect(() => {
+    activeContactIdRef.current = activeContactId
+  }, [activeContactId])
+
+  const scrollToLatestRef = useRef(() => {})
+  useEffect(() => {
+    scrollToLatestRef.current = scrollToLatest
+  })
+
   const activeContact = contacts.find((c) => c.id === activeContactId) || (activeContactId === HUNIBOT_ID ? HUNIBOT_CONTACT : null)
   const isHunibotRoom = activeContactId === HUNIBOT_ID
 
@@ -931,25 +941,30 @@ export default function ChatHubPage() {
         (payload) => {
           if (realtimeCancelledRef.current) return
           const msg = payload.new
+          if (!msg || msg.sender_id === userId) return
           const otherId = getOtherId(msg, userId)
+          if (!otherId || otherId === HUNIBOT_ID) return
+
+          const currentContactId = activeContactIdRef.current
+          const isActive = otherId === currentContactId
 
           setMessages((prev) => {
-            if (otherId !== activeContactId) return prev
+            if (!isActive) return prev
             if (prev.some((m) => m.id === msg.id)) return prev
             return [...prev, msg]
           })
 
-          if (otherId !== activeContactId) {
-            setUnreadMap(prev => ({ ...prev, [otherId]: (prev[otherId] || 0) + 1 }))
-            const senderName = contactsRef.current.find(c => c.id === otherId)?.first_name || 'Seseorang'
-            if (msg.content) showToast(`${senderName}: ${msg.content.slice(0, 80)}`, 'info')
-          } else {
+          if (isActive) {
             supabase.from('direct_messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id).then(() => {}).catch(() => {})
             setUnreadMap(prev => ({ ...prev, [otherId]: 0 }))
-            if (msg.sender_id !== userId && !isAtBottomRef.current) {
+            if (!isAtBottomRef.current) {
               setNewMsgCount(c => c + 1)
               setNewMsgFAB(true)
+            } else {
+              scrollToLatestRef.current()
             }
+          } else {
+            setUnreadMap(prev => ({ ...prev, [otherId]: ((prev[otherId] || 0) + 1) }))
           }
 
           setContacts((prev) => {
@@ -973,6 +988,11 @@ export default function ChatHubPage() {
             }
             return prev
           })
+
+          if (!isActive && msg.content) {
+            const senderName = contactsRef.current.find(c => c.id === otherId)?.first_name || 'Seseorang'
+            if (!isAtBottomRef.current || !currentContactId) showToast(`${senderName}: ${msg.content.slice(0, 80)}`, 'info')
+          }
         }
       )
       .on(
@@ -998,7 +1018,7 @@ export default function ChatHubPage() {
       realtimeCancelledRef.current = true
       supabase.removeChannel(channel)
     }
-  }, [userId, activeContactId, showToast])
+  }, [userId, showToast])
 
   function scrollToLatest() {
     loadedContactRef.current = activeContactId

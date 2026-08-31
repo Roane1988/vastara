@@ -2,6 +2,16 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Changelog — Perbaikan Realtime Chat `direct_messages` di ChatHubPage (31 Agustus 2026)
+- **Akar masalah**: channel realtime `direct_messages` sebelumnya dibuat ulang setiap `activeContactId` berubah (deps `[userId, activeContactId, showToast]`), dan handler memakai closure `activeContactId` yang basi → pesan masuk sering terlewat dan butuh refresh browser.
+- **Single persistent channel** (`ChatHubPage.jsx`): channel Supabase kini hanya bergantung pada `[userId, showToast]` (keduanya stabil), jadi tidak di-teardown saat ganti kontak. Kontak aktif saat ini dibaca via ref `activeContactIdRef` (selalu terbaru) sehingga handler tetap benar tanpa harus resubscribe.
+- **Injeksi langsung tanpa reload**: event `INSERT` langsung menambahkan pesan baru ke state `messages` jika `otherId === activeContactIdRef.current` (dengan guard duplikat `prev.some(m => m.id === msg.id)`), tanpa fetch ulang.
+- **Sidebar kontak dinamis**: pesan masuk selalu menaikkan kontak ke urutan paling atas, memperbarui `last_message`/`last_message_at` (preview), dan menambah `unreadMap[otherId]` bila bukan chat yang sedang dibuka (badge unread naik). Bila kontak belum ada, dibuat baru dari `profiles`.
+- **Auto-scroll & HuniBot guard**: bila pesan untuk room aktif dan posisi sudah di bawah (`isAtBottomRef`), dipanggil `scrollToLatestRef.current()`; bila tidak di bawah, muncul FAB "pesan baru". Chat HuniBot (virtual, bukan `direct_messages`) di-guard dengan `otherId === HUNIBOT_ID` agar tidak tertimpa.
+- **Anti-duplikat**: guard `sender_id === userId` mencegah race duplikat antara pesan optimistik (id `temp-*`) dan echo INSERT milik sendiri. Event `UPDATE` tetap menangani `read_at`/`deleted_at`.
+- **Cleanup**: cleanup `return () => { realtimeCancelledRef.current = true; supabase.removeChannel(channel) }` memastikan channel berhenti dan tidak ada memory leak/pembaruan ganda.
+- **Murni frontend** — tidak ada perubahan database.
+
 ## Changelog — Chart "Tren Tayangan" Per Hari di Dashboard (31 Agustus 2026)
 - **Chart tren tayangan** (`DashboardPage.jsx`): tab **Ringkasan Performa** kini menampilkan **AreaChart recharts** "Tren Tayangan" — tayangan harian agregat semua listing kamu selama periode terpilih (7/14/30 hari).
 - **Sumber data**: `loadSellerData` menambah state `viewTrend` = deret harian yang digabung dari `property_views.viewed_on`. Helper `buildViewTrend(views, maxDays)` meng-agregasi tayangan per tanggal dan mengisi hari tanpa tayangan dengan `0` agar grafik kontinu.
