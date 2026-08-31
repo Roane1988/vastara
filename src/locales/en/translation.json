@@ -284,8 +284,10 @@
     "error_generic": "Failed to send the reset link. Please try again.",
     "too_many_attempts": "Too many requests. Please wait a moment and try again.",
     "sent_title": "Email Sent!",
-    "sent_desc": "We've sent a password reset link to {email}. Please check your inbox or spam folder.",
+    "sent_desc": "We've sent a password reset link to {{email}}. Please check your inbox or spam folder.",
     "back_to_login": "Back to Sign In",
+    "resend_link": "Resend Reset Link",
+    "resend_cooldown": "Resend in {{seconds}}s",
     "remember_password": "Remember your password?",
     "login_link": "Sign In"
   },
@@ -309,7 +311,10 @@
     "password_required": "New password is required.",
     "session_missing": "Session not found. Please use the reset link from your email. If the link has expired, request a new one.",
     "too_many_attempts": "Too many attempts. Please wait a moment and try again.",
-    "back_to_login": "Back to Sign In"
+    "back_to_login": "Back to Sign In",
+    "invalid_link_title": "Link is no longer valid",
+    "invalid_link_desc": "This password reset link is no longer valid or has expired. Please request a new link to continue.",
+    "request_new_link": "Request a New Link"
   },
   "comingSoon": {
     "title": "Feature Coming Soon!",

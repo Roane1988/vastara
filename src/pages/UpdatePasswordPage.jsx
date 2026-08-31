@@ -5,6 +5,8 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { isRateLimitError, toErrorMessage } from '../utils/authErrors'
 import FormErrorSummary from '../components/FormErrorSummary'
+import AuthShell from '../components/auth/AuthShell'
+import { SpinnerIcon } from '../components/auth/icons'
 import useSEO from '../hooks/useSEO'
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
@@ -28,11 +30,12 @@ function EyeIcon({ visible }) {
   )
 }
 
-function SpinnerIcon() {
+function InvalidLinkIcon() {
   return (
-    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-4 text-brand-danger">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
   )
 }
@@ -54,6 +57,8 @@ export default function UpdatePasswordPage() {
     title: t('update_password.page_title'),
     description: t('update_password.page_description'),
   })
+
+  const invalidLink = !session?.user
 
   function validatePassword(value) {
     if (!value) {
@@ -132,97 +137,119 @@ export default function UpdatePasswordPage() {
     ? 'relative overflow-hidden border-2 border-brand-primary shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse'
     : ''
 
-  return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg px-4 pt-8 pb-16">
-      <div className="w-full max-w-sm my-auto">
-        <div className="text-center mb-8 pt-4">
-          <img src="/huniOne.svg" alt="HuniOne" className="h-32 md:h-48 w-auto object-contain mx-auto" />
-          <p className="text-sm font-medium text-brand-primary/70 tracking-wide mt-1">
-            {t('update_password.subtitle')}
+  if (invalidLink) {
+    return (
+      <AuthShell>
+        <div className="text-center">
+          <InvalidLinkIcon />
+          <h2 className="text-xl font-semibold text-brand-text mb-3">
+            {t('update_password.invalid_link_title')}
+          </h2>
+          <p className="text-sm text-brand-muted mb-8 leading-relaxed">
+            {t('update_password.invalid_link_desc')}
           </p>
-        </div>
-
-        <h2 className="text-xl font-semibold text-brand-text text-center mb-2">
-          {t('update_password.title')}
-        </h2>
-        <p className="text-sm text-brand-muted text-center mb-8">
-          {t('update_password.desc')}
-        </p>
-
-        <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          {error && <FormErrorSummary errors={[error]} title={t('update_password.error_title')} />}
-
-          <div>
-            <label htmlFor="newPassword" className="text-xs font-medium text-brand-muted mb-1.5 block">
-              {t('update_password.new_password_label')}
-            </label>
-            <div className="relative">
-              <input
-                id="newPassword"
-                type={showNew ? 'text' : 'password'}
-                placeholder={t('update_password.new_password_placeholder')}
-                value={newPassword}
-                onChange={handlePasswordChange}
-                required
-                className={`w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${passwordError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowNew(!showNew)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text transition-colors"
-                tabIndex={-1}
-              >
-                <EyeIcon visible={showNew} />
-              </button>
-            </div>
-            {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
-          </div>
-
-          <div>
-            <label htmlFor="confirmPassword" className="text-xs font-medium text-brand-muted mb-1.5 block">
-              {t('update_password.confirm_password_label')}
-            </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                type={showConfirm ? 'text' : 'password'}
-                placeholder={t('update_password.confirm_password_placeholder')}
-                value={confirmPassword}
-                onChange={handleConfirmChange}
-                required
-                className={`w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${confirmError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text transition-colors"
-                tabIndex={-1}
-              >
-                <EyeIcon visible={showConfirm} />
-              </button>
-            </div>
-            {confirmError && <p className="text-red-500 text-sm mt-1">{confirmError}</p>}
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${loadingBtnClass}`}
+          <Link
+            to="/forgot-password"
+            className="inline-block w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200"
           >
-            {loading && <SpinnerIcon />}
-            {loading ? t('update_password.processing') : t('update_password.submit')}
-          </button>
-        </form>
-
-        <p className="mt-8 text-center text-xs text-brand-muted">
+            {t('update_password.request_new_link')}
+          </Link>
           <Link
             to="/login"
-            className="font-semibold text-brand-primary hover:text-brand-accent transition-colors"
+            className="mt-4 inline-block w-full py-3.5 text-sm font-medium text-brand-text bg-brand-surface border border-brand-border rounded-lg hover:bg-brand-bg transition-all duration-200 text-center"
           >
             {t('update_password.back_to_login')}
           </Link>
-        </p>
-      </div>
-    </div>
+        </div>
+      </AuthShell>
+    )
+  }
+
+  return (
+    <AuthShell>
+      <h2 className="text-xl font-semibold text-brand-text text-center mb-2">
+        {t('update_password.title')}
+      </h2>
+      <p className="text-sm text-brand-muted text-center mb-8">
+        {t('update_password.desc')}
+      </p>
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        {error && <FormErrorSummary errors={[error]} title={t('update_password.error_title')} />}
+
+        <div>
+          <label htmlFor="newPassword" className="text-xs font-medium text-brand-muted mb-1.5 block">
+            {t('update_password.new_password_label')}
+          </label>
+          <div className="relative">
+            <input
+              id="newPassword"
+              type={showNew ? 'text' : 'password'}
+              placeholder={t('update_password.new_password_placeholder')}
+              value={newPassword}
+              onChange={handlePasswordChange}
+              autoFocus
+              autoComplete="new-password"
+              required
+              className={`w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${passwordError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowNew(!showNew)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text transition-colors"
+              tabIndex={-1}
+            >
+              <EyeIcon visible={showNew} />
+            </button>
+          </div>
+          {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="text-xs font-medium text-brand-muted mb-1.5 block">
+            {t('update_password.confirm_password_label')}
+          </label>
+          <div className="relative">
+            <input
+              id="confirmPassword"
+              type={showConfirm ? 'text' : 'password'}
+              placeholder={t('update_password.confirm_password_placeholder')}
+              value={confirmPassword}
+              onChange={handleConfirmChange}
+              autoComplete="new-password"
+              required
+              className={`w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors ${confirmError ? 'border-red-400 focus:ring-red-300/30 focus:border-red-400' : 'border-brand-border'}`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm(!showConfirm)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text transition-colors"
+              tabIndex={-1}
+            >
+              <EyeIcon visible={showConfirm} />
+            </button>
+          </div>
+          {confirmError && <p className="text-red-500 text-sm mt-1">{confirmError}</p>}
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${loadingBtnClass}`}
+        >
+          {loading && <SpinnerIcon />}
+          {loading ? t('update_password.processing') : t('update_password.submit')}
+        </button>
+      </form>
+
+      <p className="mt-8 text-center text-xs text-brand-muted">
+        <Link
+          to="/login"
+          className="font-semibold text-brand-primary hover:text-brand-accent transition-colors"
+        >
+          {t('update_password.back_to_login')}
+        </Link>
+      </p>
+    </AuthShell>
   )
 }

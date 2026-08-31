@@ -284,8 +284,10 @@
     "error_generic": "Gagal mengirim link reset. Silakan coba lagi.",
     "too_many_attempts": "Terlalu banyak permintaan. Silakan tunggu beberapa saat lalu coba lagi.",
     "sent_title": "Email Terkirim!",
-    "sent_desc": "Kami telah mengirimkan link reset kata sandi ke {email}. Silakan cek inbox atau folder spam Anda.",
+    "sent_desc": "Kami telah mengirimkan link reset kata sandi ke {{email}}. Silakan cek inbox atau folder spam Anda.",
     "back_to_login": "Kembali ke Halaman Masuk",
+    "resend_link": "Kirim Ulang Link Reset",
+    "resend_cooldown": "Kirim ulang dalam {{seconds}} detik",
     "remember_password": "Ingat kata sandi?",
     "login_link": "Masuk"
   },
@@ -309,7 +311,10 @@
     "password_required": "Kata sandi baru wajib diisi.",
     "session_missing": "Sesi tidak ditemukan. Mohon gunakan link reset dari email Anda. Jika link sudah kedaluwarsa, mintalah link baru.",
     "too_many_attempts": "Terlalu banyak percobaan. Silakan tunggu beberapa saat lalu coba lagi.",
-    "back_to_login": "Kembali ke Halaman Masuk"
+    "back_to_login": "Kembali ke Halaman Masuk",
+    "invalid_link_title": "Tautan tidak berlaku",
+    "invalid_link_desc": "Tautan pemulihan sandi sudah tidak berlaku atau kedaluwarsa. Silakan minta tautan baru untuk melanjutkan.",
+    "request_new_link": "Minta Tautan Baru"
   },
   "comingSoon": {
     "title": "Fitur Sedang Dibuat!",

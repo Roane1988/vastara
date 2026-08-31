@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext'
 import { isRateLimitError, toErrorMessage } from '../utils/authErrors'
 import FormErrorSummary from '../components/FormErrorSummary'
 import useSEO from '../hooks/useSEO'
+
+const COOLDOWN_SECONDS = 60
 
 function SpinnerIcon() {
   return (
@@ -23,19 +25,24 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState(null)
+  const [cooldown, setCooldown] = useState(0)
 
   useSEO({
     title: t('forgot_password.page_title'),
     description: t('forgot_password.page_description'),
   })
 
-  async function handleSubmit(e) {
-    e.preventDefault()
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
+
+  async function sendReset(targetEmail) {
     setError(null)
     setLoading(true)
-
     try {
-      const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error: authError } = await supabase.auth.resetPasswordForEmail(targetEmail, {
         redirectTo: window.location.origin + '/update-password',
       })
 
@@ -45,12 +52,25 @@ export default function ForgotPasswordPage() {
       }
 
       setSent(true)
+      setCooldown(COOLDOWN_SECONDS)
       showToast(t('forgot_password.success'), 'success')
     } catch (err) {
       handleSubmitError(err)
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    if (loading || cooldown > 0) return
+    sendReset(email)
+  }
+
+  function handleResend() {
+    if (loading || cooldown > 0) return
+    setSent(false)
+    sendReset(email)
   }
 
   function handleSubmitError(err) {
@@ -85,16 +105,27 @@ export default function ForgotPasswordPage() {
           <p className="text-sm text-brand-muted mb-8 leading-relaxed">
             {t('forgot_password.sent_desc', { email })}
           </p>
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={loading || cooldown > 0}
+            className="w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading && <SpinnerIcon />}
+            {cooldown > 0
+              ? t('forgot_password.resend_cooldown', { seconds: cooldown })
+              : t('forgot_password.resend_link')}
+          </button>
           <Link
             to="/login"
-            className="inline-block w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200"
+            className="mt-4 inline-block w-full py-3.5 text-sm font-medium text-brand-text bg-brand-surface border border-brand-border rounded-lg hover:bg-brand-bg transition-all duration-200 text-center"
           >
             {t('forgot_password.back_to_login')}
           </Link>
         </div>
       </div>
-    )
-  }
+  )
+}
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg px-4 pt-8 pb-16">
