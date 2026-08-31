@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { toErrorMessage, getAuthErrorCode, isRateLimitError } from '../utils/authErrors'
-import { requestOtp, verifyOtp } from '../utils/otp'
+import { requestOtp } from '../utils/otp'
 import FormErrorSummary from './FormErrorSummary'
 import AuthShell from './auth/AuthShell'
 import { EyeIcon, GoogleIcon, SpinnerIcon } from './auth/icons'
+import { MailCheck } from 'lucide-react'
 import { useRememberEmail } from '../hooks/useRememberEmail'
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/
@@ -23,8 +24,7 @@ export default function LoginPage({ onLoginSuccess }) {
   const [oauthLoading, setOauthLoading] = useState(false)
 
   const [mode, setMode] = useState('password')
-  const [codeSent, setCodeSent] = useState(false)
-  const [otpCode, setOtpCode] = useState('')
+  const [linkSent, setLinkSent] = useState(false)
   const [otpLoading, setOtpLoading] = useState(false)
   const [otpCooldown, setOtpCooldown] = useState(0)
 
@@ -82,7 +82,7 @@ export default function LoginPage({ onLoginSuccess }) {
     setOtpLoading(true)
     try {
       await requestOtp({ identifier: email.trim() })
-      setCodeSent(true)
+      setLinkSent(true)
       setOtpCooldown(OTP_COOLDOWN_SECONDS)
       showToast(t('login.otp_sent'), 'success')
     } catch (err) {
@@ -92,42 +92,16 @@ export default function LoginPage({ onLoginSuccess }) {
     }
   }
 
-  async function handleVerifyOtp(e) {
-    e.preventDefault()
-    if (loading) return
+  function handleChangeEmail() {
+    setLinkSent(false)
     setError(null)
-
-    if (!otpCode.trim()) {
-      setError(t('login.otp_code_required'))
-      return
-    }
-
-    setLoading(true)
-    try {
-      const { error: authError } = await verifyOtp({
-        identifier: email.trim(),
-        token: otpCode.trim(),
-        type: 'email',
-      })
-      if (authError) {
-        handleAuthError(authError)
-        return
-      }
-      persistRememberedEmail()
-      onLoginSuccess?.()
-    } catch (err) {
-      handleAuthError(err)
-    } finally {
-      setLoading(false)
-    }
   }
 
   function switchMode(next) {
     setMode(next)
     setError(null)
     if (next === 'password') {
-      setCodeSent(false)
-      setOtpCode('')
+      setLinkSent(false)
     }
   }
 
@@ -250,77 +224,68 @@ export default function LoginPage({ onLoginSuccess }) {
             {loading ? t('login.processing') : t('login.submit')}
           </button>
         </form>
-      ) : (
-        <form onSubmit={codeSent ? handleVerifyOtp : handleSendOtp} noValidate className="space-y-5">
+      ) : linkSent ? (
+        <div className="space-y-5">
           {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
 
-          {!codeSent ? (
-            <>
-              <div>
-                <label htmlFor="otp-email" className="sr-only">{t('login.email_label')}</label>
-                <input
-                  id="otp-email"
-                  type="email"
-                  placeholder={t('login.email_placeholder')}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="username"
-                  required
-                  className="w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={otpLoading || otpCooldown > 0}
-                className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-              >
-                {otpLoading && <SpinnerIcon />}
-                {otpCooldown > 0
-                  ? t('login.otp_resend_cooldown', { seconds: otpCooldown })
-                  : t('login.otp_send_code')}
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-brand-muted text-center">
-                {t('login.otp_enter_code', { email })}
+          <div className="flex flex-col items-center text-center gap-3 py-2">
+            <div className="w-14 h-14 rounded-full bg-brand-verified/10 flex items-center justify-center">
+              <MailCheck className="w-7 h-7 text-brand-verified" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-brand-text">{t('login.otp_link_sent')}</p>
+              <p className="text-sm text-brand-muted mt-1.5">
+                {t('login.otp_check_inbox', { email })}
               </p>
+            </div>
+          </div>
 
-              <div>
-                <label htmlFor="otpCode" className="sr-only">{t('login.otp_code_label')}</label>
-                <input
-                  id="otpCode"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder={t('login.otp_code_placeholder')}
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  maxLength={6}
-                  required
-                  className="w-full py-3 px-4 text-center text-lg tracking-[0.5em] text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
-                />
-              </div>
+          <button
+            type="button"
+            onClick={handleSendOtp}
+            disabled={otpLoading || otpCooldown > 0}
+            className="w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {otpLoading && <SpinnerIcon />}
+            {otpCooldown > 0
+              ? t('login.otp_resend_cooldown', { seconds: otpCooldown })
+              : t('login.otp_resend_link')}
+          </button>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${loadingBtnClass}`}
-              >
-                {loading && <SpinnerIcon />}
-                {loading ? t('login.processing') : t('login.otp_verify')}
-              </button>
+          <button
+            type="button"
+            onClick={handleChangeEmail}
+            className="w-full text-xs font-medium text-brand-primary hover:text-brand-accent transition-colors"
+          >
+            {t('login.otp_change_email')}
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSendOtp} noValidate className="space-y-5">
+          {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
 
-              <button
-                type="button"
-                onClick={() => { setCodeSent(false); setOtpCode(''); setError(null) }}
-                className="w-full text-xs font-medium text-brand-primary hover:text-brand-accent transition-colors"
-              >
-                {t('login.otp_change_email')}
-              </button>
-            </>
-          )}
+          <div>
+            <label htmlFor="otp-email" className="sr-only">{t('login.email_label')}</label>
+            <input
+              id="otp-email"
+              type="email"
+              placeholder={t('login.email_placeholder')}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+              required
+              className="w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={otpLoading || otpCooldown > 0}
+            className="w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {otpLoading && <SpinnerIcon />}
+            {t('login.otp_send_code')}
+          </button>
         </form>
       )}
 
