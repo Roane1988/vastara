@@ -221,14 +221,22 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
               : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
           } ${isSearchActive ? 'ring-2 ring-brand-accent' : ''}`}>
             {isFlashed && <span className="search-flash-overlay" aria-hidden="true" />}
-            {repliedMessage && (
-              <div className={`mb-1.5 mt-0.5 rounded-lg px-2 py-1 ${isOwn ? 'bg-white/15' : 'bg-brand-bg'}`}>
+            {(repliedMessage || message.reply_to_id) && (
+              <div className={`mb-1.5 mt-0.5 rounded-lg px-2 py-1 ${isOwn ? 'bg-white/15' : 'bg-brand-bg'} ${repliedMessage ? '' : 'opacity-80 italic'}`}>
                 <p className={`text-[10px] font-bold ${isOwn ? 'text-white/80' : 'text-brand-accent'} truncate`}>
-                  {repliedMessage.sender_id === message.sender_id ? 'Balasanmu' : otherName || 'Balasan'}
+                  {!repliedMessage ? 'Balasan'
+                    : repliedMessage.sender_id === message.sender_id ? 'Balasanmu'
+                    : otherName || 'Balasan'}
                 </p>
-                <p className={`text-xs ${isOwn ? 'text-white/90' : 'text-brand-muted'} truncate`}>
-                  {repliedMessage.content}
-                </p>
+                {repliedMessage ? (
+                  <p className={`text-xs ${isOwn ? 'text-white/90' : 'text-brand-muted'} truncate`}>
+                    {repliedMessage.deleted_at ? 'Pesan ini telah dihapus' : repliedMessage.content}
+                  </p>
+                ) : (
+                  <p className={`text-xs ${isOwn ? 'text-white/90' : 'text-brand-muted'} truncate`}>
+                    Pesan ini telah dihapus
+                  </p>
+                )}
               </div>
             )}
             {message.property_id && <PropertyMessage propertyId={message.property_id} />}
@@ -475,7 +483,16 @@ export default function ChatHubPage() {
   const [contacts, setContacts] = useState([])
   const [messages, setMessages] = useState([])
   const [activeContactId, setActiveContactId] = useState(null)
-  const [drafts, setDrafts] = useState({})
+  const draftsStorageKey = userId ? `hunione-chat-drafts-${userId}` : null
+  const [drafts, setDrafts] = useState(() => {
+    if (!draftsStorageKey) return {}
+    try {
+      const raw = localStorage.getItem(draftsStorageKey)
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
+    }
+  })
   const inputValue = activeContactId ? (drafts[activeContactId] || '') : ''
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -543,6 +560,29 @@ export default function ChatHubPage() {
   useEffect(() => {
     contactsRef.current = contacts
   }, [contacts])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDrafts(draftsStorageKey ? (() => {
+      try {
+        const raw = localStorage.getItem(draftsStorageKey)
+        return raw ? JSON.parse(raw) : {}
+      } catch {
+        return {}
+      }
+    })() : {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
+
+  useEffect(() => {
+    if (!draftsStorageKey) return
+    try {
+      localStorage.setItem(draftsStorageKey, JSON.stringify(drafts))
+    } catch {
+      /* storage penuh / tidak tersedia */
+    }
+  }, [drafts, draftsStorageKey])
+
 
   const filteredContacts = contacts.filter((c) => {
     const nameMatches = !searchQuery.trim() || (c.first_name || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -922,7 +962,7 @@ export default function ChatHubPage() {
         (payload) => {
           if (realtimeCancelledRef.current) return
           const msg = payload.new
-          setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, read_at: msg.read_at } : m)))
+          setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, read_at: msg.read_at, deleted_at: msg.deleted_at } : m)))
         }
       )
       .subscribe((status) => {
@@ -1457,9 +1497,28 @@ export default function ChatHubPage() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      const { data, error } = await supabase.from('direct_messages').delete().eq('id', deleteTarget).eq('sender_id', userId).select()
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', deleteTarget)
+        .eq('sender_id', userId)
+        .is('deleted_at', null)
+        .select()
       if (data?.length > 0) {
-        setMessages(prev => prev.filter(m => m.id !== deleteTarget))
+        setMessages(prev => prev.map(m => (m.id === deleteTarget ? { ...m, deleted_at: data[0].deleted_at } : m)))
+        setPinnedMessages((prev) => {
+          const next = { ...prev }
+          Object.keys(next).forEach((room) => {
+            if (next[room]?.[deleteTarget]) {
+              const roomPins = { ...next[room] }
+              delete roomPins[deleteTarget]
+              if (Object.keys(roomPins).length === 0) delete next[room]
+              else next[room] = roomPins
+            }
+          })
+          return next
+        })
+        showToast('Pesan dihapus', 'success')
       } else if (error) {
         showToast(error.message, 'error')
       } else {
@@ -1874,26 +1933,38 @@ export default function ChatHubPage() {
                       return (
                         <div key={msg.id}>
                           {newDay && i > 0 && <DateSeparator date={dayLabel(msg.created_at)} />}
-                          <MessageBubble
-                            message={msg}
-                            isOwn={msg.sender_id === userId}
-                            onDelete={setDeleteTarget}
-                            onReply={handleReply}
-                            lang={i18n.language}
-                            firstInGroup={firstInGroup}
-                            lastInGroup={lastInGroup}
-                            otherName={activeContact.first_name}
-                            otherColor={getAvatarColor(activeContact.id)}
-                            repliedMessage={repliedMessage}
-                            highlight={chatSearchQ}
-                            onPin={handleTogglePin}
-                            isPinned={!!pinnedMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
-                            onImageClick={setSelectedImage}
-                            isSearchActive={msg.id === searchMatches[currentSearchIndex]?.id}
-                            onMoreClick={setMessageMenu}
-                            onCopy={handleCopyMessage}
-                            isFlashed={msg.id === flashMessageId}
-                          />
+                          {msg.deleted_at ? (
+                            <div className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} px-4 mt-3`}>
+                              <div className={`rounded-2xl px-4 py-2 text-xs italic border ${
+                                msg.sender_id === userId
+                                  ? 'bg-brand-bg/60 border-brand-border text-brand-muted rounded-br-md'
+                                  : 'bg-brand-bg/40 border-brand-border text-brand-muted rounded-bl-md'
+                              }`}>
+                                Pesan ini telah dihapus
+                              </div>
+                            </div>
+                          ) : (
+                            <MessageBubble
+                              message={msg}
+                              isOwn={msg.sender_id === userId}
+                              onDelete={setDeleteTarget}
+                              onReply={handleReply}
+                              lang={i18n.language}
+                              firstInGroup={firstInGroup}
+                              lastInGroup={lastInGroup}
+                              otherName={activeContact.first_name}
+                              otherColor={getAvatarColor(activeContact.id)}
+                              repliedMessage={repliedMessage}
+                              highlight={chatSearchQ}
+                              onPin={handleTogglePin}
+                              isPinned={!!pinnedMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
+                              onImageClick={setSelectedImage}
+                              isSearchActive={msg.id === searchMatches[currentSearchIndex]?.id}
+                              onMoreClick={setMessageMenu}
+                              onCopy={handleCopyMessage}
+                              isFlashed={msg.id === flashMessageId}
+                            />
+                          )}
                         </div>
                       )
                     })}

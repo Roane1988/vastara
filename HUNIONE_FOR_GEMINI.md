@@ -2,6 +2,20 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
 
+## Changelog — ChatHub UX: Mark All Read, Filter Kontak, Saran Konteks Properti, Link Profil, Draft Persisten, Soft Delete Pesan (31 Agustus 2026)
+- **Chat: tandai semua sudah dibaca** (`ChatHubPage.jsx`): tombol `CheckCheck` di header daftar kontak → `handleMarkAllRead` menandai semua `direct_messages` (receiver = user, `read_at` null) sebagai dibaca via satu UPDATE; menonaktifkan diri otomatis bila tak ada pesan belum dibaca.
+- **Chat: filter daftar kontak** (`ChatHubPage.jsx`): chip filter **Semua / Belum dibaca / Agent / Owner** beserta jumlahnya (state `contactFilter`) — menyaring `filteredContacts` berdasarkan role (`agent`/`developer`/`admin` → Agent, `owner` → Owner) atau unread (`unreadMap[id] > 0`), dikombinasikan dengan pencarian nama.
+- **Chat: saran pertanyaan konteks properti** (`ChatHubPage.jsx`): `EmptyChat` kini menampilkan saran spesifik properti (masih tersedia? / harga nego / survei / spesifikasi) saat obrolan dibuka dari konteks properti (`contextProperty`), bukan saran umum.
+- **Chat: link profil di header percakapan** (`ChatHubPage.jsx`): avatar + nama kontak (agent/developer/admin → `/agents/:id`, owner → `/seller/:id`) kini `Link` ke profil publik dengan indikator "· Profil"; kontak role lain (pembeli) tetap non-link.
+- **Chat: draft per kontak persisten ke localStorage** (`ChatHubPage.jsx`): `drafts` di-backup ke `localStorage` (`hunione-chat-drafts-{userId}`) — draft tidak hilang saat reload/pindah kontak; memuat ulang saat `userId` berubah dan menyimpan setiap perubahan.
+- **Chat: soft delete pesan (`deleted_at`)** (`ChatHubPage.jsx`, migration `20260831_chat_soft_delete.sql`):
+  - Pengirim kini **menandai pesannya sebagai dihapus** (UPDATE `deleted_at`, bukan DELETE permanen) → riwayat & balasan tetap terjaga.
+  - Table `direct_messages` + kolom `deleted_at` (timestamptz).
+  - **Placeholder "Pesan ini telah dihapus"** dirender menggantikan bubble (kanan/kiri sesuai pengirim); sematan milik pesan yang dihapus ikut dilepas.
+  - **Fallback balasan ke pesan yang dihapus/hilang**: blok balasan di bubble kini menampilkan "Pesan ini telah dihapus" bila `reply_to_id` menunjuk pesan yang sudah tidak ditemukan (bukan kosong/terpotong).
+  - RLS: grant `update (deleted_at)`; policy receiver dipertahankan (`with check deleted_at is null` — receiver tidak bisa menghapus); policy baru `Users can delete their own sent messages` (sender, `deleted_at is not null`).
+  - Catatan: perubahan ini butuh migration **`20260831_chat_soft_delete.sql`** dijalankan di SQL Editor Supabase sebelum fitur aktif.
+
 ## Changelog — Chat Berbagi Gambar & Properti, Reply, Pin, Online Presence, Export CSV; Kontak 100% HuniOne; AI Alamat RT/RW/Kelurahan (31 Agustus 2026)
 - **Chat: reply pesan, lampiran gambar, berbagi properti** (`058e5dc`, `2c601dd`, migration `20260830_chat_reply_attachments.sql`):
   - Kolom baru `direct_messages`: `reply_to_id` (UUID → `direct_messages.id`), `image_url` (TEXT — URL publik storage), `property_id` (UUID → `properties.id`).
@@ -335,6 +349,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - **Badge unread di top navbar** (`TopNavbar`) + badge di item Chat drawer (perhitungan konsisten via `read_at`; `useChatUnread(userId, scope)` — scoped mark-read per kontak)
 - **Typing indicator**, **paginasi** (load older messages), **date separator**, header & bubble UI yang diperhalus, **kartu konteks properti** dalam chat
 - **Rich messages (20260830)**: **reply** (`reply_to_id` + `ReplyPreview`), **lampiran gambar** (bucket `CHAT_IMAGES`, pratinjau gaya WhatsApp + caption, lightbox + download), **berbagi properti** (`property_id` + `PropertyMessage` card), **pinned messages** (`pinned_messages`, section "Disematkan"), **online presence indicator** (`app-online` presence channel), **export ke CSV**, **per-contact drafts**, auto-grow textarea, new-message FAB
+- **Chat UX (31 Aug 2026)**: **tandai semua sudah dibaca**, **filter kontak** (Semua/Belum dibaca/Agent/Owner), **saran pertanyaan konteks properti**, **link profil** agent/owner di header percakapan, **draft persisten ke localStorage**, **soft delete** (`deleted_at`) + placeholder "Pesan ini telah dihapus" + fallback balasan ke pesan terhapus
 - ArrowLeft icon dari lucide-react (bukan custom SVG)
 - **Mobile UX (30 Aug 2026)**: bubble & share-card responsif, lightbox foto fullscreen (Prev/Next + **download blob**), search auto-scroll + **flash highlight** + indikator `X/Y`, bottom action sheet (`⋯` → Balas/Salin/Sematkan/Hapus), auto-link URL & `wa.me` untuk nomor, tombol **Salin** dengan fallback `execCommand`, linkify kompatibel dengan highlight pencarian
 - **Layout mobile (30 Aug 2026)**: tinggi `h-[calc(100dvh-56px)]` (dvh menggantikan vh agar input tidak tenggelam saat URL bar mobile berubah); `<Footer />` tidak dirender di `/chat` (`App.jsx`); area input pakai safe-area padding `pb-[calc(env(safe-area-inset-bottom)+0.75rem)]`; **HuniBot disembunyikan penuh di rute chat**
@@ -476,7 +491,8 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - `id`, `sender_id`, `receiver_id`, `content`, `created_at`
 - **`read_at` (timestamptz, 20260821)**: read receipt — receiver menandai pesan dibaca (policy UPDATE `auth.uid() = receiver_id`); unread = pesan diterima tanpa `read_at`; realtime UPDATE di channel supabase
 - **Kolom lampiran (20260830)**: `reply_to_id` (uuid → `direct_messages.id` — pesan yang dibalas), `image_url` (text — URL publik dari bucket `CHAT_IMAGES`), `property_id` (uuid → `properties.id` — kartu properti yang dibagikan)
-- **RLS UPDATE dibatasi read_at saja (20260830)**: `REVOKE update on direct_messages from authenticated` + `GRANT update (read_at)` — receiver hanya bisa mengubah kolom `read_at`, tidak bisa mengubah `content`/`sender_id`/`receiver_id`/`reply_to_id`/`image_url`/`property_id`. Policy `Users can mark received messages as read` (using/with check `auth.uid() = receiver_id`).
+- **Soft delete (20260831)**: kolom `deleted_at` (timestamptz) — pengirim menandai pesannya dihapus via UPDATE (bukan DELETE permanen); placeholder "Pesan ini telah dihapus" dirender kedua sisi; riwayat & balasan tetap terjaga.
+- **RLS UPDATE dibatasi kolom read_at + deleted_at (20260830 + 20260831)**: `REVOKE update on direct_messages from authenticated` + `GRANT update (read_at)` (20260830) lalu `GRANT update (deleted_at)` (20260831). Receiver hanya bisa mengubah `read_at` (policy `Users can mark received messages as read`, `with check auth.uid() = receiver_id and deleted_at is null` — receiver tidak bisa menghapus); sender hanya bisa mengubah `deleted_at` (policy `Users can delete their own sent messages`, `using/with check auth.uid() = sender_id and deleted_at is not null`). Kolom lain (`content`/`sender_id`/`receiver_id`/`reply_to_id`/`image_url`/`property_id`) tak bisa diubah klien.
 
 ### Table `pinned_messages` (baru — 20260830, sematan chat per user per percakapan)
 - `id` (uuid PK, default gen_random_uuid()), `user_id` (FK → auth.users, cascade), `chat_id` (text — kunci room `[a,b].sort().join('-')`), `message_id` (FK → direct_messages, cascade), `created_at`
@@ -721,6 +737,7 @@ Semua file di `supabase/migrations/`:
 45. `20260830_property_location_rt_rw_kelurahan.sql` — kolom `properties.rt`, `properties.rw`, `properties.kelurahan` (detail lokasi, diisi AI address extraction/form iklan)
 46. `20260830_chat_reply_attachments.sql` — kolom `direct_messages.reply_to_id`/`image_url`/`property_id` + bucket storage `CHAT_IMAGES` + policy upload/update/delete (folder per user)
 47. `20260830_pin_messages.sql` — tabel `pinned_messages` (sematan chat per user per percakapan) + RLS owner-only + index `(user_id, chat_id)`
-48. `20260830_scope_chat_update_read_at.sql` — **chat hardening**: `REVOKE update on direct_messages` + `GRANT update (read_at)` (column-level) supaya receiver hanya bisa mengubah `read_at`; pasang ulang policy `Users can mark received messages as read`
+ 48. `20260830_scope_chat_update_read_at.sql` — **chat hardening**: `REVOKE update on direct_messages` + `GRANT update (read_at)` (column-level) supaya receiver hanya bisa mengubah `read_at`; pasang ulang policy `Users can mark received messages as read`
+ 49. `20260831_chat_soft_delete.sql` — **chat soft delete**: kolom `direct_messages.deleted_at` + `GRANT update (deleted_at)`; policy receiver `with check deleted_at is null`; policy baru `Users can delete their own sent messages` (sender)
 
 **Catatan**: PostgreSQL 14 tidak support `CREATE POLICY IF NOT EXISTS` — harus pakai `DROP POLICY IF EXISTS` dulu sebelum `CREATE POLICY`. Migration terbaru memakai blok `do $$ ... exception when duplicate_object` untuk idempotency.
