@@ -4,10 +4,14 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { toErrorMessage, getAuthErrorCode, isRateLimitError } from '../utils/authErrors'
+import { requestOtp, verifyOtp } from '../utils/otp'
 import FormErrorSummary from './FormErrorSummary'
 import AuthShell from './auth/AuthShell'
 import { EyeIcon, GoogleIcon, SpinnerIcon } from './auth/icons'
 import { useRememberEmail } from '../hooks/useRememberEmail'
+
+const EMAIL_REGEX = /^\S+@\S+\.\S+$/
+const OTP_COOLDOWN_SECONDS = 60
 
 export default function LoginPage({ onLoginSuccess }) {
   const { t } = useTranslation()
@@ -17,6 +21,12 @@ export default function LoginPage({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [oauthLoading, setOauthLoading] = useState(false)
+
+  const [mode, setMode] = useState('password')
+  const [codeSent, setCodeSent] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [otpCooldown, setOtpCooldown] = useState(0)
 
   const { email, setEmail, remember, handleToggleRemember, persistRememberedEmail } = useRememberEmail()
 
@@ -28,9 +38,15 @@ export default function LoginPage({ onLoginSuccess }) {
   }
 
   useEffect(() => {
-    const field = document.getElementById('email')
+    const field = document.getElementById(mode === 'otp' ? 'otp-email' : 'email')
     field?.focus()
-  }, [])
+  }, [mode])
+
+  useEffect(() => {
+    if (otpCooldown <= 0) return
+    const timer = setTimeout(() => setOtpCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearTimeout(timer)
+  }, [otpCooldown])
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -50,6 +66,68 @@ export default function LoginPage({ onLoginSuccess }) {
       handleAuthError(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleSendOtp(e) {
+    e.preventDefault()
+    if (otpLoading || otpCooldown > 0) return
+    setError(null)
+
+    if (!email.trim() || !EMAIL_REGEX.test(email)) {
+      setError(t('login.error_email_invalid'))
+      return
+    }
+
+    setOtpLoading(true)
+    try {
+      await requestOtp({ identifier: email.trim() })
+      setCodeSent(true)
+      setOtpCooldown(OTP_COOLDOWN_SECONDS)
+      showToast(t('login.otp_sent'), 'success')
+    } catch (err) {
+      handleAuthError(err)
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  async function handleVerifyOtp(e) {
+    e.preventDefault()
+    if (loading) return
+    setError(null)
+
+    if (!otpCode.trim()) {
+      setError(t('login.otp_code_required'))
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error: authError } = await verifyOtp({
+        identifier: email.trim(),
+        token: otpCode.trim(),
+        type: 'email',
+      })
+      if (authError) {
+        handleAuthError(authError)
+        return
+      }
+      persistRememberedEmail()
+      onLoginSuccess?.()
+    } catch (err) {
+      handleAuthError(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function switchMode(next) {
+    setMode(next)
+    setError(null)
+    if (next === 'password') {
+      setCodeSent(false)
+      setOtpCode('')
     }
   }
 
@@ -86,74 +164,165 @@ export default function LoginPage({ onLoginSuccess }) {
 
   return (
     <AuthShell>
-      <h2 className="text-xl font-semibold text-brand-text text-center mb-8">
+      <h2 className="text-xl font-semibold text-brand-text text-center mb-6">
         {t('login.title')}
       </h2>
 
-      <form onSubmit={handleLogin} noValidate className="space-y-5">
-        {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
-
-        <div>
-          <label htmlFor="email" className="sr-only">{t('login.email_label')}</label>
-          <input
-            id="email"
-            type="email"
-            placeholder={t('login.email_placeholder')}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="username"
-            required
-            className="w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
-          />
-        </div>
-
-        <div>
-          <div className="relative">
-            <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder={t('login.password_placeholder')}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-              className="w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text transition-colors"
-              tabIndex={-1}
-            >
-              <EyeIcon visible={showPassword} />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => handleToggleRemember(e.target.checked)}
-              className="h-4 w-4 rounded border-brand-border text-brand-primary focus:ring-brand-accent/30"
-            />
-            <span className="text-xs font-medium text-brand-muted">{t('login.remember_me')}</span>
-          </label>
-          <Link to="/forgot-password" className="text-xs font-medium text-brand-primary hover:text-brand-accent transition-colors">
-            {t('login.forgot_password')}
-          </Link>
-        </div>
-
+      <div className="grid grid-cols-2 gap-1 p-1 bg-brand-surface border border-brand-border rounded-xl mb-6">
         <button
-          type="submit"
-          disabled={loading}
-          className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${loadingBtnClass}`}
+          type="button"
+          onClick={() => switchMode('password')}
+          className={`py-2 text-sm font-medium rounded-lg transition-colors ${mode === 'password' ? 'bg-brand-primary text-white' : 'text-brand-muted hover:text-brand-text'}`}
         >
-          {loading && <SpinnerIcon />}
-          {loading ? t('login.processing') : t('login.submit')}
+          {t('login.tab_password')}
         </button>
-      </form>
+        <button
+          type="button"
+          onClick={() => switchMode('otp')}
+          className={`py-2 text-sm font-medium rounded-lg transition-colors ${mode === 'otp' ? 'bg-brand-primary text-white' : 'text-brand-muted hover:text-brand-text'}`}
+        >
+          {t('login.tab_otp')}
+        </button>
+      </div>
+
+      {mode === 'password' ? (
+        <form onSubmit={handleLogin} noValidate className="space-y-5">
+          {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
+
+          <div>
+            <label htmlFor="email" className="sr-only">{t('login.email_label')}</label>
+            <input
+              id="email"
+              type="email"
+              placeholder={t('login.email_placeholder')}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+              required
+              className="w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+            />
+          </div>
+
+          <div>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder={t('login.password_placeholder')}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+                className="w-full py-3 px-4 pr-10 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text transition-colors"
+                tabIndex={-1}
+              >
+                <EyeIcon visible={showPassword} />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => handleToggleRemember(e.target.checked)}
+                className="h-4 w-4 rounded border-brand-border text-brand-primary focus:ring-brand-accent/30"
+              />
+              <span className="text-xs font-medium text-brand-muted">{t('login.remember_me')}</span>
+            </label>
+            <Link to="/forgot-password" className="text-xs font-medium text-brand-primary hover:text-brand-accent transition-colors">
+              {t('login.forgot_password')}
+            </Link>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${loadingBtnClass}`}
+          >
+            {loading && <SpinnerIcon />}
+            {loading ? t('login.processing') : t('login.submit')}
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={codeSent ? handleVerifyOtp : handleSendOtp} noValidate className="space-y-5">
+          {error && <FormErrorSummary errors={[error]} title={t('login.error_title')} />}
+
+          {!codeSent ? (
+            <>
+              <div>
+                <label htmlFor="otp-email" className="sr-only">{t('login.email_label')}</label>
+                <input
+                  id="otp-email"
+                  type="email"
+                  placeholder={t('login.email_placeholder')}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="username"
+                  required
+                  className="w-full py-3 px-4 text-sm text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={otpLoading || otpCooldown > 0}
+                className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+              >
+                {otpLoading && <SpinnerIcon />}
+                {otpCooldown > 0
+                  ? t('login.otp_resend_cooldown', { seconds: otpCooldown })
+                  : t('login.otp_send_code')}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-brand-muted text-center">
+                {t('login.otp_enter_code', { email })}
+              </p>
+
+              <div>
+                <label htmlFor="otpCode" className="sr-only">{t('login.otp_code_label')}</label>
+                <input
+                  id="otpCode"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder={t('login.otp_code_placeholder')}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  required
+                  className="w-full py-3 px-4 text-center text-lg tracking-[0.5em] text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${loadingBtnClass}`}
+              >
+                {loading && <SpinnerIcon />}
+                {loading ? t('login.processing') : t('login.otp_verify')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setCodeSent(false); setOtpCode(''); setError(null) }}
+                className="w-full text-xs font-medium text-brand-primary hover:text-brand-accent transition-colors"
+              >
+                {t('login.otp_change_email')}
+              </button>
+            </>
+          )}
+        </form>
+      )}
 
       <div className="flex items-center gap-3 my-6">
         <div className="flex-1 h-px bg-brand-border" />

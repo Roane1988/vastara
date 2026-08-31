@@ -14,22 +14,26 @@ export function isRateLimitError(error) {
   return RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(message))
 }
 
+function isEmptyObjectText(s) {
+  return s === '{}' || s === '"{}"'
+}
+
 export function toErrorMessage(err) {
-  if (typeof err === 'string' && err.trim()) return err
+  if (typeof err === 'string' && err.trim() && !isEmptyObjectText(err.trim())) return err
   if (err) {
-    if (typeof err.message === 'string' && err.message.trim()) return err.message
+    if (typeof err.message === 'string' && err.message.trim() && !isEmptyObjectText(err.message.trim())) return err.message
     if (err.message && typeof err.message === 'object') {
       try {
         const s = JSON.stringify(err.message)
-        if (s && s !== '{}' && s !== '"{}"') return s
+        if (s && !isEmptyObjectText(s)) return s
       } catch { /* ignore */ }
     }
-    if (typeof err.error === 'string' && err.error.trim()) return err.error
-    if (typeof err.error_description === 'string' && err.error_description.trim()) return err.error_description
+    if (typeof err.error === 'string' && err.error.trim() && !isEmptyObjectText(err.error.trim())) return err.error
+    if (typeof err.error_description === 'string' && err.error_description.trim() && !isEmptyObjectText(err.error_description.trim())) return err.error_description
+    if (err.message && typeof err.message === 'string') return ''
   }
   return ''
 }
-
 // Normalisasi error Supabase menjadi kode stabil agar bisa dipetakan ke pesan
 // i18n yang ramah pengguna (mengembalikan string kosong jika tidak dikenali).
 export function getAuthErrorCode(err) {

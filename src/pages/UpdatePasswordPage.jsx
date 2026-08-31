@@ -9,7 +9,7 @@ import AuthShell from '../components/auth/AuthShell'
 import { SpinnerIcon } from '../components/auth/icons'
 import useSEO from '../hooks/useSEO'
 
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/
 
 function EyeIcon({ visible }) {
   return (

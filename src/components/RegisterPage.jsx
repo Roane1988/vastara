@@ -5,12 +5,14 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { isRateLimitError, toErrorMessage, getAuthErrorCode } from '../utils/authErrors'
 import { isValidWhatsAppNumber, normalizeWhatsAppNumber } from '../utils/whatsapp'
+import { requestOtp, verifyOtp } from '../utils/otp'
 import FormErrorSummary from './FormErrorSummary'
 import AuthShell from './auth/AuthShell'
 import { EyeIcon, SpinnerIcon } from './auth/icons'
 
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/
+const OTP_COOLDOWN_SECONDS = 60
 
 export default function RegisterPage({ onLoginSuccess }) {
   const { t } = useTranslation()
@@ -29,6 +31,13 @@ export default function RegisterPage({ onLoginSuccess }) {
   const [waError, setWaError] = useState('')
   const [checkEmail, setCheckEmail] = useState(false)
 
+  const [verifying, setVerifying] = useState(false)
+  const [pendingWa, setPendingWa] = useState('')
+  const [verifCode, setVerifCode] = useState('')
+  const [verifLoading, setVerifLoading] = useState(false)
+  const [verifCooldown, setVerifCooldown] = useState(0)
+  const [verifError, setVerifError] = useState('')
+
   const AUTH_ERROR_LABELS = {
     email_in_use: t('login.error_email_in_use'),
     email_not_confirmed: t('login.error_email_not_confirmed'),
@@ -41,6 +50,12 @@ export default function RegisterPage({ onLoginSuccess }) {
     const field = document.getElementById('firstName')
     field?.focus()
   }, [])
+
+  useEffect(() => {
+    if (verifCooldown <= 0) return
+    const timer = setTimeout(() => setVerifCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearTimeout(timer)
+  }, [verifCooldown])
 
   function validatePassword(value) {
     if (value && !PASSWORD_REGEX.test(value)) {
@@ -131,7 +146,7 @@ export default function RegisterPage({ onLoginSuccess }) {
       }
 
       if (data?.session) {
-        onLoginSuccess?.()
+        await startVerification(normalizedWa)
         return
       }
 
@@ -145,11 +160,74 @@ export default function RegisterPage({ onLoginSuccess }) {
         return
       }
 
-      onLoginSuccess?.()
+      await startVerification(normalizedWa)
     } catch (err) {
       handleAuthError(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function startVerification(normalizedWa) {
+    setVerifying(true)
+    setPendingWa(normalizedWa)
+    setVerifError('')
+    try {
+      await requestOtp({ identifier: email })
+      setVerifCooldown(OTP_COOLDOWN_SECONDS)
+      showToast(t('login.otp_sent'), 'success')
+    } catch (err) {
+      setVerifError(toErrorMessage(err) || t('login.error_generic_signup'))
+    }
+  }
+
+  async function handleSendVerifOtp() {
+    if (verifLoading || verifCooldown > 0) return
+    setVerifError('')
+    setVerifLoading(true)
+    try {
+      await requestOtp({ identifier: email })
+      setVerifCooldown(OTP_COOLDOWN_SECONDS)
+      showToast(t('login.otp_sent'), 'success')
+    } catch (err) {
+      setVerifError(toErrorMessage(err) || t('login.error_generic_signup'))
+    } finally {
+      setVerifLoading(false)
+    }
+  }
+
+  async function handleVerifyVerifOtp() {
+    if (verifLoading) return
+    setVerifError('')
+
+    if (!verifCode.trim()) {
+      setVerifError(t('login.otp_code_required'))
+      return
+    }
+
+    setVerifLoading(true)
+    try {
+      const { error: authError } = await verifyOtp({ identifier: email, token: verifCode.trim(), type: 'email' })
+      if (authError) {
+        setVerifError(toErrorMessage(authError) || t('login.error_generic_signup'))
+        return
+      }
+
+      const { error: rpcErr } = await supabase.rpc('set_whatsapp_verified', {
+        p_whatsapp: pendingWa,
+      })
+      if (rpcErr) {
+        setVerifError(rpcErr.message)
+        showToast(rpcErr.message, 'error')
+        return
+      }
+
+      showToast(t('login.whatsapp_verified_success'), 'success')
+      onLoginSuccess?.()
+    } catch (err) {
+      setVerifError(toErrorMessage(err) || t('login.error_generic_signup'))
+    } finally {
+      setVerifLoading(false)
     }
   }
 
@@ -171,6 +249,91 @@ export default function RegisterPage({ onLoginSuccess }) {
   const loadingBtnClass = loading
     ? 'relative overflow-hidden border-2 border-brand-primary shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse'
     : ''
+
+  if (verifying) {
+    return (
+      <AuthShell>
+        <div className="bg-brand-bg border border-brand-border rounded-2xl p-6 -mx-2">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-brand-primary flex items-center justify-center text-white text-lg font-bold shrink-0">
+              ✓
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-brand-text">
+                {t('login.verify_title')}
+              </h2>
+              <p className="text-xs text-brand-muted">
+                {t('login.verify_subtitle')}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-sm text-brand-muted mb-4">
+            {t('login.verify_desc', { number: pendingWa })}
+          </p>
+
+          <div>
+            {verifError && <FormErrorSummary errors={[verifError]} title={errorTitle} />}
+
+            <form
+              onSubmit={handleVerifyVerifOtp}
+              noValidate
+              className="mt-4 space-y-4"
+            >
+              <div>
+                <label htmlFor="verifCode" className="text-xs font-medium text-brand-muted mb-1.5 block">
+                  {t('login.otp_code_label')}
+                </label>
+                <input
+                  id="verifCode"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder={t('login.otp_code_placeholder')}
+                  value={verifCode}
+                  onChange={(e) => setVerifCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  autoFocus
+                  required
+                  className="w-full py-3 px-4 text-center text-lg tracking-[0.5em] text-brand-text bg-brand-surface border border-brand-border rounded-lg placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={verifLoading}
+                className={`w-full py-3.5 text-sm font-medium text-white bg-brand-primary rounded-lg hover:brightness-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${loadingBtnClass}`}
+              >
+                {verifLoading && <SpinnerIcon />}
+                {verifLoading ? t('login.verify_processing') : t('login.verify_submit')}
+              </button>
+            </form>
+
+            <button
+              type="button"
+              onClick={handleSendVerifOtp}
+              disabled={verifLoading || verifCooldown > 0}
+              className="mt-3 w-full text-xs font-medium text-brand-primary hover:text-brand-accent transition-colors disabled:opacity-60"
+            >
+              {verifCooldown > 0
+                ? t('login.otp_resend_cooldown', { seconds: verifCooldown })
+                : t('login.otp_send_code')}
+            </button>
+
+            <div className="mt-6 pt-5 border-t border-brand-border">
+              <button
+                type="button"
+                onClick={() => onLoginSuccess?.()}
+                className="w-full text-xs text-brand-muted hover:text-brand-text transition-colors"
+              >
+                {t('login.verify_later')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </AuthShell>
+    )
+  }
 
   return (
     <AuthShell>
