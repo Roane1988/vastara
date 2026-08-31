@@ -1,6 +1,43 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 30 Agustus 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
+
+## Changelog — Chat Berbagi Gambar & Properti, Reply, Pin, Online Presence, Export CSV; Kontak 100% HuniOne; AI Alamat RT/RW/Kelurahan (31 Agustus 2026)
+- **Chat: reply pesan, lampiran gambar, berbagi properti** (`058e5dc`, `2c601dd`, migration `20260830_chat_reply_attachments.sql`):
+  - Kolom baru `direct_messages`: `reply_to_id` (UUID → `direct_messages.id`), `image_url` (TEXT — URL publik storage), `property_id` (UUID → `properties.id`).
+  - **Reply**: tombol Balas di bubble/menu → `ReplyPreview` di atas input menampilkan pesan yang dibalas (label "Kamu"/"Lawan bicara" + konten/kartu), disimpan sebagai `reply_to_id` saat kirim.
+  - **Lampiran gambar**: bucket storage baru **`CHAT_IMAGES`** (public, 5MB, whitelist jpeg/png/webp/avif; policy upload/update/delete hanya folder `{auth.uid()}`). Flow: pick foto (`openImagePicker`) → **modal pratinjau gaya WhatsApp** (`ImagePreviewModal`) dengan field caption + tombol Kirim → kompresi (`compressImage`) → upload ke `CHAT_IMAGES/{userId}/...` → `image_url` disimpan. Bubble gambar → **lightbox** (Prev/Next + download blob). Validasi MIME/ukuran sebelum upload.
+  - **Berbagi properti**: tombol plus (+) → `PropertyPicker` (cari properti milik user via `properties` `seller_id` + hasil, ketik kata kunci) → `PropertyMessage` card di chat (fetch properti, tampilkan gambar + judul + harga + CTA buka detail/WA). Disimpan sebagai `property_id`.
+- **Chat: pinned messages per percakapan** (`883dd50`, migration `20260830_pin_messages.sql`): tabel baru `pinned_messages` (`id`, `user_id` FK→auth.users cascade, `chat_id` TEXT = `[a,b].sort().join('-')`, `message_id` FK→direct_messages cascade, `created_at`, unique `(user_id, message_id)`; RLS owner-only + index `(user_id, chat_id)`). Toggle pin via tombol `Pin`/`PinOff` di bubble & menu aksi ("Sematkan"/"Lepas Sematan"), disimpan lokal per room; **section "Disematkan"** di bawah header percakapan menampilkan semua pin (terbaru dulu; gambar/kartu properti dirender sebagai label `[Gambar]`/`[Kartu properti]`).
+- **Chat: online presence indicator** (`883dd50`): channel presence `app-online` — tiap user subscribe dan `track({ userId, online_at })`; `presenceState` di-sync → `onlineIds` map. Kontak ditandai **online** (titik hijau di avatar + label header). Typing presence juga sudah ada (`chat-typing-{room}` → `otherTyping`).
+- **Chat: export riwayat ke CSV** (`883dd50`): tombol `handleExportChat` — bangun CSV (`\uFEFF` BOM untuk Excel, kolom `Waktu;Pengirim;Pesan`, konten gambar/kartu properti jadi `[Gambar]`/`[Kartu properti]`) → Blob → auto-download `chat-<nama>.csv`.
+- **Chat: auto-grow textarea + bubble entrance & polish** (`ceb1afe`): textarea tumbuh otomatis (max 120px), Enter kirim / Shift+Enter newline, bubble masuk dengan animasi.
+- **Chat: per-contact draft + scoped mark-read + unread badge konsisten** (`30fb551`, `30fb551 useChatUnread`, migration `20260830_scope_chat_update_read_at.sql`):
+  - **Per-contact drafts**: `drafts` object per `activeContactId` (bukan satu state global) — setiap percakapan menyimpan drafnya sendiri.
+  - **Scoped mark-read**: `useChatUnread(userId, scope)` — `markRead(contactId)` menandai semua pesan `read_at` dari kontak tersebut (`.eq('sender_id', contactId)`), badge unread per kontak & global konsisten. `useChatUnread` kini subscribe INSERT + UPDATE (decrement saat `read_at` terisi, guard `decrementedRef` per id).
+  - **RLS ketat `read_at`** (`20260830_scope_chat_update_read_at.sql`): `REVOKE update on direct_messages from authenticated` + `GRANT update (read_at)` (column-level) — receiver hanya bisa mengubah kolom `read_at`, tidak bisa mengubah `content`/`sender_id`/`receiver_id`/`reply_to_id`/`image_url`/`property_id`. Policy `Users can mark received messages as read` (using/with check `auth.uid() = receiver_id`) dipasang ulang.
+- **Chat: new-message FAB + scroll ke bawah** (`46ff543`, `14154e4`, `1081d2a`, `04746b5`): tombol FAB muncul saat ada pesan masuk baru & tidak di bawah; **auto-scroll ke paling bawah saat pindah kontak** (nested rAF + timeout, `scroll-behavior` di container pesan `h-full` di bawah header statis), daftar pesan scroll di dalam panel (bukan seluruh window), layout desktop diperbaiki (header statis + scroller `h-full`).
+- **Contact yang belum ada di list bisa langsung di-chat** (`1562af4`): memulai chat baru dari `/chat?user=ID` membuka percakapan walau kontak belum ada di contact list (contact disisipkan sementara dari `profiles`).
+- **HuniBot disembunyikan penuh di halaman chat** (`a9860ab`, `307c02e`): pada rute `/chat*`, komponen HuniBot disembunyikan total (bukan hanya FAB); di luar chat, FAB diposisikan lebih tinggi (`bottom-6`) agar tidak menutup input chat mobile.
+- **Properti: 100% kontak via HuniOne Chat (hapus WhatsApp CTA)** (`f116a92`, `4e3bb0a`):
+  - **Agent Card** di sidebar desktop: tombol WhatsApp/phone dihapus → **tombol primary full-width "Chat di HuniOne"** → `navigate('/chat?user=${property.seller_id}&property=${property.id}')` (buka percakapan + konteks properti yang dibicarakan).
+  - **Mobile sticky bar** & **address card**: juga berubah menjadi **"Chat di HuniOne"** (in-app), bukan buka `wa.me`. Card alamat kini hanya menampilkan area-level (kota/kecamatan) + aksi chat.
+  - Konteks properti dikirim via query param `&property=ID`; `ChatHubPage` membaca `property` param → `setContextProperty` / `setShareProperty` → **kartu konteks properti** tampil di atas input untuk dikirim.
+- **MoneyInput reusable + formatIDR** (`db27c22`): komponen baru `MoneyInput.jsx` (label + `<input type="number" inputMode="numeric">` + **pratinjau Rupiah live** `formatIDR` di bawah input + hint) dan helper `formatIDR` di `utils/format.js`. Input numerik memakai keyboard numerik + strip non-digit di mobile (`5023933`).
+- **AI address extraction + field RT/RW/Kelurahan** (`31bfac0`, `e92800c`, `9a9992e`, `991a339`, migration `20260830_property_location_rt_rw_kelurahan.sql`):
+  - Kolom baru `properties.rt`, `properties.rw`, `properties.kelurahan` (text).
+  - `utils/addressAI.js`: `extractAddressWithAI(text)` — kirim prompt ekstraksi alamat ke Groq `purpose:'chat'` (model gpt-oss), parse JSON (strip fenced code, robust extraction via `parseJson`), kembalikan `{ values: { rt, rw, kelurahan, kecamatan, kota, city }, missing, ambiguous }`. RT/RW digits-only, kota lewat `cleanCityName` (strip "Kota"/"Kabupaten").
+  - **SellPropertyPage Step 0**: saat user isi "Alamat Lengkap", tombol **AI** mengekstrak lokasi → **pratinjau** dengan flag manual-fill per bidang (pengguna bisa koreksi). Tambah field kaskade RT, RW, Kelurahan, Kecamatan (autocomplete), Kota. `ADDRESS_FIELDS`/`ADDRESS_FIELD_LABELS` diekspor dari `addressAI.js`.
+- **Property detail: galeri foto asimetris gaya Rumah123** (`7579815`, `e42ac99`): desktop `GalleryDesktop` diubah dari 1 besar + 2x2 grid menjadi **70/30 asimetris** (hero besar + thumbnail kolom kanan); properti 1 foto dirender **full-width hero** (tanpa thumbnail duplikat); placeholder hanya untuk slot tersisa; lightbox tetap dari semua tile.
+- **Property detail: quick actions Save & Share** (`0661876`, `3b86ca1`): tombol cepat simpan (favorit) & bagikan di halaman detail; share lewat native `navigator.share` dengan fallback salin (abaikan `AbortError` saat batal, fallback clipboard + toast sukses). Spesifikasi di-declutter vs sticky card.
+- **Error states, skeleton, a11y, generic 404** (`4aacb27`, `0ef2b59`): state error pada fetch gagal (ExplorePage, ComparePage, chat), skeleton loading untuk filter sheet, scroll filter sheet, generic 404 untuk data tidak ditemukan, perbaikan a11y & tap targets.
+- **Layout: posisi konten di bawah fixed navbar** (`3b03257`, `d5a0565`): sub-header (sticky bar properti & stepper sell) diposisikan di bawah `TopNavbar` fixed, hilangkan excess top gap.
+- **Explore: sinkron URL search params** (`4ae1697`): `ExplorePage` sinkronisasi filter dengan `?q=&category=&type=&price=&beds=&premium=` (via `useSearchParams`), fix smart-search retype & filter harga sewa bulanan.
+- **Compare: anchor/max warning** (`cef7539`): peringatan mismatch/max link ke **CompareBar** (z-40) alih-alih toast atas yang menimpa navbar.
+- **Forum: stabilkan posisi setelah kirim balasan** (`8eba28f`): hapus `scrollIntoView` agresif setelah kirim reply agar halaman tidak melompat ke footer — posisi tetap di form komentar sticky.
+- **Auth hardening (signup & OAuth)** (`ee670f9`, `289b06e`): validasi session setelah signup, bungkus `signInWithOAuth` Google dengan try/catch, sinkronisasi error handling reset password, perbaikan rendering raw error object (sebelumnya menampilkan objek mentah) & judul error signup dinamis. `MinimalistLogin` memakai `noValidate` + inline field errors (password, WhatsApp) via `validatePassword`/`isValidWhatsAppNumber`.
+- **Audit findings fixes** (`ad8a081`, `2830a69`): resolve temuan tingkat tinggi & utama — AI search, compare link, `ChatHubPage` ref race (`sendMountedRef`), validasi WhatsApp; lalu price review (`AdminPriceChangeQueue`), reaction realtime (forum), AI race, financial form, toggleSave, forum URL params.
+- **`format.js` diperluas**: tambah `formatCompact` (RpM/RpJt/Rprb) dan `formatPriceDisplay(property)` (normalisasi label `/bulan`/`/tahun` untuk sewa, `price_period` aware) selain `formatCount`/`formatIDR` yang sudah ada.
 
 ## Changelog — Chat Mobile UX: Bubble Responsif, Lightbox Foto, Aksi Pesan, Pencarian Flash, Layout dvh (30 Agustus 2026)
 - **Bubble pesan & kartu properti responsif mobile** (`ChatHubPage.jsx`, `7eab9f2`): lebar bubble pesan dan kartu konteks properti (gambar + judul + harga + tombol aksi Chat/WhatsApp) menyesuaikan layar sempit; action yang bersifat hover-only disembunyikan di mobile (touch-first) agar tidak menumpuk dan tidak "stuck" terbuka.
@@ -266,17 +303,16 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - **CompareBar** (`<CompareBar />`): floating bar bottom saat ada item di keranjang banding
 
 ### 3. PropertyDetailPage
-- **Gallery**: Desktop (Airbnb-style grid) / Mobile (hero + thumb grid) + Lightbox (fullscreen, keyboard nav)
-- **Agent Card**: sticky sidebar (desktop), floating WhatsApp bar (mobile, IntersectionObserver — deps `[loading]` fixed)
-- **KprSimulator**: mortgage calculator
+- **Gallery**: Desktop (Airbnb-style 70/30 asimetris — 20260830) / Mobile (hero + thumb grid) + Lightbox (fullscreen, keyboard nav); properti 1 foto dirender full-width hero tanpa thumbnail duplikat
+- **Agent Card**: sticky sidebar (desktop), **"Chat di HuniOne"** primary full-width (20260830 — WhatsApp CTA dihapus) → `navigate('/chat?user=sellerId&property=id')`; mobile sticky bar + address card juga jadi "Chat di HuniOne"
+- **KprSimulator**: mortgage calculator (sementara disembunyikan dari UI — lihat bagian KPR)
 - **Properti sewa (202608)**: properti Disewa menampilkan **Simulasi Sewa** (bukan KPR), harga berlabel `/bulan`, analisis investasi & harga wajar disembunyikan, harga + affordability badge per periode
 - **Properti Serupa**: grid 6 item, filter by category/city, exclude current ID, limit 6, status='verified'
 - **Accordion**: Panduan Membeli + Disclaimer
 - **UI/UX detail (b1dda98)**: **mobile bottom price bar** (sticky di bawah layar), **spec tiles** (KT/KM/luas/sertifikat), **map card**, harga terpajang di **sidebar desktop**
-- **Share**: tombol bagikan → toast sukses/gagal (diambil dari `useAuth`)
-- **Privasi lokasi (da8f6ca)**: alamat tampil **area-level saja** (kota/kecamatan); alamat lengkap di-gate di belakang kontak agent → dibuka via WhatsApp
-- **Jadwal Survei (3428e59)**: form simpan ke `site_visits` + buka WhatsApp pre-filled tanggal/jam + tombol "Lanjut ke WhatsApp" (hybrid — bukan cuma buka WA)
-- **WhatsApp Leads (20260816)**: klik "Hubungi via WhatsApp" → catat ke tabel `whatsapp_leads` (property+seller+buyer)
+- **Share & Save**: tombol bagikan (native share, fallback clipboard; abaikan AbortError saat batal) → toast sukses/gagal (diambil dari `useAuth`); tombol simpan favorit
+- **Privasi lokasi (da8f6ca)**: alamat tampil **area-level saja** (kota/kecamatan); alamat lengkap di-gate di belakang kontak agent → dibuka via chat HuniOne
+- **Jadwal Survei (3428e59)**: form simpan ke `site_visits` + "Lanjut ke WhatsApp"
 - Dynamic EN translation via `useGroqTranslation` hook
 - Lazy loading images
 
@@ -296,11 +332,12 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - Two-column: contact list + chat window
 - Mobile toggle, realtime subscription via Supabase Realtime
 - **Read receipt (20260821)**: kolom `direct_messages.read_at` — receiver menandai dibaca (policy UPDATE), pengirim lihat status "Dibaca" live via realtime UPDATE
-- **Badge unread di top navbar** (`TopNavbar`) + badge di item Chat drawer (perhitungan konsisten via `read_at`)
+- **Badge unread di top navbar** (`TopNavbar`) + badge di item Chat drawer (perhitungan konsisten via `read_at`; `useChatUnread(userId, scope)` — scoped mark-read per kontak)
 - **Typing indicator**, **paginasi** (load older messages), **date separator**, header & bubble UI yang diperhalus, **kartu konteks properti** dalam chat
+- **Rich messages (20260830)**: **reply** (`reply_to_id` + `ReplyPreview`), **lampiran gambar** (bucket `CHAT_IMAGES`, pratinjau gaya WhatsApp + caption, lightbox + download), **berbagi properti** (`property_id` + `PropertyMessage` card), **pinned messages** (`pinned_messages`, section "Disematkan"), **online presence indicator** (`app-online` presence channel), **export ke CSV**, **per-contact drafts**, auto-grow textarea, new-message FAB
 - ArrowLeft icon dari lucide-react (bukan custom SVG)
 - **Mobile UX (30 Aug 2026)**: bubble & share-card responsif, lightbox foto fullscreen (Prev/Next + **download blob**), search auto-scroll + **flash highlight** + indikator `X/Y`, bottom action sheet (`⋯` → Balas/Salin/Sematkan/Hapus), auto-link URL & `wa.me` untuk nomor, tombol **Salin** dengan fallback `execCommand`, linkify kompatibel dengan highlight pencarian
-- **Layout mobile (30 Aug 2026)**: tinggi `h-[calc(100dvh-56px)]` (dvh menggantikan vh agar input tidak tenggelam saat URL bar mobile berubah); `<Footer />` tidak dirender di `/chat` (`App.jsx`); area input pakai safe-area padding `pb-[calc(env(safe-area-inset-bottom)+0.75rem)]`
+- **Layout mobile (30 Aug 2026)**: tinggi `h-[calc(100dvh-56px)]` (dvh menggantikan vh agar input tidak tenggelam saat URL bar mobile berubah); `<Footer />` tidak dirender di `/chat` (`App.jsx`); area input pakai safe-area padding `pb-[calc(env(safe-area-inset-bottom)+0.75rem)]`; **HuniBot disembunyikan penuh di rute chat**
 
 ### 7. Admin Dashboard
 - **5-tab**: Overview (analytics + pending table), **Agen** (review pendaftaran agent eksternal), **Harga** (antrian perubahan harga — AdminPriceChangeQueue), Users (role management via dropdown), Audit Trail (log)
@@ -376,7 +413,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 
 ### 15. WhatsApp Leads
 - **Tabel `whatsapp_leads` (20260816)**: `property_id`, `seller_id`, `buyer_id` (nullable — lead fire-and-forget), `created_at`
-- **Sumber**: klik "Hubungi via WhatsApp" di `PropertyDetailPage` (`buyer_id: user?.id || null`)
+- **Sumber (20260830)**: klik WhatsApp di **`SellerProfilePage` (profil penjual publik)** (`buyer_id: user?.id || null`) — properti detail kini memakai **in-app HuniOne Chat**, bukan `wa.me`; `whatsapp_leads` tetap dicatat di profil penjual
 - **Tampilan**: seller lihat di **Iklan Saya → tab Leads** (`MyListingsPage`), admin lihat di **AdminDashboardPage**
 - **RLS (20260818)**: INSERT **wajib login** (`auth.uid() is not null` — cegah spam anonim); SELECT seller utk properti sendiri + admin
 
@@ -400,7 +437,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 - `image_url` (text — single URL or JSON.stringify([...]))
 - `seller_whatsapp`, `status` ('pending'/'in_review'/'verified'/'rejected'/'sold'), `created_at`
 - **Kolom harga (20260816)**: `original_price` (numeric, baseline % penurunan), `price_requested` (harga yang ditahan), `price_change_status` ('none'/'pending'/'approved'/'rejected', default 'none'), `price_requested_at`, `price_reviewed_by`, `price_reviewed_at`
-- **Kolom baru (Aug 2026, migrasi terbaru)**: `published_at` (timestamptz — 20260820, diisi otomatis saat status→'verified'), `price_period` (text 'total'/'bulan'/'tahun', default 'total' — 20260822), `land_area_sqm` (numeric — luas tanah; `area_sqm` tetap luas bangunan) & `furnished` ('' / furnished / semi_furnished / unfurnished, default '') — 20260823
+- **Kolom baru (Aug 2026, migrasi terbaru)**: `published_at` (timestamptz — 20260820, diisi otomatis saat status→'verified'), `price_period` (text 'total'/'bulan'/'tahun', default 'total' — 20260822), `land_area_sqm` (numeric — luas tanah; `area_sqm` tetap luas bangunan) & `furnished` ('' / furnished / semi_furnished / unfurnished, default '') — 20260823, **`rt` & `rw` (text) & `kelurahan` (text) — 20260830** (lokasi detail, diisi AI address extraction/form iklan)
 - **TIDAK ada kolom** `agent_id`, `is_verified`, `gmaps_link` — mekanisme status murni via kolom `status`; penjual via `seller_id` (kolom `agent_id`/`owner_id` sudah di-drop 20260807).
 - **Column naming**: `address` (bukan `location`), `area_sqm` (bukan `sqm`), `seller_whatsapp` (bukan `agent_whatsapp`), `description_id` (bukan `description`)
 
@@ -438,6 +475,18 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 ### Table `direct_messages`
 - `id`, `sender_id`, `receiver_id`, `content`, `created_at`
 - **`read_at` (timestamptz, 20260821)**: read receipt — receiver menandai pesan dibaca (policy UPDATE `auth.uid() = receiver_id`); unread = pesan diterima tanpa `read_at`; realtime UPDATE di channel supabase
+- **Kolom lampiran (20260830)**: `reply_to_id` (uuid → `direct_messages.id` — pesan yang dibalas), `image_url` (text — URL publik dari bucket `CHAT_IMAGES`), `property_id` (uuid → `properties.id` — kartu properti yang dibagikan)
+- **RLS UPDATE dibatasi read_at saja (20260830)**: `REVOKE update on direct_messages from authenticated` + `GRANT update (read_at)` — receiver hanya bisa mengubah kolom `read_at`, tidak bisa mengubah `content`/`sender_id`/`receiver_id`/`reply_to_id`/`image_url`/`property_id`. Policy `Users can mark received messages as read` (using/with check `auth.uid() = receiver_id`).
+
+### Table `pinned_messages` (baru — 20260830, sematan chat per user per percakapan)
+- `id` (uuid PK, default gen_random_uuid()), `user_id` (FK → auth.users, cascade), `chat_id` (text — kunci room `[a,b].sort().join('-')`), `message_id` (FK → direct_messages, cascade), `created_at`
+- Unique `(user_id, message_id)`; index `(user_id, chat_id)`.
+- RLS: owner-only (select/insert/delete `auth.uid() = user_id`).
+
+### Storage bucket `CHAT_IMAGES` (baru — 20260830)
+- Public, file_size_limit 5MB, allowed MIME jpeg/png/webp/avif.
+- Policy: INSERT/UPDATE/DELETE hanya jika `bucket_id = 'CHAT_IMAGES'` dan `(storage.foldername(name))[1] = auth.uid()::text` (upload hanya ke folder milik sendiri).
+- Path: `{userId}/{timestamp}-{rand}-{sanitizedFileName}`, public URL via `getPublicUrl()`. Dipakai `ChatHubPage.uploadChatImage`.
 
 ### Table `forum_posts`
 - `id` (uuid PK), `author_id` (FK → profiles), `title`, `content`, `category` (text, default 'Umum'), `created_at`
@@ -481,7 +530,7 @@ Misi: **"Less Click. More Discovery. More Trust. More Conversion."** — meningk
 ### Table `whatsapp_leads` (baru — 20260816)
 - `id` (uuid PK), `property_id` (FK → properties, cascade), `seller_id` (FK → profiles), `buyer_id` (FK → profiles, nullable), `created_at`
 - RLS: insert **wajib login** (20260818); select seller utk properti sendiri (`exists properties.seller_id = auth.uid()`) + admin
-- Sumber data: klik "Hubungi via WhatsApp" di PropertyDetailPage; dibaca MyListingsPage (tab Leads) & AdminDashboardPage
+- Sumber data: klik WhatsApp di **SellerProfilePage** (20260830 — properti detail kini pakai in-app chat); dibaca MyListingsPage (tab Leads) & AdminDashboardPage
 
 ### Table `newsletter_subscribers` (baru — 20260824)
 - `id` (uuid PK, default `gen_random_uuid()`), `email` (text **NOT NULL UNIQUE**), `created_at` (timestamptz, default `now()`)
@@ -669,5 +718,9 @@ Semua file di `supabase/migrations/`:
 42. `20260826_add_nib_to_agents.sql` — kolom `nib` di `agent_applications` & `agent_profiles` + update trigger `handle_agent_approval()` menyalin `nib` saat approval
 43. `20260828_whatsapp_verification.sql` — kolom `whatsapp_verified` (bool) di `profiles`; update trigger `handle_new_user()`; backfill user dgn WhatsApp; perpanjang RPC `get_my_profile()` (+`whatsapp_verified`); RPC baru `set_whatsapp_verified(text)`
 44. `20260829_whatsapp_verification_hardening.sql` — **hardening WhatsApp**: partial UNIQUE index `profiles.whatsapp` (nilai non-empty unik → 1 nomor 1 akun, NULL/empty tetap bebas); perkuat RPC `set_whatsapp_verified` (validasi & normalisasi di **backend**: hanya digit 10-14, awalan `08`/`620` → `62`, tolak nomor duplikat milik akun lain)
+45. `20260830_property_location_rt_rw_kelurahan.sql` — kolom `properties.rt`, `properties.rw`, `properties.kelurahan` (detail lokasi, diisi AI address extraction/form iklan)
+46. `20260830_chat_reply_attachments.sql` — kolom `direct_messages.reply_to_id`/`image_url`/`property_id` + bucket storage `CHAT_IMAGES` + policy upload/update/delete (folder per user)
+47. `20260830_pin_messages.sql` — tabel `pinned_messages` (sematan chat per user per percakapan) + RLS owner-only + index `(user_id, chat_id)`
+48. `20260830_scope_chat_update_read_at.sql` — **chat hardening**: `REVOKE update on direct_messages` + `GRANT update (read_at)` (column-level) supaya receiver hanya bisa mengubah `read_at`; pasang ulang policy `Users can mark received messages as read`
 
 **Catatan**: PostgreSQL 14 tidak support `CREATE POLICY IF NOT EXISTS` — harus pakai `DROP POLICY IF EXISTS` dulu sebelum `CREATE POLICY`. Migration terbaru memakai blok `do $$ ... exception when duplicate_object` untuk idempotency.

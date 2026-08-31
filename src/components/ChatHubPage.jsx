@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import { compressImage } from '../utils/imageCompression'
 
@@ -387,12 +387,19 @@ function ContactListSkeleton() {
   )
 }
 
-function EmptyChat({ contactName, onSuggested }) {
-  const suggestions = [
-    'Halo, saya tertarik dengan properti ini',
-    'Apakah masih tersedia?',
-    'Boleh info lebih lanjut?',
-  ]
+function EmptyChat({ contactName, onSuggested, property }) {
+  const suggestions = property
+    ? [
+        `Apakah properti "${property.title || 'ini'}" masih tersedia?`,
+        'Berapa harga nego paling rendah?',
+        'Apakah bisa survei lokasi? Kapan waktunya?',
+        'Boleh info spesifikasi lebih lengkap?',
+      ]
+    : [
+        'Halo, saya tertarik dengan properti ini',
+        'Apakah masih tersedia?',
+        'Boleh info lebih lanjut?',
+      ]
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
       <div className="w-16 h-16 rounded-full bg-brand-highlight flex items-center justify-center mb-4">
@@ -516,6 +523,8 @@ export default function ChatHubPage() {
   const [otherTypingContacts, setOtherTypingContacts] = useState({})
   const [onlineIds, setOnlineIds] = useState({})
   const [pinnedMessages, setPinnedMessages] = useState({})
+  const [contactFilter, setContactFilter] = useState('all')
+  const [markAllLoading, setMarkAllLoading] = useState(false)
   const fileInputRef = useRef(null)
   const plusMenuRef = useRef(null)
   const pendingImageUrlRef = useRef(null)
@@ -535,9 +544,15 @@ export default function ChatHubPage() {
     contactsRef.current = contacts
   }, [contacts])
 
-  const filteredContacts = contacts.filter((c) =>
-    !searchQuery.trim() || (c.first_name || '').toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredContacts = contacts.filter((c) => {
+    const nameMatches = !searchQuery.trim() || (c.first_name || '').toLowerCase().includes(searchQuery.toLowerCase())
+    if (!nameMatches) return false
+    if (contactFilter === 'all') return true
+    if (contactFilter === 'unread') return (unreadMap[c.id] || 0) > 0
+    if (contactFilter === 'agent') return ['agent', 'developer', 'admin'].includes(c.role)
+    if (contactFilter === 'owner') return c.role === 'owner'
+    return true
+  })
 
   useEffect(() => {
     if (!userId) {
@@ -1075,6 +1090,31 @@ export default function ChatHubPage() {
     setShowMobileList(true)
   }
 
+  async function handleMarkAllRead() {
+    if (!userId || markAllLoading) return
+    setMarkAllLoading(true)
+    try {
+      const { error } = await supabase
+        .from('direct_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('receiver_id', userId)
+        .is('read_at', null)
+      if (!error) {
+        setUnreadMap({})
+        setNewMsgCount(0)
+        setNewMsgFAB(false)
+        if (activeContactId) setUnreadMap(prev => ({ ...prev, [activeContactId]: 0 }))
+      } else {
+        showToast('Gagal menandai semua sudah dibaca.', 'error')
+      }
+    } catch (err) {
+      console.warn('Gagal menandai semua sudah dibaca:', err.message)
+      showToast('Gagal menandai semua sudah dibaca.', 'error')
+    } finally {
+      setMarkAllLoading(false)
+    }
+  }
+
   async function uploadChatImage(file) {
     const compressed = await compressImage(file)
     const safeName = (file.name || 'image').replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -1508,6 +1548,16 @@ export default function ChatHubPage() {
             <h1 className="text-lg font-bold text-brand-text flex-1">Pesan</h1>
             <button
               type="button"
+              onClick={handleMarkAllRead}
+              disabled={markAllLoading || Object.values(unreadMap).every((n) => !n)}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-brand-muted active:scale-90 transition-all"
+              title="Tandai semua sudah dibaca"
+              aria-label="Tandai semua sudah dibaca"
+            >
+              {markAllLoading ? <Loader2 size={18} className="animate-spin" /> : <CheckCheck size={18} />}
+            </button>
+            <button
+              type="button"
               onClick={() => { setAllUsersLoading(true); setShowNewChat(true) }}
               className="w-9 h-9 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent hover:bg-brand-accent/20 active:scale-90 transition-all"
               title="Mulai obrolan baru"
@@ -1532,6 +1582,35 @@ export default function ChatHubPage() {
                     <X size={14} />
                   </button>
                 )}
+              </div>
+              <div className="mt-2 flex gap-1.5 flex-wrap">
+                {[
+                  { key: 'all', label: 'Semua' },
+                  { key: 'unread', label: 'Belum dibaca' },
+                  { key: 'agent', label: 'Agent' },
+                  { key: 'owner', label: 'Owner' },
+                ].map((f) => {
+                  const count = f.key === 'all' ? contacts.length
+                    : f.key === 'unread' ? contacts.filter((c) => (unreadMap[c.id] || 0) > 0).length
+                    : f.key === 'agent' ? contacts.filter((c) => ['agent', 'developer', 'admin'].includes(c.role)).length
+                    : contacts.filter((c) => c.role === 'owner').length
+                  const active = contactFilter === f.key
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setContactFilter(f.key)}
+                      className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                        active
+                          ? 'bg-brand-accent text-white border-brand-accent font-semibold'
+                          : 'bg-brand-bg text-brand-muted border-brand-border hover:text-brand-text hover:border-brand-accent'
+                      }`}
+                    >
+                      {f.label}
+                      {count > 0 && <span className={`ml-1 ${active ? 'text-white/80' : 'text-brand-muted'}`}>{count}</span>}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -1582,41 +1661,87 @@ export default function ChatHubPage() {
                 >
                   <ArrowLeft size={18} />
                 </button>
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                  style={{ backgroundColor: getAvatarColor(activeContact.id) }}
-                >
-                  {getInitials(activeContact.first_name)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-brand-text truncate">
-                    {activeContact.first_name || 'User'}
-                  </p>
-                  {otherTyping ? (
-                    <p className="text-xs text-brand-accent font-medium flex items-center gap-1">
-                      sedang mengetik
-                      <TypingDots color="var(--color-brand-accent)" />
-                    </p>
-                  ) : !connected ? (
-                    <p className="text-xs text-brand-muted flex items-center gap-1">
-                      Menyambung kembali
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-pending animate-pulse" />
-                    </p>
-                  ) : onlineIds[activeContact.id] ? (
-                    <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
-                      Online
-                    </p>
-                  ) : activeContact.role ? (
-                    <p className="text-xs text-brand-muted">
-                      {activeContact.role === 'admin' ? 'Admin Internal'
-                        : activeContact.role === 'agent' ? 'Agent'
-                        : activeContact.role === 'developer' ? 'Developer'
-                        : activeContact.role === 'owner' ? 'Owner'
-                        : 'Pembeli'}
-                    </p>
-                  ) : null}
-                </div>
+                {activeContact.role === 'admin' || activeContact.role === 'agent' || activeContact.role === 'developer' || activeContact.role === 'owner' ? (
+                  <Link
+                    to={activeContact.role === 'owner' ? `/seller/${activeContact.id}` : `/agents/${activeContact.id}`}
+                    className="flex items-center gap-3 min-w-0 rounded-lg hover:bg-brand-bg/60 -m-1 p-1 transition-colors group"
+                    title="Lihat profil"
+                  >
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                      style={{ backgroundColor: getAvatarColor(activeContact.id) }}
+                    >
+                      {getInitials(activeContact.first_name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-brand-text truncate group-hover:text-brand-accent transition-colors">
+                        {activeContact.first_name || 'User'}
+                      </p>
+                      {otherTyping ? (
+                        <p className="text-xs text-brand-accent font-medium flex items-center gap-1">
+                          sedang mengetik
+                          <TypingDots color="var(--color-brand-accent)" />
+                        </p>
+                      ) : !connected ? (
+                        <p className="text-xs text-brand-muted flex items-center gap-1">
+                          Menyambung kembali
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-pending animate-pulse" />
+                        </p>
+                      ) : onlineIds[activeContact.id] ? (
+                        <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+                          Online
+                        </p>
+                      ) : (
+                        <p className="text-xs text-brand-muted">
+                          {activeContact.role === 'admin' ? 'Admin Internal'
+                            : activeContact.role === 'agent' ? 'Agent'
+                            : activeContact.role === 'developer' ? 'Developer'
+                            : 'Owner'}
+                          <span className="ml-1 text-brand-accent/70">· Profil</span>
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                ) : (
+                  <>
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                      style={{ backgroundColor: getAvatarColor(activeContact.id) }}
+                    >
+                      {getInitials(activeContact.first_name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-brand-text truncate">
+                        {activeContact.first_name || 'User'}
+                      </p>
+                      {otherTyping ? (
+                        <p className="text-xs text-brand-accent font-medium flex items-center gap-1">
+                          sedang mengetik
+                          <TypingDots color="var(--color-brand-accent)" />
+                        </p>
+                      ) : !connected ? (
+                        <p className="text-xs text-brand-muted flex items-center gap-1">
+                          Menyambung kembali
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-pending animate-pulse" />
+                        </p>
+                      ) : onlineIds[activeContact.id] ? (
+                        <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+                          Online
+                        </p>
+                      ) : activeContact.role ? (
+                        <p className="text-xs text-brand-muted">
+                          {activeContact.role === 'admin' ? 'Admin Internal'
+                            : activeContact.role === 'agent' ? 'Agent'
+                            : activeContact.role === 'developer' ? 'Developer'
+                            : activeContact.role === 'owner' ? 'Owner'
+                            : 'Pembeli'}
+                        </p>
+                      ) : null}
+                    </div>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={handleExportChat}
@@ -1702,7 +1827,7 @@ export default function ChatHubPage() {
                     </div>
                   </div>
                 ) : messages.length === 0 ? (
-                  <EmptyChat contactName={activeContact.first_name} onSuggested={handleSuggested} />
+                  <EmptyChat contactName={activeContact.first_name} onSuggested={handleSuggested} property={contextProperty} />
                 ) : (
                   <>
                     {pinnedMessages[[userId, activeContactId].sort().join('-')] &&
