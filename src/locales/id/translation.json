@@ -266,7 +266,8 @@
     "signup_check_email_title": "Cek email Anda",
     "signup_check_email_desc": "Kami telah mengirimkan link konfirmasi ke {email}. Silakan cek inbox atau folder spam, lalu masuk.",
     "too_many_attempts": "Terlalu banyak percobaan login. Silakan tunggu beberapa saat lalu coba lagi.",
-    "forgot_password": "Lupa kata sandi?"
+    "forgot_password": "Lupa kata sandi?",
+    "remember_me": "Ingat email saya"
   },
   "forgot_password": {
     "page_title": "Lupa Kata Sandi",

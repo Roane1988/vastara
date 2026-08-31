@@ -12,7 +12,8 @@ const ProfileDrawer = lazy(() => import('./components/ProfileDrawer'))
 const HuniBot = lazy(() => import('./components/HuniBot'))
 
 const ExplorePage = lazy(() => import('./components/ExplorePage'))
-const MinimalistLogin = lazy(() => import('./components/MinimalistLogin'))
+const LoginPage = lazy(() => import('./components/LoginPage'))
+const RegisterPage = lazy(() => import('./components/RegisterPage'))
 const RoleSelectionPage = lazy(() => import('./components/RoleSelectionPage'))
 const AgentApplicationPage = lazy(() => import('./components/AgentApplicationPage'))
 const AgentsPage = lazy(() => import('./components/AgentsPage'))
@@ -109,7 +110,8 @@ function AppContent() {
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
               <Route path="/explore" element={<ExplorePage userName={userName} onNavigate={onNavigate} />} />
-              <Route path="/login" element={<MinimalistLogin onLoginSuccess={onLogin} />} />
+              <Route path="/login" element={<LoginPage onLoginSuccess={onLogin} />} />
+              <Route path="/register" element={<RegisterPage onLoginSuccess={onLogin} />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/update-password" element={<UpdatePasswordPage />} />
               <Route path="/sell-role" element={<ProtectedRoute isAuth={isAuth} location={location}><RoleSelectionPage /></ProtectedRoute>} />

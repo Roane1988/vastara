@@ -266,7 +266,8 @@
     "signup_check_email_title": "Check your email",
     "signup_check_email_desc": "We've sent a confirmation link to {email}. Please check your inbox or spam folder, then sign in.",
     "too_many_attempts": "Too many login attempts. Please wait a moment and try again.",
-    "forgot_password": "Forgot password?"
+    "forgot_password": "Forgot password?",
+    "remember_me": "Remember my email"
   },
   "forgot_password": {
     "page_title": "Forgot Password",
