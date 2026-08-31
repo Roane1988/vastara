@@ -31,6 +31,7 @@ const PackagesPage = lazy(() => import('./components/PackagesPage'))
 // const KprCalculatorPage = lazy(() => import('./components/KprCalculatorPage'))
 const ComparePage = lazy(() => import('./components/ComparePage'))
 const SavedSearchesPage = lazy(() => import('./components/SavedSearchesPage'))
+const DashboardPage = lazy(() => import('./components/DashboardPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage'))
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'))
@@ -119,6 +120,7 @@ function AppContent() {
               <Route path="/agent-profile" element={<ProtectedRoute isAuth={isAuth} location={location}><AgentProfilePage /></ProtectedRoute>} />
               <Route path="/sell" element={<ProtectedRoute isAuth={isAuth} location={location}><SellPropertyPage /></ProtectedRoute>} />
               <Route path="/my-listings" element={<ProtectedRoute isAuth={isAuth} location={location}><MyListingsPage /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute isAuth={isAuth} location={location}><DashboardPage /></ProtectedRoute>} />
               <Route path="/chat" element={<ProtectedRoute isAuth={isAuth} location={location}><ChatHubPage onNavigate={onNavigate} /></ProtectedRoute>} />
               <Route path="/forum" element={<ForumPage />} />
               <Route path="/forum/:id" element={<ForumDetailPage />} />

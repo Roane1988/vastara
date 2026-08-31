@@ -624,6 +624,18 @@ export default function PropertyDetailPage() {
 
   useEffect(() => {
     const propId = property?.id
+    if (!propId || propId.startsWith('dummy-')) return
+    ;(async () => {
+      try {
+        await supabase.from('property_views').insert({ property_id: propId, viewer_id: user?.id || null })
+      } catch {
+        /* view tracking is non-critical */
+      }
+    })()
+  }, [property?.id, user?.id])
+
+  useEffect(() => {
+    const propId = property?.id
     const propCategory = property?.category
     const propCity = property?.city
     if (!propId || propId.startsWith('dummy-')) return
