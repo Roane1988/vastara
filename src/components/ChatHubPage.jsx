@@ -948,7 +948,11 @@ export default function ChatHubPage() {
   const [downloading, setDownloading] = useState(false)
   const [caption, setCaption] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
-  const [fileUploading, setFileUploading] = useState(false)
+  const [stagedFiles, setStagedFiles] = useState([])
+  const [stagedCaption, setStagedCaption] = useState('')
+  const [fileStagingOpen, setFileStagingOpen] = useState(false)
+  const [stagingUploading, setStagingUploading] = useState(false)
+  const pendingStagingUrlsRef = useRef([])
   const [shareProperty, setShareProperty] = useState(null)
   const [showPropertyPicker, setShowPropertyPicker] = useState(false)
   const [propertySearch, setPropertySearch] = useState('')
@@ -1240,9 +1244,11 @@ export default function ChatHubPage() {
     }
     setPendingImage(null)
     setPendingImageUrl(null)
+    resetStaging()
     setShareProperty(null)
     setReactionPickerMsg(null)
     setReactionsSummary(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {
     if (!openUserId || didAutoSelectRef.current) return
@@ -1910,24 +1916,11 @@ export default function ChatHubPage() {
   }
 
   async function handlePickImage(e) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    if (!/^image\/(jpeg|png|webp|avif)$/i.test(file.type)) {
-      showToast('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.', 'error')
-      return
+    try {
+      addFilesToStaging(e.target.files)
+    } finally {
+      e.target.value = ''
     }
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Ukuran file maksimal 5MB per gambar.', 'error')
-      return
-    }
-    if (pendingImageUrlRef.current) URL.revokeObjectURL(pendingImageUrlRef.current)
-    const url = URL.createObjectURL(file)
-    pendingImageUrlRef.current = url
-    setPendingImage(file)
-    setPendingImageUrl(url)
-    setCaption('')
-    setImagePreviewOpen(true)
   }
 
   function closeImagePreview() {
@@ -2140,24 +2133,11 @@ export default function ChatHubPage() {
     e.preventDefault()
     setDragCounter(0)
     setDragging(false)
-    if (!activeContactId || activeContactId === HUNIBOT_ID) return
-    const file = e.dataTransfer?.files?.[0]
-    if (!file) return
-    if (!/^image\/(jpeg|png|webp|avif)$/i.test(file.type)) {
-      showToast('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.', 'error')
+    if (!activeContactId || activeContactId === HUNIBOT_ID) {
+      showToast('Pilih kontak untuk melampirkan file.', 'info')
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Ukuran file maksimal 5MB per gambar.', 'error')
-      return
-    }
-    if (pendingImageUrlRef.current) URL.revokeObjectURL(pendingImageUrlRef.current)
-    const url = URL.createObjectURL(file)
-    pendingImageUrlRef.current = url
-    setPendingImage(file)
-    setPendingImageUrl(url)
-    setCaption('')
-    setImagePreviewOpen(true)
+    addFilesToStaging(e.dataTransfer?.files)
   }
 
   function toggleChatSetting(key) {
@@ -2273,6 +2253,11 @@ export default function ChatHubPage() {
   async function handleSend(e) {
     e?.preventDefault()
     if (activeContactId === HUNIBOT_ID) return
+    if (stagedFiles.length > 0) {
+      if (stagingUploading) return
+      setFileStagingOpen(true)
+      return
+    }
     const text = inputValue.trim()
     const hasContent = text || pendingImage || shareProperty
     if (!hasContent || !userId || !activeContactId || sending || imageUploading) return
@@ -2427,6 +2412,138 @@ export default function ChatHubPage() {
     documentInputRef.current?.click()
   }
 
+  function releaseStagedUrls() {
+    if (pendingStagingUrlsRef.current.length) {
+      pendingStagingUrlsRef.current.forEach((u) => { try { URL.revokeObjectURL(u) } catch { /* noop */ } })
+      pendingStagingUrlsRef.current = []
+    }
+  }
+
+  function resetStaging() {
+    releaseStagedUrls()
+    setStagedFiles([])
+    setStagedCaption('')
+    setFileStagingOpen(false)
+    setStagingUploading(false)
+  }
+
+  function addFilesToStaging(fileList) {
+    const files = Array.from(fileList || [])
+    if (files.length === 0) return
+    if (activeContactId === HUNIBOT_ID) {
+      showToast('HuniBot tidak menerima lampiran.', 'error')
+      return
+    }
+    const accepted = []
+    files.forEach((file) => {
+      if (/^image\/(jpeg|png|webp|avif)$/i.test(file.type)) {
+        if (file.size > 5 * 1024 * 1024) { showToast(`Gambar "${file.name}" melebihi 5MB.`, 'error'); return }
+        accepted.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, file, url: URL.createObjectURL(file), type: 'image' })
+      } else if (['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation','text/plain','text/csv'].includes(file.type)) {
+        if (file.size > 20 * 1024 * 1024) { showToast(`Dokumen "${file.name}" melebihi 20MB.`, 'error'); return }
+        accepted.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, file, url: URL.createObjectURL(file), type: 'document' })
+      } else {
+        showToast(`Format "${file.name}" tidak didukung (gambar, PDF, DOC, XLS, PPT, TXT, CSV).`, 'error')
+      }
+    })
+    if (accepted.length === 0) return
+    pendingStagingUrlsRef.current.push(...accepted.map((f) => f.url))
+    setPlusMenuOpen(false)
+    setReplyTo(null)
+    setStagedFiles((prev) => [...prev, ...accepted])
+    setStagedCaption('')
+    setFileStagingOpen(true)
+  }
+
+  function removeStagedFile(id) {
+    setStagedFiles((prev) => {
+      const target = prev.find((f) => f.id === id)
+      if (target) {
+        const idx = pendingStagingUrlsRef.current.indexOf(target.url)
+        if (idx !== -1) pendingStagingUrlsRef.current.splice(idx, 1)
+        try { URL.revokeObjectURL(target.url) } catch { /* noop */ }
+      }
+      const next = prev.filter((f) => f.id !== id)
+      if (next.length === 0) {
+        setFileStagingOpen(false)
+      }
+      return next
+    })
+  }
+
+  async function sendStagedFiles() {
+    if (activeContactId === HUNIBOT_ID) return
+    if (!userId || !activeContactId || stagedFiles.length === 0 || stagingUploading) return
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    typingChannelRef.current?.untrack()
+    setStagingUploading(true)
+    const files = [...stagedFiles]
+    const captionText = stagedCaption.trim()
+
+    try {
+      for (const sf of files) {
+        let uploaded
+        if (sf.type === 'image') {
+          const publicUrl = await uploadChatImage(sf.file)
+          uploaded = { url: publicUrl, name: sf.file.name, size: sf.file.size, type: sf.file.type || 'image/*' }
+        } else {
+          uploaded = await uploadChatFile(sf.file)
+        }
+        const optimisticMsg = {
+          id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          sender_id: userId,
+          receiver_id: activeContactId,
+          content: captionText,
+          created_at: new Date().toISOString(),
+          read_at: null,
+          reply_to_id: replyTo?.id || null,
+          image_url: sf.type === 'image' ? uploaded.url : null,
+          file_url: sf.type === 'image' ? null : uploaded.url,
+          file_name: sf.type === 'image' ? null : uploaded.name,
+          file_size: sf.type === 'image' ? null : uploaded.size,
+          file_type: sf.type === 'image' ? null : uploaded.type,
+          property_id: null,
+          stagedCaption: captionText,
+        }
+        setMessages((prev) => [...prev, optimisticMsg])
+
+        const { data, error } = await supabase.from('direct_messages').insert({
+          sender_id: userId,
+          receiver_id: activeContactId,
+          content: captionText,
+          reply_to_id: optimisticMsg.reply_to_id,
+          image_url: optimisticMsg.image_url,
+          file_url: optimisticMsg.file_url,
+          file_name: optimisticMsg.file_name,
+          file_size: optimisticMsg.file_size,
+          file_type: optimisticMsg.file_type,
+        }).select()
+        if (!sendMountedRef.current) return
+        if (error) {
+          showToast(error.message, 'error')
+          setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id))
+        } else if (data?.[0]) {
+          setMessages((prev) => prev.map((m) => m.id === optimisticMsg.id ? data[0] : m))
+        }
+      }
+    } catch (err) {
+      if (sendMountedRef.current) showToast('Gagal mengirim lampiran: ' + (err.message || 'coba lagi'), 'error')
+    } finally {
+      if (sendMountedRef.current) {
+        setStagingUploading(false)
+        setStagedFiles([])
+        releaseStagedUrls()
+        setStagedCaption('')
+        setFileStagingOpen(false)
+        setDrafts((prev) => { if (!prev[activeContactId]) return prev; const next = { ...prev }; delete next[activeContactId]; return next })
+        setReplyTo(null)
+        inputRef.current?.focus()
+        setUnreadDividerAt(null)
+        unreadDividerContactRef.current = activeContactId
+      }
+    }
+  }
+
   async function uploadChatFile(file) {
     const safeName = (file.name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_')
     const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`
@@ -2439,99 +2556,10 @@ export default function ChatHubPage() {
   }
 
   async function handlePickDocument(e) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    const allowed = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'text/csv',
-    ]
-    if (!allowed.includes(file.type)) {
-      showToast('Format dokumen tidak didukung (PDF, DOC, XLS, PPT, TXT, CSV).', 'error')
-      return
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      showToast('Ukuran file maksimal 20MB per dokumen.', 'error')
-      return
-    }
-    await sendFileMessage(file)
-  }
-
-  async function sendFileMessage(file) {
-    if (activeContactId === HUNIBOT_ID) return
-    if (!userId || !activeContactId || sending || imageUploading || fileUploading) return
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-    typingChannelRef.current?.untrack()
-
-    setFileUploading(true)
-    let uploaded
     try {
-      uploaded = await uploadChatFile(file)
-    } catch (err) {
-      if (sendMountedRef.current) {
-        showToast('Gagal mengunggah file: ' + (err.message || 'coba lagi'), 'error')
-      }
-      setFileUploading(false)
-      return
-    }
-
-    const optimisticMsg = {
-      id: `temp-${Date.now()}`,
-      sender_id: userId,
-      receiver_id: activeContactId,
-      content: '',
-      created_at: new Date().toISOString(),
-      read_at: null,
-      reply_to_id: replyTo?.id || null,
-      image_url: null,
-      property_id: null,
-      file_url: uploaded.url,
-      file_name: uploaded.name,
-      file_size: uploaded.size,
-      file_type: uploaded.type,
-    }
-    setMessages(prev => [...prev, optimisticMsg])
-    setReplyTo(null)
-    inputRef.current?.focus()
-    setUnreadDividerAt(null)
-    unreadDividerContactRef.current = activeContactId
-
-    try {
-      const { data, error } = await supabase.from('direct_messages').insert({
-        sender_id: userId,
-        receiver_id: activeContactId,
-        content: '',
-        reply_to_id: optimisticMsg.reply_to_id,
-        file_url: optimisticMsg.file_url,
-        file_name: optimisticMsg.file_name,
-        file_size: optimisticMsg.file_size,
-        file_type: optimisticMsg.file_type,
-      }).select()
-
-      if (!sendMountedRef.current) return
-
-      if (error) {
-        showToast(error.message, 'error')
-        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
-      } else if (data?.[0]) {
-        setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
-      }
-    } catch (err) {
-      if (sendMountedRef.current) {
-        showToast(err.message || 'Gagal mengirim file', 'error')
-        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
-      }
+      addFilesToStaging(e.target.files)
     } finally {
-      if (sendMountedRef.current) {
-        setFileUploading(false)
-      }
+      e.target.value = ''
     }
   }
 
@@ -3261,7 +3289,31 @@ export default function ChatHubPage() {
                         </button>
                       </span>
                     </div>
-                  )}                  <textarea
+                  )}                  {stagedFiles.length > 0 && (
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-2 rounded-lg border border-brand-border bg-brand-bg px-2 py-1.5">
+                        <Paperclip size={14} className="text-brand-accent shrink-0" />
+                        <span className="text-xs text-brand-text">{stagedFiles.length} lampiran</span>
+                        <button
+                          type="button"
+                          onClick={() => setFileStagingOpen(true)}
+                          aria-label="Tinjau lampiran"
+                          className="text-xs font-semibold text-brand-accent hover:underline"
+                        >
+                          Tinjau
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => resetStaging()}
+                          aria-label="Batal semua lampiran"
+                          className="text-brand-muted hover:text-brand-danger"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    </div>
+                  )}
+                  <textarea
                     ref={inputRef}
                     rows={1}
                     value={inputValue}
@@ -3279,18 +3331,18 @@ export default function ChatHubPage() {
                 </div>
                 <button
                   type="submit"
-                  disabled={sending || imageUploading || fileUploading || (!inputValue.trim() && !pendingImage && !shareProperty)}
+                  disabled={sending || imageUploading || stagingUploading || (!inputValue.trim() && !pendingImage && stagedFiles.length === 0 && !shareProperty)}
                   className="shrink-0 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Kirim pesan"
                 >
-                  {sending || imageUploading || fileUploading ? (
+                  {sending || imageUploading || stagingUploading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <Send size={16} />
                   )}
                 </button>
-                <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePickImage} />
-                <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" hidden onChange={handlePickDocument} />
+                <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={handlePickImage} />
+                <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" multiple hidden onChange={handlePickDocument} />
               </form>
               </>
               )}
@@ -3373,6 +3425,117 @@ export default function ChatHubPage() {
           )}
         </div>
       </div>
+    )}
+
+    {fileStagingOpen && (
+      <>
+        <button
+          type="button"
+          aria-label="Tutup"
+          onClick={() => { if (!stagingUploading) setFileStagingOpen(false) }}
+          className="fixed inset-0 bg-black/50 z-[70] cursor-default p-0 border-0"
+        />
+        <div className="fixed bottom-0 left-0 right-0 z-[75] bg-brand-surface rounded-t-3xl animate-slide-up overflow-hidden flex flex-col max-h-[85vh]">
+          <div className="flex items-center justify-between px-4 pt-4 pb-2">
+            <h2 className="text-base font-bold text-brand-text">
+              {stagedFiles.length > 0 ? `Lampiran (${stagedFiles.length})` : 'Lampiran'}
+            </h2>
+            <button
+              type="button"
+              aria-label="Tutup"
+              disabled={stagingUploading}
+              onClick={() => setFileStagingOpen(false)}
+              className="text-brand-muted hover:text-brand-text disabled:opacity-50"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
+            {stagedFiles.length === 0 ? (
+              <p className="text-sm text-brand-muted text-center py-10">Tidak ada lampiran. Tutup untuk kembali.</p>
+            ) : (
+              stagedFiles.map((sf) => {
+                const { Icon, color } = getFileIcon(sf.file.type || '', sf.file.name)
+                return (
+                  <div key={sf.id} className="flex items-center gap-3 rounded-xl border border-brand-border bg-brand-bg p-2.5">
+                    <div className="relative shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-brand-border bg-brand-surface">
+                      {sf.type === 'image' ? (
+                        <img src={sf.url} alt={sf.file.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center" style={{ color: color || 'var(--color-brand-accent)' }}>
+                          <Icon size={24} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-brand-text truncate">{sf.file.name}</p>
+                      <p className="text-xs text-brand-muted">
+                        {formatFileSize(sf.file.size)} · {sf.type === 'image' ? 'Gambar' : 'Dokumen'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={stagingUploading}
+                      onClick={() => removeStagedFile(sf.id)}
+                      aria-label={`Hapus ${sf.file.name}`}
+                      className="shrink-0 w-8 h-8 rounded-full text-brand-muted hover:text-brand-danger hover:bg-brand-danger/10 flex items-center justify-center disabled:opacity-50 transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          <div className="shrink-0 px-4 py-3 border-t border-brand-border">
+            {replyTo && (
+              <div className="mb-2">
+                <ReplyPreview
+                  compact
+                  message={replyTo}
+                  onCancel={() => setReplyTo(null)}
+                  otherName={activeContact?.first_name}
+                  userId={userId}
+                />
+              </div>
+            )}
+            <div className="flex items-end gap-2">
+              <textarea
+                rows={1}
+                value={stagedCaption}
+                onChange={(e) => setStagedCaption(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    if (!stagingUploading) sendStagedFiles()
+                  }
+                }}
+                placeholder="Tambahkan keterangan..."
+                className="flex-1 border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-accent/30 placeholder:text-brand-muted resize-none overflow-y-auto max-h-28"
+                disabled={stagingUploading}
+              />
+              <button
+                type="button"
+                onClick={sendStagedFiles}
+                disabled={stagingUploading || stagedFiles.length === 0}
+                aria-label="Kirim lampiran"
+                className="shrink-0 w-11 h-11 rounded-full bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {stagingUploading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send size={18} />
+                )}
+              </button>
+            </div>
+            {stagingUploading && (
+              <p className="text-[10px] text-brand-muted mt-2">Mengunggah & mengirim lampiran...</p>
+            )}
+          </div>
+        </div>
+      </>
     )}
 
     {showNewChat && (
