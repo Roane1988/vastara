@@ -503,13 +503,13 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
                 onClick={(e) => onOpenReactionPicker?.(message, e)}
                 aria-label="Beri reaksi"
                 title="Beri reaksi"
-                className="absolute top-2 right-9 hidden group-hover/message:flex group-focus-within/message:flex w-6 h-6 rounded-full bg-white border border-brand-border shadow text-sm items-center justify-center hover:scale-110 transition-transform"
+                className="absolute top-2 right-9 hidden lg:hidden group-hover/message:flex group-focus-within/message:flex lg:group-hover/message:hidden lg:group-focus-within/message:hidden w-6 h-6 rounded-full bg-white border border-brand-border shadow text-sm items-center justify-center hover:scale-110 transition-transform"
               >
                 😊
               </button>
             )}
           </div>
-          <div className={`mt-1 hidden lg:flex items-center gap-1 opacity-0 group-hover/message:opacity-100 group-focus-within/message:opacity-100 transition-opacity ${isOwn ? 'justify-end' : 'justify-start'}`}>
+          <div className={`mt-1 hidden lg:flex items-center gap-1 opacity-0 pointer-events-none group-hover/message:pointer-events-auto group-focus-within/message:pointer-events-auto group-hover/message:opacity-100 group-focus-within/message:opacity-100 transition-opacity ${isOwn ? 'justify-end' : 'justify-start'}`}>
             <button
               type="button"
               onClick={() => onReply?.(message)}
@@ -518,6 +518,17 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
             >
               <CornerUpLeft size={11} /> Balas
             </button>
+            {onOpenReactionPicker && !String(message.id).startsWith('temp-') && (
+              <button
+                type="button"
+                onClick={(e) => onOpenReactionPicker?.(message, e)}
+                aria-label="Beri reaksi"
+                title="Beri reaksi"
+                className="inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent transition-colors px-1"
+              >
+                <Smile size={11} /> Reaksi
+              </button>
+            )}
             <button
               type="button"
               onClick={() => onCopy?.(message)}
