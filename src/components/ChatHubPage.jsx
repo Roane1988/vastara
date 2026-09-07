@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File, Smile } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
@@ -478,7 +478,7 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
                 <MessageText text={message.content} query={highlight} />
               </p>
             )}
-            {renderReactionsRow(reactions, myId, onReact, onShowSummary)}
+            {renderReactionsRow(reactions, myId, onReact, onShowSummary, message.id)}
             <div className={`text-[10px] mt-1 flex items-center justify-end gap-1.5 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
               <span>{timeAgo(message.created_at, lang)}</span>
               {isOwn && (
@@ -742,10 +742,12 @@ function aggregateReactions(reactions, myId) {
     map[r.emoji].count += 1
     if (r.user_id === myId) map[r.emoji].mine = true
   })
-  return Object.entries(map)
+  const ordered = REACTION_EMOJIS.filter((e) => map[e]).map((e) => [e, map[e]])
+  const extras = Object.keys(map).filter((e) => !REACTION_EMOJIS.includes(e)).map((e) => [e, map[e]])
+  return [...ordered, ...extras]
 }
 
-function renderReactionsRow(reactions, myId, onReact, onShowSummary) {
+function renderReactionsRow(reactions, myId, onReact, onShowSummary, messageId) {
   const agg = aggregateReactions(reactions, myId)
   if (agg.length === 0) return null
   return (
@@ -754,7 +756,7 @@ function renderReactionsRow(reactions, myId, onReact, onShowSummary) {
         <button
           key={emoji}
           type="button"
-          onClick={(e) => { e.stopPropagation(); onShowSummary ? onShowSummary(emoji, reactions) : onReact?.(emoji) }}
+          onClick={(e) => { e.stopPropagation(); onShowSummary ? onShowSummary(emoji, reactions, messageId) : onReact?.(emoji) }}
           className={`inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5 border transition-colors ${
             info.mine ? 'bg-brand-accent/15 border-brand-accent/40 text-brand-accent' : 'bg-white/70 border-brand-border text-brand-text'
           }`}
@@ -771,13 +773,24 @@ function ReactionPicker({ onPick, onClose, style }) {
   const pickerRef = useRef(null)
   useEffect(() => {
     if (!style) return
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
+    const onKey = (e) => {
+      if (e.key === 'Escape') { onClose?.(); return }
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      e.preventDefault()
+      const btns = Array.from(pickerRef.current?.querySelectorAll('button') || [])
+      if (btns.length === 0) return
+      const idx = btns.indexOf(document.activeElement)
+      if (idx === -1) { btns[0]?.focus(); return }
+      const next = (e.key === 'ArrowRight' ? (idx + 1) % btns.length : (idx - 1 + btns.length) % btns.length)
+      btns[next].focus()
+    }
     const onDown = (e) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target)) onClose?.()
     }
     document.addEventListener('keydown', onKey)
     document.addEventListener('mousedown', onDown)
     document.addEventListener('touchstart', onDown)
+    pickerRef.current?.querySelector('button')?.focus()
     return () => {
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('mousedown', onDown)
@@ -808,7 +821,7 @@ function ReactionPicker({ onPick, onClose, style }) {
   )
 }
 
-function ReactionSummary({ emoji, reactions, myId, namesMap, onClose }) {
+function ReactionSummary({ emoji, reactions, myId, namesMap, onClose, onToggle }) {
   const users = (reactions || []).filter((r) => r.emoji === emoji)
   const mineFirst = [...users].sort((a, b) => (a.user_id === myId ? -1 : 0) - (b.user_id === myId ? -1 : 0))
   useEffect(() => {
@@ -846,6 +859,16 @@ function ReactionSummary({ emoji, reactions, myId, namesMap, onClose }) {
                   {isMine ? 'Kamu' : (namesMap[r.user_id] || 'Pengguna')}
                 </span>
                 <span className="text-lg">{emoji}</span>
+                {isMine && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onToggle?.() }}
+                    aria-label="Hapus reaksiku"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-muted hover:text-brand-danger px-2 py-1 rounded-lg hover:bg-brand-danger/10 transition-colors"
+                  >
+                    <X size={13} /> Hapus
+                  </button>
+                )}
               </div>
             )
           })}
@@ -965,6 +988,11 @@ export default function ChatHubPage() {
 
   const reactionsMapRef = useRef(reactionsMap)
   reactionsMapRef.current = reactionsMap
+
+  const messagesIdMemo = useMemo(() => new Set(messages.map((m) => m.id)), [messages])
+  const messagesIdSetRef = useRef(messagesIdMemo)
+  messagesIdSetRef.current = messagesIdMemo
+
   const pinnedMessagesRef = useRef(pinnedMessages)
   pinnedMessagesRef.current = pinnedMessages
   const starredMessagesRef = useRef(starredMessages)
@@ -1306,15 +1334,17 @@ export default function ChatHubPage() {
 
   async function fetchReactionsFor(messageIds, room) {
     if (!userId || !Array.isArray(messageIds) || messageIds.length === 0) return
+    const ids = [...new Set(messageIds)]
     try {
       const { data, error } = await supabase
         .from('message_reactions')
         .select('id, message_id, user_id, emoji')
-        .in('message_id', messageIds)
-      if (error || !data || data.length === 0) return
+        .in('message_id', ids)
+      if (error || !data) return
       const map = {}
+      ids.forEach((id) => { map[id] = [] })
       data.forEach((r) => {
-        if (!map[r.message_id]) map[r.message_id] = []
+        if (!map[r.message_id]) return
         if (!map[r.message_id].some((x) => x.user_id === r.user_id && x.emoji === r.emoji)) {
           map[r.message_id].push({ id: r.id, user_id: r.user_id, emoji: r.emoji })
         }
@@ -1647,7 +1677,7 @@ export default function ChatHubPage() {
           const room = [userId, activeId].sort().join('-')
           setReactionsMap((prev) => {
             const roomMap = prev[room]
-            if (!roomMap || !roomMap[r.message_id]) return prev
+            if (!roomMap || !messagesIdSetRef.current.has(r.message_id)) return prev
             const list = roomMap[r.message_id] || []
             if (list.some((x) => x.user_id === r.user_id && x.emoji === r.emoji)) return prev
             return { ...prev, [room]: { ...roomMap, [r.message_id]: [...list, { id: r.id, user_id: r.user_id, emoji: r.emoji }] } }
@@ -1666,7 +1696,7 @@ export default function ChatHubPage() {
           const room = [userId, activeId].sort().join('-')
           setReactionsMap((prev) => {
             const roomMap = prev[room]
-            if (!roomMap || !roomMap[old.message_id]) return prev
+            if (!roomMap || !messagesIdSetRef.current.has(old.message_id)) return prev
             return {
               ...prev,
               [room]: {
@@ -1952,35 +1982,54 @@ export default function ChatHubPage() {
 
   const handleToggleReaction = useCallback((messageId, emoji) => {
     if (!userId || !messageId || !emoji) return
+    if (String(messageId).startsWith('temp-')) return
     const targetId = activeContactIdRef.current
-    const room = targetId ? [userId, targetId].sort().join('-') : null
-    const existing = room && (reactionsMapRef.current[room]?.[messageId] || []).find((r) => r.user_id === userId && r.emoji === emoji)
+    if (!targetId) return
+    const room = [userId, targetId].sort().join('-')
+    const existing = (reactionsMapRef.current[room]?.[messageId] || []).find((r) => r.user_id === userId && r.emoji === emoji)
+    const updateMap = (shouldAdd) => (prev) => {
+      const roomMap = { ...(prev[room] || {}) }
+      const list = (roomMap[messageId] || []).filter((r) => !(r.user_id === userId && r.emoji === emoji))
+      if (shouldAdd) list.push({ id: null, user_id: userId, emoji })
+      roomMap[messageId] = list
+      return { ...prev, [room]: roomMap }
+    }
     if (existing) {
-      setReactionsMap((prev) => {
-        if (!room) return prev
-        const roomMap = { ...(prev[room] || {}) }
-        roomMap[messageId] = (roomMap[messageId] || []).filter((r) => !(r.user_id === userId && r.emoji === emoji))
-        return { ...prev, [room]: roomMap }
-      })
-      supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', userId).eq('emoji', emoji).then(() => {}).catch(() => {})
+      setReactionsMap(updateMap(false))
+      supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', userId).eq('emoji', emoji)
+        .then(({ error }) => {
+          if (!error) return
+          if (activeContactIdRef.current !== targetId) return
+          setReactionsMap(updateMap(true))
+          showToast('Reaksi gagal dihapus. Coba lagi.', 'error')
+        })
+        .catch(() => {
+          if (activeContactIdRef.current !== targetId) return
+          setReactionsMap(updateMap(true))
+          showToast('Reaksi gagal dihapus. Coba lagi.', 'error')
+        })
     } else {
-      setReactionsMap((prev) => {
-        if (!room) return prev
-        const roomMap = { ...(prev[room] || {}) }
-        const list = [...(roomMap[messageId] || [])]
-        if (!list.some((r) => r.user_id === userId && r.emoji === emoji)) list.push({ id: null, user_id: userId, emoji })
-        roomMap[messageId] = list
-        return { ...prev, [room]: roomMap }
-      })
-      supabase.from('message_reactions').insert({ message_id: messageId, user_id: userId, emoji }).then(() => {}).catch(() => {})
+      setReactionsMap(updateMap(true))
+      supabase.from('message_reactions').insert({ message_id: messageId, user_id: userId, emoji })
+        .then(({ error }) => {
+          if (!error) return
+          if (activeContactIdRef.current !== targetId) return
+          setReactionsMap(updateMap(false))
+          showToast('Reaksi gagal disimpan. Coba lagi.', 'error')
+        })
+        .catch(() => {
+          if (activeContactIdRef.current !== targetId) return
+          setReactionsMap(updateMap(false))
+          showToast('Reaksi gagal disimpan. Coba lagi.', 'error')
+        })
     }
     setReactionPickerMsg(null)
-  }, [userId])
+  }, [userId, showToast])
 
-  const handleShowReactionSummary = useCallback((emoji, reactions) => {
+  const handleShowReactionSummary = useCallback((emoji, reactions, messageId) => {
     const userIds = (reactions || []).filter((r) => r.emoji === emoji).map((r) => r.user_id)
     const ids = userIds.filter((id) => id && id !== userId && !messageNamesMapRef.current[id])
-    setReactionsSummary({ emoji, reactions })
+    setReactionsSummary({ emoji, reactions, messageId })
     if (ids.length === 0) return
     supabase.from('profiles').select('id, first_name').in('id', ids).then(({ data, error }) => {
       if (error || !data) return
@@ -2015,6 +2064,10 @@ export default function ChatHubPage() {
 
   const openReactionPicker = useCallback((msg, e) => {
     if (!userId) return
+    if (typeof msg?.id === 'string' && msg.id.startsWith('temp-')) {
+      showToast('Tunggu pesan terkirim sebelum memberi reaksi.', 'info')
+      return
+    }
     const contactId = activeContactIdRef.current
     if (!contactId || contactId === HUNIBOT_ID) return
     const PICKER_W = 216
@@ -2047,7 +2100,7 @@ export default function ChatHubPage() {
       })
     }
     setReactionPickerMsg(msg)
-  }, [userId])
+  }, [userId, showToast])
 
   function handleDragOver(e) {
     e.preventDefault()
@@ -3061,7 +3114,7 @@ export default function ChatHubPage() {
                               isStarred={!!starredMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
                               onToggleStar={handleToggleStar}
                               onShowSummary={handleShowReactionSummary}
-                              onOpenReactionPicker={openReactionPicker}
+                              onOpenReactionPicker={activeContactId === HUNIBOT_ID ? null : openReactionPicker}
                               onFileOpen={handleOpenFile}
                             />
                           )}
@@ -3497,6 +3550,15 @@ export default function ChatHubPage() {
             >
               <CornerUpLeft size={17} className="text-brand-accent shrink-0" /> Balas
             </button>
+            {activeContactId !== HUNIBOT_ID && !String(messageMenu.id).startsWith('temp-') && (
+              <button
+                type="button"
+                onClick={() => { openReactionPicker(messageMenu); setMessageMenu(null) }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
+              >
+                <Smile size={17} className="text-brand-accent shrink-0" /> Reaksi
+              </button>
+            )}
             <button
               type="button"
               onClick={() => { handleCopyMessage(messageMenu); setMessageMenu(null) }}
@@ -3553,15 +3615,28 @@ export default function ChatHubPage() {
         style={reactionPickerPos}
       />
     )}
-    {reactionsSummary && (
-      <ReactionSummary
-        emoji={reactionsSummary.emoji}
-        reactions={reactionsSummary.reactions}
-        myId={userId}
-        namesMap={messageNamesMap}
-        onClose={() => setReactionsSummary(null)}
-      />
-    )}
+    {reactionsSummary && (() => {
+      const summaryRoom = activeContactId ? [userId, activeContactId].sort().join('-') : null
+      const liveReactions = summaryRoom && reactionsSummary.messageId && reactionsMap[summaryRoom]
+        ? (reactionsMap[summaryRoom][reactionsSummary.messageId] || null)
+        : null
+      return (
+        <ReactionSummary
+          emoji={reactionsSummary.emoji}
+          reactions={liveReactions || reactionsSummary.reactions}
+          myId={userId}
+          namesMap={messageNamesMap}
+          onClose={() => setReactionsSummary(null)}
+          onToggle={() => {
+            if (summaryRoom && reactionsSummary.messageId) {
+              handleToggleReaction(reactionsSummary.messageId, reactionsSummary.emoji)
+            } else {
+              setReactionsSummary(null)
+            }
+          }}
+        />
+      )
+    })()}
     {dragging && activeContactId && activeContactId !== HUNIBOT_ID && (
       <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-brand-primary/10 backdrop-blur-[1px] animate-fadeIn">
         <div className="flex flex-col items-center gap-3 px-8 py-6 rounded-2xl border-2 border-dashed border-brand-accent bg-brand-surface/90 shadow-xl">
