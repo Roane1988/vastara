@@ -379,7 +379,32 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onImageClick, isSearchActive, onMoreClick, isFlashed, reactions, myId, onReact, onJumpToMessage, onShowSummary, isStarred, onOpenReactionPicker, onFileOpen }) {
+const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onImageClick, isSearchActive, onMoreClick, isFlashed, reactions, myId, onReact, onJumpToMessage, onShowSummary, isStarred, onOpenReactionPicker, onFileOpen }) {
+  const SWIPE_THRESHOLD = 56
+  const [swipeX, setSwipeX] = useState(0)
+  const [swipeActive, setSwipeActive] = useState(false)
+  const swipeXRef = useRef(0)
+  const swipeStartRef = useRef({ x: 0, y: 0 })
+
+  const handleTouchStart = (e) => {
+    swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+  const handleTouchMove = (e) => {
+    const { x, y } = swipeStartRef.current
+    const dx = e.touches[0].clientX - x
+    const dy = e.touches[0].clientY - y
+    if (dx > 4 && dx > Math.abs(dy)) {
+      if (!swipeActive) setSwipeActive(true)
+      swipeXRef.current = Math.min(dx, 96)
+      setSwipeX(swipeXRef.current)
+    }
+  }
+  const handleTouchEnd = () => {
+    if (swipeXRef.current >= SWIPE_THRESHOLD) onReply?.(message)
+    swipeXRef.current = 0
+    setSwipeX(0)
+    setSwipeActive(false)
+  }
   return (
     <div id={`message-${message.id}`} className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -394,8 +419,31 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, la
           )}
         </div>
       )}
-      <div className="relative w-full max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] xl:max-w-[70%] overflow-hidden group/message">
-        <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+      <div
+        className="relative w-full max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] xl:max-w-[70%] overflow-hidden group/message"
+        style={{ touchAction: 'pan-y' }}
+        onTouchStart={onReply ? handleTouchStart : undefined}
+        onTouchMove={onReply ? handleTouchMove : undefined}
+        onTouchEnd={onReply ? handleTouchEnd : undefined}
+        onTouchCancel={onReply ? handleTouchEnd : undefined}
+      >
+        <div
+          className="absolute inset-y-0 left-1 flex items-center pointer-events-none z-10 transition-opacity"
+          style={{ opacity: swipeX >= 8 ? Math.min(swipeX / SWIPE_THRESHOLD, 1) : 0 }}
+          aria-hidden="true"
+        >
+          <span className="w-10 h-10 rounded-full bg-brand-surface border border-brand-border shadow-lg flex items-center justify-center text-brand-accent">
+            <CornerUpLeft size={18} />
+          </span>
+        </div>
+        <div
+          className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}
+          style={{
+            transform: `translateX(${swipeX}px)`,
+            transition: swipeActive ? 'transform 40ms linear' : 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1)',
+            willChange: 'transform',
+          }}
+        >
           <div className={`relative rounded-2xl px-4 py-2.5 shadow-sm min-w-0 max-w-full overflow-hidden ${
             isOwn
               ? 'bg-gradient-to-br from-brand-primary to-[#2f6690] text-white rounded-br-md'
