@@ -40,7 +40,7 @@ Kirim teks/gambar/properti/PDF-dokumen; reply + jump-to-original; pin/unpin; sof
 - **Emoji berdampingan + angka kumulatif**: ikon-ikon reaksi ditampilkan horizontal dalam kapsul (sedikit tumpang-tindih `-ml-1` agar berkesan stacked ala WhatsApp), diikuti **total angka** seluruh reaksi di sebelah kanan (`tabular-nums`). Saat aku ikut mereaksi, kapsul menyala dengan aksen `brand-accent` (border+bg) dan angka ikut berwarna aksen.
 - **Detail ter-tab**: klik kapsul → bottom-sheet `ReactionSummary` kini punya **tab antar-emoji** (chip ikon + hitungan, scroll horizontal, aktif disorot aksen) sehingga semua jenis reaksi bisa dijelajahi; default buka ke emoji yang ku-reaksi (bila ada), jika reaksiku terhapus maka aktif berpindah otomatis ke emoji pertama yang tersisa (`effectiveEmoji`).
 - **Toggle/remove mulus**: tombol "Hapus" reaksiku kini meneruskan **emoji tab yang aktif** (`onToggle(e)` → `handleToggleReaction(messageId, e)`), jadi menghapus tak mungkin salah target.
-- Murni frontend, tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `e2b3c1a`.
+- Murni frontend, tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `49a3e86`.
 
 ## Changelog — Chat: Lampiran ala WhatsApp — Staging/Preview Multi-File (7 September 2026)
 - **Multi-file selection**: input gambar & dokumen kini `multiple` — user bisa pilih banyak file sekaligus dari dialog. Drag-drop juga menerima banyak file sekaligus.
