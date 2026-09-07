@@ -503,7 +503,7 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
                 onClick={(e) => onOpenReactionPicker?.(message, e)}
                 aria-label="Beri reaksi"
                 title="Beri reaksi"
-                className="absolute bottom-2 right-2 hidden group-hover/message:flex group-focus-within/message:flex w-6 h-6 rounded-full bg-white border border-brand-border shadow text-sm items-center justify-center hover:scale-110 transition-transform"
+                className="absolute top-2 right-9 hidden group-hover/message:flex group-focus-within/message:flex w-6 h-6 rounded-full bg-white border border-brand-border shadow text-sm items-center justify-center hover:scale-110 transition-transform"
               >
                 😊
               </button>
@@ -797,7 +797,7 @@ function ReactionPicker({ onPick, onClose, style }) {
         <button
           key={emoji}
           type="button"
-          onClick={() => onPick?.(emoji)}
+          onClick={(e) => { e.stopPropagation(); onPick?.(emoji) }}
           aria-label={`Reaksi ${emoji}`}
           className="w-8 h-8 rounded-full flex items-center justify-center text-lg hover:bg-brand-accent/10 hover:scale-110 active:scale-95 transition-all"
         >
@@ -1951,7 +1951,7 @@ export default function ChatHubPage() {
   }, [userId, showToast])
 
   const handleToggleReaction = useCallback((messageId, emoji) => {
-    if (!userId) return
+    if (!userId || !messageId || !emoji) return
     const targetId = activeContactIdRef.current
     const room = targetId ? [userId, targetId].sort().join('-') : null
     const existing = room && (reactionsMapRef.current[room]?.[messageId] || []).find((r) => r.user_id === userId && r.emoji === emoji)
@@ -3548,7 +3548,7 @@ export default function ChatHubPage() {
     />
     {reactionPickerMsg && (
       <ReactionPicker
-        onPick={handleToggleReaction}
+        onPick={(emoji) => handleToggleReaction(reactionPickerMsg?.id, emoji)}
         onClose={() => setReactionPickerMsg(null)}
         style={reactionPickerPos}
       />
