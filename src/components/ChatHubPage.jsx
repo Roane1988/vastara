@@ -379,7 +379,7 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact, onJumpToMessage, onShowSummary, onToggleStar, isStarred, onOpenReactionPicker, onFileOpen }) {
+const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onImageClick, isSearchActive, onMoreClick, isFlashed, reactions, myId, onReact, onJumpToMessage, onShowSummary, isStarred, onOpenReactionPicker, onFileOpen }) {
   return (
     <div id={`message-${message.id}`} className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -488,12 +488,17 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
               )}
               <button
                 type="button"
-                onClick={() => onMoreClick?.(message)}
+                onClick={(e) => onMoreClick?.(message, e)}
                 aria-label="Opsi pesan"
                 title="Opsi pesan"
-                className="lg:hidden -m-1 p-1.5 rounded-full text-inherit opacity-70 hover:opacity-100 transition-opacity"
+                className="lg:-mx-1 -my-1 p-1.5 rounded-full text-inherit opacity-70 hover:opacity-100 lg:opacity-0 lg:group-hover/message:opacity-100 lg:group-focus-within/message:opacity-100 transition-all"
               >
-                <MoreHorizontal size={14} />
+                <span className="lg:hidden inline-flex">
+                  <MoreHorizontal size={14} />
+                </span>
+                <span className="hidden lg:inline-flex">
+                  <ChevronDown size={14} />
+                </span>
               </button>
             </div>
             {onOpenReactionPicker && (
@@ -508,54 +513,6 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
                 😊
               </button>
             )}
-          </div>
-          <div className={`mt-1 hidden lg:flex items-center gap-1 opacity-0 pointer-events-none group-hover/message:pointer-events-auto group-focus-within/message:pointer-events-auto group-hover/message:opacity-100 group-focus-within/message:opacity-100 transition-opacity ${isOwn ? 'justify-end' : 'justify-start'}`}>
-            <button
-              type="button"
-              onClick={() => onReply?.(message)}
-              aria-label="Balas pesan"
-              className="inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent transition-colors px-1"
-            >
-              <CornerUpLeft size={11} /> Balas
-            </button>
-            {onOpenReactionPicker && !String(message.id).startsWith('temp-') && (
-              <button
-                type="button"
-                onClick={(e) => onOpenReactionPicker?.(message, e)}
-                aria-label="Beri reaksi"
-                title="Beri reaksi"
-                className="inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent transition-colors px-1"
-              >
-                <Smile size={11} /> Reaksi
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => onCopy?.(message)}
-              aria-label="Salin pesan"
-              title="Salin pesan"
-              className="inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent transition-colors px-1"
-            >
-              <Copy size={11} /> Salin
-            </button>
-            <button
-              type="button"
-              onClick={() => onPin?.(message)}
-              aria-label={isPinned ? 'Lepas sematan' : 'Sematkan pesan'}
-              title={isPinned ? 'Lepas sematan' : 'Sematkan'}
-              className={`inline-flex items-center gap-0.5 text-[10px] transition-colors px-1 ${isPinned ? 'text-brand-accent' : 'text-brand-muted hover:text-brand-accent'}`}
-            >
-              {isPinned ? <PinOff size={11} /> : <Pin size={11} />} {isPinned ? 'Disematkan' : 'Sematkan'}
-            </button>
-            <button
-              type="button"
-              onClick={() => onToggleStar?.(message)}
-              aria-label={isStarred ? 'Lepas bookmark' : 'Bookmark pesan'}
-              title={isStarred ? 'Lepas bookmark' : 'Bookmark'}
-              className={`inline-flex items-center gap-0.5 text-[10px] transition-colors px-1 ${isStarred ? 'text-amber-500' : 'text-brand-muted hover:text-amber-500'}`}
-            >
-              <Star size={11} className={isStarred ? 'fill-amber-400' : ''} /> {isStarred ? 'Terbookmark' : 'Bookmark'}
-            </button>
           </div>
         </div>
         {isOwn && (
@@ -998,6 +955,7 @@ export default function ChatHubPage() {
   const [flashMessageId, setFlashMessageId] = useState(null)
   const flashTimeoutRef = useRef(null)
   const [messageMenu, setMessageMenu] = useState(null)
+  const [messageMenuPos, setMessageMenuPos] = useState(null)
   const [connected, setConnected] = useState(false)
   const [otherTypingContacts, setOtherTypingContacts] = useState({})
   const [onlineIds, setOnlineIds] = useState({})
@@ -1603,6 +1561,7 @@ export default function ChatHubPage() {
     const onKey = (e) => {
       if (e.key !== 'Escape') return
       setMessageMenu(null)
+      setMessageMenuPos(null)
       setReactionPickerMsg(null)
       setReactionsSummary(null)
       setShowNewChat(false)
@@ -2101,7 +2060,7 @@ export default function ChatHubPage() {
     }
   }, [userId, showToast])
 
-  const openReactionPicker = useCallback((msg, e) => {
+const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     if (!userId) return
     if (typeof msg?.id === 'string' && msg.id.startsWith('temp-')) {
       showToast('Tunggu pesan terkirim sebelum memberi reaksi.', 'info')
@@ -2131,6 +2090,12 @@ export default function ChatHubPage() {
         top: Math.max(8, vh - PICKER_H - 104 - safeTop),
         left: Math.max(8, Math.floor((vw - PICKER_W) / 2)),
       })
+    } else if (fallbackPos && Number.isFinite(fallbackPos.top) && Number.isFinite(fallbackPos.left)) {
+      // Desktop tanpa rect valid tapi punya posisi fallback (mis. dari popover menu): pakai itu.
+      setReactionPickerPos({
+        top: Math.max(8, Math.min(fallbackPos.top, vh - PICKER_H - 8)),
+        left: Math.max(8, Math.min(fallbackPos.left, vw - PICKER_W - 8)),
+      })
     } else {
       // Desktop tanpa rect valid: tengah layar.
       setReactionPickerPos({
@@ -2140,6 +2105,24 @@ export default function ChatHubPage() {
     }
     setReactionPickerMsg(msg)
   }, [userId, showToast])
+
+  const openMessageMenu = useCallback((msg, e) => {
+    setMessageMenu(null)
+    setReactionPickerMsg(null)
+    const btn = e?.currentTarget
+    const rect = btn && typeof btn.getBoundingClientRect === 'function' ? btn.getBoundingClientRect() : null
+    if (rect && Number.isFinite(rect.left) && Number.isFinite(rect.top)) {
+      const vw = window.innerWidth || document.documentElement.clientWidth || 1024
+      const vh = window.innerHeight || document.documentElement.clientHeight || 768
+      const PAD = 12
+      const menuBelow = { top: Math.max(8, rect.bottom + 6), left: Math.max(PAD, Math.min(rect.left, vw - 240 - PAD)) }
+      if (vh >= 768) setMessageMenuPos(menuBelow)
+      else setMessageMenuPos(null)
+    } else {
+      setMessageMenuPos(null)
+    }
+    setMessageMenu(msg)
+  }, [])
 
   function handleDragOver(e) {
     e.preventDefault()
@@ -3178,7 +3161,7 @@ export default function ChatHubPage() {
                               isPinned={!!pinnedMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
                               onImageClick={setSelectedImage}
                               isSearchActive={msg.id === searchMatches[currentSearchIndex]?.id}
-                              onMoreClick={setMessageMenu}
+                              onMoreClick={(msg, e) => openMessageMenu(msg, e)}
                               onCopy={handleCopyMessage}
                               isFlashed={msg.id === flashMessageId}
                               reactions={reactionsMap[[userId, activeContactId].sort().join('-')]?.[msg.id] || EMPTY_ARRAY}
@@ -3741,71 +3724,85 @@ export default function ChatHubPage() {
       </div>
     )}
 
-    {messageMenu && (
-      <>
-        <button type="button" aria-label="Tutup" onClick={() => setMessageMenu(null)} className="fixed inset-0 bg-black/40 z-40 cursor-default p-0 border-0" />
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl py-6 px-2 pb-10 max-h-[70vh] overflow-y-auto animate-slide-up">
-          <div className="flex items-center justify-between px-4 mb-3">
-            <h3 className="text-base font-bold text-brand-text">Opsi Pesan</h3>
-            <button type="button" aria-label="Tutup" onClick={() => setMessageMenu(null)} className="text-brand-muted hover:text-brand-text">
-              <X size={20} />
+    {messageMenu && (() => {
+      const canReact = activeContactId !== HUNIBOT_ID && !String(messageMenu.id).startsWith('temp-')
+      const closeMenu = () => { setMessageMenu(null); setMessageMenuPos(null) }
+      const actionCls = messageMenuPos
+        ? 'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-brand-bg transition-colors text-[13px] font-semibold text-brand-text text-left'
+        : 'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left'
+      const dangerCls = messageMenuPos
+        ? 'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-brand-danger/10 transition-colors text-[13px] font-semibold text-brand-danger text-left'
+        : 'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-danger/10 transition-colors text-sm font-semibold text-brand-danger text-left'
+      const actions = (
+        <div className={messageMenuPos ? 'pt-1' : 'space-y-1 px-2'}>
+          <button type="button" onClick={() => { handleReply(messageMenu); closeMenu() }} className={actionCls}>
+            <CornerUpLeft size={17} className="text-brand-accent shrink-0" /> Balas
+          </button>
+          {canReact && (
+            <button type="button" onClick={() => { openReactionPicker(messageMenu, null, messageMenuPos); closeMenu() }} className={actionCls}>
+              <Smile size={17} className="text-brand-accent shrink-0" /> Reaksi
             </button>
-          </div>
-          <div className="space-y-1 px-2">
-            <button
-              type="button"
-              onClick={() => { handleReply(messageMenu); setMessageMenu(null) }}
-              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
-            >
-              <CornerUpLeft size={17} className="text-brand-accent shrink-0" /> Balas
+          )}
+          <button type="button" onClick={() => { handleCopyMessage(messageMenu); closeMenu() }} className={actionCls}>
+            <Copy size={17} className="text-brand-accent shrink-0" /> Salin Teks
+          </button>
+          <button type="button" onClick={() => { handleTogglePin(messageMenu); closeMenu() }} className={actionCls}>
+            {messageMenuPinned ? <PinOff size={17} className="text-brand-accent shrink-0" /> : <Pin size={17} className="text-brand-accent shrink-0" />}
+            {messageMenuPinned ? 'Lepas Sematan' : 'Sematkan'}
+          </button>
+          {messageMenu.sender_id === userId && (
+            <button type="button" onClick={() => { handleToggleStar(messageMenu); closeMenu() }} className={actionCls}>
+              <Star size={17} className={messageMenuStarred ? 'text-amber-500 fill-amber-500 shrink-0' : 'text-brand-accent shrink-0'} />
+              {messageMenuStarred ? 'Lepas Bookmark' : 'Bookmark'}
             </button>
-            {activeContactId !== HUNIBOT_ID && !String(messageMenu.id).startsWith('temp-') && (
-              <button
-                type="button"
-                onClick={() => { openReactionPicker(messageMenu); setMessageMenu(null) }}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
-              >
-                <Smile size={17} className="text-brand-accent shrink-0" /> Reaksi
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => { handleCopyMessage(messageMenu); setMessageMenu(null) }}
-              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
-            >
-              <Copy size={17} className="text-brand-accent shrink-0" /> Salin Teks
+          )}
+          {messageMenu.sender_id === userId && (
+            <button type="button" onClick={() => { setDeleteTarget(messageMenu.id); closeMenu() }} className={dangerCls}>
+              <Trash2 size={17} className="shrink-0" /> Hapus
             </button>
-            <button
-              type="button"
-              onClick={() => { handleTogglePin(messageMenu); setMessageMenu(null) }}
-              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
-            >
-              {messageMenuPinned ? <PinOff size={17} className="text-brand-accent shrink-0" /> : <Pin size={17} className="text-brand-accent shrink-0" />}
-              {messageMenuPinned ? 'Lepas Sematan' : 'Sematkan'}
-            </button>
-            {messageMenu.sender_id === userId && (
-              <button
-                type="button"
-                onClick={() => { handleToggleStar(messageMenu); setMessageMenu(null) }}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
-              >
-                <Star size={17} className={messageMenuStarred ? 'text-amber-500 fill-amber-500 shrink-0' : 'text-brand-accent shrink-0'} />
-                {messageMenuStarred ? 'Lepas Bookmark' : 'Bookmark'}
-              </button>
-            )}
-            {messageMenu.sender_id === userId && (
-              <button
-                type="button"
-                onClick={() => { setDeleteTarget(messageMenu.id); setMessageMenu(null) }}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-danger/10 transition-colors text-sm font-semibold text-brand-danger text-left"
-              >
-                <Trash2 size={17} className="shrink-0" /> Hapus
-              </button>
-            )}
-          </div>
+          )}
         </div>
-      </>
-    )}
+      )
+      return (
+        <>
+          <button type="button" aria-label="Tutup" onClick={closeMenu} className={messageMenuPos ? 'fixed inset-0 z-[70] cursor-default p-0 border-0' : 'fixed inset-0 bg-black/40 z-40 cursor-default p-0 border-0'} />
+          {messageMenuPos ? (
+            <div
+              role="menu"
+              className="fixed z-[75] w-60 max-w-[calc(100vw-16px)] max-h-[calc(100vh-24px)] overflow-y-auto rounded-2xl border border-brand-border bg-brand-surface shadow-2xl p-1.5 animate-fadeIn"
+              style={{ top: messageMenuPos.top, left: messageMenuPos.left }}
+            >
+              {canReact && (
+                <div className="flex items-center justify-between gap-0.5 px-1 pt-0.5 pb-1.5 mb-0.5 border-b border-brand-border">
+                  {REACTION_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleToggleReaction(messageMenu.id, emoji); closeMenu() }}
+                      aria-label={`Reaksi ${emoji}`}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-lg hover:bg-brand-accent/10 hover:scale-110 active:scale-95 transition-all"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {actions}
+            </div>
+          ) : (
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl py-6 px-2 pb-10 max-h-[70vh] overflow-y-auto animate-slide-up">
+              <div className="flex items-center justify-between px-4 mb-3">
+                <h3 className="text-base font-bold text-brand-text">Opsi Pesan</h3>
+                <button type="button" aria-label="Tutup" onClick={closeMenu} className="text-brand-muted hover:text-brand-text">
+                  <X size={20} />
+                </button>
+              </div>
+              {actions}
+            </div>
+          )}
+        </>
+      )
+    })()}
 
     <ConfirmModal
       isOpen={deleteTarget !== null}
