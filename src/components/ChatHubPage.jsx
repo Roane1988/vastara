@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File, Smile } from 'lucide-react'
+import { Mic, Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File, Smile } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
@@ -2767,6 +2767,9 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     return <LoginPrompt />
   }
 
+  const isComposerBusy = sending || imageUploading || stagingUploading
+  const canSend = isComposerBusy || !!inputValue.trim() || !!pendingImage || stagedFiles.length > 0 || !!shareProperty
+
   return (
     <>
     <div className="h-[calc(100dvh-56px)] overflow-hidden bg-brand-bg flex flex-col relative" style={{ height: chatVh ? `calc(${chatVh}px - 56px)` : undefined }}>
@@ -3328,45 +3331,9 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
               {/* Input Bar */}
               <form
                 onSubmit={handleSend}
-                className={`shrink-0 flex items-end gap-2 px-4 pt-2 ${keyboardOpen ? 'pb-2' : 'pb-[max(0.5rem,min(env(safe-area-inset-bottom),1.25rem))]'} border-t border-brand-border bg-brand-surface`}
+                className={`shrink-0 px-4 pt-2 ${keyboardOpen ? 'pb-2' : 'pb-[max(0.5rem,min(env(safe-area-inset-bottom),1.25rem))]'} border-t border-brand-border bg-brand-surface`}
               >
-                <div ref={plusMenuRef} className="relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setPlusMenuOpen(v => !v)}
-                    aria-label="Lampiran"
-                    title="Lampiran"
-                    className="w-10 h-10 rounded-xl bg-brand-bg border border-brand-border text-brand-muted hover:text-brand-accent flex items-center justify-center"
-                  >
-                    <Paperclip size={17} />
-                  </button>
-                  {plusMenuOpen && (
-                    <div className="absolute bottom-12 left-0 z-30 w-48 rounded-xl bg-brand-surface border border-brand-border shadow-lg p-1.5 animate-fadeIn">
-                      <button
-                        type="button"
-                        onClick={() => { setPlusMenuOpen(false); setShowPropertyPicker(true) }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-brand-text hover:bg-brand-bg text-left"
-                      >
-                        <Building2 size={16} className="text-brand-accent shrink-0" /> Bagikan properti
-                      </button>
-                      <button
-                        type="button"
-                        onClick={openImagePicker}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-brand-text hover:bg-brand-bg text-left"
-                      >
-                        <ImagePlus size={16} className="text-brand-accent shrink-0" /> Kirim gambar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={openDocumentPicker}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-brand-text hover:bg-brand-bg text-left"
-                      >
-                        <FileText size={16} className="text-brand-accent shrink-0" /> Kirim dokumen
-                      </button>
-                    </div>
-                  )}
-                </div>
-
+                <div className="flex items-end gap-2">
                 <div className="flex-1 min-w-0">
                   {shareProperty && (
                     <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -3407,34 +3374,78 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                       </span>
                     </div>
                   )}
-                  <textarea
-                    ref={inputRef}
-                    rows={1}
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSend(e)
-                      }
-                    }}
-                    placeholder="Tulis pesan..."
-                    className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted resize-none overflow-y-auto leading-snug"
-                    disabled={sending}
-                  />
+                  <div className="flex items-end gap-1 rounded-full border border-brand-border bg-brand-bg pl-4 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-brand-accent/30 focus-within:border-brand-accent transition-colors">
+                    <textarea
+                      ref={inputRef}
+                      rows={1}
+                      value={inputValue}
+                      onChange={handleInputChange}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleSend(e)
+                        }
+                      }}
+                      placeholder="Tulis pesan..."
+                      className="flex-1 min-w-0 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none resize-none overflow-y-auto leading-snug max-h-32 py-1"
+                      disabled={sending}
+                    />
+                    <div ref={plusMenuRef} className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setPlusMenuOpen(v => !v)}
+                        aria-label="Lampiran"
+                        title="Lampiran"
+                        className="w-9 h-9 shrink-0 rounded-full text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10 flex items-center justify-center transition-colors"
+                      >
+                        <Paperclip size={18} />
+                      </button>
+                      {plusMenuOpen && (
+                        <div className="absolute bottom-11 right-0 z-30 w-48 rounded-xl bg-brand-surface border border-brand-border shadow-lg p-1.5 animate-fadeIn">
+                          <button
+                            type="button"
+                            onClick={() => { setPlusMenuOpen(false); setShowPropertyPicker(true) }}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-brand-text hover:bg-brand-bg text-left"
+                          >
+                            <Building2 size={16} className="text-brand-accent shrink-0" /> Bagikan properti
+                          </button>
+                          <button
+                            type="button"
+                            onClick={openImagePicker}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-brand-text hover:bg-brand-bg text-left"
+                          >
+                            <ImagePlus size={16} className="text-brand-accent shrink-0" /> Kirim gambar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={openDocumentPicker}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-brand-text hover:bg-brand-bg text-left"
+                          >
+                            <FileText size={16} className="text-brand-accent shrink-0" /> Kirim dokumen
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <button
-                  type="submit"
-                  disabled={sending || imageUploading || stagingUploading || (!inputValue.trim() && !pendingImage && stagedFiles.length === 0 && !shareProperty)}
-                  className="shrink-0 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Kirim pesan"
+                  type={canSend ? 'submit' : 'button'}
+                  disabled={canSend && isComposerBusy}
+                  className="shrink-0 w-11 h-11 rounded-full bg-brand-primary text-white shadow-md flex items-center justify-center hover:brightness-110 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={canSend ? 'Kirim pesan' : 'Rekam pesan suara'}
+                  title={canSend ? 'Kirim pesan' : 'Rekam pesan suara'}
                 >
-                  {sending || imageUploading || stagingUploading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {canSend ? (
+                    isComposerBusy ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Send size={19} className="-ml-0.5" />
+                    )
                   ) : (
-                    <Send size={16} />
+                    <Mic size={21} className="ml-0.5" />
                   )}
                 </button>
+                </div>
                 <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={handlePickImage} />
                 <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" multiple hidden onChange={handlePickDocument} />
               </form>
