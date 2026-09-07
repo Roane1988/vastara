@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, memo, Component } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
@@ -15,6 +15,43 @@ import { compressImage } from '../utils/imageCompression'
 const HUNIBOT_ID = 'hunibot'
 
 const EMPTY_ARRAY = []
+
+class ChatErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error) {
+    console.warn('Chat section gagal dimuat:', error?.message || error)
+  }
+
+  handleReset = () => this.setState({ hasError: false })
+
+  render() {
+    if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback
+      return (
+        <div className="flex items-center justify-center gap-2 px-4 py-3 text-xs text-brand-muted">
+          <AlertTriangle size={14} className="shrink-0 text-brand-accent" />
+          <span>Bagian ini gagal dimuat.</span>
+          <button
+            type="button"
+            onClick={this.handleReset}
+            className="ml-1 inline-flex items-center gap-1 font-semibold text-brand-accent hover:text-brand-primary"
+          >
+            <RefreshCw size={12} /> Muat ulang
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 const HUNIBOT_CONTACT = {
   id: HUNIBOT_ID,
@@ -397,7 +434,11 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
                 </div>
               </button>
             )}
-            {message.property_id && <PropertyMessage propertyId={message.property_id} />}
+            {message.property_id && (
+              <ChatErrorBoundary fallback={<p className="text-xs text-brand-muted italic mt-1.5">Kartu properti gagal dimuat.</p>}>
+                <PropertyMessage propertyId={message.property_id} />
+              </ChatErrorBoundary>
+            )}
             {message.image_url && (
               <img
                 src={message.image_url}
@@ -1338,29 +1379,6 @@ export default function ChatHubPage() {
   }, [userId, activeContactId])
 
   useEffect(() => {
-    if (!userId) return
-    const presenceChannel = supabase.channel('app-online')
-    presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        const users = Object.values(presenceChannel.presenceState() || {})
-          .flat()
-          .map((p) => p.userId)
-          .filter(Boolean)
-        setOnlineIds(() => {
-          const next = {}
-          users.forEach((id) => { next[id] = true })
-          return next
-        })
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          presenceChannel.track({ userId, online_at: new Date().toISOString() })
-        }
-      })
-    return () => { supabase.removeChannel(presenceChannel) }
-  }, [userId])
-
-  useEffect(() => {
     if (!userId || !activeContactId || activeContactId === HUNIBOT_ID) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPinnedMessages({})
@@ -1454,7 +1472,7 @@ export default function ChatHubPage() {
         })
       })
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') ch.track({ userId })
+        if (status === 'SUBSCRIBED') ch.track({ userId, online_at: new Date().toISOString() })
       })
     const timer = setInterval(() => {
       // Update last_seen_at periodically (throttled) while user is active on the page
@@ -2983,7 +3001,8 @@ export default function ChatHubPage() {
                               <div className="flex-1 h-px bg-brand-accent/40" />
                             </div>
                           )}
-                          {msg.deleted_at ? (
+                          <ChatErrorBoundary>
+                            {msg.deleted_at ? (
                             <div id={`message-${msg.id}`} className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} px-4 mt-3`}>
                               <div className={`rounded-2xl px-4 py-2 text-xs italic border ${
                                 msg.sender_id === userId
@@ -3024,6 +3043,7 @@ export default function ChatHubPage() {
                               onFileOpen={handleOpenFile}
                             />
                           )}
+                          </ChatErrorBoundary>
                         </div>
                       )
                     })}
