@@ -1172,10 +1172,33 @@ export default function ChatHubPage() {
 
   const didAutoSelectRef = useRef(false)
   const openUserFetchRef = useRef(false)
+  const handleSelectContact = useCallback((contactId) => {
+    setActiveContactId(contactId)
+    loadedContactRef.current = null
+    setShowMobileList(false)
+    setUnreadMap(prev => ({ ...prev, [contactId]: 0 }))
+    setReplyTo(null)
+    setChatSearchQ('')
+    setChatSearchOpen(false)
+    setNewMsgFAB(false)
+    setNewMsgCount(0)
+    setPlusMenuOpen(false)
+    setShowPropertyPicker(false)
+    if (pendingImageUrlRef.current) {
+      URL.revokeObjectURL(pendingImageUrlRef.current)
+      pendingImageUrlRef.current = null
+    }
+    setPendingImage(null)
+    setPendingImageUrl(null)
+    setShareProperty(null)
+    setReactionPickerMsg(null)
+    setReactionsSummary(null)
+  }, [])
   useEffect(() => {
     if (!openUserId || didAutoSelectRef.current) return
     if (openUserId === HUNIBOT_ID) {
       didAutoSelectRef.current = true
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       handleSelectContact(HUNIBOT_ID)
       setSearchParams({}, { replace: true })
       return
@@ -1787,29 +1810,6 @@ export default function ChatHubPage() {
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, 132)}px`
   }, [inputValue])
-
-  const handleSelectContact = useCallback((contactId) => {
-    setActiveContactId(contactId)
-    loadedContactRef.current = null
-    setShowMobileList(false)
-    setUnreadMap(prev => ({ ...prev, [contactId]: 0 }))
-    setReplyTo(null)
-    setChatSearchQ('')
-    setChatSearchOpen(false)
-    setNewMsgFAB(false)
-    setNewMsgCount(0)
-    setPlusMenuOpen(false)
-    setShowPropertyPicker(false)
-    if (pendingImageUrlRef.current) {
-      URL.revokeObjectURL(pendingImageUrlRef.current)
-      pendingImageUrlRef.current = null
-    }
-    setPendingImage(null)
-    setPendingImageUrl(null)
-    setShareProperty(null)
-    setReactionPickerMsg(null)
-    setReactionsSummary(null)
-  }, [])
 
   function handleBackToList() {
     setShowMobileList(true)
