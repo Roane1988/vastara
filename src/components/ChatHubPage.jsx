@@ -2355,6 +2355,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       property_id: shareProperty?.id || null,
     }
     setMessages(prev => [...prev, optimisticMsg])
+    scrollToLatest()
     setDrafts(prev => {
       const next = { ...prev }
       delete next[activeContactId]
@@ -2387,6 +2388,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       } else if (data?.[0]) {
         setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
+        scrollToLatest()
       }
     } catch (err) {
       if (sendMountedRef.current) {
@@ -2433,6 +2435,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       property_id: null,
     }
     setMessages(prev => [...prev, optimisticMsg])
+    scrollToLatest()
     closeImagePreview()
     setReplyTo(null)
     inputRef.current?.focus()
@@ -2453,6 +2456,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       } else if (data?.[0]) {
         setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
+        scrollToLatest()
       }
     } catch (err) {
       if (sendMountedRef.current) {
@@ -2566,6 +2570,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
           stagedCaption: captionText,
         }
         setMessages((prev) => [...prev, optimisticMsg])
+        scrollToLatest()
 
         const { data, error } = await supabase.from('direct_messages').insert({
           sender_id: userId,
@@ -2584,6 +2589,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
           setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id))
         } else if (data?.[0]) {
           setMessages((prev) => prev.map((m) => m.id === optimisticMsg.id ? data[0] : m))
+          scrollToLatest()
         }
       }
     } catch (err) {
@@ -3287,6 +3293,8 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                 </div>
               )}
 
+              {/* Composer Footer */}
+              <div className="shrink-0">
               {replyTo && (
                 <ReplyPreview message={replyTo} onCancel={() => setReplyTo(null)} otherName={activeContact.first_name} userId={userId} />
               )}
@@ -3404,6 +3412,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                 <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={handlePickImage} />
                 <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" multiple hidden onChange={handlePickDocument} />
               </form>
+              </div>
               </>
               )}
             </>
