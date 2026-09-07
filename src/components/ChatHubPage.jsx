@@ -723,7 +723,7 @@ function ReactionPicker({ onPick, onClose, style }) {
   }, [style, onClose])
   return (
     <div
-      className="absolute z-40 flex items-center gap-0.5 bg-brand-surface border border-brand-border rounded-full shadow-xl px-1.5 py-1.5 animate-fadeIn"
+      className="fixed z-[60] flex items-center gap-0.5 bg-brand-surface border border-brand-border rounded-full shadow-xl px-1.5 py-1.5 animate-fadeIn"
       style={style}
       role="toolbar"
       aria-label="Reaksi"
@@ -804,7 +804,6 @@ export default function ChatHubPage() {
   const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
   const inputRef = useRef(null)
-  const chatRootRef = useRef(null)
   const contactsRef = useRef([])
 
   const userId = session?.user?.id || user?.id
@@ -1938,23 +1937,15 @@ export default function ChatHubPage() {
   function openReactionPicker(msg, e) {
     if (!userId || !activeContactId || activeContactId === HUNIBOT_ID) return
     const btn = e?.currentTarget
-    const root = chatRootRef.current
-    if (!btn || !root) {
-      setReactionPickerPos({ top: 40, right: 12 })
+    if (!btn) {
+      setReactionPickerPos({ top: 40, left: 12 })
       setReactionPickerMsg(msg)
       return
     }
     const rect = btn.getBoundingClientRect()
-    const rootRect = root.getBoundingClientRect()
-    const PICKER_H = 40
-    let top = rect.bottom + 6 - rootRect.top
-    const maxTop = rootRect.height - PICKER_H - 8
-    if (top > maxTop) {
-      top = rect.top - 6 - rootRect.top - PICKER_H
-    }
-    top = Math.max(8, top)
-    const right = Math.max(8, rootRect.right - rect.left - 10)
-    setReactionPickerPos({ top, right })
+    const top = Math.max(8, rect.top - 50)
+    const left = Math.max(8, Math.min(rect.left - 20, window.innerWidth - 220))
+    setReactionPickerPos({ top, left })
     setReactionPickerMsg(msg)
   }
 
@@ -2479,7 +2470,7 @@ export default function ChatHubPage() {
 
   return (
     <>
-    <div ref={chatRootRef} className="h-[calc(100dvh-56px)] overflow-hidden bg-brand-bg flex flex-col relative">
+    <div className="h-[calc(100dvh-56px)] overflow-hidden bg-brand-bg flex flex-col relative">
       <div className="flex-1 flex flex-col lg:flex-row lg:max-w-7xl lg:mx-auto lg:w-full 2xl:max-w-[1600px] lg:border-x lg:border-brand-border overflow-hidden">
         {/* ─── Contact List ───────────────────────────────────── */}
         <div
