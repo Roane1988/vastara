@@ -1958,18 +1958,23 @@ export default function ChatHubPage() {
     const btn = e?.currentTarget
     const rect = btn && typeof btn.getBoundingClientRect === 'function' ? btn.getBoundingClientRect() : null
     const isValid = rect && Number.isFinite(rect.left) && Number.isFinite(rect.top) && rect.left >= 0 && rect.top >= 0 && rect.left <= vw && rect.top <= vh
-    if (vw < 768) {
-      const safeTop = window.visualViewport?.offsetTop || 0
+    const safeTop = window.visualViewport?.offsetTop || 0
+    if (isValid) {
+      // Desktop & mobile sama-sama: melayang tepat di atas bubble yang diklik/hoover.
+      // Di mobile di-clamp agar tidak pernah menutupi bar input pesan (guard ~104px di bawah).
+      const bottomLimit = vw < 768 ? vh - PICKER_H - 104 - safeTop : vh - PICKER_H - 8
       setReactionPickerPos({
-        top: Math.max(8, vh - PICKER_H - 28 - safeTop),
-        left: Math.max(8, Math.floor((vw - PICKER_W) / 2)),
-      })
-    } else if (isValid) {
-      setReactionPickerPos({
-        top: Math.max(8, rect.top - PICKER_H - 10),
+        top: Math.max(8, Math.min(rect.top - PICKER_H - 10, Math.max(8, bottomLimit))),
         left: Math.max(8, Math.min(rect.left - 20, vw - PICKER_W - 8)),
       })
+    } else if (vw < 768) {
+      // Mobile tanpa rect valid: tetap di atas bar input (bukan menindih / bukan 0,0).
+      setReactionPickerPos({
+        top: Math.max(8, vh - PICKER_H - 104 - safeTop),
+        left: Math.max(8, Math.floor((vw - PICKER_W) / 2)),
+      })
     } else {
+      // Desktop tanpa rect valid: tengah layar.
       setReactionPickerPos({
         top: Math.max(8, Math.floor((vh - PICKER_H) / 2)),
         left: Math.max(8, Math.floor((vw - PICKER_W) / 2)),
