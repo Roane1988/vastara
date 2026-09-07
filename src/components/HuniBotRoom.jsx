@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Bot, Send, Loader2, Sparkles } from 'lucide-react'
+import { Bot, Send, Loader2, Sparkles, CornerUpLeft, X } from 'lucide-react'
 import { getFinancialProfile, PURCHASE_GOAL_LABELS } from '../utils/financialProfile'
 import { getAuthHeaders } from '../utils/groqClient'
 
@@ -67,6 +67,7 @@ export default function HuniBotRoom({ firstName }) {
     }
   })
   const [input, setInput] = useState('')
+  const [replyTo, setReplyTo] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -121,9 +122,15 @@ export default function HuniBotRoom({ firstName }) {
     if (now - lastSendRef.current < RATE_LIMIT_MS) return
     lastSendRef.current = now
 
+    const quoted = replyTo ? String(replyTo.text || '').slice(0, 200) : null
+    const userContent = quoted
+      ? `[Membalas pesan: "${quoted}"]\n${text}`
+      : text
+
     const userMessage = { id: `u-${Date.now()}`, role: 'user', text }
     setInput('')
     setMessages(prev => [...prev, userMessage])
+    setReplyTo(null)
     setIsLoading(true)
 
     try {
@@ -141,7 +148,7 @@ export default function HuniBotRoom({ firstName }) {
         SYSTEM_MESSAGE,
         ...profileMessage,
         ...history,
-        { role: 'user', content: String(text).slice(0, 400) },
+        { role: 'user', content: String(userContent).slice(0, 400) },
       ]
 
       const res = await fetch(API_URL, {
@@ -175,7 +182,7 @@ export default function HuniBotRoom({ firstName }) {
     } finally {
       if (!cancelledRef.current) setIsLoading(false)
     }
-  }, [input, isLoading])
+  }, [input, isLoading, replyTo])
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -217,18 +224,36 @@ export default function HuniBotRoom({ firstName }) {
         {messages.map((msg) => {
           if (msg.role === 'user') {
             return (
-              <div key={msg.id} className="flex justify-end px-4 mt-3">
-                <div className="bg-gradient-to-br from-brand-primary to-[#2f6690] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm shadow-sm max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] whitespace-pre-wrap break-words">
-                  {msg.text}
+              <div key={msg.id} className="flex justify-end px-4 mt-3 group/message">
+                <div className="flex flex-col items-end max-w-[85%] sm:max-w-[75%] lg:max-w-[65%]">
+                  <div className="bg-gradient-to-br from-brand-primary to-[#2f6690] text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm shadow-sm whitespace-pre-wrap break-words">
+                    {msg.text}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReplyTo(msg)}
+                    className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent transition-colors lg:opacity-0 lg:group-hover/message:opacity-100"
+                  >
+                    <CornerUpLeft size={11} /> Balas
+                  </button>
                 </div>
               </div>
             )
           }
           return (
-            <div key={msg.id} className="flex justify-start px-4 mt-3">
+            <div key={msg.id} className="flex justify-start px-4 mt-3 group/message">
               <BotAvatar />
-              <div className="ml-2 bg-white border border-brand-border text-brand-text rounded-2xl rounded-bl-md px-4 py-2.5 text-sm shadow-sm max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] whitespace-pre-wrap break-words">
-                {msg.text}
+              <div className="ml-2 flex flex-col items-start max-w-[85%] sm:max-w-[75%] lg:max-w-[65%]">
+                <div className="bg-white border border-brand-border text-brand-text rounded-2xl rounded-bl-md px-4 py-2.5 text-sm shadow-sm whitespace-pre-wrap break-words">
+                  {msg.text}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReplyTo(msg)}
+                  className="mt-1 inline-flex items-center gap-0.5 text-[10px] text-brand-muted hover:text-brand-accent transition-colors lg:opacity-0 lg:group-hover/message:opacity-100"
+                >
+                  <CornerUpLeft size={11} /> Balas
+                </button>
               </div>
             </div>
           )
@@ -238,10 +263,32 @@ export default function HuniBotRoom({ firstName }) {
         <div ref={messagesEndRef} />
       </div>
 
-      <form
-        onSubmit={(e) => { e.preventDefault(); handleSend() }}
-        className="shrink-0 flex items-end gap-2 px-4 pt-3 pb-[env(safe-area-inset-bottom)] border-t border-brand-border bg-brand-surface"
-      >
+      <div className="shrink-0 bg-brand-surface">
+        {replyTo && (
+          <div className="px-4 pt-2 pb-1">
+            <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-brand-border bg-brand-highlight/60">
+              <span className="w-1 self-stretch rounded-full bg-brand-accent shrink-0" aria-hidden="true" />
+              <CornerUpLeft size={14} className="text-brand-accent shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-brand-accent">{replyTo.role === 'user' ? 'Kamu' : 'HuniBot'}</p>
+                <p className="text-xs text-brand-muted truncate">{replyTo.text}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                aria-label="Batalkan balasan"
+                title="Batalkan balasan"
+                className="text-brand-muted hover:text-brand-text shrink-0 p-1 -m-1 rounded-full hover:bg-brand-border/50 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleSend() }}
+          className="flex items-end gap-2 px-4 pt-3 pb-[env(safe-area-inset-bottom)] border-t border-brand-border bg-brand-surface"
+        >
         <textarea
           ref={inputRef}
           rows={1}
@@ -265,7 +312,8 @@ export default function HuniBotRoom({ firstName }) {
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send size={16} />}
         </button>
-      </form>
+        </form>
+      </div>
     </>
   )
 }

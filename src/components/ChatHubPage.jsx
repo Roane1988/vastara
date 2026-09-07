@@ -71,21 +71,70 @@ function TypingDots({ color }) {
   )
 }
 
-function ReplyPreview({ message, onCancel, otherName }) {
-  const isOwn = message.sender_id === undefined
+function ReplySnippet({ message, className }) {
+  if (!message || message.deleted_at) {
+    return <p className={className}>Pesan ini telah dihapus</p>
+  }
+  if (message.image_url) {
+    return (
+      <span className={`flex items-center gap-1.5 min-w-0 ${className || ''}`}>
+        <img
+          src={message.image_url}
+          alt=""
+          className="w-5 h-5 rounded object-cover shrink-0"
+          onError={(e) => { e.currentTarget.style.display = 'none' }}
+        />
+        {message.content ? (
+          <span className="min-w-0 truncate">{message.content}</span>
+        ) : (
+          <span className="shrink-0 italic">[Gambar]</span>
+        )}
+      </span>
+    )
+  }
+  if (message.property_id) {
+    return (
+      <span className={`flex items-center gap-1.5 min-w-0 ${className || ''}`}>
+        <Building2 size={12} className="shrink-0" />
+        {message.content ? (
+          <span className="min-w-0 truncate">{message.content}</span>
+        ) : (
+          <span className="shrink-0 italic">[Kartu properti]</span>
+        )}
+      </span>
+    )
+  }
+  return <p className={className}>{message.content}</p>
+}
+
+function ReplyPreview({ message, onCancel, otherName, userId, compact }) {
+  const isOwn = message.sender_id === userId
   const label = isOwn ? 'Kamu' : (otherName || '')
+  const initials = isOwn ? 'K' : getInitials(otherName || label) || '?'
+  const containerClass = compact
+    ? 'flex items-center gap-2.5 px-3 py-2 rounded-xl border border-brand-border bg-brand-surface shadow-sm'
+    : 'flex items-center gap-2.5 px-4 py-2 border-t border-brand-border bg-brand-highlight/60'
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-t border-brand-border bg-brand-highlight/60">
-      <CornerUpLeft size={14} className="text-brand-accent shrink-0" />
+    <div className={containerClass}>
+      <span className="w-1 self-stretch rounded-full bg-brand-accent shrink-0" aria-hidden="true" />
+      <div
+        className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
+        style={{ backgroundColor: isOwn ? '#1E3A5F' : getAvatarColor(message.sender_id) }}
+      >
+        {initials}
+      </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-bold text-brand-accent">{label}</p>
-        <p className="text-xs text-brand-muted truncate">{message.content}</p>
+        <p className="text-[10px] font-bold text-brand-accent truncate">{label}</p>
+        <div className="text-xs text-brand-muted truncate">
+          <ReplySnippet message={message} />
+        </div>
       </div>
       <button
         type="button"
         onClick={onCancel}
         aria-label="Batalkan balasan"
-        className="text-brand-muted hover:text-brand-text shrink-0"
+        title="Batalkan balasan"
+        className="text-brand-muted hover:text-brand-text shrink-0 p-1 -m-1 rounded-full hover:bg-brand-border/50 transition-colors"
       >
         <X size={16} />
       </button>
@@ -210,7 +259,7 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact }) {
+function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact, onJumpToMessage }) {
   return (
     <div id={`message-${message.id}`} className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -234,22 +283,33 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
           } ${isSearchActive ? 'ring-2 ring-brand-accent' : ''}`}>
             {isFlashed && <span className="search-flash-overlay" aria-hidden="true" />}
             {(repliedMessage || message.reply_to_id) && (
-              <div className={`mb-1.5 mt-0.5 rounded-lg px-2 py-1 ${isOwn ? 'bg-white/15' : 'bg-brand-bg'} ${repliedMessage ? '' : 'opacity-80 italic'}`}>
+              <button
+                type="button"
+                onClick={() => repliedMessage && onJumpToMessage?.(repliedMessage.id)}
+                disabled={!repliedMessage}
+                title={repliedMessage ? 'Lihat pesan asli' : undefined}
+                className={`group/reply text-left w-full mb-1.5 mt-0.5 rounded-lg px-2 py-1 ${
+                  isOwn ? 'bg-white/15' : 'bg-brand-bg'
+                } ${
+                  repliedMessage
+                    ? 'cursor-pointer hover:brightness-95'
+                    : 'opacity-80 italic cursor-default'
+                }`}
+              >
                 <p className={`text-[10px] font-bold ${isOwn ? 'text-white/80' : 'text-brand-accent'} truncate`}>
                   {!repliedMessage ? 'Balasan'
                     : repliedMessage.sender_id === message.sender_id ? 'Balasanmu'
                     : otherName || 'Balasan'}
+                  {repliedMessage && (
+                    <span className={`hidden sm:inline-flex items-center gap-0.5 ml-1.5 align-middle font-normal ${isOwn ? 'text-white/60' : 'text-brand-muted'} opacity-0 group-hover/reply:opacity-100 transition-opacity`}>
+                      <MessageCircle size={9} /> lihat pesan
+                    </span>
+                  )}
                 </p>
-                {repliedMessage ? (
-                  <p className={`text-xs ${isOwn ? 'text-white/90' : 'text-brand-muted'} truncate`}>
-                    {repliedMessage.deleted_at ? 'Pesan ini telah dihapus' : repliedMessage.content}
-                  </p>
-                ) : (
-                  <p className={`text-xs ${isOwn ? 'text-white/90' : 'text-brand-muted'} truncate`}>
-                    Pesan ini telah dihapus
-                  </p>
-                )}
-              </div>
+                <div className={`text-xs ${isOwn ? 'text-white/90' : 'text-brand-muted'} truncate`}>
+                  <ReplySnippet message={repliedMessage} />
+                </div>
+              </button>
             )}
             {message.property_id && <PropertyMessage propertyId={message.property_id} />}
             {message.image_url && (
@@ -1398,6 +1458,18 @@ export default function ChatHubPage() {
     inputRef.current?.focus()
   }
 
+  function handleJumpToMessage(messageId) {
+    const el = document.getElementById(`message-${messageId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setFlashMessageId(messageId)
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current)
+      flashTimeoutRef.current = setTimeout(() => setFlashMessageId(null), 2000)
+    } else {
+      showToast('Pesan asli tidak ditemukan.', 'info')
+    }
+  }
+
   async function handleTogglePin(message) {
     if (!userId || !activeContactId) return
     const room = [userId, activeContactId].sort().join('-')
@@ -1657,6 +1729,7 @@ export default function ChatHubPage() {
     }
     setMessages(prev => [...prev, optimisticMsg])
     closeImagePreview()
+    setReplyTo(null)
     inputRef.current?.focus()
 
     try {
@@ -2166,7 +2239,7 @@ export default function ChatHubPage() {
                         <div key={msg.id}>
                           {newDay && i > 0 && <DateSeparator date={dayLabel(msg.created_at)} />}
                           {msg.deleted_at ? (
-                            <div className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} px-4 mt-3`}>
+                            <div id={`message-${msg.id}`} className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} px-4 mt-3`}>
                               <div className={`rounded-2xl px-4 py-2 text-xs italic border ${
                                 msg.sender_id === userId
                                   ? 'bg-brand-bg/60 border-brand-border text-brand-muted rounded-br-md'
@@ -2198,6 +2271,7 @@ export default function ChatHubPage() {
                               reactions={reactionsMap[[userId, activeContactId].sort().join('-')]?.[msg.id] || []}
                               myId={userId}
                               onReact={handleToggleReaction}
+                              onJumpToMessage={handleJumpToMessage}
                             />
                           )}
                         </div>
@@ -2264,7 +2338,7 @@ export default function ChatHubPage() {
               )}
 
               {replyTo && (
-                <ReplyPreview message={replyTo} onCancel={() => setReplyTo(null)} otherName={activeContact.first_name} />
+                <ReplyPreview message={replyTo} onCancel={() => setReplyTo(null)} otherName={activeContact.first_name} userId={userId} />
               )}
 
               {/* Input Bar */}
@@ -2383,6 +2457,17 @@ export default function ChatHubPage() {
         </div>
 
         <div className="shrink-0 px-4 py-3 bg-black/60 border-t border-white/10">
+          {replyTo && (
+            <div className="mb-3">
+              <ReplyPreview
+                compact
+                message={replyTo}
+                onCancel={() => setReplyTo(null)}
+                otherName={activeContact?.first_name}
+                userId={userId}
+              />
+            </div>
+          )}
           <div className="flex items-end gap-2">
             <textarea
               rows={1}
