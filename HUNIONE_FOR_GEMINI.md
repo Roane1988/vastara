@@ -22,13 +22,19 @@ Kirim teks/gambar/properti (`handleSend`/`handleSendImage` — opt-in `temp-*` i
 - **Race duplikat sudah diamankan** oleh guard `sender_id === userId` (INSERT) + dedup `prev.some(id)` — pesan optimistik `temp-*` tidak dobel.
 - **PAGE_SIZE = 50**; `hasMore` di-set dari `data.length === PAGE_SIZE`.
 
+## Changelog — Chat: Perbaikan Total Positioning & Lifecycle ReactionPicker (7 September 2026)
+- **Gejala bug (berulang 2x)**: picker emoji 😊 tidak muncul di dekat bubble — v1 "terbang" ke pojok kanan-atas (menimpa Top Navbar), maka diganti `position: fixed`; setelah itu v2 malah nyangkut di pojok kiri-atas (area daftar kontak). Keduanya menandakan kalkulasi koordinat selalu jatuh ke angka seragam, bukan mengikuti elemen ikon.
+- **Akar masalah sebenarnya**: pada **dua iterasi sebelumnya** handler tombol emoji tidak meneruskan event — `onMouseEnter={() => onOpenReactionPicker?.(message)}` (tanpa `e`) → `e?.currentTarget` selalu `undefined` → `getBoundingClientRect()` **tak pernah sempat dibaca** → fallback koordinat tetap terpakai (`{top:40,right:12}` = kanan-atas; `{top:40,left:12}` = kiri-atas). Bukan masalah CSS positioning.
+- **Perbaikan end-to-end** (`ChatHubPage.jsx`):
+  1. **Event diteruskan**: `onMouseEnter/onClick={(e) => onOpenReactionPicker?.(message, e)}` → rect dibaca **langsung dari tombol emoji** via `e.currentTarget.getBoundingClientRect()`.
+  2. **Fallback koordinat aman**: rect divalidasi (`Number.isFinite` + dalam rentang viewport); bila gagal/`null` → picker dirender **di tengah layar** (bukan `0,0`).
+  3. **Desktop**: `position: fixed` + `top: rect.top - PICKER_H - 10` (muncul di atas ikon) & `left: rect.left - 20` (di-clamp `8..vw-PICKER_W-8`) → konsisten untuk pesan pengirim (kanan) maupun penerima (kiri), `z-[60]` (di atas Navbar `z-50`).
+  4. **Mobile** (`vw < 768`): diposisikan **fixed bottom-center** (di atas safe-area via `visualViewport.offsetTop`) agar tidak terpotong viewport sempit.
+  5. **Lifecycle & state terisolasi per pesan**: picker ditutup otomatis ketika — **Esc**, **klik/tap di luar** (`mousedown`/`touchstart` + `pickerRef.contains`), **setelah memilih emoji** (`handleToggleReaction`), **ganti kontak** (`handleSelectContact`), dan saat **scroll daftar pesan** (`handleMessagesScroll`). Posisi disimpan di `reactionPickerPos` & dibaca ulang setiap render.
+- **Murni frontend**, tanpa migration/DB. Iterasi lama (commit `5f8de2f`/`52d1160`) digantikan; pendekatan final: commit `a438d3f`.
+
 ## Changelog — Chat: Perbaikan Positioning ReactionPicker (7 September 2026)
-- **Gejala bug**: meng-hover/klik ikon reaksi 😊 di bubble pesan membuat `ReactionPicker` (menu 6 emoji) "terbang" ter-render di pojok kanan atas viewport, menimpa Top Navbar (& tidak berada di dekat pesan yang berinteraksi).
-- **Akar masalah**: `ReactionPicker` dirender di level root dengan `position: absolute`, sehingga kotak acuannya adalah div container chat (yang punya `relative`), **bukan** bubble pesan. Namun `openReactionPicker` menghitung koordinat dari `getBoundingClientRect()` yang berbasis **viewport** — offset Navbar (56px) dan offset kiri container (yang terpusat `lg:max-w-7xl`/`2xl:max-w-[1600px]`) tidak dikurangi. Akibatnya `top`/`right` meleset ke kanan-atas.
-- **Perbaikan** (`ChatHubPage.jsx`):
-  - Container root chat diberi `ref={chatRootRef}`; koordinat `top`/`right` kini dikonversi ke sistem koordinat container: `top = rect.bottom + 6 - rootRect.top` dan `right = rootRect.right - rect.left - 10` → posisi konsisten untuk pesan sendiri (kanan) maupun penerima (kiri), di semua ukuran layar.
-  - **Anti-potong `overflow-hidden`**: bila nilai `top` melebihi tinggi container dikurangi tinggi picker (40px), picker di-**flip ke atas** tombol (`top = rect.top - 6 - rootRect.top - PICKER_H`) agar tidak terpotong batas container.
-- **Murni frontend**, tanpa migration/DB. Commit: `5f8de2f`.
+Iterasi awal yang telah digantikan oleh pendekatan "Perbaikan Total" di atas (riwayat).
 
 ## Changelog — Chat: Layout Responsif Optimasi Desktop Layar Lebar (7 September 2026)
 - **Container chat lebih luas**: distribusi panel kini memakai ruang layar besar secara maksimal — lebar kawasan chat naik dari cap `lg:max-w-7xl` (1280px) menjadi **`2xl:max-w-[1600px]`** di viewport ≥1536px, sehingga margin kosong di kiri/kanan berkurang drastis di monitor lebar/ultra-wide (`ChatHubPage.jsx`).
