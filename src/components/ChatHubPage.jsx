@@ -761,21 +761,30 @@ function aggregateReactions(reactions, myId) {
 function renderReactionsRow(reactions, myId, onReact, onShowSummary, messageId) {
   const agg = aggregateReactions(reactions, myId)
   if (agg.length === 0) return null
+  const mine = agg.some(([, info]) => info.mine)
+  const myEmoji = (reactions || []).find((r) => r.user_id === myId)?.emoji
+  const totalCount = agg.reduce((s, [, info]) => s + info.count, 0)
+  const focusEmoji = myEmoji || agg[0][0]
   return (
-    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-      {agg.map(([emoji, info]) => (
-        <button
-          key={emoji}
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onShowSummary ? onShowSummary(emoji, reactions, messageId) : onReact?.(emoji) }}
-          className={`inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5 border transition-colors ${
-            info.mine ? 'bg-brand-accent/15 border-brand-accent/40 text-brand-accent' : 'bg-white/70 border-brand-border text-brand-text'
-          }`}
-        >
-          <span>{emoji}</span>
-          <span className="font-semibold">{info.count}</span>
-        </button>
-      ))}
+    <div className="mt-1 flex justify-start">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onShowSummary ? onShowSummary(focusEmoji, reactions, messageId) : onReact?.(focusEmoji) }}
+        aria-label="Lihat reaksi"
+        title={`${totalCount} reaksi`}
+        className={`inline-flex items-center rounded-full border pl-1.5 pr-2 py-0.5 shadow-sm active:scale-95 transition-transform ${
+          mine ? 'bg-brand-accent/15 border-brand-accent/40' : 'bg-white/80 border-brand-border'
+        }`}
+      >
+        {agg.map(([emoji]) => (
+          <span key={emoji} className="-ml-1 first:ml-0 w-4 inline-flex justify-center text-[13px] leading-none">
+            {emoji}
+          </span>
+        ))}
+        <span className={`ml-1 pl-0.5 text-[11px] font-bold tabular-nums leading-none ${mine ? 'text-brand-accent' : 'text-brand-text'}`}>
+          {totalCount}
+        </span>
+      </button>
     </div>
   )
 }
@@ -833,7 +842,10 @@ function ReactionPicker({ onPick, onClose, style }) {
 }
 
 function ReactionSummary({ emoji, reactions, myId, namesMap, onClose, onToggle }) {
-  const users = (reactions || []).filter((r) => r.emoji === emoji)
+  const agg = aggregateReactions(reactions, myId)
+  const [activeEmoji, setActiveEmoji] = useState(emoji)
+  const effectiveEmoji = agg.some(([e]) => e === activeEmoji) ? activeEmoji : (agg[0]?.[0] || emoji)
+  const users = (reactions || []).filter((r) => r.emoji === effectiveEmoji)
   const mineFirst = [...users].sort((a, b) => (a.user_id === myId ? -1 : 0) - (b.user_id === myId ? -1 : 0))
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
@@ -846,12 +858,29 @@ function ReactionSummary({ emoji, reactions, myId, namesMap, onClose, onToggle }
       <div className="fixed bottom-0 left-0 right-0 z-[60] bg-brand-surface rounded-t-3xl py-6 px-5 pb-8 max-h-[70vh] overflow-y-auto animate-slide-up">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-bold text-brand-text flex items-center gap-2">
-            <span className="text-xl">{emoji}</span> Reaksi
+            <span className="text-xl">{effectiveEmoji}</span> Reaksi
           </h3>
           <button type="button" aria-label="Tutup" onClick={onClose} className="text-brand-muted hover:text-brand-text">
             <X size={20} />
           </button>
         </div>
+        {agg.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-3 mb-1 -mx-5 px-5">
+            {agg.map(([tabEmoji, info]) => (
+              <button
+                key={tabEmoji}
+                type="button"
+                onClick={(evt) => { evt.stopPropagation(); setActiveEmoji(tabEmoji) }}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm whitespace-nowrap transition-colors ${
+                  tabEmoji === effectiveEmoji ? 'bg-brand-accent/15 text-brand-accent font-semibold' : 'text-brand-muted hover:bg-brand-bg'
+                }`}
+              >
+                <span>{tabEmoji}</span>
+                <span className="text-[10px] font-bold tabular-nums">{info.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="space-y-1">
           {mineFirst.length === 0 && (
             <p className="text-sm text-brand-muted text-center py-6">Tidak ada reaksi.</p>
@@ -869,11 +898,11 @@ function ReactionSummary({ emoji, reactions, myId, namesMap, onClose, onToggle }
                 <span className="text-sm font-medium text-brand-text truncate flex-1">
                   {isMine ? 'Kamu' : (namesMap[r.user_id] || 'Pengguna')}
                 </span>
-                <span className="text-lg">{emoji}</span>
+                <span className="text-lg">{effectiveEmoji}</span>
                 {isMine && (
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onToggle?.() }}
+                    onClick={(evt) => { evt.stopPropagation(); onToggle?.(effectiveEmoji) }}
                     aria-label="Hapus reaksiku"
                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-muted hover:text-brand-danger px-2 py-1 rounded-lg hover:bg-brand-danger/10 transition-colors"
                   >
@@ -3807,9 +3836,9 @@ export default function ChatHubPage() {
           myId={userId}
           namesMap={messageNamesMap}
           onClose={() => setReactionsSummary(null)}
-          onToggle={() => {
-            if (summaryRoom && reactionsSummary.messageId) {
-              handleToggleReaction(reactionsSummary.messageId, reactionsSummary.emoji)
+          onToggle={(toggleEmoji) => {
+            if (toggleEmoji && summaryRoom && reactionsSummary.messageId) {
+              handleToggleReaction(reactionsSummary.messageId, toggleEmoji)
             } else {
               setReactionsSummary(null)
             }
