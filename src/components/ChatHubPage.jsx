@@ -950,6 +950,9 @@ export default function ChatHubPage() {
   const [lastSeenMap, setLastSeenMap] = useState({})
   const [messageNamesMap, setMessageNamesMap] = useState({})
 
+  const messageNamesMapRef = useRef(messageNamesMap)
+  messageNamesMapRef.current = messageNamesMap
+
   const reactionsMapRef = useRef(reactionsMap)
   reactionsMapRef.current = reactionsMap
   const pinnedMessagesRef = useRef(pinnedMessages)
@@ -1966,7 +1969,7 @@ export default function ChatHubPage() {
 
   const handleShowReactionSummary = useCallback((emoji, reactions) => {
     const userIds = (reactions || []).filter((r) => r.emoji === emoji).map((r) => r.user_id)
-    const ids = userIds.filter((id) => id && id !== userId && !messageNamesMap[id])
+    const ids = userIds.filter((id) => id && id !== userId && !messageNamesMapRef.current[id])
     setReactionsSummary({ emoji, reactions })
     if (ids.length === 0) return
     supabase.from('profiles').select('id, first_name').in('id', ids).then(({ data, error }) => {
@@ -1975,7 +1978,7 @@ export default function ChatHubPage() {
       data.forEach((p) => { map[p.id] = p.first_name || 'User' })
       setMessageNamesMap((prev) => ({ ...prev, ...map }))
     }).catch(() => {})
-  }, [userId, messageNamesMap])
+  }, [userId])
 
   const handleToggleStar = useCallback((msg) => {
     if (!userId) return
@@ -2150,29 +2153,38 @@ export default function ChatHubPage() {
   }
 
   const handleCopyMessage = useCallback(async (msg) => {
-    const text = msg.content || (msg.file_url ? (msg.file_name || 'Dokumen') : '')
+    const text = (msg.content || '').trim() || (msg.file_url ? (msg.file_name || 'Dokumen') : '')
     if (!text) {
       showToast('Tidak ada teks untuk disalin', 'info')
       return
     }
-    const copyText = () => {
+    const legacyCopy = () => {
+      if (typeof document.execCommand !== 'function' || !document.queryCommandSupported?.('copy')) return false
       const ta = document.createElement('textarea')
       ta.value = text
+      ta.setAttribute('readonly', '')
       ta.style.position = 'fixed'
+      ta.style.top = '0'
+      ta.style.left = '0'
       ta.style.opacity = '0'
+      ta.style.pointerEvents = 'none'
       document.body.appendChild(ta)
+      ta.focus()
       ta.select()
-      document.execCommand('copy')
-      document.body.removeChild(ta)
+      ta.setSelectionRange(0, ta.value.length)
+      try {
+        return document.execCommand('copy')
+      } finally {
+        document.body.removeChild(ta)
+      }
     }
     try {
-      await navigator.clipboard.writeText(msg.content)
+      await navigator.clipboard.writeText(text)
       showToast('Pesan disalin ke clipboard', 'success')
     } catch {
-      try {
-        copyText()
+      if (legacyCopy()) {
         showToast('Pesan disalin ke clipboard', 'success')
-      } catch {
+      } else {
         showToast('Gagal menyalin pesan', 'error')
       }
     }
