@@ -1009,6 +1009,7 @@ export default function ChatHubPage() {
   const starredMessagesRef = useRef(starredMessages)
   starredMessagesRef.current = starredMessages
   const lastCleanupRoomRef = useRef(null)
+  const reactionPendingRef = useRef({})
 
   const activeContactIdRef = useRef(activeContactId)
   useEffect(() => {
@@ -1997,43 +1998,48 @@ export default function ChatHubPage() {
     const targetId = activeContactIdRef.current
     if (!targetId) return
     const room = [userId, targetId].sort().join('-')
-    const existing = (reactionsMapRef.current[room]?.[messageId] || []).find((r) => r.user_id === userId && r.emoji === emoji)
-    const updateMap = (shouldAdd) => (prev) => {
+    const lockKey = `${room}:${messageId}`
+    if (reactionPendingRef.current[lockKey]) return
+    reactionPendingRef.current[lockKey] = true
+
+    const prevList = reactionsMapRef.current[room]?.[messageId] || []
+    const wasActive = !!prevList.find((r) => r.user_id === userId)
+    const isSameEmoji = wasActive && prevList.some((r) => r.user_id === userId && r.emoji === emoji)
+    const shouldAdd = !isSameEmoji
+
+    setReactionsMap((prev) => {
       const roomMap = { ...(prev[room] || {}) }
-      const list = (roomMap[messageId] || []).filter((r) => !(r.user_id === userId && r.emoji === emoji))
-      if (shouldAdd) list.push({ id: null, user_id: userId, emoji })
-      roomMap[messageId] = list
+      const others = (roomMap[messageId] || []).filter((r) => r.user_id !== userId)
+      roomMap[messageId] = shouldAdd ? [...others, { id: null, user_id: userId, emoji }] : others
       return { ...prev, [room]: roomMap }
+    })
+
+    const restore = () => {
+      if (activeContactIdRef.current !== targetId) return
+      setReactionsMap((prev) => {
+        const roomMap = { ...(prev[room] || {}) }
+        roomMap[messageId] = prevList
+        return { ...prev, [room]: roomMap }
+      })
     }
-    if (existing) {
-      setReactionsMap(updateMap(false))
-      supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', userId).eq('emoji', emoji)
-        .then(({ error }) => {
-          if (!error) return
-          if (activeContactIdRef.current !== targetId) return
-          setReactionsMap(updateMap(true))
-          showToast('Reaksi gagal dihapus. Coba lagi.', 'error')
-        })
-        .catch(() => {
-          if (activeContactIdRef.current !== targetId) return
-          setReactionsMap(updateMap(true))
-          showToast('Reaksi gagal dihapus. Coba lagi.', 'error')
-        })
-    } else {
-      setReactionsMap(updateMap(true))
-      supabase.from('message_reactions').insert({ message_id: messageId, user_id: userId, emoji })
-        .then(({ error }) => {
-          if (!error) return
-          if (activeContactIdRef.current !== targetId) return
-          setReactionsMap(updateMap(false))
-          showToast('Reaksi gagal disimpan. Coba lagi.', 'error')
-        })
-        .catch(() => {
-          if (activeContactIdRef.current !== targetId) return
-          setReactionsMap(updateMap(false))
-          showToast('Reaksi gagal disimpan. Coba lagi.', 'error')
-        })
-    }
+
+    ;(async () => {
+      try {
+        if (wasActive) {
+          const del = await supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', userId)
+          if (del.error) throw del.error
+        }
+        if (shouldAdd) {
+          const ins = await supabase.from('message_reactions').insert({ message_id: messageId, user_id: userId, emoji })
+          if (ins.error) throw ins.error
+        }
+      } catch {
+        restore()
+        showToast(isSameEmoji ? 'Reaksi gagal dihapus. Coba lagi.' : 'Reaksi gagal disimpan. Coba lagi.', 'error')
+      } finally {
+        delete reactionPendingRef.current[lockKey]
+      }
+    })()
     setReactionPickerMsg(null)
   }, [userId, showToast])
 
