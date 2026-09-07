@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
@@ -21,6 +21,62 @@ const HUNIBOT_CONTACT = {
   is_hunibot: true,
   last_message: 'Asisten properti AI · Online',
   last_message_at: null,
+}
+
+const SETTINGS_KEY = 'hunione-chat-settings'
+function loadChatSettings() {
+  try {
+    return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}
+  } catch {
+    return {}
+  }
+}
+function saveChatSettings(s) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s))
+  } catch {
+    /* non-critical */
+  }
+}
+
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
+
+function playMessageSound() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext
+    if (!Ctx) return
+    const ctx = new Ctx()
+    const now = ctx.currentTime
+    const notes = [880, 1174.66]
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = freq
+      gain.gain.setValueAtTime(0.0001, now + i * 0.12)
+      gain.gain.exponentialRampToValueAtTime(0.12, now + i * 0.12 + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.12 + 0.12)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(now + i * 0.12)
+      osc.stop(now + i * 0.12 + 0.14)
+    })
+    setTimeout(() => ctx.close().catch(() => {}), 800)
+  } catch {
+    /* non-critical */
+  }
+}
+
+function notifyNewMessage(title, body) {
+  try {
+    if (!('Notification' in window)) return
+    if (Notification.permission === 'granted') {
+      const n = new Notification(title, { body, tag: body, silent: true })
+      n.onclick = () => { window.focus(); n.close() }
+    }
+  } catch {
+    /* non-critical */
+  }
 }
 
 
@@ -259,7 +315,7 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact, onJumpToMessage }) {
+function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact, onJumpToMessage, onShowSummary, onToggleStar, isStarred, onOpenReactionPicker }) {
   return (
     <div id={`message-${message.id}`} className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -280,8 +336,11 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
             isOwn
               ? 'bg-gradient-to-br from-brand-primary to-[#2f6690] text-white rounded-br-md'
               : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
-          } ${isSearchActive ? 'ring-2 ring-brand-accent' : ''}`}>
+          } ${isFlashed ? 'ring-2 ring-brand-accent' : ''} ${isSearchActive ? 'ring-2 ring-amber-400' : ''}`}>
             {isFlashed && <span className="search-flash-overlay" aria-hidden="true" />}
+            {isStarred && (
+              <Star size={12} className="absolute top-2 right-2 text-amber-400 fill-amber-400" aria-label="Pesan dibookmark" />
+            )}
             {(repliedMessage || message.reply_to_id) && (
               <button
                 type="button"
@@ -325,7 +384,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
                 <MessageText text={message.content} query={highlight} />
               </p>
             )}
-            {renderReactionsRow(reactions, myId, onReact)}
+            {renderReactionsRow(reactions, myId, onReact, onShowSummary)}
             <div className={`text-[10px] mt-1 flex items-center justify-end gap-1.5 ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
               <span>{timeAgo(message.created_at, lang)}</span>
               {isOwn && (
@@ -343,6 +402,18 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
                 <MoreHorizontal size={14} />
               </button>
             </div>
+            {onOpenReactionPicker && (
+              <button
+                type="button"
+                onMouseEnter={() => onOpenReactionPicker?.(message)}
+                onClick={() => onOpenReactionPicker?.(message)}
+                aria-label="Beri reaksi"
+                title="Beri reaksi"
+                className="absolute bottom-2 right-2 hidden group-hover/message:flex w-6 h-6 rounded-full bg-white border border-brand-border shadow text-sm items-center justify-center hover:scale-110 transition-transform"
+              >
+                😊
+              </button>
+            )}
           </div>
           <div className={`mt-1 hidden lg:flex items-center gap-1 opacity-0 group-hover/message:opacity-100 transition-opacity ${isOwn ? 'justify-end' : 'justify-start'}`}>
             <button
@@ -371,6 +442,15 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
             >
               {isPinned ? <PinOff size={11} /> : <Pin size={11} />} {isPinned ? 'Disematkan' : 'Sematkan'}
             </button>
+            <button
+              type="button"
+              onClick={() => onToggleStar?.(message)}
+              aria-label={isStarred ? 'Lepas bookmark' : 'Bookmark pesan'}
+              title={isStarred ? 'Lepas bookmark' : 'Bookmark'}
+              className={`inline-flex items-center gap-0.5 text-[10px] transition-colors px-1 ${isStarred ? 'text-amber-500' : 'text-brand-muted hover:text-amber-500'}`}
+            >
+              <Star size={11} className={isStarred ? 'fill-amber-400' : ''} /> {isStarred ? 'Terbookmark' : 'Bookmark'}
+            </button>
           </div>
         </div>
         {isOwn && (
@@ -389,7 +469,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
   )
 }
 
-function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnline }) {
+function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnline, lastSeen }) {
   const isHunibot = contact.id === HUNIBOT_ID
   const avatarColor = isHunibot ? '#7C3AED' : getAvatarColor(contact.id)
   const initials = getInitials(contact.first_name)
@@ -437,7 +517,9 @@ function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnl
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {isTyping ? (
-            <p className="text-xs text-brand-accent truncate"><TypingDots color="var(--color-brand-accent)" /></p>
+            <p className="text-xs text-brand-accent truncate font-medium inline-flex items-center gap-1.5">
+              <TypingDots color="var(--color-brand-accent)" /> mengetik...
+            </p>
           ) : (
             <>
               {isHunibot ? (
@@ -446,7 +528,9 @@ function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnl
                 <span className="text-[10px] font-medium text-brand-accent shrink-0">{roleLabel}</span>
               )}
               <p className={`text-xs truncate ${unread > 0 ? 'text-brand-text font-semibold' : 'text-brand-muted'}`}>
-                {contact.last_message || 'Belum ada pesan'}
+                {contact.last_message
+                  ? contact.last_message
+                  : (lastSeen && !isOnline ? `Terakhir aktif ${timeAgo(lastSeen, lang)}` : 'Belum ada pesan')}
               </p>
             </>
           )}
@@ -550,7 +634,7 @@ function aggregateReactions(reactions, myId) {
   return Object.entries(map)
 }
 
-function renderReactionsRow(reactions, myId, onReact) {
+function renderReactionsRow(reactions, myId, onReact, onShowSummary) {
   const agg = aggregateReactions(reactions, myId)
   if (agg.length === 0) return null
   return (
@@ -559,7 +643,7 @@ function renderReactionsRow(reactions, myId, onReact) {
         <button
           key={emoji}
           type="button"
-          onClick={(e) => { e.stopPropagation(); onReact?.(emoji) }}
+          onClick={(e) => { e.stopPropagation(); onShowSummary ? onShowSummary(emoji, reactions) : onReact?.(emoji) }}
           className={`inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5 border transition-colors ${
             info.mine ? 'bg-brand-accent/15 border-brand-accent/40 text-brand-accent' : 'bg-white/70 border-brand-border text-brand-text'
           }`}
@@ -569,6 +653,83 @@ function renderReactionsRow(reactions, myId, onReact) {
         </button>
       ))}
     </div>
+  )
+}
+
+function ReactionPicker({ onPick, onClose, style }) {
+  useEffect(() => {
+    if (!style) return
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [style, onClose])
+  return (
+    <div
+      className="absolute z-40 flex items-center gap-0.5 bg-brand-surface border border-brand-border rounded-full shadow-xl px-1.5 py-1.5 animate-fadeIn"
+      style={style}
+      role="toolbar"
+      aria-label="Reaksi"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {REACTION_EMOJIS.map((emoji) => (
+        <button
+          key={emoji}
+          type="button"
+          onClick={() => onPick?.(emoji)}
+          aria-label={`Reaksi ${emoji}`}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-lg hover:bg-brand-accent/10 hover:scale-110 active:scale-95 transition-all"
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function ReactionSummary({ emoji, reactions, myId, namesMap, onClose }) {
+  const users = (reactions || []).filter((r) => r.emoji === emoji)
+  const mineFirst = [...users].sort((a, b) => (a.user_id === myId ? -1 : 0) - (b.user_id === myId ? -1 : 0))
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <>
+      <button type="button" aria-label="Tutup" onClick={onClose} className="fixed inset-0 z-[55] cursor-default bg-black/30" />
+      <div className="fixed bottom-0 left-0 right-0 z-[60] bg-brand-surface rounded-t-3xl py-6 px-5 pb-8 max-h-[70vh] overflow-y-auto animate-slide-up">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-bold text-brand-text flex items-center gap-2">
+            <span className="text-xl">{emoji}</span> Reaksi
+          </h3>
+          <button type="button" aria-label="Tutup" onClick={onClose} className="text-brand-muted hover:text-brand-text">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="space-y-1">
+          {mineFirst.length === 0 && (
+            <p className="text-sm text-brand-muted text-center py-6">Tidak ada reaksi.</p>
+          )}
+          {mineFirst.map((r) => {
+            const isMine = r.user_id === myId
+            return (
+              <div key={`${r.user_id}-${r.id || r.emoji}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-brand-bg transition-colors">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                  style={{ backgroundColor: getAvatarColor(r.user_id) }}
+                >
+                  {getInitials(isMine ? 'Kamu' : (namesMap[r.user_id] || 'User'))}
+                </div>
+                <span className="text-sm font-medium text-brand-text truncate flex-1">
+                  {isMine ? 'Kamu' : (namesMap[r.user_id] || 'Pengguna')}
+                </span>
+                <span className="text-lg">{emoji}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -657,6 +818,21 @@ export default function ChatHubPage() {
   const pendingImageUrlRef = useRef(null)
   const isAtBottomRef = useRef(true)
   const loadedContactRef = useRef(null)
+  const [starredMessages, setStarredMessages] = useState({})
+  const [reactionsSummary, setReactionsSummary] = useState(null)
+  const [reactionPickerMsg, setReactionPickerMsg] = useState(null)
+  const [reactionPickerPos, setReactionPickerPos] = useState(null)
+  const [dragging, setDragging] = useState(false)
+  const [dragCounter, setDragCounter] = useState(0)
+  const [contactsError, setContactsError] = useState(null)
+  const [messagesError, setMessagesError] = useState(null)
+  const [contactsRetryCounter, setContactsRetryCounter] = useState(0)
+  const [messagesRetryCounter, setMessagesRetryCounter] = useState(0)
+  const [chatSettings, setChatSettings] = useState(() => loadChatSettings())
+  const chatSettingsRef = useRef(chatSettings)
+  chatSettingsRef.current = chatSettings
+  const [lastSeenMap, setLastSeenMap] = useState({})
+  const [messageNamesMap, setMessageNamesMap] = useState({})
 
   const activeContactIdRef = useRef(activeContactId)
   useEffect(() => {
@@ -677,6 +853,7 @@ export default function ChatHubPage() {
 
   const messageMenuRoom = messageMenu && activeContactId ? [userId, activeContactId].sort().join('-') : null
   const messageMenuPinned = messageMenu && messageMenuRoom ? !!pinnedMessages[messageMenuRoom]?.[messageMenu.id] : false
+  const messageMenuStarred = messageMenu && messageMenuRoom ? !!starredMessages[messageMenuRoom]?.[messageMenu.id] : false
 
   useEffect(() => {
     contactsRef.current = contacts
@@ -730,6 +907,7 @@ export default function ChatHubPage() {
     }
 
     contactsCancelledRef.current = false
+    setContactsError(null)
 
     async function fetchContacts() {
       try {
@@ -790,6 +968,7 @@ export default function ChatHubPage() {
 
         if (profErr) {
           console.warn('Gagal memuat profil kontak:', profErr.message)
+          if (!contactsCancelledRef.current) setContactsError('Kontak tidak dapat dimuat.')
           return
         }
 
@@ -813,14 +992,17 @@ export default function ChatHubPage() {
           setUnreadMap(unreadCounts)
         }
       } catch (err) {
-        if (!contactsCancelledRef.current) console.warn('Gagal memuat kontak:', err.message)
+        if (!contactsCancelledRef.current) {
+          console.warn('Gagal memuat kontak:', err.message)
+          setContactsError('Kontak tidak dapat dimuat. Periksa koneksi Anda.')
+        }
       }
       if (!contactsCancelledRef.current) setLoading(false)
     }
 
     fetchContacts()
     return () => { contactsCancelledRef.current = true }
-  }, [userId])
+  }, [userId, contactsRetryCounter])
 
   const openUserId = searchParams.get('user')
   const propertyId = searchParams.get('property')
@@ -913,6 +1095,7 @@ export default function ChatHubPage() {
 
         if (error) {
           console.warn('Gagal memuat pesan:', error.message)
+          if (!messagesCancelledRef.current) setMessagesError('Pesan tidak dapat dimuat. Periksa koneksi Anda.')
         } else if (data) {
           const loaded = data.slice().reverse()
           setMessages(loaded)
@@ -923,7 +1106,10 @@ export default function ChatHubPage() {
           scrollToLatest()
         }
       } catch (err) {
-        if (!messagesCancelledRef.current) console.warn('Gagal memuat pesan:', err.message)
+        if (!messagesCancelledRef.current) {
+          console.warn('Gagal memuat pesan:', err.message)
+          setMessagesError('Pesan tidak dapat dimuat. Periksa koneksi Anda.')
+        }
       }
       if (!messagesCancelledRef.current) setMessagesLoading(false)
     }
@@ -931,7 +1117,7 @@ export default function ChatHubPage() {
     fetchMessages()
     return () => { messagesCancelledRef.current = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeContactId, userId])
+  }, [activeContactId, userId, messagesRetryCounter])
 
   async function fetchReactionsFor(messageIds, room) {
     if (!userId || !Array.isArray(messageIds) || messageIds.length === 0) return
@@ -1081,6 +1267,99 @@ export default function ChatHubPage() {
   }, [userId, activeContactId])
 
   useEffect(() => {
+    if (!userId || !activeContactId || activeContactId === HUNIBOT_ID) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStarredMessages({})
+      return
+    }
+    const room = [userId, activeContactId].sort().join('-')
+    let cancelled = false
+    supabase
+      .from('chat_stars')
+      .select('message_id')
+      .eq('user_id', userId)
+      .then(async ({ data, error }) => {
+        if (cancelled || error || !data || data.length === 0) return
+        const ids = data.map((r) => r.message_id)
+        const { data: msgs } = await supabase.from('direct_messages').select('*').in('id', ids)
+        if (cancelled || !msgs) return
+        const map = {}
+        msgs.forEach((m) => { map[m.id] = m })
+        setStarredMessages((prev) => ({ ...prev, [room]: map }))
+      })
+    return () => { cancelled = true }
+  }, [userId, activeContactId])
+
+  useEffect(() => {
+    if (!userId || contacts.length === 0) return
+    const contactIds = contacts.map((c) => c.id).filter((id) => id !== HUNIBOT_ID)
+    if (contactIds.length === 0) return
+    supabase
+      .from('profiles')
+      .select('id, last_seen_at')
+      .in('id', contactIds)
+      .then(({ data, error }) => {
+        if (error || !data) return
+        const map = {}
+        data.forEach((p) => { if (p.last_seen_at) map[p.id] = p.last_seen_at })
+        setLastSeenMap(map)
+      })
+      .catch(() => {})
+    const ch = supabase
+      .channel('profile-last-seen')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=in.(${contactIds.join(',')})` }, (payload) => {
+        if (payload.new?.last_seen_at) {
+          setLastSeenMap((prev) => ({ ...prev, [payload.new.id]: payload.new.last_seen_at }))
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [userId, contacts])
+
+  useEffect(() => {
+    if (!userId) return
+    const ch = supabase
+      .channel('chat-presence-track')
+      .on('presence', { event: 'sync' }, () => {
+        const state = ch.presenceState()
+        const users = Object.values(state).flat().map((p) => p.userId).filter(Boolean)
+        setOnlineIds(() => {
+          const next = {}
+          users.forEach((id) => { next[id] = true })
+          return next
+        })
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') ch.track({ userId })
+      })
+    const timer = setInterval(() => {
+      // Update last_seen_at periodically (throttled) while user is active on the page
+      if (document.visibilityState === 'visible') {
+        supabase.from('profiles').update({ last_seen_at: new Date().toISOString() }).eq('id', userId).then(() => {}).catch(() => {})
+      }
+    }, 60000)
+    return () => {
+      supabase.removeChannel(ch)
+      clearInterval(timer)
+    }
+  }, [userId])
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      setMessageMenu(null)
+      setReactionPickerMsg(null)
+      setReactionsSummary(null)
+      setShowNewChat(false)
+      setChatSearchOpen(false)
+      setDeleteTarget(null)
+      if (imagePreviewOpen) setImagePreviewOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [imagePreviewOpen])
+
+  useEffect(() => {
     if (!userId) return
     realtimeCancelledRef.current = false
 
@@ -1148,7 +1427,18 @@ export default function ChatHubPage() {
 
           if (!isActive && msg.content) {
             const senderName = contactsRef.current.find(c => c.id === otherId)?.first_name || 'Seseorang'
-            if (!isAtBottomRef.current || !currentContactId) showToast(`${senderName}: ${msg.content.slice(0, 80)}`, 'info')
+            const isUnfocused = document.visibilityState !== 'visible'
+            if (!isAtBottomRef.current || !currentContactId || isUnfocused) {
+              showToast(`${senderName}: ${msg.content.slice(0, 80)}`, 'info')
+            }
+            const st = chatSettingsRef.current
+            const shouldNotify = st.sound !== false && (document.visibilityState !== 'visible' || !currentContactId)
+            if (shouldNotify) playMessageSound()
+            if (st.notifications && isUnfocused && 'Notification' in window && Notification.permission === 'granted') {
+              notifyNewMessage(senderName, msg.content.slice(0, 120))
+            } else if (st.sound !== false && !isUnfocused) {
+              playMessageSound()
+            }
           }
         }
       )
@@ -1522,6 +1812,99 @@ export default function ChatHubPage() {
     }
   }
 
+  function handleShowReactionSummary(emoji, reactions) {
+    const userIds = (reactions || []).filter((r) => r.emoji === emoji).map((r) => r.user_id)
+    const ids = userIds.filter((id) => id && id !== userId && !messageNamesMap[id])
+    setReactionsSummary({ emoji, reactions })
+    if (ids.length === 0) return
+    supabase.from('profiles').select('id, first_name').in('id', ids).then(({ data, error }) => {
+      if (error || !data) return
+      const map = {}
+      data.forEach((p) => { map[p.id] = p.first_name || 'User' })
+      setMessageNamesMap((prev) => ({ ...prev, ...map }))
+    }).catch(() => {})
+  }
+
+  function handleToggleStar(msg) {
+    if (!userId || !activeContactId || msg.sender_id !== userId) return
+    const room = [userId, activeContactId].sort().join('-')
+    if (starredMessages[room]?.[msg.id]) {
+      setStarredMessages((prev) => {
+        const next = { ...prev }
+        const roomStars = { ...(next[room] || {}) }
+        delete roomStars[msg.id]
+        if (Object.keys(roomStars).length === 0) delete next[room]
+        else next[room] = roomStars
+        return next
+      })
+      supabase.from('chat_stars').delete().eq('user_id', userId).eq('message_id', msg.id).then(() => {}).catch(() => {})
+      showToast('Bookmark dilepas', 'info')
+    } else {
+      setStarredMessages((prev) => ({ ...prev, [room]: { ...(prev[room] || {}), [msg.id]: msg } }))
+      supabase.from('chat_stars').insert({ user_id: userId, chat_id: room, message_id: msg.id }).then(() => {}).catch(() => {})
+      showToast('Pesan dibookmark', 'success')
+    }
+  }
+
+  function openReactionPicker(msg, e) {
+    if (!userId || !activeContactId || activeContactId === HUNIBOT_ID) return
+    const rect = e?.currentTarget?.getBoundingClientRect()
+    const top = (rect ? rect.bottom + 6 : 40)
+    const pos = rect ? { top, right: Math.max(8, window.innerWidth - rect.left - 10) } : { top: 40, right: 12 }
+    setReactionPickerPos(pos)
+    setReactionPickerMsg(msg)
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault()
+    if (!activeContactId || activeContactId === HUNIBOT_ID) return
+  }
+
+  function handleDragEnter(e) {
+    e.preventDefault()
+    if (dragCounter === 0) setDragging(true)
+    setDragCounter((c) => c + 1)
+  }
+
+  function handleDragLeave(e) {
+    e.preventDefault()
+    setDragCounter((c) => Math.max(0, c - 1))
+    if (dragCounter - 1 <= 0) setDragging(false)
+  }
+
+  async function handleDrop(e) {
+    e.preventDefault()
+    setDragCounter(0)
+    setDragging(false)
+    if (!activeContactId || activeContactId === HUNIBOT_ID) return
+    const file = e.dataTransfer?.files?.[0]
+    if (!file) return
+    if (!/^image\/(jpeg|png|webp|avif)$/i.test(file.type)) {
+      showToast('Hanya file gambar (JPG, PNG, WEBP, AVIF) yang diperbolehkan.', 'error')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Ukuran file maksimal 5MB per gambar.', 'error')
+      return
+    }
+    if (pendingImageUrlRef.current) URL.revokeObjectURL(pendingImageUrlRef.current)
+    const url = URL.createObjectURL(file)
+    pendingImageUrlRef.current = url
+    setPendingImage(file)
+    setPendingImageUrl(url)
+    setCaption('')
+    setImagePreviewOpen(true)
+  }
+
+  function toggleChatSetting(key) {
+    const next = { ...chatSettings, [key]: !chatSettings[key] }
+    setChatSettings(next)
+    saveChatSettings(next)
+    if (key === 'notifications' && !next.notifications && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
+    }
+  }
+
   function handleExportChat() {
     if (!activeContact || messages.length === 0) {
       showToast('Belum ada pesan untuk diekspor', 'info')
@@ -1871,7 +2254,7 @@ export default function ChatHubPage() {
 
   return (
     <>
-    <div className="h-[calc(100dvh-56px)] overflow-hidden bg-brand-bg flex flex-col">
+    <div className="h-[calc(100dvh-56px)] overflow-hidden bg-brand-bg flex flex-col relative">
       <div className="flex-1 flex flex-col lg:flex-row lg:max-w-7xl lg:mx-auto lg:w-full lg:border-x lg:border-brand-border overflow-hidden">
         {/* ─── Contact List ───────────────────────────────────── */}
         <div
@@ -1961,6 +2344,18 @@ export default function ChatHubPage() {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <ContactListSkeleton />
+            ) : contactsError && !loading ? (
+              <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <AlertTriangle size={32} className="text-brand-muted/40 mb-3" />
+                <p className="text-sm text-brand-muted leading-relaxed">{contactsError}</p>
+                <button
+                  type="button"
+                  onClick={() => { setContactsError(null); setContactsRetryCounter((c) => c + 1) }}
+                  className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-brand-accent border border-brand-accent/30 hover:bg-brand-accent/10 rounded-full px-4 py-2 transition-colors"
+                >
+                  <RefreshCw size={13} /> Coba lagi
+                </button>
+              </div>
             ) : visibleContacts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                 <MessageCircle size={32} className="text-brand-muted/40 mb-3" />
@@ -1979,6 +2374,7 @@ export default function ChatHubPage() {
                     isTyping={!!otherTypingContacts[contact.id]}
                     unread={contact.id !== activeContactId ? (unreadMap[contact.id] || 0) : 0}
                     isOnline={!!onlineIds[contact.id]}
+                    lastSeen={contact.id === HUNIBOT_ID ? null : (lastSeenMap[contact.id] || null)}
                   />
                 </div>
               ))
@@ -1988,6 +2384,10 @@ export default function ChatHubPage() {
 
         {/* ─── Chat Window ────────────────────────────────────── */}
         <div
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
           className={`${
             !showMobileList ? 'flex' : 'hidden'
           } lg:flex flex-col flex-1 min-h-0 bg-brand-surface/50`}
@@ -2093,7 +2493,12 @@ export default function ChatHubPage() {
                             : activeContact.role === 'developer' ? 'Developer'
                             : activeContact.role === 'owner' ? 'Owner'
                             : 'Pembeli'}
+                          {lastSeenMap[activeContact.id] && (
+                            <span> · Terakhir aktif {timeAgo(lastSeenMap[activeContact.id], i18n.language)}</span>
+                          )}
                         </p>
+                      ) : lastSeenMap[activeContact.id] ? (
+                        <p className="text-xs text-brand-muted">Terakhir aktif {timeAgo(lastSeenMap[activeContact.id], i18n.language)}</p>
                       ) : null}
                     </div>
                   </>
@@ -2102,10 +2507,28 @@ export default function ChatHubPage() {
                   <>
                     <button
                       type="button"
+                      onClick={() => toggleChatSetting('sound')}
+                      aria-label={chatSettings.sound ? 'Matikan suara notifikasi' : 'Nyalakan suara notifikasi'}
+                      title={chatSettings.sound ? 'Suara aktif' : 'Suara nonaktif'}
+                      className={`ml-auto p-2 rounded-full transition-colors ${chatSettings.sound ? 'text-brand-accent hover:bg-brand-bg' : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'}`}
+                    >
+                      <Volume2 size={18} className={chatSettings.sound ? '' : 'opacity-40'} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleChatSetting('notifications')}
+                      aria-label={chatSettings.notifications ? 'Nonaktifkan notifikasi' : 'Aktifkan notifikasi'}
+                      title={chatSettings.notifications ? 'Notifikasi aktif' : 'Notifikasi nonaktif'}
+                      className={`p-2 rounded-full transition-colors ${chatSettings.notifications ? 'text-brand-accent hover:bg-brand-bg' : 'text-brand-muted hover:text-brand-text hover:bg-brand-bg'}`}
+                    >
+                      <Bell size={18} className={chatSettings.notifications ? '' : 'opacity-40'} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={handleExportChat}
                       aria-label="Ekspor riwayat chat"
                       title="Ekspor riwayat chat"
-                      className="ml-auto p-2 rounded-full text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
+                      className="p-2 rounded-full text-brand-muted hover:text-brand-text hover:bg-brand-bg transition-colors"
                     >
                       <Download size={18} />
                     </button>
@@ -2190,6 +2613,18 @@ export default function ChatHubPage() {
                       </div>
                     </div>
                   </div>
+                ) : messages.length === 0 && messagesError ? (
+                  <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+                    <AlertTriangle size={28} className="text-brand-muted/50 mb-3" />
+                    <p className="text-sm text-brand-muted">{messagesError}</p>
+                    <button
+                      type="button"
+                      onClick={() => { setMessagesError(null); setMessagesRetryCounter((c) => c + 1) }}
+                      className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-brand-accent border border-brand-accent/30 hover:bg-brand-accent/10 rounded-full px-4 py-2 transition-colors"
+                    >
+                      <RefreshCw size={13} /> Coba lagi
+                    </button>
+                  </div>
                 ) : messages.length === 0 ? (
                   <EmptyChat contactName={activeContact.first_name} onSuggested={handleSuggested} property={contextProperty} />
                 ) : (
@@ -2272,6 +2707,10 @@ export default function ChatHubPage() {
                               myId={userId}
                               onReact={handleToggleReaction}
                               onJumpToMessage={handleJumpToMessage}
+                              isStarred={!!starredMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
+                              onToggleStar={() => handleToggleStar(msg)}
+                              onShowSummary={handleShowReactionSummary}
+                              onOpenReactionPicker={openReactionPicker}
                             />
                           )}
                         </div>
@@ -2715,6 +3154,16 @@ export default function ChatHubPage() {
             {messageMenu.sender_id === userId && (
               <button
                 type="button"
+                onClick={() => { handleToggleStar(messageMenu); setMessageMenu(null) }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-bg transition-colors text-sm font-semibold text-brand-text text-left"
+              >
+                <Star size={17} className={messageMenuStarred ? 'text-amber-500 fill-amber-500 shrink-0' : 'text-brand-accent shrink-0'} />
+                {messageMenuStarred ? 'Lepas Bookmark' : 'Bookmark'}
+              </button>
+            )}
+            {messageMenu.sender_id === userId && (
+              <button
+                type="button"
                 onClick={() => { setDeleteTarget(messageMenu.id); setMessageMenu(null) }}
                 className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-brand-danger/10 transition-colors text-sm font-semibold text-brand-danger text-left"
               >
@@ -2736,6 +3185,31 @@ export default function ChatHubPage() {
       cancelText="Batal"
       loading={deleting}
     />
+    {reactionPickerMsg && (
+      <ReactionPicker
+        onPick={handleToggleReaction}
+        onClose={() => setReactionPickerMsg(null)}
+        style={reactionPickerPos}
+      />
+    )}
+    {reactionsSummary && (
+      <ReactionSummary
+        emoji={reactionsSummary.emoji}
+        reactions={reactionsSummary.reactions}
+        myId={userId}
+        namesMap={messageNamesMap}
+        onClose={() => setReactionsSummary(null)}
+      />
+    )}
+    {dragging && activeContactId && activeContactId !== HUNIBOT_ID && (
+      <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-brand-primary/10 backdrop-blur-[1px] animate-fadeIn">
+        <div className="flex flex-col items-center gap-3 px-8 py-6 rounded-2xl border-2 border-dashed border-brand-accent bg-brand-surface/90 shadow-xl">
+          <UploadCloud size={36} className="text-brand-accent" />
+          <p className="text-sm font-semibold text-brand-text">Lepaskan untuk mengirim gambar</p>
+          <p className="text-xs text-brand-muted">JPG, PNG, WEBP, AVIF — maks. 5MB</p>
+        </div>
+      </div>
+    )}
     </>
   )
 }
