@@ -503,13 +503,13 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
                 onClick={(e) => onOpenReactionPicker?.(message, e)}
                 aria-label="Beri reaksi"
                 title="Beri reaksi"
-                className="absolute bottom-2 right-2 hidden group-hover/message:flex w-6 h-6 rounded-full bg-white border border-brand-border shadow text-sm items-center justify-center hover:scale-110 transition-transform"
+                className="absolute bottom-2 right-2 hidden group-hover/message:flex group-focus-within/message:flex w-6 h-6 rounded-full bg-white border border-brand-border shadow text-sm items-center justify-center hover:scale-110 transition-transform"
               >
                 😊
               </button>
             )}
           </div>
-          <div className={`mt-1 hidden lg:flex items-center gap-1 opacity-0 group-hover/message:opacity-100 transition-opacity ${isOwn ? 'justify-end' : 'justify-start'}`}>
+          <div className={`mt-1 hidden lg:flex items-center gap-1 opacity-0 group-hover/message:opacity-100 group-focus-within/message:opacity-100 transition-opacity ${isOwn ? 'justify-end' : 'justify-start'}`}>
             <button
               type="button"
               onClick={() => onReply?.(message)}
@@ -625,6 +625,11 @@ const ContactItem = memo(function ContactItem({ contact, isActive, onClick, lang
             <>
               {isHunibot ? (
                 <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gradient-to-r from-brand-primary to-[#7C3AED] text-white shrink-0">{roleLabel}</span>
+              ) : isOnline ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 shrink-0">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Online
+                </span>
               ) : contact.role && (
                 <span className="text-[10px] font-medium text-brand-accent shrink-0">{roleLabel}</span>
               )}
@@ -694,6 +699,11 @@ function EmptyChat({ contactName, onSuggested, property }) {
             </button>
           ))}
         </div>
+      )}
+      {contactName && (
+        <p className="mt-6 w-full max-w-xs border-t border-brand-border pt-4 text-[11px] text-brand-muted leading-relaxed">
+          Tip: kirim <span className="font-semibold text-brand-text">gambar</span> dengan drag &amp; drop atau tombol +, lampirkan <span className="font-semibold text-brand-text">dokumen</span>, dan bagikan <span className="font-semibold text-brand-text">kartu properti</span>.
+        </p>
       )}
     </div>
   )
