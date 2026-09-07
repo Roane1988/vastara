@@ -22,6 +22,12 @@ Kirim teks/gambar/properti (`handleSend`/`handleSendImage` — opt-in `temp-*` i
 - **Race duplikat sudah diamankan** oleh guard `sender_id === userId` (INSERT) + dedup `prev.some(id)` — pesan optimistik `temp-*` tidak dobel.
 - **PAGE_SIZE = 50**; `hasMore` di-set dari `data.length === PAGE_SIZE`.
 
+## Changelog — Chat: Layout Responsif Optimasi Desktop Layar Lebar (7 September 2026)
+- **Container chat lebih luas**: distribusi panel kini memakai ruang layar besar secara maksimal — lebar kawasan chat naik dari cap `lg:max-w-7xl` (1280px) menjadi **`2xl:max-w-[1600px]`** di viewport ≥1536px, sehingga margin kosong di kiri/kanan berkurang drastis di monitor lebar/ultra-wide (`ChatHubPage.jsx`).
+- **Panel kontak lebih lega**: `lg:w-80` (320px) → **`xl:w-96` (384px)** — avatar, nama, preview pesan, chip unread & bookmark star punya ruang lebih sehingga tidak terpotong di desktop.
+- **Bubble pesan lebih lebar di layar besar**: batas `lg:max-w-[65%]` dinaikkan ke **`xl:max-w-[70%]`** — pesan teks & lampiran media memanfaatkan area chat yang lebih luas tanpa menyempit secara proporsional.
+- **Murni frontend**, tanpa migration/DB. Commit: `2205ec2`.
+
 ## Changelog — Chat: Bookmark (Star), Ringkasan & Picker Reaksi, Drag-Drop Gambar, Sound/Notifikasi, Last Seen, Error State (7 September 2026)
 - **Bookmark/star pesan** (`ChatHubPage.jsx`, migration `20260907_chat_starred_messages.sql`): tabel baru `chat_stars` (`id`, `user_id` FK→auth.users cascade, `chat_id` text = room `[a,b].sort().join('-')`, `message_id` FK→direct_messages cascade, `created_at`, unique `(user_id, message_id)`, RLS owner-only + index `(user_id, chat_id)`). Star hanya untuk **pesan kiriman sendiri** (`msg.sender_id === userId`); toggle lewat ikon ⭐ di hover bubble, menu aksi **Bookmark/Lepas Bookmark**, badge bintang amber di bubble + toast; stars di-load dikelompokkan per room (`select message_id, chat_id`) agar bookmark lintas percakapan akurat.
 - **Ringkasan reaksi + reaction picker**: klik badge reaksi → bottom sheet `ReactionSummary` (daftar pengguna per emoji via `messageNamesMap`, "Kamu" diurutkan pertama); hover/tap 😊 di bubble → `ReactionPicker` (6 emoji `REACTION_EMOJIS`: 👍❤️😂😮😢🔥) dengan posisi mengikuti elemen, tutup via Esc. Di-guard untuk room HuniBot.
