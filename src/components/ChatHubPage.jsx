@@ -3246,7 +3246,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
               {/* Input Bar */}
               <form
                 onSubmit={handleSend}
-                className="shrink-0 flex items-end gap-2 px-4 pt-3 pb-[env(safe-area-inset-bottom)] border-t border-brand-border bg-brand-surface"
+                className="shrink-0 flex items-end gap-2 px-4 pt-2 pb-[max(0.5rem,min(env(safe-area-inset-bottom),1.25rem))] border-t border-brand-border bg-brand-surface"
               >
                 <div ref={plusMenuRef} className="relative shrink-0">
                   <button
