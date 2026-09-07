@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../supabaseClient'
@@ -13,6 +13,8 @@ import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
 
 const HUNIBOT_ID = 'hunibot'
+
+const EMPTY_ARRAY = []
 
 const HUNIBOT_CONTACT = {
   id: HUNIBOT_ID,
@@ -120,7 +122,7 @@ function getFileIcon(mime, name) {
   return { Icon: File, color: '#94a3b8' }
 }
 
-function DateSeparator({ date }) {
+const DateSeparator = memo(function DateSeparator({ date }) {
   return (
     <div className="flex items-center justify-center my-4 px-4">
       <span className="text-[10px] font-semibold text-brand-muted bg-brand-surface border border-brand-border rounded-full px-3 py-1">
@@ -128,9 +130,9 @@ function DateSeparator({ date }) {
       </span>
     </div>
   )
-}
+})
 
-function TypingDots({ color }) {
+const TypingDots = memo(function TypingDots({ color }) {
   return (
     <span className="inline-flex items-center gap-1 px-1">
       {[0, 1, 2].map((i) => (
@@ -142,7 +144,7 @@ function TypingDots({ color }) {
       ))}
     </span>
   )
-}
+})
 
 function ReplySnippet({ message, className }) {
   if (!message || message.deleted_at) {
@@ -340,7 +342,7 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact, onJumpToMessage, onShowSummary, onToggleStar, isStarred, onOpenReactionPicker, onFileOpen }) {
+const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact, onJumpToMessage, onShowSummary, onToggleStar, isStarred, onOpenReactionPicker, onFileOpen }) {
   return (
     <div id={`message-${message.id}`} className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -518,9 +520,9 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
       </div>
     </div>
   )
-}
+})
 
-function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnline, lastSeen, bookmarkCount }) {
+const ContactItem = memo(function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnline, lastSeen, bookmarkCount }) {
   const isHunibot = contact.id === HUNIBOT_ID
   const avatarColor = isHunibot ? '#7C3AED' : getAvatarColor(contact.id)
   const initials = getInitials(contact.first_name)
@@ -596,7 +598,7 @@ function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnl
       </div>
     </button>
   )
-}
+})
 
 function ContactListSkeleton() {
   return (
@@ -907,6 +909,14 @@ export default function ChatHubPage() {
   const [lastSeenMap, setLastSeenMap] = useState({})
   const [messageNamesMap, setMessageNamesMap] = useState({})
 
+  const reactionsMapRef = useRef(reactionsMap)
+  reactionsMapRef.current = reactionsMap
+  const pinnedMessagesRef = useRef(pinnedMessages)
+  pinnedMessagesRef.current = pinnedMessages
+  const starredMessagesRef = useRef(starredMessages)
+  starredMessagesRef.current = starredMessages
+  const lastCleanupRoomRef = useRef(null)
+
   const activeContactIdRef = useRef(activeContactId)
   useEffect(() => {
     activeContactIdRef.current = activeContactId
@@ -920,9 +930,18 @@ export default function ChatHubPage() {
   const activeContact = contacts.find((c) => c.id === activeContactId) || (activeContactId === HUNIBOT_ID ? HUNIBOT_CONTACT : null)
   const isHunibotRoom = activeContactId === HUNIBOT_ID
 
-  const searchMatches = chatSearchQ.trim() && activeContactId
-    ? messages.filter((m) => m.content && m.content.toLowerCase().includes(chatSearchQ.trim().toLowerCase()))
-    : []
+  const searchMatches = useMemo(() => {
+    const q = chatSearchQ.trim().toLowerCase()
+    return q && activeContactId
+      ? messages.filter((m) => m.content && m.content.toLowerCase().includes(q))
+      : EMPTY_ARRAY
+  }, [messages, chatSearchQ, activeContactId])
+
+  const replyIndex = useMemo(() => {
+    const idx = new Map()
+    for (const m of messages) idx.set(m.id, m)
+    return idx
+  }, [messages])
 
   const messageMenuRoom = messageMenu && activeContactId ? [userId, activeContactId].sort().join('-') : null
   const messageMenuPinned = messageMenu && messageMenuRoom ? !!pinnedMessages[messageMenuRoom]?.[messageMenu.id] : false
@@ -955,12 +974,12 @@ export default function ChatHubPage() {
   }, [drafts, draftsStorageKey])
 
 
-  const starCountFor = (c) => {
+  const starCountFor = useCallback((c) => {
     if (c.id === HUNIBOT_ID) return 0
     return Object.keys(starredMessages[[userId, c.id].sort().join('-')] || {}).length
-  }
+  }, [starredMessages, userId])
 
-  const filteredContacts = contacts.filter((c) => {
+  const filteredContacts = useMemo(() => contacts.filter((c) => {
     const nameMatches = !searchQuery.trim() || (c.first_name || '').toLowerCase().includes(searchQuery.toLowerCase())
     if (!nameMatches) return false
     if (contactFilter === 'all') return true
@@ -969,14 +988,17 @@ export default function ChatHubPage() {
     if (contactFilter === 'owner') return c.role === 'owner'
     if (contactFilter === 'bookmark') return starCountFor(c) > 0
     return true
-  })
+  }), [contacts, searchQuery, contactFilter, unreadMap, starCountFor])
 
   const hunibotVisible =
     contactFilter === 'all' ||
     (contactFilter === 'agent') ||
     (!searchQuery.trim() || 'hunibot'.includes(searchQuery.toLowerCase()) || 'AI'.toLowerCase().includes(searchQuery.toLowerCase()))
 
-  const visibleContacts = hunibotVisible ? [HUNIBOT_CONTACT, ...filteredContacts] : filteredContacts
+  const visibleContacts = useMemo(
+    () => (hunibotVisible ? [HUNIBOT_CONTACT, ...filteredContacts] : filteredContacts),
+    [hunibotVisible, filteredContacts]
+  )
 
   useEffect(() => {
     if (!userId) {
@@ -1146,9 +1168,16 @@ export default function ChatHubPage() {
       setSearchParams({}, { replace: true })
     })()
     return () => { cancelled = true }
-  }, [openUserId, contacts, setSearchParams])
+  }, [openUserId, contacts, setSearchParams, handleSelectContact])
 
   useEffect(() => {
+    const cleanupRoom = activeContactId && userId ? [userId, activeContactId].sort().join('-') : null
+    if (lastCleanupRoomRef.current !== cleanupRoom) {
+      lastCleanupRoomRef.current = cleanupRoom
+      setReactionsMap({})
+      setPinnedMessages({})
+    }
+
     if (!activeContactId || !userId || activeContactId === HUNIBOT_ID) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([])
@@ -1738,7 +1767,7 @@ export default function ChatHubPage() {
     el.style.height = `${Math.min(el.scrollHeight, 132)}px`
   }, [inputValue])
 
-  function handleSelectContact(contactId) {
+  const handleSelectContact = useCallback((contactId) => {
     setActiveContactId(contactId)
     loadedContactRef.current = null
     setShowMobileList(false)
@@ -1759,7 +1788,7 @@ export default function ChatHubPage() {
     setShareProperty(null)
     setReactionPickerMsg(null)
     setReactionsSummary(null)
-  }
+  }, [])
 
   function handleBackToList() {
     setShowMobileList(true)
@@ -1844,13 +1873,13 @@ export default function ChatHubPage() {
     inputRef.current?.focus()
   }
 
-  function handleReply(message) {
+  const handleReply = useCallback((message) => {
     setReplyTo(message)
     setPlusMenuOpen(false)
     inputRef.current?.focus()
-  }
+  }, [])
 
-  function handleJumpToMessage(messageId) {
+  const handleJumpToMessage = useCallback((messageId) => {
     const el = document.getElementById(`message-${messageId}`)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -1860,12 +1889,14 @@ export default function ChatHubPage() {
     } else {
       showToast('Pesan asli tidak ditemukan.', 'info')
     }
-  }
+  }, [showToast])
 
-  async function handleTogglePin(message) {
-    if (!userId || !activeContactId) return
-    const room = [userId, activeContactId].sort().join('-')
-    const isPinned = !!pinnedMessages[room]?.[message.id]
+  const handleTogglePin = useCallback(async (message) => {
+    if (!userId) return
+    const contactId = activeContactIdRef.current
+    if (!contactId) return
+    const room = [userId, contactId].sort().join('-')
+    const isPinned = !!pinnedMessagesRef.current[room]?.[message.id]
     if (isPinned) {
       const { error } = await supabase.from('pinned_messages').delete().eq('user_id', userId).eq('message_id', message.id)
       if (!error) {
@@ -1886,13 +1917,13 @@ export default function ChatHubPage() {
         showToast('Pesan disematkan', 'success')
       }
     }
-  }
+  }, [userId, showToast])
 
-  function handleToggleReaction(messageId, emoji) {
+  const handleToggleReaction = useCallback((messageId, emoji) => {
     if (!userId) return
     const targetId = activeContactIdRef.current
     const room = targetId ? [userId, targetId].sort().join('-') : null
-    const existing = room && (reactionsMap[room]?.[messageId] || []).find((r) => r.user_id === userId && r.emoji === emoji)
+    const existing = room && (reactionsMapRef.current[room]?.[messageId] || []).find((r) => r.user_id === userId && r.emoji === emoji)
     if (existing) {
       setReactionsMap((prev) => {
         if (!room) return prev
@@ -1913,9 +1944,9 @@ export default function ChatHubPage() {
       supabase.from('message_reactions').insert({ message_id: messageId, user_id: userId, emoji }).then(() => {}).catch(() => {})
     }
     setReactionPickerMsg(null)
-  }
+  }, [userId])
 
-  function handleShowReactionSummary(emoji, reactions) {
+  const handleShowReactionSummary = useCallback((emoji, reactions) => {
     const userIds = (reactions || []).filter((r) => r.emoji === emoji).map((r) => r.user_id)
     const ids = userIds.filter((id) => id && id !== userId && !messageNamesMap[id])
     setReactionsSummary({ emoji, reactions })
@@ -1926,12 +1957,14 @@ export default function ChatHubPage() {
       data.forEach((p) => { map[p.id] = p.first_name || 'User' })
       setMessageNamesMap((prev) => ({ ...prev, ...map }))
     }).catch(() => {})
-  }
+  }, [userId, messageNamesMap])
 
-  function handleToggleStar(msg) {
-    if (!userId || !activeContactId || msg.sender_id !== userId) return
-    const room = [userId, activeContactId].sort().join('-')
-    if (starredMessages[room]?.[msg.id]) {
+  const handleToggleStar = useCallback((msg) => {
+    if (!userId) return
+    const contactId = activeContactIdRef.current
+    if (!contactId || msg.sender_id !== userId) return
+    const room = [userId, contactId].sort().join('-')
+    if (starredMessagesRef.current[room]?.[msg.id]) {
       setStarredMessages((prev) => {
         const next = { ...prev }
         const roomStars = { ...(next[room] || {}) }
@@ -1947,10 +1980,12 @@ export default function ChatHubPage() {
       supabase.from('chat_stars').insert({ user_id: userId, chat_id: room, message_id: msg.id }).then(() => {}).catch(() => {})
       showToast('Pesan dibookmark', 'success')
     }
-  }
+  }, [userId, showToast])
 
-  function openReactionPicker(msg, e) {
-    if (!userId || !activeContactId || activeContactId === HUNIBOT_ID) return
+  const openReactionPicker = useCallback((msg, e) => {
+    if (!userId) return
+    const contactId = activeContactIdRef.current
+    if (!contactId || contactId === HUNIBOT_ID) return
     const PICKER_W = 216
     const PICKER_H = 46
     const vw = window.innerWidth || document.documentElement.clientWidth || 1024
@@ -1981,7 +2016,7 @@ export default function ChatHubPage() {
       })
     }
     setReactionPickerMsg(msg)
-  }
+  }, [userId])
 
   function handleDragOver(e) {
     e.preventDefault()
@@ -2096,7 +2131,7 @@ export default function ChatHubPage() {
     setCurrentSearchIndex((prev) => (prev + 1) % searchMatches.length)
   }
 
-  async function handleCopyMessage(msg) {
+  const handleCopyMessage = useCallback(async (msg) => {
     const text = msg.content || (msg.file_url ? (msg.file_name || 'Dokumen') : '')
     if (!text) {
       showToast('Tidak ada teks untuk disalin', 'info')
@@ -2123,7 +2158,7 @@ export default function ChatHubPage() {
         showToast('Gagal menyalin pesan', 'error')
       }
     }
-  }
+  }, [showToast])
 
   async function handleSend(e) {
     e?.preventDefault()
@@ -2390,10 +2425,10 @@ export default function ChatHubPage() {
     }
   }
 
-  function handleOpenFile(message) {
+  const handleOpenFile = useCallback((message) => {
     if (!message?.file_url) return
     window.open(message.file_url, '_blank', 'noopener,noreferrer')
-  }
+  }, [])
 
   function handleInputChange(e) {
     const val = e.target.value
@@ -2928,7 +2963,7 @@ export default function ChatHubPage() {
                       const newDay = !prev || dayLabel(prev.created_at) !== dayLabel(msg.created_at)
                       const firstInGroup = !prev || prev.sender_id !== msg.sender_id || newDay
                       const lastInGroup = !next || next.sender_id !== msg.sender_id || dayLabel(next.created_at) !== dayLabel(msg.created_at)
-                      const repliedMessage = msg.reply_to_id ? messages.find((m) => m.id === msg.reply_to_id) : null
+                      const repliedMessage = msg.reply_to_id ? replyIndex.get(msg.reply_to_id) : null
                       const isUnreadStart = unreadDividerAt
                         && msg.sender_id === activeContactId
                         && new Date(msg.created_at) >= new Date(unreadDividerAt)
@@ -2978,12 +3013,12 @@ export default function ChatHubPage() {
                               onMoreClick={setMessageMenu}
                               onCopy={handleCopyMessage}
                               isFlashed={msg.id === flashMessageId}
-                              reactions={reactionsMap[[userId, activeContactId].sort().join('-')]?.[msg.id] || []}
+                              reactions={reactionsMap[[userId, activeContactId].sort().join('-')]?.[msg.id] || EMPTY_ARRAY}
                               myId={userId}
                               onReact={handleToggleReaction}
                               onJumpToMessage={handleJumpToMessage}
                               isStarred={!!starredMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
-                              onToggleStar={() => handleToggleStar(msg)}
+                              onToggleStar={handleToggleStar}
                               onShowSummary={handleShowReactionSummary}
                               onOpenReactionPicker={openReactionPicker}
                               onFileOpen={handleOpenFile}
