@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell } from 'lucide-react'
+import { Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
@@ -103,6 +103,23 @@ function getDownloadFileName(url) {
   return 'gambar-hunione.jpg'
 }
 
+function formatFileSize(bytes) {
+  if (!bytes || bytes <= 0) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function getFileIcon(mime, name) {
+  const n = (name || '').toLowerCase()
+  if (n.endsWith('.pdf')) return { Icon: FileText, color: '#ef4444' }
+  if (n.endsWith('.doc') || n.endsWith('.docx')) return { Icon: FileText, color: '#3b82f6' }
+  if (n.endsWith('.xls') || n.endsWith('.xlsx') || mime?.includes('spreadsheet')) return { Icon: FileSpreadsheet, color: '#22c55e' }
+  if (n.endsWith('.ppt') || n.endsWith('.pptx')) return { Icon: FileText, color: '#f59e0b' }
+  if (n.endsWith('.zip') || n.endsWith('.rar') || n.endsWith('.7z')) return { Icon: FileArchive, color: '#a855f7' }
+  return { Icon: File, color: '#94a3b8' }
+}
+
 function DateSeparator({ date }) {
   return (
     <div className="flex items-center justify-center my-4 px-4">
@@ -145,6 +162,14 @@ function ReplySnippet({ message, className }) {
         ) : (
           <span className="shrink-0 italic">[Gambar]</span>
         )}
+      </span>
+    )
+  }
+  if (message.file_url) {
+    return (
+      <span className={`flex items-center gap-1.5 min-w-0 ${className || ''}`}>
+        <FileText size={12} className="shrink-0 text-brand-accent" />
+        <span className="min-w-0 truncate">{message.file_name || 'Dokumen'}</span>
       </span>
     )
   }
@@ -315,7 +340,7 @@ function PropertyMessage({ propertyId }) {
   )
 }
 
-function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact, onJumpToMessage, onShowSummary, onToggleStar, isStarred, onOpenReactionPicker }) {
+function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, lastInGroup, otherName, otherColor, repliedMessage, highlight, onPin, isPinned, onImageClick, isSearchActive, onMoreClick, onCopy, isFlashed, reactions, myId, onReact, onJumpToMessage, onShowSummary, onToggleStar, isStarred, onOpenReactionPicker, onFileOpen }) {
   return (
     <div id={`message-${message.id}`} className={`animate-fadeIn flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${firstInGroup ? 'mt-3' : 'mt-0.5'}`}>
       {!isOwn && (
@@ -378,6 +403,32 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
                 onClick={() => onImageClick?.(message.image_url)}
                 className="mt-1 w-full h-auto max-h-72 object-cover rounded-xl cursor-pointer"
               />
+            )}
+            {message.file_url && (
+              <button
+                type="button"
+                onClick={() => onFileOpen?.(message)}
+                className="mt-1 w-full flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors group/file"
+                style={{
+                  borderColor: isOwn ? 'rgba(255,255,255,0.35)' : 'var(--color-brand-border)',
+                  backgroundColor: isOwn ? 'rgba(255,255,255,0.12)' : 'var(--color-brand-bg)',
+                }}
+                title={`Buka ${message.file_name || 'file'}`}
+              >
+                {(() => {
+                  const { Icon, color } = getFileIcon(message.file_type, message.file_name)
+                  return <Icon size={26} className="shrink-0" style={{ color: isOwn ? '#ffffff' : color }} />
+                })()}
+                <span className="min-w-0 flex-1">
+                  <span className={`block text-xs font-semibold truncate ${isOwn ? 'text-white' : 'text-brand-text'}`}>
+                    {message.file_name || 'Dokumen'}
+                  </span>
+                  <span className={`block text-[10px] ${isOwn ? 'text-white/70' : 'text-brand-muted'}`}>
+                    {formatFileSize(message.file_size)} · Buka & unduh
+                  </span>
+                </span>
+                <Download size={15} className={`shrink-0 ${isOwn ? 'text-white/80' : 'text-brand-muted'} group-hover/file:text-brand-accent transition-colors`} />
+              </button>
             )}
             {message.content && (
               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">
@@ -469,7 +520,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
   )
 }
 
-function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnline, lastSeen }) {
+function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnline, lastSeen, bookmarkCount }) {
   const isHunibot = contact.id === HUNIBOT_ID
   const avatarColor = isHunibot ? '#7C3AED' : getAvatarColor(contact.id)
   const initials = getInitials(contact.first_name)
@@ -510,9 +561,16 @@ function ContactItem({ contact, isActive, onClick, lang, isTyping, unread, isOnl
               {unread > 99 ? '99+' : unread}
             </span>
           ) : (
-            contact.last_message_at && (
-              <span className="text-[10px] text-brand-muted shrink-0">{timeAgo(contact.last_message_at, lang)}</span>
-            )
+            <span className="flex items-center gap-1.5 shrink-0">
+              {bookmarkCount > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-100/70 rounded-full px-1.5 py-0.5" title={`${bookmarkCount} pesan dibookmark`}>
+                  <Star size={9} className="fill-amber-500 text-amber-500" /> {bookmarkCount}
+                </span>
+              )}
+              {contact.last_message_at && (
+                <span className="text-[10px] text-brand-muted">{timeAgo(contact.last_message_at, lang)}</span>
+              )}
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
@@ -792,6 +850,7 @@ export default function ChatHubPage() {
   const [downloading, setDownloading] = useState(false)
   const [caption, setCaption] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
+  const [fileUploading, setFileUploading] = useState(false)
   const [shareProperty, setShareProperty] = useState(null)
   const [showPropertyPicker, setShowPropertyPicker] = useState(false)
   const [propertySearch, setPropertySearch] = useState('')
@@ -800,6 +859,8 @@ export default function ChatHubPage() {
   const [plusMenuOpen, setPlusMenuOpen] = useState(false)
   const [newMsgFAB, setNewMsgFAB] = useState(false)
   const [newMsgCount, setNewMsgCount] = useState(0)
+  const [unreadDividerAt, setUnreadDividerAt] = useState(null)
+  const unreadDividerContactRef = useRef(null)
   const [chatSearchOpen, setChatSearchOpen] = useState(false)
   const [chatSearchQ, setChatSearchQ] = useState('')
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0)
@@ -814,6 +875,7 @@ export default function ChatHubPage() {
   const [contactFilter, setContactFilter] = useState('all')
   const [markAllLoading, setMarkAllLoading] = useState(false)
   const fileInputRef = useRef(null)
+  const documentInputRef = useRef(null)
   const plusMenuRef = useRef(null)
   const pendingImageUrlRef = useRef(null)
   const isAtBottomRef = useRef(true)
@@ -882,6 +944,11 @@ export default function ChatHubPage() {
   }, [drafts, draftsStorageKey])
 
 
+  const starCountFor = (c) => {
+    if (c.id === HUNIBOT_ID) return 0
+    return Object.keys(starredMessages[[userId, c.id].sort().join('-')] || {}).length
+  }
+
   const filteredContacts = contacts.filter((c) => {
     const nameMatches = !searchQuery.trim() || (c.first_name || '').toLowerCase().includes(searchQuery.toLowerCase())
     if (!nameMatches) return false
@@ -889,6 +956,7 @@ export default function ChatHubPage() {
     if (contactFilter === 'unread') return (unreadMap[c.id] || 0) > 0
     if (contactFilter === 'agent') return ['agent', 'developer', 'admin'].includes(c.role)
     if (contactFilter === 'owner') return c.role === 'owner'
+    if (contactFilter === 'bookmark') return starCountFor(c) > 0
     return true
   })
 
@@ -1174,6 +1242,18 @@ export default function ChatHubPage() {
   useEffect(() => {
     if (!activeContactId || !userId || activeContactId === HUNIBOT_ID) return
     const markRead = async () => {
+      const { data: firstUnread } = await supabase
+        .from('direct_messages')
+        .select('created_at')
+        .eq('receiver_id', userId)
+        .eq('sender_id', activeContactId)
+        .is('read_at', null)
+        .order('created_at', { ascending: true })
+        .limit(1)
+      if (firstUnread && firstUnread.length > 0 && unreadDividerContactRef.current !== activeContactId) {
+        unreadDividerContactRef.current = activeContactId
+        setUnreadDividerAt(firstUnread[0].created_at)
+      }
       setMessages((prev) => prev.map((m) => (m.sender_id === activeContactId && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m)))
       const { error } = await supabase
         .from('direct_messages')
@@ -1186,6 +1266,10 @@ export default function ChatHubPage() {
       }
     }
     markRead()
+    return () => {
+      unreadDividerContactRef.current = null
+      setUnreadDividerAt(null)
+    }
   }, [activeContactId, userId])
 
   useEffect(() => {
@@ -1267,28 +1351,28 @@ export default function ChatHubPage() {
   }, [userId, activeContactId])
 
   useEffect(() => {
-    if (!userId || !activeContactId || activeContactId === HUNIBOT_ID) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStarredMessages({})
-      return
-    }
-    const room = [userId, activeContactId].sort().join('-')
+    if (!userId) return
     let cancelled = false
     supabase
       .from('chat_stars')
-      .select('message_id')
+      .select('message_id, chat_id')
       .eq('user_id', userId)
       .then(async ({ data, error }) => {
         if (cancelled || error || !data || data.length === 0) return
         const ids = data.map((r) => r.message_id)
         const { data: msgs } = await supabase.from('direct_messages').select('*').in('id', ids)
         if (cancelled || !msgs) return
-        const map = {}
-        msgs.forEach((m) => { map[m.id] = m })
-        setStarredMessages((prev) => ({ ...prev, [room]: map }))
+        const grouped = {}
+        data.forEach((r) => {
+          const m = msgs.find((x) => x.id === r.message_id)
+          if (!m) return
+          if (!grouped[r.chat_id]) grouped[r.chat_id] = {}
+          grouped[r.chat_id][m.id] = m
+        })
+        setStarredMessages((prev) => ({ ...prev, ...grouped }))
       })
     return () => { cancelled = true }
-  }, [userId, activeContactId])
+  }, [userId])
 
   useEffect(() => {
     if (!userId || contacts.length === 0) return
@@ -1553,6 +1637,8 @@ export default function ChatHubPage() {
     if (nearBottom) {
       setNewMsgFAB(false)
       setNewMsgCount(0)
+      setUnreadDividerAt(null)
+      unreadDividerContactRef.current = activeContactId || null
     }
   }
 
@@ -1563,6 +1649,8 @@ export default function ChatHubPage() {
     isAtBottomRef.current = true
     setNewMsgFAB(false)
     setNewMsgCount(0)
+    setUnreadDividerAt(null)
+    unreadDividerContactRef.current = activeContactId || null
   }
 
   useEffect(() => {
@@ -1913,7 +2001,7 @@ export default function ChatHubPage() {
     const rows = messages.map((m) => {
       const sender = m.sender_id === userId ? 'Saya' : (activeContact.first_name || 'Lawan bicara')
       const time = new Date(m.created_at).toLocaleString('id-ID')
-      const content = m.image_url ? '[Gambar]' : m.property_id ? '[Kartu properti]' : (m.content || '').replace(/[\r\n]+/g, ' ')
+      const content = m.image_url ? '[Gambar]' : m.file_url ? (m.file_name || '[Dokumen]') : m.property_id ? '[Kartu properti]' : (m.content || '').replace(/[\r\n]+/g, ' ')
       return `${time};${sender};${content}`
     })
     const csv = '\uFEFF' + ['Waktu;Pengirim;Pesan', ...rows].join('\n')
@@ -1969,13 +2057,14 @@ export default function ChatHubPage() {
   }
 
   async function handleCopyMessage(msg) {
-    if (!msg?.content) {
+    const text = msg.content || (msg.file_url ? (msg.file_name || 'Dokumen') : '')
+    if (!text) {
       showToast('Tidak ada teks untuk disalin', 'info')
       return
     }
     const copyText = () => {
       const ta = document.createElement('textarea')
-      ta.value = msg.content
+      ta.value = text
       ta.style.position = 'fixed'
       ta.style.opacity = '0'
       document.body.appendChild(ta)
@@ -2002,6 +2091,9 @@ export default function ChatHubPage() {
     const text = inputValue.trim()
     const hasContent = text || pendingImage || shareProperty
     if (!hasContent || !userId || !activeContactId || sending || imageUploading) return
+
+    setUnreadDividerAt(null)
+    unreadDividerContactRef.current = activeContactId
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     typingChannelRef.current?.untrack()
@@ -2143,6 +2235,124 @@ export default function ChatHubPage() {
         setImageUploading(false)
       }
     }
+  }
+
+  function openDocumentPicker() {
+    setPlusMenuOpen(false)
+    documentInputRef.current?.click()
+  }
+
+  async function uploadChatFile(file) {
+    const safeName = (file.name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_')
+    const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`
+    const { error: uploadErr } = await supabase.storage
+      .from('CHAT_FILES')
+      .upload(fileName, file, { contentType: file.type || 'application/octet-stream', upsert: false })
+    if (uploadErr) throw new Error(uploadErr.message)
+    const { data: { publicUrl } } = supabase.storage.from('CHAT_FILES').getPublicUrl(fileName)
+    return { url: publicUrl, name: file.name, size: file.size, type: file.type || '' }
+  }
+
+  async function handlePickDocument(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const allowed = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'text/csv',
+    ]
+    if (!allowed.includes(file.type)) {
+      showToast('Format dokumen tidak didukung (PDF, DOC, XLS, PPT, TXT, CSV).', 'error')
+      return
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      showToast('Ukuran file maksimal 20MB per dokumen.', 'error')
+      return
+    }
+    await sendFileMessage(file)
+  }
+
+  async function sendFileMessage(file) {
+    if (activeContactId === HUNIBOT_ID) return
+    if (!userId || !activeContactId || sending || imageUploading || fileUploading) return
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    typingChannelRef.current?.untrack()
+
+    setFileUploading(true)
+    let uploaded
+    try {
+      uploaded = await uploadChatFile(file)
+    } catch (err) {
+      if (sendMountedRef.current) {
+        showToast('Gagal mengunggah file: ' + (err.message || 'coba lagi'), 'error')
+      }
+      setFileUploading(false)
+      return
+    }
+
+    const optimisticMsg = {
+      id: `temp-${Date.now()}`,
+      sender_id: userId,
+      receiver_id: activeContactId,
+      content: '',
+      created_at: new Date().toISOString(),
+      read_at: null,
+      reply_to_id: replyTo?.id || null,
+      image_url: null,
+      property_id: null,
+      file_url: uploaded.url,
+      file_name: uploaded.name,
+      file_size: uploaded.size,
+      file_type: uploaded.type,
+    }
+    setMessages(prev => [...prev, optimisticMsg])
+    setReplyTo(null)
+    inputRef.current?.focus()
+    setUnreadDividerAt(null)
+    unreadDividerContactRef.current = activeContactId
+
+    try {
+      const { data, error } = await supabase.from('direct_messages').insert({
+        sender_id: userId,
+        receiver_id: activeContactId,
+        content: '',
+        reply_to_id: optimisticMsg.reply_to_id,
+        file_url: optimisticMsg.file_url,
+        file_name: optimisticMsg.file_name,
+        file_size: optimisticMsg.file_size,
+        file_type: optimisticMsg.file_type,
+      }).select()
+
+      if (!sendMountedRef.current) return
+
+      if (error) {
+        showToast(error.message, 'error')
+        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
+      } else if (data?.[0]) {
+        setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
+      }
+    } catch (err) {
+      if (sendMountedRef.current) {
+        showToast(err.message || 'Gagal mengirim file', 'error')
+        setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
+      }
+    } finally {
+      if (sendMountedRef.current) {
+        setFileUploading(false)
+      }
+    }
+  }
+
+  function handleOpenFile(message) {
+    if (!message?.file_url) return
+    window.open(message.file_url, '_blank', 'noopener,noreferrer')
   }
 
   function handleInputChange(e) {
@@ -2315,11 +2525,14 @@ export default function ChatHubPage() {
                   { key: 'unread', label: 'Belum dibaca' },
                   { key: 'agent', label: 'Agent' },
                   { key: 'owner', label: 'Owner' },
+                  { key: 'bookmark', label: 'Bookmark' },
                 ].map((f) => {
                   const count = f.key === 'all' ? contacts.length
                     : f.key === 'unread' ? contacts.filter((c) => (unreadMap[c.id] || 0) > 0).length
                     : f.key === 'agent' ? contacts.filter((c) => ['agent', 'developer', 'admin'].includes(c.role)).length
-                    : contacts.filter((c) => c.role === 'owner').length
+                    : f.key === 'owner' ? contacts.filter((c) => c.role === 'owner').length
+                    : f.key === 'bookmark' ? contacts.filter((c) => starCountFor(c) > 0).length
+                    : 0
                   const active = contactFilter === f.key
                   return (
                     <button
@@ -2332,6 +2545,9 @@ export default function ChatHubPage() {
                           : 'bg-brand-bg text-brand-muted border-brand-border hover:text-brand-text hover:border-brand-accent'
                       }`}
                     >
+                      {f.key === 'bookmark' && (
+                        <Star size={11} className={`inline -mt-0.5 mr-1 fill-current ${active ? 'opacity-100' : 'text-amber-500'}`} />
+                      )}
                       {f.label}
                       {count > 0 && <span className={`ml-1 ${active ? 'text-white/80' : 'text-brand-muted'}`}>{count}</span>}
                     </button>
@@ -2360,7 +2576,9 @@ export default function ChatHubPage() {
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                 <MessageCircle size={32} className="text-brand-muted/40 mb-3" />
                 <p className="text-sm text-brand-muted leading-relaxed">
-                  {searchQuery ? 'Kontak tidak ditemukan.' : 'Belum ada kontak. Mulai dengan menghubungi agen atau tim support.'}
+                  {searchQuery ? 'Kontak tidak ditemukan.'
+                    : contactFilter === 'bookmark' ? 'Belum ada pesan dibookmark. Tekan bintang pada pesan kiriman Anda untuk menyimpannya.'
+                    : 'Belum ada kontak. Mulai dengan menghubungi agen atau tim support.'}
                 </p>
               </div>
             ) : (
@@ -2375,6 +2593,7 @@ export default function ChatHubPage() {
                     unread={contact.id !== activeContactId ? (unreadMap[contact.id] || 0) : 0}
                     isOnline={!!onlineIds[contact.id]}
                     lastSeen={contact.id === HUNIBOT_ID ? null : (lastSeenMap[contact.id] || null)}
+                    bookmarkCount={starCountFor(contact)}
                   />
                 </div>
               ))
@@ -2642,7 +2861,7 @@ export default function ChatHubPage() {
                                 const pinned = pins[firstKey]
                                 return (
                                   <p className="text-xs text-brand-text truncate mt-0.5">
-                                    {pinned.image_url ? '[Gambar]' : pinned.property_id ? '[Kartu properti]' : pinned.content}
+                                    {pinned.image_url ? '[Gambar]' : pinned.file_url ? (pinned.file_name || '[Dokumen]') : pinned.property_id ? '[Kartu properti]' : pinned.content}
                                   </p>
                                 )
                               })()}
@@ -2670,9 +2889,25 @@ export default function ChatHubPage() {
                       const firstInGroup = !prev || prev.sender_id !== msg.sender_id || newDay
                       const lastInGroup = !next || next.sender_id !== msg.sender_id || dayLabel(next.created_at) !== dayLabel(msg.created_at)
                       const repliedMessage = msg.reply_to_id ? messages.find((m) => m.id === msg.reply_to_id) : null
+                      const isUnreadStart = unreadDividerAt
+                        && msg.sender_id === activeContactId
+                        && new Date(msg.created_at) >= new Date(unreadDividerAt)
+                        && (!prev
+                          || prev.sender_id !== msg.sender_id
+                          || new Date(prev.created_at) < new Date(unreadDividerAt))
                       return (
                         <div key={msg.id}>
                           {newDay && i > 0 && <DateSeparator date={dayLabel(msg.created_at)} />}
+                          {isUnreadStart && (
+                            <div className="flex items-center gap-2 my-3 px-4">
+                              <div className="flex-1 h-px bg-brand-accent/40" />
+                              <span className="flex items-center gap-1.5 text-[10px] font-bold text-brand-accent bg-brand-accent/10 rounded-full px-3 py-1">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-accent" />
+                                Pesan Baru
+                              </span>
+                              <div className="flex-1 h-px bg-brand-accent/40" />
+                            </div>
+                          )}
                           {msg.deleted_at ? (
                             <div id={`message-${msg.id}`} className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'} px-4 mt-3`}>
                               <div className={`rounded-2xl px-4 py-2 text-xs italic border ${
@@ -2711,6 +2946,7 @@ export default function ChatHubPage() {
                               onToggleStar={() => handleToggleStar(msg)}
                               onShowSummary={handleShowReactionSummary}
                               onOpenReactionPicker={openReactionPicker}
+                              onFileOpen={handleOpenFile}
                             />
                           )}
                         </div>
@@ -2811,6 +3047,13 @@ export default function ChatHubPage() {
                       >
                         <ImagePlus size={16} className="text-brand-accent shrink-0" /> Kirim gambar
                       </button>
+                      <button
+                        type="button"
+                        onClick={openDocumentPicker}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-brand-text hover:bg-brand-bg text-left"
+                      >
+                        <FileText size={16} className="text-brand-accent shrink-0" /> Kirim dokumen
+                      </button>
                     </div>
                   )}
                 </div>
@@ -2849,17 +3092,18 @@ export default function ChatHubPage() {
                 </div>
                 <button
                   type="submit"
-                  disabled={sending || imageUploading || (!inputValue.trim() && !pendingImage && !shareProperty)}
+                  disabled={sending || imageUploading || fileUploading || (!inputValue.trim() && !pendingImage && !shareProperty)}
                   className="shrink-0 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Kirim pesan"
                 >
-                  {sending || imageUploading ? (
+                  {sending || imageUploading || fileUploading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <Send size={16} />
                   )}
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePickImage} />
+                <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" hidden onChange={handlePickDocument} />
               </form>
               </>
               )}
