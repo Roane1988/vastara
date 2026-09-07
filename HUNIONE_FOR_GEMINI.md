@@ -1,6 +1,6 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 31 Agustus 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 7 September 2026.
 
 ## Analisis Arsitektur Fitur Chat — ChatHubPage.jsx (31 Agustus 2026)
 Ringkasan arsitektur & temuan dari analisis menyeluruh fitur chat realtime (2.490 baris, komponen multipanel: daftar kontak kiri + ruang chat kanan + panel kontak).
@@ -21,6 +21,27 @@ Kirim teks/gambar/properti (`handleSend`/`handleSendImage` — opt-in `temp-*` i
 - **`unreadMap` di-zero** saat `handleSelectContact`, `handleMarkAllRead`, dan `markRead` (bila buka chat). Konsisten dengan sidebar.
 - **Race duplikat sudah diamankan** oleh guard `sender_id === userId` (INSERT) + dedup `prev.some(id)` — pesan optimistik `temp-*` tidak dobel.
 - **PAGE_SIZE = 50**; `hasMore` di-set dari `data.length === PAGE_SIZE`.
+
+## Changelog — Chat: Bookmark (Star), Ringkasan & Picker Reaksi, Drag-Drop Gambar, Sound/Notifikasi, Last Seen, Error State (7 September 2026)
+- **Bookmark/star pesan** (`ChatHubPage.jsx`, migration `20260907_chat_starred_messages.sql`): tabel baru `chat_stars` (`id`, `user_id` FK→auth.users cascade, `chat_id` text = room `[a,b].sort().join('-')`, `message_id` FK→direct_messages cascade, `created_at`, unique `(user_id, message_id)`, RLS owner-only + index `(user_id, chat_id)`). Star hanya untuk **pesan kiriman sendiri** (`msg.sender_id === userId`); toggle lewat ikon ⭐ di hover bubble, menu aksi **Bookmark/Lepas Bookmark**, badge bintang amber di bubble + toast; stars di-load dikelompokkan per room (`select message_id, chat_id`) agar bookmark lintas percakapan akurat.
+- **Ringkasan reaksi + reaction picker**: klik badge reaksi → bottom sheet `ReactionSummary` (daftar pengguna per emoji via `messageNamesMap`, "Kamu" diurutkan pertama); hover/tap 😊 di bubble → `ReactionPicker` (6 emoji `REACTION_EMOJIS`: 👍❤️😂😮😢🔥) dengan posisi mengikuti elemen, tutup via Esc. Di-guard untuk room HuniBot.
+- **Drag & drop gambar**: drag file gambar (JPG/PNG/WEBP/AVIF, maks 5MB) ke area chat → overlay **"Lepaskan untuk mengirim gambar"** → langsung membuka `ImagePreviewModal` dengan caption. Validasi MIME/ukuran via toast error; guard `activeContactId === HUNIBOT_ID`.
+- **Pengaturan chat: sound & notifikasi** (`SETTINGS_KEY='hunione-chat-settings'` persist di localStorage): tombol `Volume2` dan `Bell` di header percakapan (aktif/nonaktif). Pesan masuk saat tab tak fokus → **suara beep (Web Audio)** bila `sound` aktif dan **Web Notification** bila `notifications` aktif (+ request permission saat diaktifkan); logika memakai `chatSettingsRef` agar handler realtime selalu membaca nilai terbaru.
+- **Last seen (`profiles.last_seen_at`)**: efek memuat `last_seen_at` semua kontak + subscribe realtime UPDATE `profiles`; kontak offline menampilkan **"Terakhir aktif X"** di daftar kontak & header percakapan. Presence channel rutin meng-update `last_seen_at` tiap 60 detik saat tab visible.
+- **Empty/error state + retry**: daftar kontak & riwayat pesan kini punya state error (icon) dengan tombol **"Coba lagi"** (`contactsRetryCounter`/`messagesRetryCounter` memicu ulang fetch); spinner & loading skeleton tetap.
+- **MessageBubble desktop action-bar**: tindakan hover **Reply / Copy / Pin / Bookmark** dengan ikon kecil; keyboard Esc global menutup semua overlay (menu pesan, reaction, summary, preview gambar, cari, modal hapus).
+- **Murni frontend + 1 migration**: `ChatHubPage.jsx`; migration `20260907_chat_starred_messages.sql` wajib dijalankan di SQL Editor Supabase. Commit: `a7fd344`.
+
+## Changelog — Chat: Pembatas "Pesan Baru", Filter Kontak Bookmark, dan Lampiran File PDF/Dokumen (7 September 2026)
+- **Pembatas "Pesan Baru" (unread divider)**: saat chat dibuka, posisi **pesan masuk pertama yang belum dibaca** ditangkap di `markRead` (sebelum `read_at` diisi) → garis pemisah "● Pesan Baru" dirender tepat di atas pesan pertama yang belum dibaca. Divider hilang otomatis saat scroll ke bawah (`handleMessagesScroll`/`scrollToBottom`) atau mengirim balasan, dan di-reset per kontak agar unread baru di sesi berikutnya tetap terdeteksi. **Murni frontend**, tanpa migration.
+- **Filter kontak Bookmark (star view)**: tab **"Bookmark"** baru di chip filter daftar kontak (ikon ⭐ kuning + jumlah kontak ber-star) → hanya menampilkan kontak yang punya pesan dibookmark (`starCountFor(c)` lewat room `[userId,c.id].sort().join('-')`). Kontak menampilkan **chip `⭐ N`** saat punya star; empty state khusus "Belum ada pesan dibookmark". Melengkapi fitur star (bookmark kini dapat ditelusuri lintas percakapan).
+- **Lampiran file PDF/dokumen** (`ChatHubPage.jsx`, migration `20260907_chat_file_attachments.sql`):
+  - Kolom baru `direct_messages`: `file_url`, `file_name`, `file_size`, `file_type`.
+  - Bucket storage **`CHAT_FILES`** (public, maks 20MB, whitelist PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX/TXT/CSV; policy upload/update/delete hanya folder `{auth.uid()}` — pola sama seperti `CHAT_IMAGES`).
+  - Menu plus (+) → **"Kirim dokumen"** → input file (`accept=".pdf,.doc,.docx,..."`) → upload `CHAT_FILES/{userId}/...` → kirim optimistik (realtime INSERT tetap skip pesan sendiri via `sender_id === userId`). Tombol kirim menampilkan spinner saat `fileUploading`.
+  - **Bubble file**: kartu lampiran berisi **ikon per jenis** (PDF merah, DOC biru, XLS hijau, PPT oranye, arsip ungu, umum abu — helper `getFileIcon`) + nama + ukuran (`formatFileSize`) + tombol buka/unduh (`handleOpenFile` → `window.open` URL publik).
+  - Integrasi penuh: preview balasan (`ReplySnippet`) & sematan menampilkan nama file, copy pesan file menyalin nama file, export CSV menulis `[Dokumen]`, `MessageBubble` menerima prop baru `onFileOpen`.
+- Migration `20260907_chat_file_attachments.sql` wajib dijalankan di SQL Editor Supabase sebelum fitur aktif. Commit: `d1fbb9d`.
 
 ## Changelog — Perbaikan Realtime Chat #2: Hapus Filter `or(...)` pada `postgres_changes` (31 Agustus 2026)
 - **Akar masalah baru**: selain masalah resubscribe (sudah diperbaiki sebelumnya), koneksi realtime masih gagal menangkap pesan karena `postgres_changes` tidak mendukung operator `or(...)` pada parameter `filter` (`filter: or(sender_id.eq...,receiver_id.eq...)`) → subscription diam-diam gagal menerima payload.

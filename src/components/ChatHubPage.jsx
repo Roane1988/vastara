@@ -355,7 +355,7 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
           )}
         </div>
       )}
-      <div className="relative w-full max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] overflow-hidden group/message">
+      <div className="relative w-full max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] xl:max-w-[70%] overflow-hidden group/message">
         <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
           <div className={`relative rounded-2xl px-4 py-2.5 shadow-sm min-w-0 max-w-full overflow-hidden ${
             isOwn
@@ -2465,12 +2465,12 @@ export default function ChatHubPage() {
   return (
     <>
     <div className="h-[calc(100dvh-56px)] overflow-hidden bg-brand-bg flex flex-col relative">
-      <div className="flex-1 flex flex-col lg:flex-row lg:max-w-7xl lg:mx-auto lg:w-full lg:border-x lg:border-brand-border overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row lg:max-w-7xl lg:mx-auto lg:w-full 2xl:max-w-[1600px] lg:border-x lg:border-brand-border overflow-hidden">
         {/* ─── Contact List ───────────────────────────────────── */}
         <div
           className={`${
             showMobileList ? 'flex' : 'hidden'
-          } lg:flex flex-col w-full lg:w-80 lg:border-r lg:border-brand-border bg-brand-surface`}
+          } lg:flex flex-col w-full lg:w-80 xl:w-96 lg:border-r lg:border-brand-border bg-brand-surface`}
         >
           <div className="flex items-center gap-3 px-4 h-14 border-b border-brand-border">
             <button
