@@ -22,6 +22,14 @@ Kirim teks/gambar/properti (`handleSend`/`handleSendImage` — opt-in `temp-*` i
 - **Race duplikat sudah diamankan** oleh guard `sender_id === userId` (INSERT) + dedup `prev.some(id)` — pesan optimistik `temp-*` tidak dobel.
 - **PAGE_SIZE = 50**; `hasMore` di-set dari `data.length === PAGE_SIZE`.
 
+## Changelog — Chat: Perbaikan Positioning ReactionPicker (7 September 2026)
+- **Gejala bug**: meng-hover/klik ikon reaksi 😊 di bubble pesan membuat `ReactionPicker` (menu 6 emoji) "terbang" ter-render di pojok kanan atas viewport, menimpa Top Navbar (& tidak berada di dekat pesan yang berinteraksi).
+- **Akar masalah**: `ReactionPicker` dirender di level root dengan `position: absolute`, sehingga kotak acuannya adalah div container chat (yang punya `relative`), **bukan** bubble pesan. Namun `openReactionPicker` menghitung koordinat dari `getBoundingClientRect()` yang berbasis **viewport** — offset Navbar (56px) dan offset kiri container (yang terpusat `lg:max-w-7xl`/`2xl:max-w-[1600px]`) tidak dikurangi. Akibatnya `top`/`right` meleset ke kanan-atas.
+- **Perbaikan** (`ChatHubPage.jsx`):
+  - Container root chat diberi `ref={chatRootRef}`; koordinat `top`/`right` kini dikonversi ke sistem koordinat container: `top = rect.bottom + 6 - rootRect.top` dan `right = rootRect.right - rect.left - 10` → posisi konsisten untuk pesan sendiri (kanan) maupun penerima (kiri), di semua ukuran layar.
+  - **Anti-potong `overflow-hidden`**: bila nilai `top` melebihi tinggi container dikurangi tinggi picker (40px), picker di-**flip ke atas** tombol (`top = rect.top - 6 - rootRect.top - PICKER_H`) agar tidak terpotong batas container.
+- **Murni frontend**, tanpa migration/DB. Commit: `5f8de2f`.
+
 ## Changelog — Chat: Layout Responsif Optimasi Desktop Layar Lebar (7 September 2026)
 - **Container chat lebih luas**: distribusi panel kini memakai ruang layar besar secara maksimal — lebar kawasan chat naik dari cap `lg:max-w-7xl` (1280px) menjadi **`2xl:max-w-[1600px]`** di viewport ≥1536px, sehingga margin kosong di kiri/kanan berkurang drastis di monitor lebar/ultra-wide (`ChatHubPage.jsx`).
 - **Panel kontak lebih lega**: `lg:w-80` (320px) → **`xl:w-96` (384px)** — avatar, nama, preview pesan, chip unread & bookmark star punya ruang lebih sehingga tidak terpotong di desktop.
