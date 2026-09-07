@@ -456,8 +456,8 @@ function MessageBubble({ message, isOwn, onDelete, onReply, lang, firstInGroup, 
             {onOpenReactionPicker && (
               <button
                 type="button"
-                onMouseEnter={() => onOpenReactionPicker?.(message)}
-                onClick={() => onOpenReactionPicker?.(message)}
+                onMouseEnter={(e) => onOpenReactionPicker?.(message, e)}
+                onClick={(e) => onOpenReactionPicker?.(message, e)}
                 aria-label="Beri reaksi"
                 title="Beri reaksi"
                 className="absolute bottom-2 right-2 hidden group-hover/message:flex w-6 h-6 rounded-full bg-white border border-brand-border shadow text-sm items-center justify-center hover:scale-110 transition-transform"
@@ -715,14 +715,25 @@ function renderReactionsRow(reactions, myId, onReact, onShowSummary) {
 }
 
 function ReactionPicker({ onPick, onClose, style }) {
+  const pickerRef = useRef(null)
   useEffect(() => {
     if (!style) return
     const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
+    const onDown = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) onClose?.()
+    }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('touchstart', onDown)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('touchstart', onDown)
+    }
   }, [style, onClose])
   return (
     <div
+      ref={pickerRef}
       className="fixed z-[60] flex items-center gap-0.5 bg-brand-surface border border-brand-border rounded-full shadow-xl px-1.5 py-1.5 animate-fadeIn"
       style={style}
       role="toolbar"
@@ -1632,6 +1643,7 @@ export default function ChatHubPage() {
   function handleMessagesScroll() {
     const el = messagesContainerRef.current
     if (!el) return
+    setReactionPickerMsg(null)
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60
     isAtBottomRef.current = nearBottom
     if (nearBottom) {
@@ -1745,6 +1757,8 @@ export default function ChatHubPage() {
     setPendingImage(null)
     setPendingImageUrl(null)
     setShareProperty(null)
+    setReactionPickerMsg(null)
+    setReactionsSummary(null)
   }
 
   function handleBackToList() {
@@ -1898,6 +1912,7 @@ export default function ChatHubPage() {
       })
       supabase.from('message_reactions').insert({ message_id: messageId, user_id: userId, emoji }).then(() => {}).catch(() => {})
     }
+    setReactionPickerMsg(null)
   }
 
   function handleShowReactionSummary(emoji, reactions) {
@@ -1936,16 +1951,30 @@ export default function ChatHubPage() {
 
   function openReactionPicker(msg, e) {
     if (!userId || !activeContactId || activeContactId === HUNIBOT_ID) return
+    const PICKER_W = 216
+    const PICKER_H = 46
+    const vw = window.innerWidth || document.documentElement.clientWidth || 1024
+    const vh = window.innerHeight || document.documentElement.clientHeight || 768
     const btn = e?.currentTarget
-    if (!btn) {
-      setReactionPickerPos({ top: 40, left: 12 })
-      setReactionPickerMsg(msg)
-      return
+    const rect = btn && typeof btn.getBoundingClientRect === 'function' ? btn.getBoundingClientRect() : null
+    const isValid = rect && Number.isFinite(rect.left) && Number.isFinite(rect.top) && rect.left >= 0 && rect.top >= 0 && rect.left <= vw && rect.top <= vh
+    if (vw < 768) {
+      const safeTop = window.visualViewport?.offsetTop || 0
+      setReactionPickerPos({
+        top: Math.max(8, vh - PICKER_H - 28 - safeTop),
+        left: Math.max(8, Math.floor((vw - PICKER_W) / 2)),
+      })
+    } else if (isValid) {
+      setReactionPickerPos({
+        top: Math.max(8, rect.top - PICKER_H - 10),
+        left: Math.max(8, Math.min(rect.left - 20, vw - PICKER_W - 8)),
+      })
+    } else {
+      setReactionPickerPos({
+        top: Math.max(8, Math.floor((vh - PICKER_H) / 2)),
+        left: Math.max(8, Math.floor((vw - PICKER_W) / 2)),
+      })
     }
-    const rect = btn.getBoundingClientRect()
-    const top = Math.max(8, rect.top - 50)
-    const left = Math.max(8, Math.min(rect.left - 20, window.innerWidth - 220))
-    setReactionPickerPos({ top, left })
     setReactionPickerMsg(msg)
   }
 
