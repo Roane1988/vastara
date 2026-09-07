@@ -998,6 +998,32 @@ export default function ChatHubPage() {
   const [unreadDividerAt, setUnreadDividerAt] = useState(null)
   const unreadDividerContactRef = useRef(null)
   const [chatSearchOpen, setChatSearchOpen] = useState(false)
+  const [chatVh, setChatVh] = useState(typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : undefined)
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+  const prevInnerHeightRef = useRef(typeof window !== 'undefined' ? window.innerHeight : 0)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    const update = () => {
+      const vh = vv?.height ?? window.innerHeight
+      setChatVh(vh)
+      const shrunk = prevInnerHeightRef.current - window.innerHeight
+      prevInnerHeightRef.current = window.innerHeight
+      const overlaid = window.innerHeight - vh
+      setKeyboardOpen(shrunk > 120 || overlaid > 120)
+    }
+    update()
+    vv?.addEventListener('resize', update)
+    vv?.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
+    return () => {
+      vv?.removeEventListener('resize', update)
+      vv?.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+      window.removeEventListener('orientationchange', update)
+    }
+  }, [])
   const [chatSearchQ, setChatSearchQ] = useState('')
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0)
   const [flashMessageId, setFlashMessageId] = useState(null)
@@ -2743,7 +2769,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
 
   return (
     <>
-    <div className="h-[calc(100dvh-56px)] overflow-hidden bg-brand-bg flex flex-col relative">
+    <div className="h-[calc(100dvh-56px)] overflow-hidden bg-brand-bg flex flex-col relative" style={{ height: chatVh ? `calc(${chatVh}px - 56px)` : undefined }}>
       <div className="flex-1 flex flex-col lg:flex-row lg:max-w-7xl lg:mx-auto lg:w-full 2xl:max-w-[1600px] lg:border-x lg:border-brand-border overflow-hidden">
         {/* ─── Contact List ───────────────────────────────────── */}
         <div
@@ -3302,7 +3328,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
               {/* Input Bar */}
               <form
                 onSubmit={handleSend}
-                className="shrink-0 flex items-end gap-2 px-4 pt-2 pb-[max(0.5rem,min(env(safe-area-inset-bottom),1.25rem))] border-t border-brand-border bg-brand-surface"
+                className={`shrink-0 flex items-end gap-2 px-4 pt-2 ${keyboardOpen ? 'pb-2' : 'pb-[max(0.5rem,min(env(safe-area-inset-bottom),1.25rem))]'} border-t border-brand-border bg-brand-surface`}
               >
                 <div ref={plusMenuRef} className="relative shrink-0">
                   <button
