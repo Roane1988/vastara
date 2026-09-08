@@ -2811,7 +2811,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
           </div>
 
           {contacts.length > 0 && (
-            <div className="px-4 py-2">
+            <div className="px-4 py-2 shrink-0">
               <div className="flex items-center gap-2 px-3 py-2 bg-brand-bg border border-brand-border rounded-lg">
                 <Search size={14} className="text-brand-muted shrink-0" />
                 <input
@@ -2819,7 +2819,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari kontak..."
-                  className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+                  className="flex-1 bg-transparent text-[16px] md:text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
                 />
                 {searchQuery && (
                   <button type="button" aria-label="Bersihkan pencarian" onClick={() => setSearchQuery('')} className="text-brand-muted hover:text-brand-text">
@@ -2865,7 +2865,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overscroll-none">
             {loading ? (
               <ContactListSkeleton />
             ) : contactsError && !loading ? (
@@ -3117,7 +3117,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
 
               {/* Messages */}
               <div className="relative flex-1 min-h-0">
-              <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="h-full overflow-y-auto py-2">
+              <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="h-full overflow-y-auto py-2 overscroll-none">
                 {messagesLoading ? (
                   <div className="px-4 space-y-4 py-4">
                     <div className="flex justify-start">
@@ -3289,7 +3289,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                       value={chatSearchQ}
                       onChange={(e) => { setChatSearchQ(e.target.value); setCurrentSearchIndex(0) }}
                       placeholder="Cari di riwayat..."
-                      className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+                      className="flex-1 bg-transparent text-[16px] md:text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
                     />
                     <span className="text-[10px] text-brand-muted shrink-0">
                       {chatSearchQ.trim() ? (
@@ -3387,7 +3387,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                         }
                       }}
                       placeholder="Tulis pesan..."
-                      className="flex-1 min-w-0 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none resize-none overflow-y-auto leading-snug max-h-32 py-1 pl-0"
+                      className="flex-1 min-w-0 bg-transparent text-[16px] md:text-sm text-brand-text placeholder:text-brand-muted focus:outline-none resize-none overflow-y-auto leading-snug max-h-32 py-1 pl-0"
                       disabled={sending}
                     />
                     <div ref={plusMenuRef} className="relative shrink-0">
@@ -3661,7 +3661,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
               value={userSearch}
               onChange={(e) => setUserSearch(e.target.value)}
               placeholder="Cari pengguna..."
-              className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+              className="flex-1 bg-transparent text-[16px] md:text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
             />
             {userSearch && (
               <button type="button" aria-label="Bersihkan pencarian" onClick={() => setUserSearch('')} className="text-brand-muted hover:text-brand-text">
@@ -3732,7 +3732,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
               value={propertySearch}
               onChange={(e) => setPropertySearch(e.target.value)}
               placeholder="Cari properti..."
-              className="flex-1 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
+              className="flex-1 bg-transparent text-[16px] md:text-sm text-brand-text placeholder:text-brand-muted focus:outline-none"
             />
             {propertySearch && (
               <button type="button" aria-label="Bersihkan pencarian" onClick={() => setPropertySearch('')} className="text-brand-muted hover:text-brand-text">
