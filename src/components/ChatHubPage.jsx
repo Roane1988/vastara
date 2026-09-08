@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Mic, Send, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File, Smile } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File, Smile } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
@@ -161,6 +161,141 @@ function getFileIcon(mime, name) {
   return { Icon: File, color: '#94a3b8' }
 }
 
+function formatVoiceTime(sec) {
+  if (!Number.isFinite(sec) || sec < 0) return '00:00'
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+function pickVoiceMime() {
+  if (typeof MediaRecorder === 'undefined') return null
+  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']
+  for (const c of candidates) {
+    try {
+      if (MediaRecorder.isTypeSupported(c)) return c
+    } catch {
+      /* lanjut kandidat berikutnya */
+    }
+  }
+  return null
+}
+
+function voiceExtForMime(mime) {
+  const base = (mime || '').split(';')[0]
+  if (base.includes('mp4') || base.includes('m4a')) return 'mp4'
+  if (base.includes('ogg')) return 'ogg'
+  if (base.includes('mpeg') || base.includes('mp3')) return 'mp3'
+  return 'webm'
+}
+
+const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ message, isOwn }) {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const audioRef = useRef(null)
+
+  useEffect(() => () => {
+    const a = audioRef.current
+    if (a) {
+      try {
+        a.pause()
+        a.removeAttribute('src')
+        a.load()
+      } catch {
+        /* non-critical */
+      }
+    }
+  }, [])
+
+  const ensureAudio = () => {
+    if (!audioRef.current) {
+      const a = new Audio()
+      a.preload = 'metadata'
+      a.src = message.file_url
+      audioRef.current = a
+      a.addEventListener('loadedmetadata', () => {
+        setDuration(Number.isFinite(a.duration) ? a.duration : 0)
+      })
+      a.addEventListener('timeupdate', () => setCurrentTime(a.currentTime || 0))
+      a.addEventListener('ended', () => {
+        setIsPlaying(false)
+        setCurrentTime(a.duration || 0)
+      })
+    }
+    return audioRef.current
+  }
+
+  const togglePlay = async () => {
+    const a = ensureAudio()
+    if (isPlaying) {
+      a.pause()
+      setIsPlaying(false)
+      return
+    }
+    try {
+      await a.play()
+      setIsPlaying(true)
+    } catch {
+      setIsPlaying(false)
+    }
+  }
+
+  const onSeek = (e) => {
+    const a = ensureAudio()
+    const v = Number(e.target.value)
+    setCurrentTime(v)
+    if (Number.isFinite(a.duration)) a.currentTime = v
+  }
+
+  const max = duration || 0.01
+  const progress = Math.min((currentTime / max) * 100, 100)
+  const shownTime = isPlaying ? currentTime : (duration || 0)
+  const accent = isOwn ? '#ffffff' : '#4A90E2'
+  const trackColor = isOwn ? 'rgba(255,255,255,0.3)' : 'rgba(28,39,51,0.15)'
+
+  return (
+    <div
+      className="mt-1 flex items-center gap-2 rounded-xl border px-3 py-2 w-[240px] sm:w-[260px] max-w-full"
+      style={{
+        borderColor: isOwn ? 'rgba(255,255,255,0.22)' : 'var(--color-brand-border)',
+        backgroundColor: isOwn ? 'rgba(255,255,255,0.12)' : 'var(--color-brand-bg)',
+      }}
+      title={`${message.file_name || 'Pesan suara'} · ${formatVoiceTime(duration)}`}
+    >
+      <button
+        type="button"
+        onClick={togglePlay}
+        aria-label={isPlaying ? 'Jeda pesan suara' : 'Putar pesan suara'}
+        title={isPlaying ? 'Jeda' : 'Putar'}
+        className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95 ${isOwn ? 'bg-white/20' : 'bg-brand-accent'} shadow-sm`}
+      >
+        {isPlaying ? <Pause size={17} className="-ml-0.5" /> : <Play size={17} className="ml-0.5" />}
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={max}
+        step={0.05}
+        value={Math.min(currentTime, max)}
+        onChange={onSeek}
+        aria-label="Kemajuan pemutaran pesan suara"
+        className="voice-range flex-1 min-w-0"
+        style={{
+          '--voice-thumb': accent,
+          background: `linear-gradient(to right, ${accent} ${progress}%, ${trackColor} ${progress}%)`,
+        }}
+      />
+      <span
+        className="shrink-0 text-[11px] tabular-nums w-10 text-right"
+        style={{ color: isOwn ? 'rgba(255,255,255,0.85)' : 'var(--color-brand-muted)' }}
+      >
+        {formatVoiceTime(shownTime)}
+      </span>
+    </div>
+  )
+})
+
 const DateSeparator = memo(function DateSeparator({ date }) {
   return (
     <div className="flex items-center justify-center my-4 px-4">
@@ -207,10 +342,13 @@ function ReplySnippet({ message, className }) {
     )
   }
   if (message.file_url) {
+    const isVoice = (message.file_type || '').toLowerCase().startsWith('audio/')
     return (
       <span className={`flex items-center gap-1.5 min-w-0 ${className || ''}`}>
-        <FileText size={12} className="shrink-0 text-brand-accent" />
-        <span className="min-w-0 truncate">{message.file_name || 'Dokumen'}</span>
+        {isVoice
+          ? <Mic size={12} className="shrink-0 text-brand-accent" />
+          : <FileText size={12} className="shrink-0 text-brand-accent" />}
+        <span className="min-w-0 truncate">{isVoice ? 'Pesan suara' : (message.file_name || 'Dokumen')}</span>
       </span>
     )
   }
@@ -543,7 +681,10 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
                 className="mt-1 w-full h-auto max-h-72 object-cover rounded-xl cursor-pointer"
               />
             )}
-            {message.file_url && (
+            {(message.file_url && (message.file_type || '').toLowerCase().startsWith('audio/')) && (
+              <VoiceMessagePlayer message={message} isOwn={isOwn} />
+            )}
+            {message.file_url && !(message.file_type || '').toLowerCase().startsWith('audio/') && (
               <button
                 type="button"
                 onClick={() => onFileOpen?.(message)}
@@ -1034,6 +1175,17 @@ export default function ChatHubPage() {
   const [stagedCaption, setStagedCaption] = useState('')
   const [fileStagingOpen, setFileStagingOpen] = useState(false)
   const [stagingUploading, setStagingUploading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingSeconds, setRecordingSeconds] = useState(0)
+  const [voiceUploading, setVoiceUploading] = useState(false)
+  const mediaRecorderRef = useRef(null)
+  const mediaStreamRef = useRef(null)
+  const mediaChunksRef = useRef([])
+  const voiceMimeRef = useRef(null)
+  const recordingTimerRef = useRef(null)
+  const recordingPendingRef = useRef(false)
+  const micPendingRef = useRef(false)
+  const recordStartRef = useRef(0)
   const pendingStagingUrlsRef = useRef([])
   const [shareProperty, setShareProperty] = useState(null)
   const [showPropertyPicker, setShowPropertyPicker] = useState(false)
@@ -2695,6 +2847,275 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     return { url: publicUrl, name: file.name, size: file.size, type: file.type || '' }
   }
 
+  function forceStopMediaStream(stream) {
+    if (!stream) return
+    try {
+      stream.getTracks().forEach((t) => t.stop())
+    } catch {
+      /* non-critical */
+    }
+  }
+
+  async function startRecording() {
+    if (activeContactId === HUNIBOT_ID) {
+      showToast('HuniBot tidak menerima pesan suara.', 'error')
+      return
+    }
+    if (typeof MediaRecorder === 'undefined' || typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      showToast('Perekaman suara tidak didukung oleh perangkat/browser ini.', 'error')
+      return
+    }
+    if (isRecording || micPendingRef.current) return
+
+    micPendingRef.current = true
+    let stream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch (err) {
+      micPendingRef.current = false
+      const name = err?.name || err?.message || ''
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+        showToast('Izin mikrofon ditolak. Coba lagi dari pengaturan browser.', 'error')
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        showToast('Tidak ada mikrofon yang terhubung.', 'error')
+      } else {
+        showToast('Gagal mengakses mikrofon: ' + (err?.message || 'coba lagi'), 'error')
+      }
+      return
+    }
+    micPendingRef.current = false
+
+    mediaStreamRef.current = stream
+
+    let mime = null
+    try {
+      mime = pickVoiceMime()
+    } catch {
+      /* non-critical */
+    }
+    const options = mime && typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(mime)
+      ? { mimeType: mime }
+      : undefined
+    const recorder = new MediaRecorder(stream, options)
+    mediaRecorderRef.current = recorder
+    voiceMimeRef.current = mime
+    mediaChunksRef.current = []
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) mediaChunksRef.current.push(e.data)
+    }
+
+    recorder.start(250)
+
+    recordingPendingRef.current = true
+    setIsRecording(true)
+    setPlusMenuOpen(false)
+    setRecordingSeconds(0)
+    recordStartRef.current = Date.now()
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
+    recordingTimerRef.current = setInterval(() => {
+      const elapsed = Math.min(Math.floor((Date.now() - recordStartRef.current) / 1000), 600)
+      setRecordingSeconds(elapsed)
+      if (elapsed >= 600) {
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
+        recordingTimerRef.current = null
+        recordingPendingRef.current = false
+        setIsRecording(false)
+        const mr = mediaRecorderRef.current
+        if (mr && mr.state !== 'inactive') {
+          try { mr.cancel() } catch { try { mr.stop() } catch { /* non-critical */ } }
+        }
+        mediaRecorderRef.current = null
+        mediaChunksRef.current = []
+        forceStopMediaStream(mediaStreamRef.current)
+        mediaStreamRef.current = null
+        showToast('Rekaman dibatasi maksimal 10 menit.', 'info')
+      }
+    }, 200)
+  }
+
+  async function handleSendVoice() {
+    if (!recordingPendingRef.current || !isRecording) {
+      showToast('Rekaman tidak ditemukan, coba lagi.', 'info')
+      return
+    }
+    recordingPendingRef.current = false
+    setIsRecording(false)
+    setPlusMenuOpen(false)
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
+    setVoiceUploading(true)
+
+    await new Promise((resolve) => {
+      const mr = mediaRecorderRef.current
+      if (!mr || mr.state === 'inactive') {
+        resolve()
+        return
+      }
+      let settled = false
+      const finish = () => {
+        if (settled) return
+        settled = true
+        resolve()
+      }
+      mr.onstop = finish
+      try {
+        mr.stop()
+      } catch {
+        finish()
+      }
+      setTimeout(finish, 2000)
+    })
+
+    const chunks = mediaChunksRef.current
+    const mime = voiceMimeRef.current
+    mediaChunksRef.current = []
+
+    let blob
+    try {
+      if (chunks.length > 0) {
+        blob = new Blob(chunks, { type: mime || 'audio/webm' })
+      }
+    } catch {
+      blob = undefined
+    }
+
+    if (!blob || blob.size === 0) {
+      forceStopMediaStream(mediaStreamRef.current)
+      mediaStreamRef.current = null
+      setRecordingSeconds(0)
+      setVoiceUploading(false)
+      showToast('Rekaman kosong. Silakan coba lagi.', 'error')
+      return
+    }
+
+    const ext = voiceExtForMime(mime)
+    const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-voicenote.${ext}`
+    let publicUrl
+    try {
+      const { error: uploadErr } = await supabase.storage
+        .from('CHAT_VOICE')
+        .upload(fileName, blob, { contentType: (mime || 'audio/webm').split(';')[0], upsert: false })
+      if (uploadErr) throw new Error(uploadErr.message)
+      publicUrl = supabase.storage.from('CHAT_VOICE').getPublicUrl(fileName).data.publicUrl
+    } catch (err) {
+      forceStopMediaStream(mediaStreamRef.current)
+      mediaStreamRef.current = null
+      setRecordingSeconds(0)
+      setVoiceUploading(false)
+      showToast('Gagal mengunggah pesan suara: ' + (err?.message || 'coba lagi'), 'error')
+      return
+    }
+
+    const optimisticMsg = {
+      id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      sender_id: userId,
+      receiver_id: activeContactId,
+      content: '',
+      created_at: new Date().toISOString(),
+      read_at: null,
+      reply_to_id: replyTo?.id || null,
+      file_url: publicUrl,
+      file_name: 'Pesan suara',
+      file_size: blob.size,
+      file_type: (mime || 'audio/webm').split(';')[0],
+      property_id: null,
+    }
+    setMessages((prev) => [...prev, optimisticMsg])
+    scrollToLatest()
+    setReplyTo(null)
+    setDrafts((prev) => {
+      if (!prev[activeContactId]) return prev
+      const next = { ...prev }
+      delete next[activeContactId]
+      return next
+    })
+
+    try {
+      const { data, error } = await supabase.from('direct_messages').insert({
+        sender_id: userId,
+        receiver_id: activeContactId,
+        content: '',
+        reply_to_id: replyTo?.id || null,
+        file_url: publicUrl,
+        file_name: 'Pesan suara',
+        file_size: blob.size,
+        file_type: (mime || 'audio/webm').split(';')[0],
+      }).select()
+
+      if (!sendMountedRef.current) return
+
+      if (error) {
+        showToast(error.message, 'error')
+        forceStopMediaStream(mediaStreamRef.current)
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id))
+      } else if (data?.[0]) {
+        setMessages((prev) => prev.map((m) => m.id === optimisticMsg.id ? data[0] : m))
+        scrollToLatest()
+      }
+    } catch (err) {
+      if (sendMountedRef.current) {
+        showToast('Gagal mengirim pesan suara: ' + (err?.message || 'coba lagi'), 'error')
+        forceStopMediaStream(mediaStreamRef.current)
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id))
+      }
+    } finally {
+      if (sendMountedRef.current) {
+        forceStopMediaStream(mediaStreamRef.current)
+        mediaStreamRef.current = null
+        setRecordingSeconds(0)
+        setVoiceUploading(false)
+      }
+    }
+  }
+
+  const handleDiscardRecording = useCallback(() => {
+    if (!recordingPendingRef.current || !isRecording) return
+    const mr = mediaRecorderRef.current
+    if (mr && mr.state !== 'inactive' && typeof mr.cancel === 'function') {
+      try {
+        mr.cancel()
+      } catch {
+        /* non-critical */
+      }
+    } else {
+      if (mr && mr.state !== 'inactive') mr.stop()
+    }
+    recordingPendingRef.current = false
+    setIsRecording(false)
+    setPlusMenuOpen(false)
+    setRecordingSeconds(0)
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
+    forceStopMediaStream(mediaStreamRef.current)
+    mediaStreamRef.current = null
+    mediaChunksRef.current = []
+    voiceMimeRef.current = null
+    showToast('Rekaman dibatalkan', 'info')
+  }, [isRecording, showToast])
+
+  const lastRecordingContactRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+      forceStopMediaStream(mediaStreamRef.current)
+      mediaStreamRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isRecording && lastRecordingContactRef.current && lastRecordingContactRef.current !== activeContactId) {
+      handleDiscardRecording()
+    }
+    lastRecordingContactRef.current = activeContactId
+  }, [activeContactId, isRecording, handleDiscardRecording])
+
   async function handlePickDocument(e) {
     try {
       addFilesToStaging(e.target.files)
@@ -2815,8 +3236,9 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     return <LoginPrompt />
   }
 
-  const isComposerBusy = sending || imageUploading || stagingUploading
-  const canSend = isComposerBusy || !!inputValue.trim() || !!pendingImage || stagedFiles.length > 0 || !!shareProperty
+  const isComposerBusy = sending || imageUploading || stagingUploading || voiceUploading
+  const recordingActive = isRecording || voiceUploading
+  const canSend = isRecording || isComposerBusy || !!inputValue.trim() || !!pendingImage || stagedFiles.length > 0 || !!shareProperty
 
   return (
     <>
@@ -3378,7 +3800,14 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
 
               {/* Input Bar */}
               <form
-                onSubmit={handleSend}
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (recordingActive) {
+                    handleSendVoice()
+                    return
+                  }
+                  handleSend(e)
+                }}
                 className={`shrink-0 px-4 pt-2 ${keyboardOpen ? 'pb-2' : 'pb-[max(0.5rem,min(env(safe-area-inset-bottom),1.25rem))]'} border-t border-brand-border bg-brand-surface`}
               >
                 <div className="flex items-end gap-2">
@@ -3423,6 +3852,27 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                     </div>
                   )}
                   <div className="flex items-end gap-1 rounded-full border border-brand-border bg-brand-bg pl-1.5 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-brand-accent/30 focus-within:border-brand-accent transition-colors">
+                    {isRecording ? (
+                      <>
+                        <div className="flex items-center gap-1.5 py-1 min-w-0">
+                          <button
+                            type="button"
+                            onClick={handleDiscardRecording}
+                            aria-label="Batalkan perekaman suara"
+                            title="Batalkan perekaman"
+                            className="w-9 h-9 shrink-0 rounded-full text-brand-danger hover:bg-brand-danger/10 flex items-center justify-center transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                          <span className="voice-rec-dot shrink-0" aria-hidden="true" />
+                          <span className="text-sm font-semibold text-brand-danger tabular-nums shrink-0" role="timer">
+                            {formatVoiceTime(Math.floor(Math.min(recordingSeconds, 600)))}
+                          </span>
+                          <span className="text-xs text-brand-muted truncate">sedang merekam</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
                     <textarea
                       ref={inputRef}
                       rows={1}
@@ -3474,14 +3924,17 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                         </div>
                       )}
                     </div>
+                    </>
+                    )}
                   </div>
                 </div>
                 <button
                   type={canSend ? 'submit' : 'button'}
+                  onClick={!canSend ? startRecording : undefined}
                   disabled={canSend && isComposerBusy}
                   className="shrink-0 w-11 h-11 rounded-full bg-brand-primary text-white shadow-md flex items-center justify-center hover:brightness-110 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label={canSend ? 'Kirim pesan' : 'Rekam pesan suara'}
-                  title={canSend ? 'Kirim pesan' : 'Rekam pesan suara'}
+                  aria-label={canSend ? 'Kirim pesan' : !isRecording ? 'Rekam pesan suara' : 'Aksi suara'}
+                  title={canSend ? 'Kirim pesan' : !isRecording ? 'Rekam pesan suara' : 'Kirim pesan suara'}
                 >
                   {canSend ? (
                     isComposerBusy ? (
