@@ -79,6 +79,8 @@ function saveChatSettings(s) {
 }
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥']
+const DOUBLE_TAP_REACTION = '❤️'
+const IS_TOUCH = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
 
 function playMessageSound() {
   try {
@@ -383,8 +385,29 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
   const SWIPE_THRESHOLD = 56
   const [swipeX, setSwipeX] = useState(0)
   const [swipeActive, setSwipeActive] = useState(false)
+  const [pop, setPop] = useState(false)
   const swipeXRef = useRef(0)
   const swipeStartRef = useRef({ x: 0, y: 0 })
+  const lastTapRef = useRef({ t: 0, x: 0, y: 0 })
+  const popTimeoutRef = useRef(null)
+
+  useEffect(() => () => { if (popTimeoutRef.current) clearTimeout(popTimeoutRef.current) }, [])
+
+  const fireDoubleTapReaction = (e) => {
+    if (!onReact) return
+    if (e && e.target?.closest && e.target.closest('button, a, img, input, textarea')) return
+    onReact(message.id, DOUBLE_TAP_REACTION)
+    setPop(true)
+    if (popTimeoutRef.current) clearTimeout(popTimeoutRef.current)
+    popTimeoutRef.current = setTimeout(() => setPop(false), 150)
+  }
+
+  const handleDoubleClick = (e) => {
+    if (!onReact) return
+    if (e.target?.closest?.('button, a, img, input, textarea')) return
+    e.preventDefault()
+    fireDoubleTapReaction()
+  }
 
   const handleTouchStart = (e) => {
     swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
@@ -399,8 +422,26 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
       setSwipeX(swipeXRef.current)
     }
   }
-  const handleTouchEnd = () => {
-    if (swipeXRef.current >= SWIPE_THRESHOLD) onReply?.(message)
+  const handleTouchEnd = (e) => {
+    const endX = e.changedTouches?.[0]?.clientX ?? swipeStartRef.current.x
+    const endY = e.changedTouches?.[0]?.clientY ?? swipeStartRef.current.y
+    const dx = Math.abs(endX - swipeStartRef.current.x)
+    const dy = Math.abs(endY - swipeStartRef.current.y)
+    if (swipeXRef.current >= SWIPE_THRESHOLD) {
+      onReply?.(message)
+      lastTapRef.current = { t: 0, x: 0, y: 0 }
+    } else if (onReact && dx < 10 && dy < 10) {
+      const now = Date.now()
+      const last = lastTapRef.current
+      if (now - last.t <= 300 && Math.abs(endX - last.x) < 30 && Math.abs(endY - last.y) < 30) {
+        lastTapRef.current = { t: 0, x: 0, y: 0 }
+        fireDoubleTapReaction(e)
+      } else {
+        lastTapRef.current = { t: now, x: endX, y: endY }
+      }
+    } else {
+      lastTapRef.current = { t: 0, x: 0, y: 0 }
+    }
     swipeXRef.current = 0
     setSwipeX(0)
     setSwipeActive(false)
@@ -422,10 +463,11 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
       <div
         className="relative w-full max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] xl:max-w-[70%] overflow-hidden group/message"
         style={{ touchAction: 'pan-y' }}
-        onTouchStart={onReply ? handleTouchStart : undefined}
-        onTouchMove={onReply ? handleTouchMove : undefined}
-        onTouchEnd={onReply ? handleTouchEnd : undefined}
-        onTouchCancel={onReply ? handleTouchEnd : undefined}
+        onTouchStart={(onReply || onReact) ? handleTouchStart : undefined}
+        onTouchMove={(onReply || onReact) ? handleTouchMove : undefined}
+        onTouchEnd={(onReply || onReact) ? handleTouchEnd : undefined}
+        onTouchCancel={(onReply || onReact) ? handleTouchEnd : undefined}
+        onDoubleClick={IS_TOUCH ? undefined : handleDoubleClick}
       >
         <div
           className="absolute inset-y-0 left-1 flex items-center pointer-events-none z-10 transition-opacity"
@@ -448,7 +490,13 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
             isOwn
               ? 'bg-gradient-to-br from-brand-primary to-[#2f6690] text-white rounded-br-md'
               : 'bg-white border border-brand-border text-brand-text rounded-bl-md'
-          } ${isFlashed ? 'ring-2 ring-brand-accent' : ''} ${isSearchActive ? 'ring-2 ring-amber-400' : ''}`}>
+          } ${isFlashed ? 'ring-2 ring-brand-accent' : ''} ${isSearchActive ? 'ring-2 ring-amber-400' : ''}`}
+          style={{
+            transform: pop ? 'scale(1.04)' : 'scale(1)',
+            transition: `transform ${pop ? '90ms' : '200ms'} cubic-bezier(0.22, 1, 0.36, 1)`,
+            willChange: 'transform',
+          }}
+        >
             {isFlashed && <span className="search-flash-overlay" aria-hidden="true" />}
             {isStarred && (
               <Star size={12} className="absolute top-2 right-2 text-amber-400 fill-amber-400" aria-label="Pesan dibookmark" />
