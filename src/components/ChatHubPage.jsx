@@ -3374,7 +3374,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                       </span>
                     </div>
                   )}
-                  <div className="flex items-end gap-1 rounded-full border border-brand-border bg-brand-bg pl-4 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-brand-accent/30 focus-within:border-brand-accent transition-colors">
+                  <div className="flex items-end gap-1 rounded-full border border-brand-border bg-brand-bg pl-2.5 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-brand-accent/30 focus-within:border-brand-accent transition-colors">
                     <textarea
                       ref={inputRef}
                       rows={1}
