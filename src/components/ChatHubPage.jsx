@@ -3374,7 +3374,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                       </span>
                     </div>
                   )}
-                  <div className="flex items-end gap-1 rounded-full border border-brand-border bg-brand-bg pl-2.5 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-brand-accent/30 focus-within:border-brand-accent transition-colors">
+                  <div className="flex items-end gap-1 rounded-full border border-brand-border bg-brand-bg pl-1.5 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-brand-accent/30 focus-within:border-brand-accent transition-colors">
                     <textarea
                       ref={inputRef}
                       rows={1}
@@ -3387,7 +3387,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                         }
                       }}
                       placeholder="Tulis pesan..."
-                      className="flex-1 min-w-0 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none resize-none overflow-y-auto leading-snug max-h-32 py-1"
+                      className="flex-1 min-w-0 bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none resize-none overflow-y-auto leading-snug max-h-32 py-1 pl-0"
                       disabled={sending}
                     />
                     <div ref={plusMenuRef} className="relative shrink-0">
