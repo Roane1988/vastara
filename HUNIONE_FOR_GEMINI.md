@@ -2,6 +2,16 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Sembunyikan "Penilaian Harga Wajar" (Fair Price Benchmark) Saat Fase MVP (9 September 2026)
+- **Alasan**: dataset properti internal masih terbatas di fase MVP. Benchmark harga per m² terhadap hanya sedikit properti pembanding menghasilkan statistik pasar yang miring (mis. deviasi median +97%) dan merusak kredibilitas AI.
+- **Solusi (feature flag / sample-size guard)** (`src/components/FairPriceAnalyzer.jsx`):
+  - Konstanta **`MIN_COMPARABLES = 10`** sebagai ambang jumlah properti pembanding yang valid (harga/m² tersedia, `market.comparableCount` dari `computeMarketStats` di `src/utils/fairPrice.js`) agar statistik median cukup representatif.
+  - **Guard**: setelah data pasar selesai dimuat (`!loadingMarket`), jika `market.comparableCount < 10` → komponen **`return null`** (kartu tidak dirender sama sekali di halaman properti — bukan sekedar disembunyikan via CSS).
+  - Otomatis re-enable ketika dataset internal tumbuh ≥ 10 pembanding — tidak perlu kode baru, cukup data.
+- **Kenapa tidak di-comment hard di `PropertyDetailPage.jsx`**: guard berbasis sample-size menjaga `import FairPriceAnalyzer` (line 19) dan pemakaian (line 976) tetap valid — tanpa import mati & tanpa "unused import" (lint free). Komponen `InvestmentAnalyzer` (di atasnya) tetap tampil normal.
+- **Verifikasi**: lint bersih (`eslint`) + build sukses (`vite`).
+- Skope: `src/components/FairPriceAnalyzer.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Fix: Overflow Judul & Text Clipping di MiniPropCard (Mobile, cth. Galaxy S22+) (9 September 2026)
 - **Gejala**: pada layar sempit (~360px, Samsung Galaxy S22+), judul properti panjang di `MiniPropCard` (mis. "Apartemen Studio — Southgate Residence…", "Rumah Minimalis 1 Lantai — Griya Serpong…") terpotong/meluap di tepi kanan kartu di section **"Rekomendasi Sesuai Budget"** dan kartu lain yang memakai `MiniPropCard` (`DashboardPage.jsx`).
 - **Root cause**: wrapper teks hanya `min-w-0` tanpa `flex-1`/`w-full`, sehingga flexbox tidak memberikan lebar ter-batas yang konsisten → `truncate` (yang butuh `overflow:hidden` + lebar definitif) gagal menahan teks dan baris meluap keluar kartu.

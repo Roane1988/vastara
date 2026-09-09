@@ -22,6 +22,8 @@ import { computeMarketStats, verdictFromMarket } from '../utils/fairPrice'
 
 const ALLOWED_MODEL = 'openai/gpt-oss-120b'
 
+const MIN_COMPARABLES = 10
+
 const COMPARABLE_FIELDS = 'title, price, category, property_type, city, district, bedrooms, bathrooms, area_sqm, certificate_status'
 
 function cleanJson(raw) {
@@ -360,6 +362,10 @@ export default function FairPriceAnalyzer({ property }) {
       : null
   const hasCompare = targetPrice > 0 && medianTotal != null && medianTotal > 0
   const barMax = hasCompare ? Math.max(targetPrice, medianTotal) * 1.05 : 1
+
+  if (!loadingMarket && (market?.comparableCount || 0) < MIN_COMPARABLES) {
+    return null
+  }
 
   return (
     <div ref={cardRef} className="bg-white border border-brand-border rounded-3xl p-5 sm:p-6 shadow-sm">
