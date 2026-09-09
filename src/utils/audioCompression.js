@@ -2,40 +2,52 @@ export const VOICE_TARGET_RATE = 16000
 
 export async function decodeAudioBuffer(blob) {
   if (typeof AudioContext === 'undefined' && typeof webkitAudioContext === 'undefined') return null
-  const arrayBuffer = await blob.arrayBuffer()
+  let arrayBuffer
+  try {
+    arrayBuffer = await blob.arrayBuffer()
+  } catch {
+    return null
+  }
   const Ctx = window.AudioContext || window.webkitAudioContext
   const ctx = new Ctx({ sampleRate: VOICE_TARGET_RATE })
   try {
     const buf = await ctx.decodeAudioData(arrayBuffer)
     return { buffer: buf, ctx }
   } catch {
-    ctx.close && ctx.close()
+    try { ctx.close() } catch { /* non-critical */ }
     return null
   }
 }
 
 export function toMono(resampled) {
-  const l = resampled.getChannelData(0)
-  if (resampled.numberOfChannels === 1) return l
-  const mono = new Float32Array(l.length)
-  for (let i = 0; i < l.length; i++) {
-    let sum = 0
-    for (let c = 0; c < resampled.numberOfChannels; c++) {
-      sum += resampled.getChannelData(c)[i]
+  try {
+    const l = resampled.getChannelData(0)
+    if (!l || l.length === 0) return new Float32Array(0)
+    if (resampled.numberOfChannels === 1) return l
+    const mono = new Float32Array(l.length)
+    for (let i = 0; i < l.length; i++) {
+      let sum = 0
+      for (let c = 0; c < resampled.numberOfChannels; c++) {
+        const data = resampled.getChannelData(c)
+        if (data && data[i] != null) sum += data[i]
+      }
+      mono[i] = sum / resampled.numberOfChannels
     }
-    mono[i] = sum / resampled.numberOfChannels
+    return mono
+  } catch {
+    return new Float32Array(0)
   }
-  return mono
 }
 
 export function extractWaveformPeaks(audioBuffer, buckets = 60) {
   if (!audioBuffer) return []
   const channel = toMono(audioBuffer)
-  const bucketsSafe = Math.max(1, Math.floor(Math.min(buckets, channel.length)))
+  if (channel.length === 0) return []
+  const bucketsSafe = Math.max(1, Math.min(buckets, channel.length))
   const perBucket = Math.max(1, Math.floor(channel.length / bucketsSafe))
   const peaks = []
   for (let i = 0; i < bucketsSafe; i++) {
-    const start = i * perBucket
+    const start = Math.min(i * perBucket, Math.max(0, channel.length - 1))
     let max = 0
     let sum = 0
     for (let j = start; j < start + perBucket && j < channel.length; j++) {
@@ -57,38 +69,64 @@ export async function recompressVoiceBlob(blob) {
   if (!decoded || !decoded.buffer) return { blob, compressed: false, duration: 0 }
   const { buffer, ctx } = decoded
   const duration = buffer.duration
+  if (!Number.isFinite(duration) || duration <= 0) {
+    try { ctx.close() } catch { /* non-critical */ }
+    return { blob, compressed: false, duration }
+  }
 
   const mime = pickCompressMime()
 
-  const source = ctx.createBufferSource()
-  source.buffer = buffer
-  const dest = ctx.createMediaStreamDestination()
-  source.connect(dest)
+  let source
+  let dest
+  try {
+    source = ctx.createBufferSource()
+    source.buffer = buffer
+    dest = ctx.createMediaStreamDestination()
+    source.connect(dest)
+  } catch {
+    try { ctx.close() } catch { /* non-critical */ }
+    return { blob, compressed: false, duration }
+  }
 
   let recorder
   try {
     recorder = new MediaRecorder(dest.stream, mime ? { mimeType: mime.mime } : undefined)
   } catch {
-    ctx.close && ctx.close()
+    try { ctx.close() } catch { /* non-critical */ }
     return { blob, compressed: false, duration }
   }
 
   const chunks = []
   recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data) }
+
+  let finishedFlag = false
+  const finish = () => { if (!finishedFlag) { finishedFlag = true } }
   const done = new Promise((resolve) => {
-    recorder.onstop = resolve
+    recorder.onstop = () => { finish(); resolve() }
+    recorder.onerror = () => { finish(); resolve() }
   })
+
   recorder.start()
   source.start()
-  const ending = () => {
+
+  const stopTimers = []
+  stopTimers.push(setTimeout(() => {
     try { source.stop() } catch { /* non-critical */ }
     try {
       if (recorder.state !== 'inactive') recorder.stop()
     } catch { /* non-critical */ }
-  }
-  setTimeout(ending, Math.ceil(duration * 1000) + 500)
+  }, Math.ceil(duration * 1000) + 600))
+
+  stopTimers.push(setTimeout(() => {
+    if (!finishedFlag) {
+      try {
+        if (recorder.state !== 'inactive') recorder.stop()
+      } catch { /* non-critical */ }
+    }
+  }, Math.max(3000, Math.ceil(duration * 1000) + 2500)))
 
   await done
+  stopTimers.forEach((t) => clearTimeout(t))
   try { ctx.close() } catch { /* non-critical */ }
 
   if (chunks.length === 0) return { blob, compressed: false, duration }
