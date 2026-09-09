@@ -172,15 +172,33 @@ function formatVoiceTime(sec) {
 
 function pickVoiceMime() {
   if (typeof MediaRecorder === 'undefined') return null
-  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']
+  const candidates = [
+    { mime: 'audio/webm;codecs=opus', type: 'audio/webm' },
+    { mime: 'audio/webm', type: 'audio/webm' },
+    { mime: 'audio/mp4', type: 'audio/mp4' },
+    { mime: 'audio/mp4;codecs=mp4a.40.2', type: 'audio/mp4' },
+    { mime: 'audio/x-m4a', type: 'audio/x-m4a' },
+    { mime: 'audio/ogg;codecs=opus', type: 'audio/ogg' },
+    { mime: 'audio/ogg', type: 'audio/ogg' },
+    { mime: 'audio/mpeg', type: 'audio/mpeg' },
+    { mime: 'audio/aac', type: 'audio/aac' },
+  ]
   for (const c of candidates) {
     try {
-      if (MediaRecorder.isTypeSupported(c)) return c
+      if (typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(c.mime)) {
+        return { mime: c.mime, type: c.type }
+      }
     } catch {
       /* lanjut kandidat berikutnya */
     }
   }
   return null
+}
+
+function voiceBaseMime(mime) {
+  if (!mime) return ''
+  if (typeof mime === 'object' && mime.type) return mime.type.split(';')[0]
+  return String(mime).split(';')[0]
 }
 
 function voiceExtForMime(mime) {
@@ -1144,7 +1162,13 @@ export default function ChatHubPage() {
   const messagesCancelledRef = useRef(false)
   const realtimeCancelledRef = useRef(false)
   const sendMountedRef = useRef(true)
-  useEffect(() => () => { sendMountedRef.current = false }, [])
+  useEffect(() => () => {
+    sendMountedRef.current = false
+    if (micRetryTimerRef.current) {
+      clearTimeout(micRetryTimerRef.current)
+      micRetryTimerRef.current = null
+    }
+  }, [])
   const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
   const inputRef = useRef(null)
@@ -1208,6 +1232,8 @@ export default function ChatHubPage() {
   const recordingTimerRef = useRef(null)
   const recordingPendingRef = useRef(false)
   const micPendingRef = useRef(false)
+  const micRetryTimerRef = useRef(null)
+  const micRetryCountRef = useRef(0)
   const recordStartRef = useRef(0)
   const pendingStagingUrlsRef = useRef([])
   const [shareProperty, setShareProperty] = useState(null)
@@ -2907,37 +2933,75 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
   }
 
-  function micGuidanceFor(state, name) {
-    if (state === 'denied') {
-      return 'Mikrofon diblokir di browser. Klik ikon gembok/🔒 di address bar → izinkan mikrofon untuk situs ini → muat ulang, lalu tekan Mic lagi.'
+  async function getAudioInputDevices() {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || typeof navigator.mediaDevices.enumerateDevices !== 'function') {
+      return { ok: true, count: -1 }
     }
-    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-      return 'Izin mikrofon ditolak. Izinkan lewat ikon gembok/🔒 di address bar (atau pengaturan situs), lalu tekan Mic lagi.'
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const audioInputs = devices.filter((d) => d.kind === 'audioinput')
+      return { ok: true, count: audioInputs.length }
+    } catch {
+      return { ok: false, count: -1 }
     }
-    return ''
   }
 
-  function detectMicError(err) {
+  function micGuidanceFor(state, name) {
+    if (state === 'denied') {
+      return { msg: 'Mikrofon diblokir di browser. Klik ikon gembok/🔒 di address bar → izinkan mikrofon untuk situs ini → muat ulang, lalu tekan Mic lagi. Sekarang kami coba lagi otomatis.', retry: true }
+    }
+    if (state === 'prompt') {
+      return { msg: 'Browser sedang meminta izin mikrofon. Izinkan di popup jika muncul, lalu coba lagi.', retry: true }
+    }
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+      return { msg: 'Izin mikrofon ditolak. Izinkan lewat ikon gembok/🔒 di address bar (atau pengaturan situs), lalu tekan Mic lagi.', retry: true }
+    }
+    return { msg: '', retry: false }
+  }
+
+  function shouldRetryMic(err) {
     const name = err?.name || err?.message || ''
+    const retryable = ['NotAllowedError', 'PermissionDeniedError', 'SecurityError', 'TimeoutRequestingMicrophone']
+    return retryable.includes(name)
+  }
+
+  function scheduleMicRetry(err) {
+    if (micRetryTimerRef.current) return
+    if (micRetryCountRef.current >= 1) return
+    if (!shouldRetryMic(err)) return
+    micRetryCountRef.current += 1
+    micRetryTimerRef.current = setTimeout(() => {
+      micRetryTimerRef.current = null
+      startRecording()
+    }, 1500)
+  }
+
+  async function detectMicError(err) {
+    const name = err?.name || err?.message || ''
+
     if (name === 'TimeoutRequestingMicrophone') {
-      showToast('Meminta mikrofon terlalu lama. Pastikan izin tidak diblokir lewat ikon gembok/🔒 di address bar.', 'error')
+      showToast('Meminta mikrofon terlalu lama. Kami coba lagi otomatis... pastikan izin tidak diblokir lewat ikon gembok/🔒 di address bar.', 'error')
+      scheduleMicRetry(err)
       return
     }
     if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
-      showToast('Tidak ada mikrofon yang terhubung. Periksa perangkat audio kamu.', 'error')
+      const { count } = await getAudioInputDevices()
+      if (count === 0) {
+        showToast('Tidak ditemukan mikrofon di perangkat ini. Periksa/colok mikrofon, lalu tekan Mic lagi.', 'error')
+      } else {
+        showToast('Gagal mengakses mikrofon yang terhubung. Coba cabut & pasang ulang, lalu tekan Mic lagi.', 'error')
+      }
       return
     }
-    checkMicPermission().then((state) => {
-      if (!sendMountedRef.current) return
-      const guidance = micGuidanceFor(state, name)
-      if (guidance) {
-        showToast(guidance, 'error')
-      } else if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-        showToast('Izin mikrofon ditolak. Coba lagi dari pengaturan browser.', 'error')
-      } else {
-        showToast('Gagal mengakses mikrofon: ' + (err?.message || 'coba lagi'), 'error')
-      }
-    })
+    const state = await checkMicPermission()
+    if (!sendMountedRef.current) return
+    const { msg, retry } = micGuidanceFor(state, name)
+    if (msg) {
+      showToast(msg, 'error')
+      if (retry && micRetryCountRef.current < 1) scheduleMicRetry(err)
+    } else {
+      showToast('Gagal mengakses mikrofon: ' + (err?.message || 'coba lagi'), 'error')
+    }
   }
 
   async function startRecording() {
@@ -2951,8 +3015,18 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
     if (isRecording || micPendingRef.current) return
 
-    if (typeof window !== 'undefined' && window.location && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-      showToast('Mikrofon hanya tersedia di koneksi aman (HTTPS). Buka lewat https:// lalu coba lagi.', 'error')
+    if (typeof window !== 'undefined' && window.location) {
+      const isHttps = window.isSecureContext === true && /^https:/.test(window.location.protocol)
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '::1'
+      if (!isHttps && !isLocalhost) {
+        showToast('Mikrofon diblokir karena koneksi tidak aman (bukan HTTPS). Browser tidak mengizinkan akses mikrofon di http://. Buka lewat https:// lalu coba lagi.', 'error')
+        return
+      }
+    }
+
+    const { count } = await getAudioInputDevices()
+    if (count === 0) {
+      showToast('Tidak ditemukan mikrofon di perangkat ini. Periksa/colok mikrofon, lalu tekan Mic lagi.', 'error')
       return
     }
 
@@ -2970,6 +3044,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       return
     }
     micPendingRef.current = false
+    micRetryCountRef.current = 0
 
     mediaStreamRef.current = stream
 
@@ -2979,16 +3054,37 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     } catch {
       /* non-critical */
     }
-    const options = mime && typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(mime)
-      ? { mimeType: mime }
-      : undefined
-    const recorder = new MediaRecorder(stream, options)
+
+    let recorder
+    try {
+      const options = mime && typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(mime.mime)
+        ? { mimeType: mime.mime }
+        : undefined
+      recorder = new MediaRecorder(stream, options)
+    } catch {
+      try {
+        recorder = new MediaRecorder(stream)
+      } catch (e2) {
+        forceStopMediaStream(stream)
+        mediaStreamRef.current = null
+        setIsRecording(false)
+        showToast('Gagal memulai perekaman suara: ' + (e2?.message || 'codec tidak didukung di browser ini.'), 'error')
+        return
+      }
+    }
+
     mediaRecorderRef.current = recorder
     voiceMimeRef.current = mime
     mediaChunksRef.current = []
 
     recorder.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) mediaChunksRef.current.push(e.data)
+    }
+
+    recorder.onerror = () => {
+      try {
+        if (recorder.state !== 'inactive') recorder.stop()
+      } catch { /* non-critical */ }
     }
 
     recorder.start(250)
@@ -3057,12 +3153,13 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
 
     const chunks = mediaChunksRef.current
     const mime = voiceMimeRef.current
+    const baseMime = voiceBaseMime(mime) || 'audio/webm'
     mediaChunksRef.current = []
 
     let blob
     try {
       if (chunks.length > 0) {
-        blob = new Blob(chunks, { type: mime || 'audio/webm' })
+        blob = new Blob(chunks, { type: baseMime })
       }
     } catch {
       blob = undefined
@@ -3078,7 +3175,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
 
     let uploadBlob = blob
-    let uploadMime = (mime || 'audio/webm').split(';')[0]
+    let uploadMime = baseMime
     try {
       const compressed = await recompressVoiceBlob(blob)
       if (compressed.compressed && compressed.blob && compressed.blob.size > 0) {
@@ -3087,7 +3184,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       }
     } catch {
       uploadBlob = blob
-      uploadMime = (mime || 'audio/webm').split(';')[0]
+      uploadMime = baseMime
     }
 
     const ext = voiceExtForMime(uploadMime)
