@@ -1031,21 +1031,28 @@ function FinanceProfileModal({ open, onClose, onSaved }) {
     <AnimatePresence>
       {open && (
         <>
-          <button type="button" aria-label="Tutup" onClick={onClose} className="fixed inset-0 bg-black/40 z-40 cursor-default p-0 border-0" />
+          <button type="button" aria-label="Tutup" onClick={onClose} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[55] cursor-default p-0 border-0" />
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface py-6 px-4 sm:px-6 pb-8 max-h-[85vh] overflow-y-auto sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90vh]"
+            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface py-6 px-4 sm:px-6 pb-8 max-h-[85vh] overflow-y-auto sm:inset-x-0 sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit sm:max-h-[calc(100vh-104px)]"
           >
-            <button type="button" aria-label="Tutup" onClick={onClose} className="absolute top-4 right-4 text-brand-muted hover:text-brand-text">
-              <X size={20} />
-            </button>
-            <h3 className="text-lg font-bold text-brand-text flex items-center gap-2 mb-4">
-              <Wallet size={20} className="text-emerald-600" />
-              Profil Keuangan
-            </h3>
+            <div className="sticky -top-6 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 mb-4 bg-brand-surface/95 backdrop-blur-md border-b border-brand-border z-10 flex items-center justify-between gap-3">
+              <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
+                <Wallet size={20} className="text-emerald-600" />
+                Profil Keuangan
+              </h3>
+              <button
+                type="button"
+                aria-label="Tutup"
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
             <FinancialProfileForm showTitle={false} onSaved={onSaved} />
           </motion.div>
         </>

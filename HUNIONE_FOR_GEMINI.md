@@ -63,6 +63,18 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **i18n**: tidak ada perubahan (hanya class Tailwind).
 - Skope: `DashboardPage.jsx`, `FinancialProfileForm.jsx`. Lint bersih (`eslint`) + build sukses (`vite`).
 
+## Changelog — Fix Overlap Modal Profil Keuangan vs TopNavbar (9 September 2026)
+- **Bug**: di desktop, tepi atas `FinanceProfileModal` terlalu tinggi sehingga berbenturan dengan `TopNavbar` fixed (z-50); tombol close (`X`) `absolute top-4 right-4` bisa terpotong/tertutup dan ikut ter-scroll.
+- **Fix positioning** (`DashboardPage.jsx`):
+  - Container modal di `sm+` kini `sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit` — band aman 80px dari top (navbar 56px) hingga 24px dari bawah; `sm:max-h-[calc(100vh-104px)]` sehingga modal tidak pernah menabrak navbar maupun batas bawah.
+  - Z-index dinaikkan ke `z-[60]` untuk modal dan `z-[55]` + `backdrop-blur-sm` untuk overlay — berada di atas `TopNavbar` (z-50) dengan clearance visual yang aman.
+  - Mobile tetap bottom-sheet penuh (`inset-x-0 bottom-0 max-h-[85vh]`).
+- **Sticky header dengan close yang aman**:
+  - Header (judul `Profil Keuangan` + tombol `X`) di-rombak menjadi bar `sticky -top-6 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5` dengan `bg-brand-surface/95 backdrop-blur-md border-b` — selalu terlihat & mudah diklik saat konten di-scroll, full-bleed sampai tepi card.
+  - Tombol close diubah menjadi target 36×36px (`w-9 h-9 rounded-full bg-brand-bg`) agar touch-friendly.
+- **i18n**: tanpa perubahan (murni class Tailwind).
+- Skope: `DashboardPage.jsx`. Lint bersih (`eslint`) + build sukses (`vite`).
+
 ## Analisis Arsitektur Fitur Chat — ChatHubPage.jsx (31 Agustus 2026)
 Ringkasan arsitektur & temuan dari analisis menyeluruh fitur chat realtime (2.490 baris, komponen multipanel: daftar kontak kiri + ruang chat kanan + panel kontak).
 
