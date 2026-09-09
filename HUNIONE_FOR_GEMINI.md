@@ -2,7 +2,7 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
-## Changelog — Fix: Badge Unread Global Tidak Lengket Setelah Thread Dibaca / Dibalas (9 September 2026)
+## Changelog — Fix: Badge Unread Global Tidak Lengket Setelah Thread Dibaca / Dibalas (10 September 2026)
 - **Gejala**: badge merah global di navbar (mis. "3") tetap tampil meski user sudah membuka thread di `ChatHubPage.jsx` dan membaca/membalas pesan.
 - **Root cause**: `useChatUnread.js` hanya memperbarui badge via pendekatan *approximation* realtime (INSERT `+1`, UPDATE `-1`). Tidak ada jalur sinkronisasi pasti pada saat thread dibaca: jika event UPDATE realtime telat/terlewat (koneksi, tab background, channel reconnect), badge tidak pernah di-recompute → macet di angka lama.
 - **Fix 1 — Custom event `chat-read-updated`**:
