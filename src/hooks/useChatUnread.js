@@ -5,6 +5,7 @@ export function useChatUnread(userId, scope = 'default') {
   const [unread, setUnread] = useState(0)
   const decrementedRef = useRef(new Set())
   const cancelledRef = useRef(false)
+  const resyncTimerRef = useRef(null)
 
   useEffect(() => {
     if (!userId) return
@@ -15,6 +16,7 @@ export function useChatUnread(userId, scope = 'default') {
         .from('direct_messages')
         .select('id', { count: 'exact', head: true })
         .eq('receiver_id', userId)
+        .neq('sender_id', userId)
         .is('read_at', null)
       if (!cancelledRef.current && !error && typeof count === 'number') {
         setUnread(count)
@@ -80,14 +82,25 @@ export function useChatUnread(userId, scope = 'default') {
       if (!cancelledRef.current) fetchCount()
     }
 
+    function handleChatRead() {
+      if (cancelledRef.current) return
+      if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current)
+      resyncTimerRef.current = setTimeout(() => {
+        if (!cancelledRef.current) fetchCount()
+      }, 120)
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
+    window.addEventListener('chat-read-updated', handleChatRead)
 
     return () => {
       cancelledRef.current = true
+      if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current)
       supabase.removeChannel(channel)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('chat-read-updated', handleChatRead)
     }
   }, [userId, scope])
 

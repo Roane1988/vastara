@@ -122,6 +122,14 @@ function notifyNewMessage(title, body) {
   }
 }
 
+function notifyChatRead() {
+  try {
+    window.dispatchEvent(new CustomEvent('chat-read-updated'))
+  } catch {
+    /* non-critical */
+  }
+}
+
 
 function dayLabel(ts) {
   try {
@@ -1806,6 +1814,7 @@ export default function ChatHubPage() {
         .eq('receiver_id', userId)
         .eq('sender_id', activeContactId)
         .is('read_at', null)
+      notifyChatRead()
       if (!error) {
         setUnreadMap((prev) => ({ ...prev, [activeContactId]: 0 }))
       }
@@ -2000,6 +2009,7 @@ export default function ChatHubPage() {
           if (isActive) {
             supabase.from('direct_messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id).then(() => {}).catch(() => {})
             setUnreadMap(prev => ({ ...prev, [otherId]: 0 }))
+            notifyChatRead()
             if (!isAtBottomRef.current) {
               setNewMsgCount(c => c + 1)
               setNewMsgFAB(true)
@@ -2268,6 +2278,7 @@ export default function ChatHubPage() {
         setNewMsgCount(0)
         setNewMsgFAB(false)
         if (activeContactId) setUnreadMap(prev => ({ ...prev, [activeContactId]: 0 }))
+        notifyChatRead()
       } else {
         showToast('Gagal menandai semua sudah dibaca.', 'error')
       }
@@ -2734,6 +2745,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       } else if (data?.[0]) {
         setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
         scrollToLatest()
+        notifyChatRead()
       }
     } catch (err) {
       if (sendMountedRef.current) {
@@ -2802,6 +2814,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       } else if (data?.[0]) {
         setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
         scrollToLatest()
+        notifyChatRead()
       }
     } catch (err) {
       if (sendMountedRef.current) {
@@ -2933,8 +2946,9 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
           showToast(error.message, 'error')
           setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id))
         } else if (data?.[0]) {
-          setMessages((prev) => prev.map((m) => m.id === optimisticMsg.id ? data[0] : m))
+          setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
           scrollToLatest()
+          notifyChatRead()
         }
       }
     } catch (err) {

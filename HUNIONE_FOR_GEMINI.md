@@ -2,6 +2,22 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Fix: Badge Unread Global Tidak Lengket Setelah Thread Dibaca / Dibalas (9 September 2026)
+- **Gejala**: badge merah global di navbar (mis. "3") tetap tampil meski user sudah membuka thread di `ChatHubPage.jsx` dan membaca/membalas pesan.
+- **Root cause**: `useChatUnread.js` hanya memperbarui badge via pendekatan *approximation* realtime (INSERT `+1`, UPDATE `-1`). Tidak ada jalur sinkronisasi pasti pada saat thread dibaca: jika event UPDATE realtime telat/terlewat (koneksi, tab background, channel reconnect), badge tidak pernah di-recompute → macet di angka lama.
+- **Fix 1 — Custom event `chat-read-updated`**:
+  - Helper baru **`notifyChatRead()`** di `ChatHubPage.jsx` (module-level, `window.dispatchEvent(new CustomEvent('chat-read-updated'))`).
+  - Dipanggil di **semua jalur baca/tulis**:
+    - effect `markRead` saat thread dibuka (bulk update `read_at` untuk `sender_id = activeContactId`);
+    - pesan realtime yang langsung ditandai baca saat thread aktif;
+    - `handleMarkAllRead` berhasil (akses "Tandai semua sudah dibaca");
+    - `handleSend` / `handleSendImage` / staged-file send sukses (reply → thread pasti sudah dibaca).
+  - **`useChatUnread.js`** mendengarkan `window.addEventListener('chat-read-updated', ...)` → **`fetchCount()`** ulang dengan debounce 120ms (`resyncTimerRef`) untuk menggabungkan burst (bulk update beberapa baris sekaligus). Ini jalur sinkronisasi **deterministik** — badge di-set dari nilai sebenarnya di DB, bukan dari kalkulasi event.
+- **Fix 2 — Strict query guard** (`fetchCount`): query unread kini **`eq('receiver_id', userId)` + `neq('sender_id', userId)` + `is('read_at', null)`** — hanya menghitung pesan **masuk** yang belum dibaca (tidak mungkin ikut menghitung pesan yang dikirim sendiri). (Catatan: kolom di schema adalah `read_at` nullable timestamp — `read_at IS NULL` = `is_read = false` pada requirement.)
+- **Fix 3 — UPDATE listener dipertahankan** & di-hardening: subscriber `postgres_changes` event `UPDATE` tetap men-decrement per message id (guard `decrementedRef`) untuk sinkronisasi *live* di tab lain; `DELETE` + `visibilitychange` + `focus` + `chat-read-updated` semuanya memanggil `fetchCount()` sebagai safety net.
+- **Verifikasi**: lint bersih (`eslint`) + build sukses (`vite`).
+- Skope: `src/hooks/useChatUnread.js`, `src/components/ChatHubPage.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Remove WhatsApp CTA dari Mobile Sticky Bar (Enforce In-App Communication Loop) (9 September 2026)
 - **Alasan (keputusan bisnis)**: menghapus tombol WhatsApp yang baru ditambahkan di commit `f46ddba` pada mobile sticky bar `PropertyDetailPage.jsx`. Ekspos link `wa.me` ke buyer memungkinkan transaksi **off-platform (disintermediation)** — komunikasi keluar dari sistem chat tertutup HuniOne, sehingga platform kehilangan kemampuan melacak lead, memonitor funnel konversi, dan mengamankan potensi komisi perantara. **Semua komunikasi wajib di dalam sistem chat internal HuniOne.**
 - **Penghapusan lengkap** (`PropertyDetailPage.jsx`):
