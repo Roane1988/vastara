@@ -106,6 +106,13 @@ export default function ForumDetailPage() {
   useEffect(() => { repliesRef.current = replies }, [replies])
 
   useEffect(() => {
+    const el = replyInputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`
+  }, [replyContent])
+
+  useEffect(() => {
     cancelledRef.current = false
 
     fetchPost().catch(() => {})
@@ -908,7 +915,7 @@ export default function ForumDetailPage() {
         )}
 
         {session?.user ? (
-          <form onSubmit={handleReply} className="bg-white rounded-2xl shadow-sm border border-brand-border p-4 transition-all duration-300 sticky bottom-4">
+          <form onSubmit={handleReply} className="transition-all duration-300 sticky bottom-4">
             {replyingTo && (
               <div className="flex items-start gap-3 mb-3 pl-3 border-l-[3px] border-brand-accent bg-brand-bg/70 rounded-r-xl py-2.5 px-3 transition-all duration-300 ease-out">
                 <div className="flex-1 min-w-0">
@@ -925,27 +932,26 @@ export default function ForumDetailPage() {
                 </button>
               </div>
             )}
-            <div className="flex items-end gap-3">
-              <div className="flex-1 relative">
-                <textarea
-                  ref={replyInputRef}
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder={replyingTo ? `${t('forum.replyingTo')} ${replyingTo.authorName}...` : t('forum.postContentPlaceholder')}
-                  rows={2}
-                  className="w-full border border-brand-border rounded-xl py-3 px-4 text-sm text-brand-text bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted resize-none"
-                />
-              </div>
+            <div className="flex items-center gap-2 bg-slate-100 rounded-full border border-brand-border/60 focus-within:border-brand-accent focus-within:ring-2 focus-within:ring-brand-accent/25 shadow-sm px-4 py-2 transition-all duration-300">
+              <textarea
+                ref={replyInputRef}
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder={replyingTo ? `${t('forum.replyingTo')} ${replyingTo.authorName}...` : t('forum.postContentPlaceholder')}
+                rows={1}
+                style={{ height: 'auto' }}
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none resize-none text-sm text-brand-text placeholder:text-brand-muted leading-snug py-1.5 max-h-32 overflow-y-auto"
+              />
               <button
                 type="submit"
                 disabled={submitting || !replyContent.trim()}
                 aria-label={t('forum.sendReply')}
-                className="shrink-0 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="shrink-0 w-10 h-10 rounded-full bg-brand-primary text-white flex items-center justify-center hover:bg-brand-primary/90 active:scale-[0.98] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {submitting ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Send size={16} />
+                  <Send size={18} className="ml-0.5" />
                 )}
               </button>
             </div>

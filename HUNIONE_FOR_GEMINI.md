@@ -2,6 +2,18 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — UI: Komentar Forum Di-redesign Jadi Capsule Input Gaya WhatsApp (10 September 2026)
+- **Lokasi**: `ForumDetailPage.jsx` — form balasan (`handleReply`) di bagian bawah daftar komentar (sticky bottom), item 3 rincian spesifikasi.
+- **Desain baru (WhatsApp-style capsule bar)**:
+  - Wrapper input jadi **satu baris tunggal pill** (`rounded-full`) dengan latar netral `bg-slate-100`, border halus `border-brand-border/60`, `focus-within:ring-2 ring-brand-accent/25` (focus ring lembut), `shadow-sm`, padding seimbang `px-4 py-2`.
+  - Textarea diganti **auto-expanding single-line field** (`rows={1}`, effect baru mensinkronkan `style.height` ke `scrollHeight`, max `128px`/`max-h-32` + `overflow-y-auto`) — placeholder `t('forum.postContentPlaceholder')` = **"Tulis pertanyaan atau pendapat Anda..."** (string ID persis; EN "Write your question or opinion...").
+  - Tombol kirim **lingkaran** (`w-10 h-10 rounded-full bg-brand-primary text-white hover:bg-brand-primary/90`), ikon pesawat kertas **`Send`** 18px, spinner saat submit, disabled pada `submitting`/input kosong.
+  - **Strictly minimal**: tidak ada ikon lampiran/emoji/voice note.
+- **Responsif**: bar menempel rapi di bawah daftar komentar (`sticky bottom-4`), container `flex items-center gap-2` — satu baris penuh dari kiri ke kanan di mobile maupun desktop (banner "Membalas ke …" tetap tampil di atas capsule).
+- **Konvensi**: ikon `Send`, `X`, `Check` sudah ter-import; token warna memakai tema `brand-*` Tailwind v4 (`bg-brand-primary`, `bg-brand-accent`) + `bg-slate-100` default palette; pola auto-expand meniru `ChatHubPage` (`el.style.height = scrollHeight`).
+- **Verifikasi**: `eslint` bersih + `vite build` sukses.
+- Skope: `src/components/ForumDetailPage.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Fix: Pesan Soft-Delete Memblokir Persistensi read_at & Membuat Badge Unread Macet (10 September 2026)
 - **Gejala**: badge unread global navbar macet di angka tetap (mis. "3") bahkan setelah membuka/membaca thread **dan** setelah hard refresh (F5). Badge = `fetchCount()` ulang dari DB, jadi macet ⟹ baris di `direct_messages` memang tidak pernah berubah `read_at`-nya.
 - **Root cause (terbukti dari skema + RLS + kode)**:
