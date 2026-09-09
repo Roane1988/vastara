@@ -18,8 +18,11 @@ export function useChatUnread(userId, scope = 'default') {
         .eq('receiver_id', userId)
         .neq('sender_id', userId)
         .is('read_at', null)
+        .is('deleted_at', null)
       if (!cancelledRef.current && !error && typeof count === 'number') {
         setUnread(count)
+      } else if (!cancelledRef.current && error) {
+        console.error('Gagal menghitung pesan belum dibaca:', error.message)
       }
     }
 
@@ -38,7 +41,7 @@ export function useChatUnread(userId, scope = 'default') {
         (payload) => {
           if (cancelledRef.current) return
           const msg = payload.new
-          if (msg && msg.sender_id !== userId) {
+          if (msg && msg.sender_id !== userId && !msg.deleted_at) {
             setUnread((prev) => prev + 1)
           }
         }
@@ -111,11 +114,13 @@ export function useChatUnread(userId, scope = 'default') {
       .update({ read_at: new Date().toISOString() })
       .eq('receiver_id', userId)
       .is('read_at', null)
+      .is('deleted_at', null)
     if (contactId) query = query.eq('sender_id', contactId)
     try {
-      await query
-    } catch {
-      /* non-blocking; realtime UPDATE events will sync the badge */
+      const { error } = await query
+      if (error) console.error('useChatUnread.markRead gagal:', error.message)
+    } catch (err) {
+      console.error('useChatUnread.markRead error:', err?.message || err)
     }
   }, [userId])
 

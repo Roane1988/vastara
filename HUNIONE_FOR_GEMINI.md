@@ -2,6 +2,21 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Fix: Pesan Soft-Delete Memblokir Persistensi read_at & Membuat Badge Unread Macet (10 September 2026)
+- **Gejala**: badge unread global navbar macet di angka tetap (mis. "3") bahkan setelah membuka/membaca thread **dan** setelah hard refresh (F5). Badge = `fetchCount()` ulang dari DB, jadi macet ⟹ baris di `direct_messages` memang tidak pernah berubah `read_at`-nya.
+- **Root cause (terbukti dari skema + RLS + kode)**:
+  1. **Kolomnya `read_at`, BUKAN `is_read`.** Tidak ada kolom `is_read` di `direct_messages` (migrasi `20260821_chat_read_receipts.sql` menambah `read_at timestamptz`). Semua query lama sudah benar memakai `read_at`.
+  2. **RLS sudah mengizinkan receiver meng-update `read_at`** (policy `"Users can mark received messages as read"`, `20260821` + `20260830` — receiver HANYA boleh menulis kolom `read_at`).
+  3. **Batu sandungan sebenarnya**: migrasi `20260831_chat_soft_delete.sql` mengubah policy receiver menjadi `with check (auth.uid() = receiver_id and deleted_at is null)`. Artinya receiver TIDAK BOLEH menandai baca pesan yang sudah di-soft-delete pengirim (baris ber-`deleted_at`). Karena `.update({ read_at })` adalah SATU statement yang menyeleksi SEMUA unread thread (`.is('read_at', null)`), kehadiran SATU pesan soft-delete memicu pelanggaran RLS `with check` (row violates row-level security) → **seluruh statement update gagal** → tidak satu pun pesan thread ditandai baca → badge macet. Error ini sebelumnya ditelan diam-diam (`.catch(() => {})` / tanpa logging).
+  4. Ditambah lagi, `fetchCount()` dan unread per-kontak **tidak mengecualikan pesan soft-delete** — pesan yang ditarik pengirim tetap dihitung sebagai unread padahal tak mungkin (dan tak boleh) ditandai baca oleh receiver.
+- **Fix**:
+  - Semua query **penghitung unread** kini menambahkan `.is('deleted_at', null)`: `useChatUnread.fetchCount` (badge navbar/hamburger), `ChatHubPage.fetchContacts` (unread per-kontak), serta guard `if (msg.deleted_at) return`/`!msg.deleted_at` di handler realtime INSERT (badge global + per-kontak).
+  - Semua **update `read_at`** (markAsRead) kini menambahkan `.is('deleted_at', null)` agar tidak pernah menyentuh baris soft-delete (yang pasti ditolak RLS): effect thread-open di `ChatHubPage` (`markAsRead(activeContactId)`), `handleMarkAllRead`, dan `useChatUnread.markRead`. Dengan begitu statement update tidak lagi menyertakan baris yang memicu pelanggaran `with check` → persistensi baca berjalan bersih.
+  - **Error logging** ditambahkan di semua jalur mark-as-read (console.error) supaya kegagalan persistensi RLS/query tidak lagi senyap: thread-open, realtime active-read, markAllRead, `fetchCount`, `useChatUnread.markRead`.
+- **Semantik produk**: pesan yang sudah dihapus pengirim (soft-delete) tidak lagi dihitung sebagai unread & tidak memblokir penandaan baca thread lain.
+- **Verifikasi**: lint bersih + `vite build` sukses; smoke test read-only ke Supabase live membuktikan query `.select('id', {count:'exact', head:true})...is('read_at', null).is('deleted_at', null)` valid (kolom `deleted_at` & `read_at` eksis, tidak ada error PGRST204). Uji fungsional login (F5) tetap perlu dilakukan manual di browser (butuh sesi user).
+- Skope: `src/hooks/useChatUnread.js`, `src/components/ChatHubPage.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Fix: Badge Unread Global Tidak Lengket Setelah Thread Dibaca / Dibalas (10 September 2026)
 - **Gejala**: badge merah global di navbar (mis. "3") tetap tampil meski user sudah membuka thread di `ChatHubPage.jsx` dan membaca/membalas pesan.
 - **Root cause**: `useChatUnread.js` hanya memperbarui badge via pendekatan *approximation* realtime (INSERT `+1`, UPDATE `-1`). Tidak ada jalur sinkronisasi pasti pada saat thread dibaca: jika event UPDATE realtime telat/terlewat (koneksi, tab background, channel reconnect), badge tidak pernah di-recompute → macet di angka lama.

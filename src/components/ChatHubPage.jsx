@@ -1482,7 +1482,7 @@ export default function ChatHubPage() {
           if (!lastMessageMap[otherId]) {
             lastMessageMap[otherId] = { content: m.content, created_at: m.created_at }
           }
-          if (m.receiver_id === userId && !m.read_at) {
+          if (m.receiver_id === userId && !m.read_at && !m.deleted_at) {
             unreadCounts[otherId] = (unreadCounts[otherId] || 0) + 1
           }
         })
@@ -1801,6 +1801,7 @@ export default function ChatHubPage() {
         .eq('receiver_id', userId)
         .eq('sender_id', activeContactId)
         .is('read_at', null)
+        .is('deleted_at', null)
         .order('created_at', { ascending: true })
         .limit(1)
       if (firstUnread && firstUnread.length > 0 && unreadDividerContactRef.current !== activeContactId) {
@@ -1814,9 +1815,12 @@ export default function ChatHubPage() {
         .eq('receiver_id', userId)
         .eq('sender_id', activeContactId)
         .is('read_at', null)
+        .is('deleted_at', null)
       notifyChatRead()
       if (!error) {
         setUnreadMap((prev) => ({ ...prev, [activeContactId]: 0 }))
+      } else {
+        console.error('markAsRead gagal mempersist read_at:', error.message)
       }
     }
     markRead()
@@ -1994,6 +1998,7 @@ export default function ChatHubPage() {
           if (!msg) return
           if (msg.sender_id !== userId && msg.receiver_id !== userId) return
           if (msg.sender_id === userId) return
+          if (msg.deleted_at) return
           const otherId = getOtherId(msg, userId)
           if (!otherId || otherId === HUNIBOT_ID) return
 
@@ -2007,7 +2012,9 @@ export default function ChatHubPage() {
           })
 
           if (isActive) {
-            supabase.from('direct_messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id).then(() => {}).catch(() => {})
+            supabase.from('direct_messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id).then(({ error }) => {
+              if (error) console.error('markAsRead realtime gagal:', error.message)
+            }).catch((err) => console.error('markAsRead realtime error:', err?.message || err))
             setUnreadMap(prev => ({ ...prev, [otherId]: 0 }))
             notifyChatRead()
             if (!isAtBottomRef.current) {
@@ -2273,6 +2280,7 @@ export default function ChatHubPage() {
         .update({ read_at: new Date().toISOString() })
         .eq('receiver_id', userId)
         .is('read_at', null)
+        .is('deleted_at', null)
       if (!error) {
         setUnreadMap({})
         setNewMsgCount(0)
