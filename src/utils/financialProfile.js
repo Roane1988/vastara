@@ -118,4 +118,65 @@ export function estimateMonthlyInstallment(price, interestRatePercent, tenorYear
   return (principal * monthlyRate * factor) / (factor - 1)
 }
 
+export function getAffordabilityStatus(property, profile) {
+  if (!property || !profile) return null
+  const affordability = computeAffordability(profile)
+  const maxInstallment = affordability?.maxInstallment || 0
+  if (maxInstallment <= 0) return null
+
+  if (isRentalProperty(property)) {
+    const rent = estimateMonthlyRent(property)
+    if (rent <= 0) return null
+    const within = rent <= maxInstallment
+    return {
+      kind: 'rent',
+      status: within ? 'within' : 'above',
+      icon: within ? 'ok' : 'warn',
+      label: within ? 'Dalam budget' : 'Di atas budget',
+      monthly: Math.round(rent),
+      maxInstallment,
+    }
+  }
+
+  const price = Math.max(0, Number(property.price) || 0)
+  if (price <= 0) return null
+  const { interestRate, tenorYears, dpPercentage } = BUYING_POWER_ASSUMPTION
+  const buyingPower = maxAffordablePrice(maxInstallment, interestRate, tenorYears, dpPercentage)
+  const installment = estimateMonthlyInstallment(price, interestRate, tenorYears, dpPercentage)
+
+  if (price <= buyingPower) {
+    return {
+      kind: 'sale',
+      status: 'within',
+      icon: 'ok',
+      label: 'Dalam budget',
+      buyingPower: Math.round(buyingPower),
+      installment: Math.round(installment),
+    }
+  }
+
+  const maxLoan = maxAffordablePrice(maxInstallment, interestRate, tenorYears, 0)
+  if (price <= maxLoan) {
+    const requiredDpPct = Math.ceil((1 - maxLoan / price) * 100)
+    return {
+      kind: 'sale',
+      status: 'extra_dp',
+      icon: 'warn',
+      label: `Butuh DP ±${requiredDpPct}%`,
+      buyingPower: Math.round(buyingPower),
+      installment: Math.round(installment),
+      requiredDpPct,
+    }
+  }
+
+  return {
+    kind: 'sale',
+    status: 'above',
+    icon: 'bad',
+    label: 'Di atas budget',
+    buyingPower: Math.round(buyingPower),
+    installment: Math.round(installment),
+  }
+}
+
 export { PURCHASE_GOAL_OPTIONS, PURCHASE_GOAL_LABELS, formatRupiah }

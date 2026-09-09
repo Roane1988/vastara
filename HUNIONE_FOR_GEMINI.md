@@ -75,6 +75,21 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **i18n**: tanpa perubahan (murni class Tailwind).
 - Skope: `DashboardPage.jsx`. Lint bersih (`eslint`) + build sukses (`vite`).
 
+## Changelog — AI Rangkuman Properti & Badge Affordability (9 September 2026)
+- **Fitur #1 — AI "Rangkuman Properti untuk Kamu"** (`DashboardPage.jsx`):
+  - Komponen `AiPropertySummary` di Buyer Dashboard (di atas "Rekomendasi Sesuai Budget") yang memanggil proxy `/api/groq` (model `openai/gpt-oss-120b`, purpose `chat`, auth via `getAuthHeaders()`).
+  - Prompt bangun dari `buildAiBuyerSummaryPrompt` — menggabungkan profil keuangan (income, commitments, budget cicilan) + perkiraan daya beli (via `computeAffordability`+`maxAffordablePrice`+`BUYING_POWER_ASSUMPTION`) + tujuan pembelian (`PURCHASE_GOAL_LABELS`) + daftar properti dalam budget (nama, kota/kecamatan, harga, tipe, KT). Minta jawaban ringkas Bahasa Indonesia maks 5 kalimat/pendek tanpa halusinasi angka.
+  - **Guard rate-limit**: auto-fetch hanya sekali per sesi (`autoTried` ref) + cache sessionStorage (`hunione_ai_buyer_summary`, TTL 1 jam, dikunci kombinasi profil+id properti). Tombol refresh manual (ikon `RefreshCw` spin saat loading) memaksa refetch. Skeleton pulse saat loading; pesan error bila AI sibuk.
+  - **Interaktif**: tombol "Tanya HuniBot" dalam panel + tombol bot per kartu rekomendasi yang meng-dispatch event `open-hunibot-question` (di-dengar HuniBot global di `App.jsx:149`) — chat terbuka & pertanyaan terkirim otomatis.
+  - Hanya dirender bila profil keuangan & properti budget tersedia; selain itu panel disembunyikan.
+- **Fitur #2 — Dynamic Affordability Badges** (`financialProfile.js` + `DashboardPage.jsx`):
+  - Helper baru `getAffordabilityStatus(property, profile)` di `src/utils/financialProfile.js`: untuk properti jual menghitung `maxAffordablePrice` (daya beli), lalu memetakan status — `within` ("Dalam budget" ✓), `extra_dp` ("Butuh DP ±X%", bila affordable hanya dengan DP lebih besar dari default 20%), `above` ("Di atas budget" ⚠). Untuk properti sewa memakai `estimateMonthlyRent` vs `maxInstallment`. Mengembalikan `null` bila profil belum lengkap/`maxInstallment` ≤ 0.
+  - Komponen `AffordabilityBadge` (chip emerald/amber/red) dirender di `MiniPropCard` — berlaku untuk kartu Rekomendasi Budget, kartu Properti Baru (berdampingan chip "Baru"), dan Properti Tersimpan (section di-refactor memakai `MiniPropCard` sehingga lebih rapi + mendapat badge).
+  - Entry `MiniPropCard` dirombak: `Link` membungkus image+titel+harga (image zoom hover), tombol bot "Tanya HuniBot" berdiri sendiri di kanan.
+  - Belum punya profil → badge tidak muncul & section "Rekomendasi Sesuai Budget" tetap menampilkan CTA "Lengkapi Profil Keuangan" yang membuka modal (guide yang mulus).
+- **i18n**: string baru mengikuti konvensi hardcoded ID di `DashboardPage.jsx`; tidak ada perubahan translation file.
+- Skope: `src/utils/financialProfile.js`, `src/components/DashboardPage.jsx`. Lint bersih (`eslint`) + build sukses (`vite`).
+
 ## Analisis Arsitektur Fitur Chat — ChatHubPage.jsx (31 Agustus 2026)
 Ringkasan arsitektur & temuan dari analisis menyeluruh fitur chat realtime (2.490 baris, komponen multipanel: daftar kontak kiri + ruang chat kanan + panel kontak).
 
