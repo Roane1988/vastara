@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../supabaseClient'
@@ -26,6 +27,8 @@ import {
   UserPlus,
   Check,
   X,
+  ShoppingBag,
+  Briefcase,
 } from 'lucide-react'
 
 function StatCard({ icon: Icon, label, value, sub, accent, extra }) {
@@ -109,10 +112,9 @@ function buildViewTrend(views, maxDays = 30) {
 }
 
 export default function DashboardPage() {
-  const { user, showToast } = useAuth()
+  const { user, showToast, activeRole } = useAuth()
 
   const [loading, setLoading] = useState(true)
-  const [mode, setMode] = useState(null)
 
   // Buyer data
   const [savedProps, setSavedProps] = useState([])
@@ -250,22 +252,7 @@ export default function DashboardPage() {
       setLoading(true)
       try {
         if (!user) return
-
-        const { count } = await supabase
-          .from('properties')
-          .select('id', { count: 'exact', head: true })
-          .eq('seller_id', user.id)
-
-        const hasListings = (count || 0) > 0
-        if (cancelled) return
-
-        if (hasListings) {
-          setMode('seller')
-          await loadSellerData()
-        } else {
-          setMode('buyer')
-          await loadBuyerData()
-        }
+        await Promise.all([loadBuyerData(), loadSellerData()])
       } catch {
         /* non-critical */
       }
@@ -328,11 +315,21 @@ export default function DashboardPage() {
         </h1>
         <p className="text-sm text-brand-muted mt-1">
           {firstName ? `Halo, ${firstName}!` : 'Halo!'}
-          {' '}— ini ringkasan aktivitas {mode === 'seller' ? 'penjualan' : 'pencarian properti'} kamu di HuniOne.
+          {' '}— ini ringkasan aktivitas {activeRole === 'buyer' ? 'pencarian properti' : activeRole === 'agent' ? 'agen properti' : 'penjualan'} kamu di HuniOne.
         </p>
       </header>
 
-      {mode === 'seller' ? (
+      <RoleContextBanner activeRole={activeRole} />
+
+      {activeRole === 'buyer' ? (
+        <BuyerDashboard
+          savedProps={savedProps}
+          savedSearches={savedSearches}
+          activeSearches={activeSearches}
+          visits={visits}
+          financialProfile={financialProfile}
+        />
+      ) : (
         <SellerDashboard
           listings={listings}
           propertyStats={propertyStats}
@@ -342,14 +339,7 @@ export default function DashboardPage() {
           soldCount={soldCount}
           viewTrend={viewTrend}
           openSellModal={openSellModal}
-        />
-      ) : (
-        <BuyerDashboard
-          savedProps={savedProps}
-          savedSearches={savedSearches}
-          activeSearches={activeSearches}
-          visits={visits}
-          financialProfile={financialProfile}
+          isAgent={activeRole === 'agent'}
         />
       )}
 
@@ -364,6 +354,27 @@ export default function DashboardPage() {
         onConfirm={handleConfirmSold}
         onClose={() => { setSellTarget(null); setSoldBuyerId(''); setSoldSource('external') }}
       />
+    </div>
+  )
+}
+
+const ROLE_BANNER = {
+  buyer: { icon: ShoppingBag, bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', iconColor: 'text-blue-500' },
+  owner: { icon: Home, bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', iconColor: 'text-amber-500' },
+  agent: { icon: Briefcase, bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', iconColor: 'text-emerald-500' },
+}
+
+function RoleContextBanner({ activeRole }) {
+  const { t } = useTranslation()
+  const config = ROLE_BANNER[activeRole] || ROLE_BANNER.buyer
+  const Icon = config.icon
+
+  return (
+    <div className={`rounded-2xl border px-4 py-3 mb-6 flex items-center gap-2.5 ${config.bg}`}>
+      <Icon size={16} className={config.iconColor} />
+      <p className={`text-xs font-semibold ${config.text}`}>
+        {t(`roleSwitcher.banner.${activeRole}`)}
+      </p>
     </div>
   )
 }
@@ -498,7 +509,7 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
   )
 }
 
-function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitCount, soldCount, viewTrend, openSellModal }) {
+function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitCount, soldCount, viewTrend, openSellModal, isAgent }) {
   const [tab, setTab] = useState('ringkasan')
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('semua')
@@ -639,9 +650,11 @@ function SellerDashboard({ listings, propertyStats, viewCount, leadCount, visitC
           <div className="bg-brand-highlight rounded-2xl border border-brand-accent/20 p-4 flex items-start gap-3">
             <TrendingUp size={20} className="text-brand-accent shrink-0 mt-0.5" />
             <div className="text-sm text-brand-text">
-              <p className="font-semibold">Tips performa</p>
+              <p className="font-semibold">{isAgent ? 'Tips agen' : 'Tips performa'}</p>
               <p className="text-xs text-brand-muted mt-1">
-                Aktifkan notifikasi chat dan segera balas leads untuk meningkatkan rasio konversi. Listing dengan foto lengkap cenderung mendapat lebih banyak tayangan.
+                {isAgent
+                  ? 'Kelola portofolio klien Anda secara aktif. Balas leads dalam 5 menit untuk konversi tertinggi. Lengkapi profil agen untuk kepercayaan klien.'
+                  : 'Aktifkan notifikasi chat dan segera balas leads untuk meningkatkan rasio konversi. Listing dengan foto lengkap cenderung mendapat lebih banyak tayangan.'}
               </p>
             </div>
           </div>

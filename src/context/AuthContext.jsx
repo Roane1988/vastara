@@ -6,6 +6,28 @@ import Toast from '../components/Toast'
 
 const AuthContext = createContext(null)
 
+const ROLE_STORAGE_KEY = 'hunione_active_role'
+
+function readStoredRole(userId) {
+  if (!userId) return null
+  try {
+    const raw = localStorage.getItem(`${ROLE_STORAGE_KEY}:${userId}`)
+    if (raw === 'buyer' || raw === 'owner' || raw === 'agent') return raw
+  } catch { /* SSR or private mode */ }
+  return null
+}
+
+function persistRole(userId, value) {
+  if (!userId) return
+  try {
+    if (value) {
+      localStorage.setItem(`${ROLE_STORAGE_KEY}:${userId}`, value)
+    } else {
+      localStorage.removeItem(`${ROLE_STORAGE_KEY}:${userId}`)
+    }
+  } catch { /* non-critical */ }
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [user, setUser] = useState(null)
@@ -13,6 +35,8 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
+  const [activeRole, setActiveRoleState] = useState(() => readStoredRole(null))
+  const [ownerListingCount, setOwnerListingCount] = useState(0)
 
   const showToast = useCallback((message, type = 'error', action = null) => {
     setToast({ message, type, action })
@@ -21,6 +45,14 @@ export function AuthProvider({ children }) {
   const hideToast = useCallback(() => {
     setToast(null)
   }, [])
+
+  const setActiveRole = useCallback((nextRole) => {
+    setActiveRoleState((prev) => {
+      if (prev === nextRole) return prev
+      persistRole(user?.id, nextRole)
+      return nextRole
+    })
+  }, [user?.id])
 
   const setWhatsappVerified = useCallback((whatsapp) => {
     setProfile((prev) => ({
@@ -37,11 +69,14 @@ export function AuthProvider({ children }) {
       /* sign-out failure is non-critical */
     }
     resetScrollLock()
+    persistRole(user?.id, null)
     setSession(null)
     setUser(null)
     setRole(null)
     setProfile(null)
-  }, [])
+    setActiveRoleState(null)
+    setOwnerListingCount(0)
+  }, [user?.id])
 
   useEffect(() => {
     setSupabase(supabase)
@@ -109,6 +144,41 @@ export function AuthProvider({ children }) {
   }, [fetchRole, fetchProfile])
 
   useEffect(() => {
+    if (!user?.id || loading) return
+    let cancelled = false
+    ;(async () => {
+      const stored = readStoredRole(user.id)
+      if (cancelled) return
+      if (stored) {
+        setActiveRoleState(stored)
+        return
+      }
+      if (role === 'agent' || role === 'admin') {
+        setActiveRoleState('agent')
+        persistRole(user.id, 'agent')
+        return
+      }
+      try {
+        const { count } = await supabase
+          .from('properties')
+          .select('id', { count: 'exact', head: true })
+          .eq('seller_id', user.id)
+        if (cancelled) return
+        setOwnerListingCount(count || 0)
+        const next = (count || 0) > 0 ? 'owner' : 'buyer'
+        setActiveRoleState(next)
+        persistRole(user.id, next)
+      } catch {
+        if (!cancelled) {
+          setActiveRoleState('buyer')
+          persistRole(user.id, 'buyer')
+        }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [user?.id, role, loading])
+
+  useEffect(() => {
     if (!user?.id) return
     let cancelled = false
 
@@ -140,7 +210,7 @@ export function AuthProvider({ children }) {
   }, [user?.id])
 
   return (
-    <AuthContext.Provider value={{ session, user, role, profile, loading, showToast, signOut, setWhatsappVerified, refreshProfile: fetchProfile }}>
+    <AuthContext.Provider value={{ session, user, role, profile, loading, showToast, signOut, setWhatsappVerified, refreshProfile: fetchProfile, activeRole, setActiveRole, ownerListingCount }}>
       {children}
       {toast && <Toast message={toast.message} type={toast.type} action={toast.action} onClose={hideToast} />}
     </AuthContext.Provider>

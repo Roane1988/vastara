@@ -839,5 +839,18 @@
     "invalid": "Invalid WhatsApp number. Use format 08xxxxxxxxxx or 62xxxxxxxxxx (10-14 digits).",
     "success": "WhatsApp number verified successfully.",
     "failed": "Failed to verify WhatsApp. Please try again."
+  },
+  "roleSwitcher": {
+    "label": "Active Mode",
+    "buyer": "Buyer",
+    "owner": "Owner",
+    "agent": "Agent",
+    "locked_hint": "Register as an agent to enable this mode",
+    "become_agent": "Become an Agent",
+    "banner": {
+      "buyer": "You're in Buyer Mode — browsing and saving properties.",
+      "owner": "You're in Owner Mode — managing your listings and performance.",
+      "agent": "You're in Agent Mode — managing client portfolio and listings."
+    }
   }
 }

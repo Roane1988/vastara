@@ -17,6 +17,10 @@ import {
   Wallet,
   UserCheck,
   BellRing,
+  ShoppingBag,
+  Briefcase,
+  ShieldCheck,
+  ArrowRight,
 } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -58,10 +62,73 @@ function Collapsible({ title, icon, defaultOpen = false, children }) {
   )
 }
 
+const ROLE_MODES = [
+  { key: 'buyer', icon: ShoppingBag, color: 'bg-blue-50 text-blue-600 border-blue-200', activeColor: 'bg-blue-600 text-white border-blue-600' },
+  { key: 'owner', icon: Home, color: 'bg-amber-50 text-amber-600 border-amber-200', activeColor: 'bg-amber-600 text-white border-amber-600' },
+  { key: 'agent', icon: Briefcase, color: 'bg-emerald-50 text-emerald-600 border-emerald-200', activeColor: 'bg-emerald-600 text-white border-emerald-600' },
+]
+
+function RoleSwitcher({ activeRole, setActiveRole, profileRole, onNavigate }) {
+  const { t } = useTranslation()
+
+  const canBeAgent = profileRole === 'agent' || profileRole === 'admin'
+
+  const handleSwitch = (key) => {
+    if (key === 'agent' && !canBeAgent) {
+      onNavigate('/agent-apply')
+      return
+    }
+    setActiveRole(key)
+  }
+
+  return (
+    <div className="rounded-2xl border border-brand-border p-3">
+      <p className="text-[10px] font-bold text-brand-muted uppercase tracking-wide mb-2.5 px-1">
+        {t('roleSwitcher.label')}
+      </p>
+      <div className="flex gap-1.5">
+        {ROLE_MODES.map(({ key, icon: Icon, color, activeColor }) => {
+          const isActive = activeRole === key
+          const isLocked = key === 'agent' && !canBeAgent
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => handleSwitch(key)}
+              title={isLocked ? t('roleSwitcher.locked_hint') : undefined}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold border transition-all duration-200 ${
+                isActive
+                  ? activeColor
+                  : isLocked
+                    ? 'bg-brand-bg text-brand-muted border-brand-border opacity-60'
+                    : color
+              }`}
+            >
+              <Icon size={14} />
+              {t(`roleSwitcher.${key}`)}
+            </button>
+          )
+        })}
+      </div>
+      {!canBeAgent && (
+        <button
+          type="button"
+          onClick={() => onNavigate('/agent-apply')}
+          className="w-full mt-2 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-brand-accent hover:text-brand-primary py-2 rounded-lg hover:bg-brand-highlight transition-colors"
+        >
+          <ShieldCheck size={13} />
+          {t('roleSwitcher.become_agent')}
+          <ArrowRight size={12} />
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { role, showToast, refreshProfile } = useAuth()
+  const { role, showToast, refreshProfile, activeRole, setActiveRole } = useAuth()
   const { totalNew } = useSavedSearchAlerts()
 
   const [name, setName] = useState(userName || '')
@@ -363,6 +430,13 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
           </span>
         </div>
       </div>
+
+      <RoleSwitcher
+        activeRole={activeRole}
+        setActiveRole={setActiveRole}
+        profileRole={role}
+        onNavigate={handleNavigate}
+      />
 
       <div className="rounded-2xl border border-brand-border divide-y divide-brand-border overflow-hidden">
         <Collapsible title={t('profileDrawer.section_account')} icon={<User size={16} />} defaultOpen>

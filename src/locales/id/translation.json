@@ -839,5 +839,18 @@
     "invalid": "Nomor WhatsApp tidak valid. Gunakan format 08xxxxxxxxxx atau 62xxxxxxxxxx (10-14 digit).",
     "success": "Nomor WhatsApp berhasil diverifikasi.",
     "failed": "Terjadi kesalahan saat memverifikasi WhatsApp. Silakan coba lagi."
+  },
+  "roleSwitcher": {
+    "label": "Mode Aktif",
+    "buyer": "Pembeli",
+    "owner": "Pemilik",
+    "agent": "Agen",
+    "locked_hint": "Daftar sebagai agen untuk mengaktifkan mode ini",
+    "become_agent": "Daftar Menjadi Agen",
+    "banner": {
+      "buyer": "Kamu sedang dalam Mode Pembeli — menjelajahi dan menyimpan properti.",
+      "owner": "Kamu sedang dalam Mode Pemilik — mengelola iklan dan performa properti.",
+      "agent": "Kamu sedang dalam Mode Agen — mengelola portofolio klien dan listing."
+    }
   }
 }

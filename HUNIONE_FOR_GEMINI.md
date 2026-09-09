@@ -1,6 +1,30 @@
 # HuniOne — Ringkasan Proyek untuk Gemini AI
 
-Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
+Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
+
+## Changelog — Role Switcher: Multi-Mode UI (Buyer/Owner/Agent) (9 September 2026)
+- **Fitur baru**: user bisa beralih konteks UI antara **Mode Pembeli** (menjelajahi properti), **Mode Pemilik** (mengelola iklan sendiri), dan **Mode Agen** (mengelola portofolio klien) — mirip Tokopedia merchant/buyer toggle.
+- **State & Persistence** (`AuthContext.jsx`):
+  - State `activeRole` (`'buyer' | 'owner' | 'agent'`) ditambahkan ke context, di-persist per-user di `localStorage` (`hunione_active_role:{userId}`).
+  - `setActiveRole(nextRole)` — public setter yang menulis ke state + localStorage.
+  - **Smart default on login**: cek stored value → agent/admin role → has listings (`properties.seller_id` count) → fallback buyer.
+  - `ownerListingCount` diekspos untuk kebutuhan downstream.
+  - Sign-out membersihkan stored role + reset state.
+  - Realtime watcher `profiles.role` tetap berfungsi tanpa perubahan.
+- **UI Switcher** (`ProfileDrawer.jsx`):
+  - Komponen `RoleSwitcher` dirender di antara kartu profil dan section akun.
+  - Tiga tombol pill: **Pembeli** (biru, ikon `ShoppingBag`), **Pemilik** (kuning, ikon `Home`), **Agen** (hijau, ikon `Briefcase`).
+  - Active mode mendapat fill color; inactive mode mendapat light tint.
+  - **Agent mode terkunci** untuk non-agent — klik redirect ke `/agent-apply` dengan CTA "Daftar Menjadi Agen".
+- **Dashboard Adaptif** (`DashboardPage.jsx`):
+  - Internal `mode` state dihapus → sekarang baca `activeRole` dari `useAuth()`.
+  - Load **kedua** dataset (buyer + seller) paralel saat mount.
+  - `RoleContextBanner` — banner berwarna indikator mode aktif di atas dashboard.
+  - `SellerDashboard` menerima prop `isAgent` untuk tips spesifik agen.
+  - Header subtitle adaptif: "pencarian properti" / "penjualan" / "agen properti".
+- **i18n** (id/en `translation.json`): namespace `roleSwitcher` dengan key `label`, `buyer`, `owner`, `agent`, `locked_hint`, `become_agent`, `banner.buyer/owner/agent`.
+- **Keamanan**: RLS tidak dilemahkan — `activeRole` murni level UI; semua database write tetap dijaga `auth.uid()` + `profiles.role`.
+- Skope: `AuthContext.jsx`, `ProfileDrawer.jsx`, `DashboardPage.jsx`, `locales/id/translation.json`, `locales/en/translation.json`. Lint bersih (`eslint`) + build sukses (`vite`).
 
 ## Analisis Arsitektur Fitur Chat — ChatHubPage.jsx (31 Agustus 2026)
 Ringkasan arsitektur & temuan dari analisis menyeluruh fitur chat realtime (2.490 baris, komponen multipanel: daftar kontak kiri + ruang chat kanan + panel kontak).
