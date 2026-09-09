@@ -2,6 +2,17 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Fix: Overflow Judul & Text Clipping di MiniPropCard (Mobile, cth. Galaxy S22+) (9 September 2026)
+- **Gejala**: pada layar sempit (~360px, Samsung Galaxy S22+), judul properti panjang di `MiniPropCard` (mis. "Apartemen Studio — Southgate Residence…", "Rumah Minimalis 1 Lantai — Griya Serpong…") terpotong/meluap di tepi kanan kartu di section **"Rekomendasi Sesuai Budget"** dan kartu lain yang memakai `MiniPropCard` (`DashboardPage.jsx`).
+- **Root cause**: wrapper teks hanya `min-w-0` tanpa `flex-1`/`w-full`, sehingga flexbox tidak memberikan lebar ter-batas yang konsisten → `truncate` (yang butuh `overflow:hidden` + lebar definitif) gagal menahan teks dan baris meluap keluar kartu.
+- **Fix 1 — Flex child constraints** (`MiniPropCard`):
+  - Wrapper teks diubah dari `min-w-0` → **`flex-1 min-w-0 overflow-hidden`** → flex child menempati sisa ruang yang pasti dan teks panjang selalu dipotong di batas kontainer.
+  - Row kartu diberi **`w-full`** dan kartu **`overflow-hidden`** (safety net horizontal); `Link` tetap `flex-1 min-w-0`.
+- **Fix 2 — Text truncation**: judul (`text-sm font-semibold` `truncate`) & lokasi (`text-xs text-brand-muted` `truncate`) kini dijamin ber-ellipsis satu baris pada semua viewport mobile (tidak lagi keluar kartu).
+- **Fix 3 — Card spacing & thumbnail**: padding kartu **`p-3` → `p-3 sm:p-4`**; thumbnail **`w-16 h-16` → `w-14 h-14 sm:w-16 sm:h-16`** (lebih ringkas di mobile ≤430px, proporsional kembali di `sm`+) tetap `shrink-0` + `object-cover`; baris harga/badge tetap `flex-wrap` biar chip bertumpuk rapi tanpa overflow.
+- **Verifikasi**: lint bersih (`eslint`) + build sukses (`vite`).
+- Skope: `src/components/DashboardPage.jsx` (`MiniPropCard`), `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Fix: Persistence Bug Profil Keuangan Saat Refresh Halaman (9 September 2026)
 - **Gejala**: setelah menyimpan Profil Keuangan di sesi aktif, hard refresh (F5) membuat StatCard "Profil Keuangan" kembali tampil **"Belum diisi"** meski data sudah tersimpan di database.
 - **Root cause** (`DashboardPage.jsx`): `getFinancialProfile()` sebelumnya di-branding ke dalam `Promise.all` di `loadBuyerData` bersama query `saved_searches` & `site_visits`. Jika salah satu query Supabase me-reject, `Promise.all` me-reject → seluruh `loadBuyerData` terlempar → **`loadBudgetProps(profile)` tidak pernah dipanggil** → `setFinancialProfile` tidak berjalan → state tetap `null` ("Belum diisi"). Setelah save di sesi aktif hal ini tertutup oleh event `financial-profile-saved`, tetapi saat cold load/refresh jalan tersebut pure inisialisasi.

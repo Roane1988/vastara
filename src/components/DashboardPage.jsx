@@ -649,11 +649,11 @@ function AiPropertySummary({ financialProfile, budgetProps, firstName }) {
 function MiniPropCard({ p, profile, badge, onAsk }) {
   const st = profile ? getAffordabilityStatus(p, profile) : null
   return (
-    <div className="bg-brand-surface rounded-2xl border border-brand-border p-3 hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-3">
+    <div className="bg-brand-surface rounded-2xl border border-brand-border p-3 sm:p-4 hover:shadow-md transition-shadow overflow-hidden">
+      <div className="flex items-center gap-3 w-full">
         <Link to={`/property/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0 group">
-          <img src={getImageSrc(p.image_url)} alt={p.title} className="w-16 h-16 rounded-xl object-cover shrink-0 group-hover:scale-105 transition-transform" onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }} />
-          <div className="min-w-0">
+          <img src={getImageSrc(p.image_url)} alt={p.title} className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0 group-hover:scale-105 transition-transform" onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }} />
+          <div className="flex-1 min-w-0 overflow-hidden">
             <p className="text-sm font-semibold text-brand-text truncate">{p.title || 'Properti'}</p>
             <p className="text-xs text-brand-muted truncate">{[p.city, p.district].filter(Boolean).join(', ') || ''}</p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
