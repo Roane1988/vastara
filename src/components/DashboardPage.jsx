@@ -51,14 +51,14 @@ function StatCard({ icon: Icon, label, value, sub, accent, extra, onClick, cta }
         <p className="text-xl font-bold text-brand-text leading-tight">{value}</p>
         {sub && <p className="text-xs text-brand-muted mt-0.5 truncate">{sub}</p>}
         {onClick && cta && (
-          <p className="text-[11px] font-semibold text-brand-accent mt-1 inline-flex items-center gap-0.5 hover:gap-1.5 transition-all">
-            {cta} <ArrowRight size={11} />
+          <p className="text-xs font-semibold text-brand-accent mt-1 inline-flex items-center gap-1 hover:gap-1.5 transition-all">
+            {cta} <ArrowRight size={12} />
           </p>
         )}
       </div>
     </>
   )
-  const base = `bg-brand-surface rounded-2xl border border-brand-border p-3 sm:p-4 flex items-center gap-3 ${extra || ''}`
+  const base = `min-h-[76px] bg-brand-surface rounded-2xl border border-brand-border p-3 sm:p-4 flex items-center gap-3 ${extra || ''}`
   if (onClick) {
     return (
       <button
@@ -684,7 +684,7 @@ function SavedPropertiesModal({ open, onClose, onItemClick }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface py-6 px-4 sm:px-6 pb-8 max-h-[85vh] overflow-y-auto sm:inset-x-0 sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit sm:max-h-[calc(100vh-104px)]"
+            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface pt-6 px-4 sm:px-6 pb-[max(2rem,env(safe-area-inset-bottom))] max-h-[85vh] supports-[max-height:100dvh]:max-h-[85dvh] overflow-y-auto overscroll-contain sm:inset-x-0 sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit sm:pt-8 sm:pb-8 sm:max-h-[calc(100vh-104px)]"
           >
             <div className="sticky -top-6 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 mb-4 bg-brand-surface/95 backdrop-blur-md border-b border-brand-border z-10 flex items-center justify-between gap-3">
               <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
@@ -695,9 +695,9 @@ function SavedPropertiesModal({ open, onClose, onItemClick }) {
                 type="button"
                 aria-label="Tutup"
                 onClick={onClose}
-                className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+                className="w-11 h-11 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
             <SavedPropertiesList
@@ -732,7 +732,7 @@ function VisitsModal({ open, onClose, visits, onVisitClick }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface py-6 px-4 sm:px-6 pb-8 max-h-[85vh] overflow-y-auto sm:inset-x-0 sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit sm:max-h-[calc(100vh-104px)]"
+            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface pt-6 px-4 sm:px-6 pb-[max(2rem,env(safe-area-inset-bottom))] max-h-[85vh] supports-[max-height:100dvh]:max-h-[85dvh] overflow-y-auto overscroll-contain sm:inset-x-0 sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit sm:pt-8 sm:pb-8 sm:max-h-[calc(100vh-104px)]"
           >
             <div className="sticky -top-6 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 mb-4 bg-brand-surface/95 backdrop-blur-md border-b border-brand-border z-10 flex items-center justify-between gap-3">
               <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
@@ -743,9 +743,9 @@ function VisitsModal({ open, onClose, visits, onVisitClick }) {
                 type="button"
                 aria-label="Tutup"
                 onClick={onClose}
-                className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+                className="w-11 h-11 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
             {visits.length === 0 ? (
@@ -822,7 +822,7 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
   const activeSavedSearches = (savedSearches || []).filter((s) => s.active)
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <StatCard
           icon={Heart}
           label="Properti Tersimpan"
@@ -1415,7 +1415,7 @@ function FinanceProfileModal({ open, onClose, onSaved }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface py-6 px-4 sm:px-6 pb-8 max-h-[85vh] overflow-y-auto sm:inset-x-0 sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit sm:max-h-[calc(100vh-104px)]"
+            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface pt-6 px-4 sm:px-6 pb-[max(2rem,env(safe-area-inset-bottom))] max-h-[85vh] supports-[max-height:100dvh]:max-h-[85dvh] overflow-y-auto overscroll-contain sm:inset-x-0 sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit sm:pt-8 sm:pb-8 sm:max-h-[calc(100vh-104px)]"
           >
             <div className="sticky -top-6 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 mb-4 bg-brand-surface/95 backdrop-blur-md border-b border-brand-border z-10 flex items-center justify-between gap-3">
               <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
@@ -1426,9 +1426,9 @@ function FinanceProfileModal({ open, onClose, onSaved }) {
                 type="button"
                 aria-label="Tutup"
                 onClick={onClose}
-                className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+                className="w-11 h-11 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
             <FinancialProfileForm showTitle={false} onSaved={onSaved} />

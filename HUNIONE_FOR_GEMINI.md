@@ -2,6 +2,21 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Responsive & Mobile-First: StatCards + Modal Bottom-Sheet (iPhone & Samsung) (9 September 2026)
+- **Tujuan**: audit & perbaikan responsif pada StatCards Buyer Dashboard dan ketiga modal (`SavedPropertiesModal`, `VisitsModal`, `FinanceProfileModal`) untuk viewport mobile 320px–430px (iPhone Safari, Samsung Galaxy Chrome) tanpa overflow horizontal atau teks terpotong.
+- **1. StatCards Grid** (`DashboardPage.jsx` `BuyerDashboard`): grid diubah dari `grid-cols-2` (2 kolom di semua ukuran, rawan sempit di 320px) menjadi **`grid-cols-1 sm:grid-cols-2`** — mobile stack 1 kolom rapi, ≥2 kolom di `sm`+.
+- **2. Touch targets & tipografi StatCard** (`StatCard`):
+  - Tombol kartu diberi `min-h-[76px]` (area ketuk nyaman sesuai Pedoman 44px).
+  - CTA chip diperbesar: teks `text-[11px]` → **`text-xs`**, ikon `<ArrowRight size={11}>` → **`size={12}`**, gap `0.5` → `1`.
+  - `min-w-0` + `truncate` dipertahankan agar label/sub tidak meluap.
+- **3. Modal mobile bottom-sheet** (3 modal identik, `replaceAll`):
+  - **Safe-area notch iPhone (landscape/with Home Indicator)**: `pb-8` → **`pb-[max(2rem,env(safe-area-inset-bottom))]`**; `sm:pb-8` untuk desktop. `index.html` viewport ditambah **`viewport-fit=cover`** agar `env(safe-area-inset-*)` aktif di Safari (sebelumnya tidak ada, sehingga safe-area selalu 0).
+  - **Dynamic viewport**: tambah `supports-[max-height:100dvh]:max-h-[85dvh]` (progressive enhancement di atas `max-h-[85vh]`) — memperbaiki bottom-sheet terpotong karena URL bar iOS Safari.
+  - **Scroll chaining & overscroll**: tambah **`overscroll-contain`** agar pull-to-refresh/scroll tidak "bocor" dari body saat modal terbuka.
+  - **Close button ≥44px**: `w-9 h-9` (36px) → **`w-11 h-11`** (44px) dengan ikon `X` `size 18→20` di ketiga modal.
+- **Verifikasi**: lint bersih (`eslint`), build sukses (`vite`), dan output CSS terkonfirmasi mengandung utility `overscroll-contain`, `safe-area-inset-bottom`, `max-height:100dvh`, `85dvh` (`grep dist/assets/index-*.css`).
+- Skope: `index.html` (viewport-fit=cover), `src/components/DashboardPage.jsx` (StatCard, stats grid, SavedPropertiesModal, VisitsModal, FinanceProfileModal), `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Stat Cards Buyer Dashboard Interaktif & Klikable (9 September 2026)
 - **Tujuan**: kartu statistik di Buyer Dashboard tidak lagi placeholder statis — setiap kartu kini interaktif dengan action yang jelas dan feedback langsung.
 - **`StatCard` interaktif** (`DashboardPage.jsx`): komponen kini menerima prop opsional `onClick` + `cta`.
