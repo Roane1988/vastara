@@ -287,30 +287,32 @@ export default function HuniBotRoom({ firstName }) {
         )}
         <form
           onSubmit={(e) => { e.preventDefault(); handleSend() }}
-          className="flex items-end gap-2 px-4 pt-3 pb-[env(safe-area-inset-bottom)] border-t border-brand-border bg-brand-surface"
+          className="flex items-center gap-2 px-4 pt-3 pb-[env(safe-area-inset-bottom)] border-t border-brand-border bg-brand-surface"
         >
-        <textarea
-          ref={inputRef}
-          rows={1}
-          value={input}
-          onChange={e => {
-            setInput(e.target.value)
-            const el = e.target
-            el.style.height = 'auto'
-            el.style.height = Math.min(el.scrollHeight, 120) + 'px'
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder="Tanya tentang properti..."
-          disabled={isLoading}
-          className="flex-1 w-full border border-brand-border rounded-xl px-4 py-3 text-sm text-brand-text bg-brand-bg focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors placeholder:text-brand-muted resize-none overflow-y-auto leading-snug disabled:opacity-60"
-        />
+        <div className="flex items-end gap-2 flex-1 min-w-0 bg-slate-100 rounded-full border border-brand-border/60 focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-400/30 shadow-sm px-4 py-2 transition-all duration-300">
+          <textarea
+            ref={inputRef}
+            rows={1}
+            value={input}
+            onChange={e => {
+              setInput(e.target.value)
+              const el = e.target
+              el.style.height = 'auto'
+              el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="Tanya tentang properti..."
+            disabled={isLoading}
+            className="flex-1 min-w-0 bg-transparent border-0 outline-none resize-none px-0 py-1.5 text-sm text-brand-text placeholder:text-brand-muted overflow-y-auto leading-snug max-h-[120px] disabled:opacity-60"
+          />
+        </div>
         <button
           type="submit"
           disabled={!input.trim() || isLoading}
-          className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-r from-brand-primary to-[#7C3AED] text-white flex items-center justify-center hover:brightness-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white flex items-center justify-center hover:brightness-110 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           aria-label="Kirim pesan"
         >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send size={16} />}
+          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send size={17} className="ml-0.5" />}
         </button>
         </form>
       </div>

@@ -2,6 +2,18 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — UI: Input HuniBot Di-redesign Jadi Capsule Bar Gaya WhatsApp (Harmonisasi dengan Forum) (10 September 2026)
+- **Lokasi**: `HuniBotRoom.jsx` (ruang chat AI di dalam `ChatHubPage`) dan `HuniBot.jsx` (floating widget AI di semua halaman) — keduanya memakai placeholder `"Tanya tentang properti..."`.
+- **Desain baru (WhatsApp-style capsule bar)**:
+  - Wrapper input jadi baris tunggal pill **`rounded-full`** dengan latar netral `bg-slate-100`, border halus `border-brand-border/60`, **focus ring ungu** `focus-within:ring-2 ring-purple-400/30` + `focus-within:border-purple-400` (aksen AI HuniBot), `shadow-sm`.
+  - Textarea **auto-expanding** (`rows={1}`, on-change mengikuti `scrollHeight`, cap `120px` / `max-h-[120px]` + `overflow-y-auto`), transparan di dalam capsule, placeholder dipertahankan `"Tanya tentang properti..."`.
+  - Tombol kirim **lingkaran** `w-10 h-10 rounded-full` dengan **gradient ungu khas HuniBot** `bg-gradient-to-r from-purple-500 to-indigo-600 text-white` + `hover:brightness-110` + bayangan halus; ikon pesawat kertas `Send` 17px; spinner `Loader2` (room) / disabled (widget) saat procesing.
+  - **Strictly minimal**: hanya kolom teks + tombol kirim — tidak ada ikon lampiran/emoji/voice/mic (sesuai spesifikasi).
+- **Posisi & responsif**: di room, form tetap di dasar kolom chat (`border-t`, setelah area scroll `flex-1`) dan auto-expand menaikkan bar ke atas; `px-4 pt-3 pb-[env(safe-area-inset-bottom)]` (akomodasi iPhone safe-area); di widget, capsule menempati footer panel (mobile & desktop).
+- **Konvensi**: Tailwind v4 default palette `slate-*`/`purple-*`/`indigo-*`; pola auto-expand & ikon `Send`/`Loader2` konsisten dengan Forum capsule bar & `ChatHubPage`.
+- **Verifikasi**: `eslint` bersih + `vite build` sukses.
+- Skope: `src/components/HuniBotRoom.jsx`, `src/components/HuniBot.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Fix: Badge Unread Per-Kontak & Filter "Belum dibaca N" Masih Macet di Sidebar Chat (10 September 2026)
 - **Gejala**: setelah fix badge global (navbar), badge kontak di sidebar (mis. Kevin) tetap "1" dan tab filter menampilkan "Belum dibaca 1" — bahkan setelah thread dibuka, dibaca, dan di-hard-refresh.
 - **Root cause**: `fetchContacts` di `ChatHubPage.jsx` memilih kolom **`sender_id, receiver_id, content, created_at, read_at`** TANPA `deleted_at`. Akibatnya `m.deleted_at` selalu `undefined`, sehingga guard `!m.deleted_at` pada perhitungan `unreadCounts` (termasuk perbaikan sebelumnya) menjadi **dead code** — pesan soft-delete tetap dihitung sebagai unread per-kontak. Badge navbar aman karena `useChatUnread.fetchCount` memfilter via `.is('deleted_at', null)` (server-side), tapi `fetchContacts` menghitung di klien tanpa kolom `deleted_at`.

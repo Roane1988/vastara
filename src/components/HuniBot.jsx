@@ -350,30 +350,33 @@ export default function HuniBot() {
               </button>
             )}
 
-            <div className="border-t border-brand-border bg-brand-surface p-3 flex gap-2 shrink-0">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={e => {
-                  setInput(e.target.value)
-                  const el = e.target
-                  el.style.height = 'auto'
-                  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="Tanya tentang properti..."
-                disabled={isLoading}
-                rows={1}
-                className="flex-1 px-3 py-2 text-sm bg-brand-bg border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary/30 placeholder:text-brand-muted disabled:opacity-50 resize-none overflow-y-auto"
-              />
-              <button
-                type="button"
-                onClick={() => handleSend()}
-                disabled={!input.trim() || isLoading}
-                className="w-9 h-9 bg-brand-primary text-white rounded-xl flex items-center justify-center disabled:opacity-40 transition-opacity shrink-0"
-              >
-                <Send className="w-4 h-4" />
-              </button>
+            <div className="border-t border-brand-border bg-brand-surface p-3 shrink-0">
+              <div className="flex items-center gap-2 bg-slate-100 rounded-full border border-brand-border/60 focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-400/30 shadow-sm px-4 py-1.5 transition-all duration-300">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={e => {
+                    setInput(e.target.value)
+                    const el = e.target
+                    el.style.height = 'auto'
+                    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Tanya tentang properti..."
+                  disabled={isLoading}
+                  rows={1}
+                  className="flex-1 min-w-0 bg-transparent border-0 outline-none resize-none px-0 py-1.5 text-sm text-brand-text placeholder:text-brand-muted disabled:opacity-50 overflow-y-auto leading-snug max-h-[120px]"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSend()}
+                  disabled={!input.trim() || isLoading}
+                  className="shrink-0 w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full flex items-center justify-center hover:brightness-110 active:scale-95 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                  aria-label="Kirim pesan"
+                >
+                  <Send size={17} className="ml-0.5" />
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
