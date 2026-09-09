@@ -2,6 +2,18 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Stat Cards Buyer Dashboard Interaktif & Klikable (9 September 2026)
+- **Tujuan**: kartu statistik di Buyer Dashboard tidak lagi placeholder statis — setiap kartu kini interaktif dengan action yang jelas dan feedback langsung.
+- **`StatCard` interaktif** (`DashboardPage.jsx`): komponen kini menerima prop opsional `onClick` + `cta`.
+  - Tanpa `onClick` → tetap `<div>` statis.
+  - Dengan `onClick` → dirender sebagai `<button>` (full-width, text-left, cursor-pointer) dengan hover (`hover:border-brand-accent/40`, `hover:shadow-sm`) dan press feedback (`active:scale-[0.99]`); label CTA kecil muncul di bawah nilai dengan ikon `<ArrowRight>`.
+- **"Properti Tersimpan"** → membuka **`SavedPropertiesModal`** (modal bottom-sheet/centered, mengikuti pola `FinanceProfileModal`): menampilkan semua favorit via komponen reuse `SavedPropertiesList` (termasuk empty state dengan CTA "Jelajahi properti"). Klik item menutup modal lalu `navigate('/property/:id')`.
+- **"Jadwal Kunjungan"** → membuka **`VisitsModal`** menampilkan tur properti: grup **"Akan datang"** (status pending/confirmed, tanggal ≥ hari ini, urut ascending) lalu **"Riwayat"**; tiap baris (`VisitRow`) memakai badge `VISIT_STATUS` dan navigasi ke properti saat diklik. Empty state menawarkan CTA "Cari properti" → `/explore`.
+- **"Pencarian Tersimpan"** → `navigate('/saved-searches')` (halaman kelola pencarian & alert).
+- **"Profil Keuangan"** → membuka `FinanceProfileModal` (via `onOpenFinanceForm`) agar user meninjau/mengedit data finansial — CTA dinamis "Tinjau & edit" vs "Lengkapi".
+- **State binding**: nilai kartu (`savedProps.length`, `visits.length` + sub jadwal datang, `savedSearches.length` + jumlah aktif, status profil finansial) mengalir langsung dari state `DashboardPage` yang sudah direfresh via `loadBuyerData`. Routing/modal handler bersih di `BuyerDashboard` (`useNavigate` + `useState` untuk `savedOpen`/`visitsOpen`).
+- Skope: `src/components/DashboardPage.jsx` (import `useNavigate` + `SavedPropertiesList`, `StatCard`, `BuyerDashboard`, komponen baru `SavedPropertiesModal`/`VisitsModal`/`VisitRow`). Lint bersih (`eslint`) + build sukses (`vite`).
+
 ## Changelog — Security: Validation Guards pada Role Switcher (Agent & Owner Mode) (9 September 2026)
 - **Tujuan**: mencegah user non-agen/non-pemilik langsung meng-impersonasi **Mode Agen** atau **Mode Pemilik** tanpa memenuhi kriteria validasi. Menegaskan bahwa `activeRole` hanyalah lapisan presentasi (toggle UI) dan **tidak** bisa melewati RLS.
 - **Guard Mode Agen** (`AuthContext.jsx`): `setActiveRole('agent')` kini divalidasi keras — hanya diterima bila `profiles.role` = `agent` atau `admin` (`isAgentRole`). Buyer biasa yang mencoba: **UI terkunci** (pill opacity-60 + tooltip), **toast error**, dan `ProfileDrawer` mengarahkan langsung ke `/agent-apply` (CTA "Daftar Menjadi Agen"). Dashboard agen tidak diberikan.

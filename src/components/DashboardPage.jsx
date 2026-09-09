@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -12,6 +12,7 @@ import { getFinancialProfile, computeAffordability, maxAffordablePrice, BUYING_P
 import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
 import { getAuthHeaders } from '../utils/groqClient'
 import FinancialProfileForm from './FinancialProfileForm'
+import SavedPropertiesList from './SavedPropertiesList'
 import {
   LayoutDashboard,
   Loader2,
@@ -39,19 +40,37 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 
-function StatCard({ icon: Icon, label, value, sub, accent, extra }) {
-  return (
-    <div className={`bg-brand-surface rounded-2xl border border-brand-border p-3 sm:p-4 flex items-center gap-3 ${extra || ''}`}>
+function StatCard({ icon: Icon, label, value, sub, accent, extra, onClick, cta }) {
+  const content = (
+    <>
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accent || 'bg-brand-highlight text-brand-accent'}`}>
         <Icon size={20} />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-brand-muted truncate">{label}</p>
         <p className="text-xl font-bold text-brand-text leading-tight">{value}</p>
         {sub && <p className="text-xs text-brand-muted mt-0.5 truncate">{sub}</p>}
+        {onClick && cta && (
+          <p className="text-[11px] font-semibold text-brand-accent mt-1 inline-flex items-center gap-0.5 hover:gap-1.5 transition-all">
+            {cta} <ArrowRight size={11} />
+          </p>
+        )}
       </div>
-    </div>
+    </>
   )
+  const base = `bg-brand-surface rounded-2xl border border-brand-border p-3 sm:p-4 flex items-center gap-3 ${extra || ''}`
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${base} w-full text-left cursor-pointer hover:border-brand-accent/40 hover:shadow-sm active:scale-[0.99] transition-all`}
+      >
+        {content}
+      </button>
+    )
+  }
+  return <div className={base}>{content}</div>
 }
 
 function SectionHeader({ title, to, cta }) {
@@ -654,7 +673,152 @@ function MiniPropCard({ p, profile, badge, onAsk }) {
   )
 }
 
+function SavedPropertiesModal({ open, onClose, onItemClick }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <button type="button" aria-label="Tutup" onClick={onClose} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[55] cursor-default p-0 border-0" />
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface py-6 px-4 sm:px-6 pb-8 max-h-[85vh] overflow-y-auto sm:inset-x-0 sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit sm:max-h-[calc(100vh-104px)]"
+          >
+            <div className="sticky -top-6 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 mb-4 bg-brand-surface/95 backdrop-blur-md border-b border-brand-border z-10 flex items-center justify-between gap-3">
+              <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
+                <Heart size={20} className="text-red-500" />
+                Properti Tersimpan
+              </h3>
+              <button
+                type="button"
+                aria-label="Tutup"
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <SavedPropertiesList
+              emptyText="Belum ada properti tersimpan. Simpan properti favorit untuk dibandingkan nanti."
+              emptyCtaLabel="Jelajahi properti"
+              onEmptyCta={() => onItemClick('/explore')}
+              onItemClick={onItemClick}
+            />
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function VisitsModal({ open, onClose, visits, onVisitClick }) {
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const upcoming = (visits || [])
+    .filter((v) => v.status === 'pending' || v.status === 'confirmed')
+    .filter((v) => v.scheduled_date && new Date(v.scheduled_date) >= todayStart)
+    .sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''))
+  const history = (visits || []).filter((v) => !upcoming.includes(v))
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <button type="button" aria-label="Tutup" onClick={onClose} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[55] cursor-default p-0 border-0" />
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface py-6 px-4 sm:px-6 pb-8 max-h-[85vh] overflow-y-auto sm:inset-x-0 sm:top-20 sm:bottom-6 sm:m-auto sm:h-fit sm:max-h-[calc(100vh-104px)]"
+          >
+            <div className="sticky -top-6 -mx-4 sm:-mx-6 px-4 sm:px-6 py-5 mb-4 bg-brand-surface/95 backdrop-blur-md border-b border-brand-border z-10 flex items-center justify-between gap-3">
+              <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
+                <CalendarClock size={20} className="text-brand-verified" />
+                Jadwal Kunjungan
+              </h3>
+              <button
+                type="button"
+                aria-label="Tutup"
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-brand-bg flex items-center justify-center text-brand-muted hover:text-brand-text hover:bg-brand-border transition-colors shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            {visits.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-sm text-brand-muted mb-3">Belum ada jadwal kunjungan. Jadwalkan kunjungan ke properti yang kamu minati.</p>
+                <button
+                  type="button"
+                  onClick={() => onVisitClick(null)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold hover:brightness-90 transition-all"
+                >
+                  Cari properti <ArrowRight size={13} />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {upcoming.length > 0 && (
+                  <>
+                    <p className="text-[11px] font-bold text-brand-muted uppercase tracking-wide px-1">Akan datang</p>
+                    <div className="space-y-2">
+                      {upcoming.map((v) => (
+                        <VisitRow key={v.id} v={v} onClick={() => onVisitClick(v.property_id)} />
+                      ))}
+                    </div>
+                  </>
+                )}
+                {upcoming.length > 0 && history.length > 0 && (
+                  <p className="text-[11px] font-bold text-brand-muted uppercase tracking-wide pt-2 px-1 border-t border-brand-border">Riwayat</p>
+                )}
+                {history.length > 0 && (
+                  <div className="space-y-2">
+                    {history.map((v) => (
+                      <VisitRow key={v.id} v={v} onClick={() => onVisitClick(v.property_id)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function VisitRow({ v, onClick }) {
+  const st = VISIT_STATUS[v.status] || VISIT_STATUS.pending
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3 rounded-xl bg-brand-bg/50 border border-brand-border hover:border-brand-accent/40 hover:bg-brand-bg transition-all text-left"
+    >
+      {v.properties?.image_url ? (
+        <img src={getImageSrc(v.properties.image_url)} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+      ) : (
+        <div className="w-12 h-12 rounded-lg bg-brand-highlight flex items-center justify-center shrink-0"><CalendarClock size={18} className="text-brand-accent" /></div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-brand-text truncate">{v.properties?.title || 'Properti'}</p>
+        <p className="text-xs text-brand-muted">
+          {v.scheduled_date ? new Date(v.scheduled_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+          {v.scheduled_time ? ` · ${v.scheduled_time}` : ''}
+        </p>
+      </div>
+      <span className={`text-[11px] font-semibold px-2 py-1 rounded-full shrink-0 ${st.cls}`}>{st.label}</span>
+    </button>
+  )
+}
+
 function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, financialProfile, budgetProps, budgetLimit, savedNewTotal, newMatches, alertsLoading, onOpenFinanceForm, firstName, onAsk }) {
+  const navigate = useNavigate()
+  const [savedOpen, setSavedOpen] = useState(false)
+  const [visitsOpen, setVisitsOpen] = useState(false)
   const activeSavedSearches = (savedSearches || []).filter((s) => s.active)
   return (
     <div className="space-y-8">
@@ -665,6 +829,8 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
           value={savedProps.length}
           sub="favorit kamu"
           accent="bg-red-50 text-red-500"
+          onClick={() => setSavedOpen(true)}
+          cta={savedProps.length > 0 ? 'Lihat semua' : 'Lihat properti'}
         />
         <StatCard
           icon={CalendarClock}
@@ -672,6 +838,8 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
           value={visits.length}
           sub={`${visits.filter((v) => v.status === 'pending' && new Date(v.scheduled_date) >= new Date()).length} akan datang`}
           accent="bg-brand-verified-bg text-brand-verified"
+          onClick={() => setVisitsOpen(true)}
+          cta={visits.length > 0 ? 'Lihat jadwal' : 'Jadwalkan kunjungan'}
         />
         <StatCard
           icon={Search}
@@ -679,6 +847,8 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
           value={savedSearches.length}
           sub={`${activeSearches} aktif`}
           accent="bg-brand-highlight text-brand-accent"
+          onClick={() => navigate('/saved-searches')}
+          cta="Kelola"
         />
         <StatCard
           icon={Wallet}
@@ -686,8 +856,28 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
           value={financialProfile ? 'Terisi' : 'Belum diisi'}
           sub={financialProfile ? 'Siap referensi KPR' : 'Lengkapi untuk KPR'}
           accent={financialProfile ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}
+          onClick={onOpenFinanceForm}
+          cta={financialProfile ? 'Tinjau & edit' : 'Lengkapi'}
         />
       </div>
+
+      <SavedPropertiesModal
+        open={savedOpen}
+        onClose={() => setSavedOpen(false)}
+        onItemClick={(path) => {
+          setSavedOpen(false)
+          navigate(path)
+        }}
+      />
+      <VisitsModal
+        open={visitsOpen}
+        onClose={() => setVisitsOpen(false)}
+        visits={visits}
+        onVisitClick={(id) => {
+          setVisitsOpen(false)
+          navigate(id ? `/property/${id}` : '/explore')
+        }}
+      />
 
       <AiPropertySummary financialProfile={financialProfile} budgetProps={budgetProps} firstName={firstName} />
 
