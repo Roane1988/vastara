@@ -2,6 +2,17 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Fix: Badge Unread Per-Kontak & Filter "Belum dibaca N" Masih Macet di Sidebar Chat (10 September 2026)
+- **Gejala**: setelah fix badge global (navbar), badge kontak di sidebar (mis. Kevin) tetap "1" dan tab filter menampilkan "Belum dibaca 1" — bahkan setelah thread dibuka, dibaca, dan di-hard-refresh.
+- **Root cause**: `fetchContacts` di `ChatHubPage.jsx` memilih kolom **`sender_id, receiver_id, content, created_at, read_at`** TANPA `deleted_at`. Akibatnya `m.deleted_at` selalu `undefined`, sehingga guard `!m.deleted_at` pada perhitungan `unreadCounts` (termasuk perbaikan sebelumnya) menjadi **dead code** — pesan soft-delete tetap dihitung sebagai unread per-kontak. Badge navbar aman karena `useChatUnread.fetchCount` memfilter via `.is('deleted_at', null)` (server-side), tapi `fetchContacts` menghitung di klien tanpa kolom `deleted_at`.
+- **Fix**:
+  1. `fetchContacts` kini `.select('..., read_at, deleted_at')` — guard `!m.deleted_at` benar-benar berlaku → soft-delete yang ditarik pengirim tidak lagi dihitung unread per-kontak.
+  2. `lastMessageMap` juga menolak pesan soft-delete sebagai preview terakhir thread (pesan terhapus tidak ditampilkan sebagai pesan terakhir di sidebar).
+  3. State lokal per-kontak: `markAsRead(activeContactId)` sukses → `setUnreadMap({ ...prev, [activeContactId]: 0 })` (sudah ada sejak sebelumnya) — konsisten dengan `handleSelectContact`. Badge render & filter count (`contacts.filter((c) => (unreadMap[c.id] || 0) > 0).length`) keduanya membaca `unreadMap`, jadi otomatis sinkron jika `unreadMap` benar.
+  4. **Logging observabilitas**: `[markAsRead] thread <id>: N pesan ditandai baca` (via `data.length` dari respons update) + `[fetchContacts] unread per kontak: {...}`; error persistensi tetap di-`console.error`.
+- **Verifikasi**: `eslint` bersih + `vite build` sukses; `fetchContacts` hanya dijalankan sekali saat mount (tidak ada overwrite state oleh fetch stale). Uji manual: buka thread berisi pesan soft-delete → badge kontak & "Belum dibaca N" harus hilang setelah refresh.
+- Skope: `src/components/ChatHubPage.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — UI: Komentar Forum Di-redesign Jadi Capsule Input Gaya WhatsApp (10 September 2026)
 - **Lokasi**: `ForumDetailPage.jsx` — form balasan (`handleReply`) di bagian bawah daftar komentar (sticky bottom), item 3 rincian spesifikasi.
 - **Desain baru (WhatsApp-style capsule bar)**:

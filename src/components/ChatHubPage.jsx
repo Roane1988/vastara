@@ -1462,7 +1462,7 @@ export default function ChatHubPage() {
       try {
         const { data: allMessages, error: msgErr } = await supabase
           .from('direct_messages')
-          .select('sender_id, receiver_id, content, created_at, read_at')
+          .select('sender_id, receiver_id, content, created_at, read_at, deleted_at')
           .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
           .order('created_at', { ascending: false })
           .limit(500)
@@ -1479,13 +1479,14 @@ export default function ChatHubPage() {
         ;(allMessages || []).forEach((m) => {
           const otherId = getOtherId(m, userId)
           contactIds.add(otherId)
-          if (!lastMessageMap[otherId]) {
+          if (!lastMessageMap[otherId] && !m.deleted_at) {
             lastMessageMap[otherId] = { content: m.content, created_at: m.created_at }
           }
           if (m.receiver_id === userId && !m.read_at && !m.deleted_at) {
             unreadCounts[otherId] = (unreadCounts[otherId] || 0) + 1
           }
         })
+        console.log('[fetchContacts] unread per kontak:', unreadCounts)
 
         const { data: agents, error: agentErr } = await supabase
           .from('profiles')
@@ -1809,7 +1810,7 @@ export default function ChatHubPage() {
         setUnreadDividerAt(firstUnread[0].created_at)
       }
       setMessages((prev) => prev.map((m) => (m.sender_id === activeContactId && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m)))
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('direct_messages')
         .update({ read_at: new Date().toISOString() })
         .eq('receiver_id', userId)
@@ -1819,6 +1820,7 @@ export default function ChatHubPage() {
       notifyChatRead()
       if (!error) {
         setUnreadMap((prev) => ({ ...prev, [activeContactId]: 0 }))
+        console.log(`[markAsRead] thread ${activeContactId}: ${data?.length ?? 0} pesan ditandai baca, sisa unread: 0`)
       } else {
         console.error('markAsRead gagal mempersist read_at:', error.message)
       }
