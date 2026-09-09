@@ -83,6 +83,14 @@ Kirim teks/gambar/properti/PDF-dokumen/**pesan suara** (voice note ala WhatsApp:
 - **(4) Retry otomatis tetap**: saat error retryable, `scheduleMicRetry` tetap memicu satu percobaan ulang ~1,5s lalu `startRecording()` yang juga melakukan reset state error — memberi layar kedua bagi `getUserMedia` untuk berhasil tanpa user harus menutup banner manual.
 - Skope hanya `ChatHubPage.jsx`. Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `0029718`.
 
+## Changelog — Chat: Restore Canvas Waveform Visualizer di Bar Perekaman (9 September 2026)
+- **Tujuan**: memperbaiki waveform real-time yang seharusnya muncul di tengah kapsul perekaman tetapi tidak tergambar (canvas kosong/terkesan teks statis).
+- **Root cause**: `initRecVisualizer(stream)` dipanggil **secara sinkron** di dalam `startRecording` tepat setelah `setIsRecording(true)`. Karena React belum me-render/mount `<canvas>` pada saat itu, `recCanvasRef.current` masih `null` sehingga inisialisasi `AudioContext`/`AnalyserNode` batal (`if (!canvas) return`) — visualizer tidak pernah aktif.
+- **(1) Inisialisasi lewat `useEffect`**: visualizer kini diaktifkan dalam `useEffect` yang berjalan **setelah** canvas mount, berdependensi pada `isRecording` (`initRecVisualizer(mediaStreamRef.current)`), dan dibersihkan dengan `stopRecVisualizer()` saat `isRecording` berubah jadi false (send/discard/unmount/limit 10 menit). Pause/resume tidak mengganggu (canvas tetap ada; hanya animasi yang diberhentikan saat paused).
+- **(2) Elemen `<canvas>`**: memakai `className="flex-1 h-8 mx-2 min-w-0"` (kanvas fleksibel di tengah antara tombol Pause dan Timer; `min-w-0` mencegah overflow ukuran intrinsik 300px default pada layar sempit). Tidak ada lagi teks statis di tengah kapsul.
+- `drawRecVisualizer` terus menggambar 42 bar vertikal **solid `#DC2626`** dari `getByteFrequencyData` setiap frame (`requestAnimationFrame`) saat merekam — menghasilkan animasi gelombang yang responsif terhadap suara mikrofon.
+- Skope hanya `ChatHubPage.jsx`. Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `f7c63f4`.
+
 ## Changelog — Chat: Enhance Visibility Waveform Perekaman di Latar Putih (9 September 2026)
 - **Tujuan**: bar gelombang suara saat merekam sebelumnya hampir tak terlihat di atas latar komposer yang putih karena warnanya terlalu terang (gradien rose `#e11d48`→`#f43f5e`).
 - **Perbaikan**: di `drawRecVisualizer` (tiap `ctx.fillStyle` untuk bar vertikal canvas), warna diganti dari gradien terang menjadi **solid merah tua `#DC2626`** (brand-danger) sehingga kontras tegas terhadap background putih — tetap konsisten dengan warna timer rekaman.
