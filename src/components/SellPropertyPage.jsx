@@ -213,7 +213,7 @@ export default function SellPropertyPage() {
   useSEO({ title: 'Iklankan Properti — Jual atau Sewakan', description: 'Pasang iklan properti Anda di HuniOne. Proses cepat, mudah, dan menjangkau ribuan pembeli potensial.' })
   const navigate = useNavigate()
   const location = useLocation()
-  const { showToast, loading: authLoading, role: accountRole } = useAuth()
+  const { showToast, loading: authLoading, role: accountRole, markListingOnboarded, refreshListingBoundaries } = useAuth()
   const ALLOWED_ROLES = ['owner', 'agent', 'developer']
   const rawRole = location.state?.role || 'owner'
   const requestedRole = ALLOWED_ROLES.includes(rawRole) ? rawRole : 'owner'
@@ -764,6 +764,8 @@ export default function SellPropertyPage() {
         )
       } else {
         showToast('Properti berhasil dikirim', 'success')
+        markListingOnboarded()
+        refreshListingBoundaries()
       }
       setIsSubmitted(true)
     } catch (err) {

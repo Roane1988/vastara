@@ -2,6 +2,20 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Security: Validation Guards pada Role Switcher (Agent & Owner Mode) (9 September 2026)
+- **Tujuan**: mencegah user non-agen/non-pemilik langsung meng-impersonasi **Mode Agen** atau **Mode Pemilik** tanpa memenuhi kriteria validasi. Menegaskan bahwa `activeRole` hanyalah lapisan presentasi (toggle UI) dan **tidak** bisa melewati RLS.
+- **Guard Mode Agen** (`AuthContext.jsx`): `setActiveRole('agent')` kini divalidasi keras — hanya diterima bila `profiles.role` = `agent` atau `admin` (`isAgentRole`). Buyer biasa yang mencoba: **UI terkunci** (pill opacity-60 + tooltip), **toast error**, dan `ProfileDrawer` mengarahkan langsung ke `/agent-apply` (CTA "Daftar Menjadi Agen"). Dashboard agen tidak diberikan.
+- **Guard Mode Pemilik (Hybrid Integrity)**:
+  - `setActiveRole('owner')` hanya diterima bila user **benar-benar memiliki ≥1 listing** (`properties.seller_id = user.id`, dihitung via `SELECT count`) **ATAU** sudah menyelesaikan listing onboarding flow (publikasi listing pertama).
+  - Onboarding ditandai per-user di localStorage (`hunione_listing_onboarded:{userId}`) dan di-set **hanya setelah insert listing sukses** (`SellPropertyPage.jsx` → `markListingOnboarded()`), bukan secara manual sembarang.
+  - Buyer dengan 0 listing yang mencoba Owner Mode: pill **terkunci**, toast error, dan `ProfileDrawer` mengarahkan ke `/sell` (CTA "Iklankan Properti Pertamamu").
+- **Penutupan celah localStorage forge**: pada login, stored `activeRole` di localStorage kini **divalidasi ulang** sebelum diterapkan — stored `'agent'` ditolak bila role bukan agent/admin; stored `'owner'` ditolak bila `count === 0` dan belum onboarded. Sebelumnya stored value langsung diterapkan (raw), sehingga forged `'agent'`/`'owner'` di localStorage bisa menampilkan dashboard pemilik/agen.
+- **Anti privilege escalation (audit)**: `activeRole`, `ownerListingCount`, `listingOnboarded` hanyalah state presentasi di client. Semua jalur database (write/restricted query) tetap terikat RLS Supabase: `properties.update/delete/select` memakai `auth.uid() = seller_id`; admin via `profiles.role = 'admin'` (`20260730_properties_rls_policies.sql`). Tidak ada query yang menggunakan `activeRole` sebagai filter keamanan.
+- **Fitur baru ekspor** (`AuthContext.jsx`): `listingOnboarded`, `markListingOnboarded()`, `refreshListingBoundaries()` (re-sync count listing + flag onboarding; dipanggil setelah publikasi listing pertama).
+- **Default on login diperbarui**: fetch count listing dulu → validasi stored → baru tentukan default (`agent` bila role agent/admin, `owner` bila ada listing/onboarded, selain itu `buyer`).
+- **i18n** (id/en): tambah key `roleSwitcher.owner_locked_hint`, `roleSwitcher.become_owner`.
+- Skope: `src/context/AuthContext.jsx`, `src/components/ProfileDrawer.jsx`, `src/components/SellPropertyPage.jsx`, `src/locales/id/translation.json`, `src/locales/en/translation.json`, `HUNIONE_FOR_GEMINI.md`. Lint bersih (`eslint`) + build sukses (`vite`).
+
 ## Changelog — Sinkronisasi Profil Keuangan ↔ Buyer Dashboard (9 September 2026)
 - **Bug fix**: Setelah user menyimpan profil keuangan di modal, Buyer Dashboard tetap menampilkan "Belum diisi" hingga hard reload — sekarang sudah sinkron.
 - **Root cause**: `FinancialProfileForm` sudah meng-dispatch event `window` (`financial-profile-saved`) setelah save berhasil (`FinancialProfileForm.jsx:166`), namun `DashboardPage` tidak memiliki listener untuk event tersebut.

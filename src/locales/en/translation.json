@@ -846,6 +846,8 @@
     "owner": "Owner",
     "agent": "Agent",
     "locked_hint": "Register as an agent to enable this mode",
+    "owner_locked_hint": "List a property to enable this mode",
+    "become_owner": "List Your First Property",
     "become_agent": "Become an Agent",
     "banner": {
       "buyer": "You're in Buyer Mode — browsing and saving properties.",

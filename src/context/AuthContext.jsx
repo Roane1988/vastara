@@ -7,6 +7,8 @@ import Toast from '../components/Toast'
 const AuthContext = createContext(null)
 
 const ROLE_STORAGE_KEY = 'hunione_active_role'
+const ONBOARDING_STORAGE_KEY = 'hunione_listing_onboarded'
+const VALID_ACTIVE_ROLES = ['buyer', 'owner', 'agent']
 
 function readStoredRole(userId) {
   if (!userId) return null
@@ -28,6 +30,21 @@ function persistRole(userId, value) {
   } catch { /* non-critical */ }
 }
 
+function readOnboarding(userId) {
+  if (!userId) return false
+  try {
+    return localStorage.getItem(`${ONBOARDING_STORAGE_KEY}:${userId}`) === '1'
+  } catch { /* SSR or private mode */ }
+  return false
+}
+
+function persistOnboarding(userId) {
+  if (!userId) return
+  try {
+    localStorage.setItem(`${ONBOARDING_STORAGE_KEY}:${userId}`, '1')
+  } catch { /* non-critical */ }
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [user, setUser] = useState(null)
@@ -37,6 +54,7 @@ export function AuthProvider({ children }) {
   const [toast, setToast] = useState(null)
   const [activeRole, setActiveRoleState] = useState(() => readStoredRole(null))
   const [ownerListingCount, setOwnerListingCount] = useState(0)
+  const [listingOnboarded, setListingOnboarded] = useState(() => readOnboarding(null))
 
   const showToast = useCallback((message, type = 'error', action = null) => {
     setToast({ message, type, action })
@@ -46,13 +64,41 @@ export function AuthProvider({ children }) {
     setToast(null)
   }, [])
 
+  const isAgentRole = role === 'agent' || role === 'admin'
+
   const setActiveRole = useCallback((nextRole) => {
+    if (!VALID_ACTIVE_ROLES.includes(nextRole)) return
+    if (nextRole === 'agent' && !isAgentRole) {
+      showToast('Mode Agen memerlukan status agen terverifikasi', 'error')
+      return
+    }
+    if (nextRole === 'owner' && ownerListingCount <= 0 && !listingOnboarded) {
+      showToast('Iklankan properti pertamamu untuk mengaktifkan Mode Pemilik', 'error')
+      return
+    }
     setActiveRoleState((prev) => {
       if (prev === nextRole) return prev
       persistRole(user?.id, nextRole)
       return nextRole
     })
+  }, [user?.id, isAgentRole, ownerListingCount, listingOnboarded, showToast])
+
+  const markListingOnboarded = useCallback(() => {
+    persistOnboarding(user?.id)
+    setListingOnboarded(true)
   }, [user?.id])
+
+  async function refreshListingBoundaries() {
+    if (!user?.id) return
+    setListingOnboarded(readOnboarding(user.id))
+    try {
+      const { count } = await supabase
+        .from('properties')
+        .select('id', { count: 'exact', head: true })
+        .eq('seller_id', user.id)
+      setOwnerListingCount(count || 0)
+    } catch { /* listing count failure is non-critical */ }
+  }
 
   const setWhatsappVerified = useCallback((whatsapp) => {
     setProfile((prev) => ({
@@ -76,6 +122,7 @@ export function AuthProvider({ children }) {
     setProfile(null)
     setActiveRoleState(null)
     setOwnerListingCount(0)
+    setListingOnboarded(false)
   }, [user?.id])
 
   useEffect(() => {
@@ -147,33 +194,35 @@ export function AuthProvider({ children }) {
     if (!user?.id || loading) return
     let cancelled = false
     ;(async () => {
-      const stored = readStoredRole(user.id)
-      if (cancelled) return
-      if (stored) {
-        setActiveRoleState(stored)
-        return
-      }
-      if (role === 'agent' || role === 'admin') {
-        setActiveRoleState('agent')
-        persistRole(user.id, 'agent')
-        return
-      }
+      let count = 0
       try {
-        const { count } = await supabase
+        const { count: listingCount } = await supabase
           .from('properties')
           .select('id', { count: 'exact', head: true })
           .eq('seller_id', user.id)
-        if (cancelled) return
-        setOwnerListingCount(count || 0)
-        const next = (count || 0) > 0 ? 'owner' : 'buyer'
-        setActiveRoleState(next)
-        persistRole(user.id, next)
-      } catch {
-        if (!cancelled) {
-          setActiveRoleState('buyer')
-          persistRole(user.id, 'buyer')
+        count = listingCount || 0
+      } catch { /* listing count failure is non-critical */ }
+      if (cancelled) return
+
+      setOwnerListingCount(count)
+      const onboarded = readOnboarding(user.id)
+      setListingOnboarded(onboarded)
+
+      const stored = readStoredRole(user.id)
+      if (stored) {
+        const storedValid =
+          stored === 'buyer' ||
+          (stored === 'agent' && (role === 'agent' || role === 'admin')) ||
+          (stored === 'owner' && (count > 0 || onboarded))
+        if (storedValid) {
+          setActiveRoleState(stored)
+          return
         }
       }
+
+      const next = role === 'agent' || role === 'admin' ? 'agent' : count > 0 || onboarded ? 'owner' : 'buyer'
+      setActiveRoleState(next)
+      persistRole(user.id, next)
     })()
     return () => { cancelled = true }
   }, [user?.id, role, loading])
@@ -210,7 +259,7 @@ export function AuthProvider({ children }) {
   }, [user?.id])
 
   return (
-    <AuthContext.Provider value={{ session, user, role, profile, loading, showToast, signOut, setWhatsappVerified, refreshProfile: fetchProfile, activeRole, setActiveRole, ownerListingCount }}>
+    <AuthContext.Provider value={{ session, user, role, profile, loading, showToast, signOut, setWhatsappVerified, refreshProfile: fetchProfile, activeRole, setActiveRole, ownerListingCount, listingOnboarded, markListingOnboarded, refreshListingBoundaries }}>
       {children}
       {toast && <Toast message={toast.message} type={toast.type} action={toast.action} onClose={hideToast} />}
     </AuthContext.Provider>

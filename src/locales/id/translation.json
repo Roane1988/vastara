@@ -846,6 +846,8 @@
     "owner": "Pemilik",
     "agent": "Agen",
     "locked_hint": "Daftar sebagai agen untuk mengaktifkan mode ini",
+    "owner_locked_hint": "Iklankan properti untuk mengaktifkan mode ini",
+    "become_owner": "Iklankan Properti Pertamamu",
     "become_agent": "Daftar Menjadi Agen",
     "banner": {
       "buyer": "Kamu sedang dalam Mode Pembeli — menjelajahi dan menyimpan properti.",

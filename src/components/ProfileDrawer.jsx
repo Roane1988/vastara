@@ -68,14 +68,19 @@ const ROLE_MODES = [
   { key: 'agent', icon: Briefcase, color: 'bg-emerald-50 text-emerald-600 border-emerald-200', activeColor: 'bg-emerald-600 text-white border-emerald-600' },
 ]
 
-function RoleSwitcher({ activeRole, setActiveRole, profileRole, onNavigate }) {
+function RoleSwitcher({ activeRole, setActiveRole, profileRole, ownerListingCount, listingOnboarded, onNavigate }) {
   const { t } = useTranslation()
 
   const canBeAgent = profileRole === 'agent' || profileRole === 'admin'
+  const canBeOwner = ownerListingCount > 0 || listingOnboarded
 
   const handleSwitch = (key) => {
     if (key === 'agent' && !canBeAgent) {
       onNavigate('/agent-apply')
+      return
+    }
+    if (key === 'owner' && !canBeOwner) {
+      onNavigate('/sell')
       return
     }
     setActiveRole(key)
@@ -89,13 +94,13 @@ function RoleSwitcher({ activeRole, setActiveRole, profileRole, onNavigate }) {
       <div className="flex gap-1.5">
         {ROLE_MODES.map(({ key, icon: Icon, color, activeColor }) => {
           const isActive = activeRole === key
-          const isLocked = key === 'agent' && !canBeAgent
+          const isLocked = (key === 'agent' && !canBeAgent) || (key === 'owner' && !canBeOwner)
           return (
             <button
               key={key}
               type="button"
               onClick={() => handleSwitch(key)}
-              title={isLocked ? t('roleSwitcher.locked_hint') : undefined}
+              title={isLocked ? t(`roleSwitcher.${key === 'agent' ? 'locked_hint' : 'owner_locked_hint'}`) : undefined}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold border transition-all duration-200 ${
                 isActive
                   ? activeColor
@@ -110,6 +115,17 @@ function RoleSwitcher({ activeRole, setActiveRole, profileRole, onNavigate }) {
           )
         })}
       </div>
+      {!canBeOwner && (
+        <button
+          type="button"
+          onClick={() => onNavigate('/sell')}
+          className="w-full mt-2 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-brand-accent hover:text-brand-primary py-2 rounded-lg hover:bg-brand-highlight transition-colors"
+        >
+          <Home size={13} />
+          {t('roleSwitcher.become_owner')}
+          <ArrowRight size={12} />
+        </button>
+      )}
       {!canBeAgent && (
         <button
           type="button"
@@ -128,7 +144,7 @@ function RoleSwitcher({ activeRole, setActiveRole, profileRole, onNavigate }) {
 export default function ProfileDrawer({ isOpen, onClose, userName }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { role, showToast, refreshProfile, activeRole, setActiveRole } = useAuth()
+  const { role, showToast, refreshProfile, activeRole, setActiveRole, ownerListingCount, listingOnboarded } = useAuth()
   const { totalNew } = useSavedSearchAlerts()
 
   const [name, setName] = useState(userName || '')
@@ -435,6 +451,8 @@ export default function ProfileDrawer({ isOpen, onClose, userName }) {
         activeRole={activeRole}
         setActiveRole={setActiveRole}
         profileRole={role}
+        ownerListingCount={ownerListingCount}
+        listingOnboarded={listingOnboarded}
         onNavigate={handleNavigate}
       />
 
