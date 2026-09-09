@@ -2,6 +2,18 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Fix: Persistence Bug Profil Keuangan Saat Refresh Halaman (9 September 2026)
+- **Gejala**: setelah menyimpan Profil Keuangan di sesi aktif, hard refresh (F5) membuat StatCard "Profil Keuangan" kembali tampil **"Belum diisi"** meski data sudah tersimpan di database.
+- **Root cause** (`DashboardPage.jsx`): `getFinancialProfile()` sebelumnya di-branding ke dalam `Promise.all` di `loadBuyerData` bersama query `saved_searches` & `site_visits`. Jika salah satu query Supabase me-reject, `Promise.all` me-reject → seluruh `loadBuyerData` terlempar → **`loadBudgetProps(profile)` tidak pernah dipanggil** → `setFinancialProfile` tidak berjalan → state tetap `null` ("Belum diisi"). Setelah save di sesi aktif hal ini tertutup oleh event `financial-profile-saved`, tetapi saat cold load/refresh jalan tersebut pure inisialisasi.
+- **Fix 1 — Hydration independen** (`DashboardPage.jsx`):
+  - Fungsi baru **`hydrateFinancialProfile()`**: panggil `getFinancialProfile()` langsung → `loadBudgetProps(profile || null)` (yang menjalankan `setFinancialProfile`).
+  - Dipanggil langsung di **mount `useEffect`** (`Promise.all([loadBuyerData(), loadSellerData(), hydrateFinancialProfile()])`) — hydrasi profil finansial kini berjalan paralel & independen dari buyer/seller data; kegagalan di tabel lain tidak pernah menghalangi state ter-set.
+  - Callback `financial-profile-saved` tetap memakai `getFinancialProfile()` + `loadBudgetProps` (sinkronisasi live session tidak berubah).
+- **Fix 2 — Anti-cascade** (`DashboardPage.jsx`): query buyer data (`saved_searches`, `site_visits`) di-refactor ke `Promise.allSettled` dengan guard `status === 'fulfilled'` di tiap hasil — satu query gagal tidak menggagalkan fetch lainnya (saved-searches & visits juga ikut lebih robust di refresh).
+- **Source check (db vs storage)**: `saveFinancialProfile()` (`financialProfile.js`) menulis ke tabel Supabase **`user_financial_profiles`** via `upsert(... { onConflict: 'user_id' })`; `getFinancialProfile()` membaca `select('*').eq('user_id', user.id).maybeSingle()` dari **tabel yang sama** (bukan `user_metadata`/`localStorage`). Tidak ada mismatch — RLS `auth.uid() = user_id` mengizinkan read/write milik sendiri.
+- **Fallback & UI**: StatCard `Profil Keuangan` menampilkan **"Terisi"** selama `financialProfile` (row persisten) berisi data — karena hydrasi kini andal, refresh tidak lagi mereset ke "Belum diisi".
+- Skope: `src/components/DashboardPage.jsx`. Lint bersih (`eslint`) + build sukses (`vite`).
+
 ## Changelog — Responsive & Mobile-First: StatCards + Modal Bottom-Sheet (iPhone & Samsung) (9 September 2026)
 - **Tujuan**: audit & perbaikan responsif pada StatCards Buyer Dashboard dan ketiga modal (`SavedPropertiesModal`, `VisitsModal`, `FinanceProfileModal`) untuk viewport mobile 320px–430px (iPhone Safari, Samsung Galaxy Chrome) tanpa overflow horizontal atau teks terpotong.
 - **1. StatCards Grid** (`DashboardPage.jsx` `BuyerDashboard`): grid diubah dari `grid-cols-2` (2 kolom di semua ukuran, rawan sempit di 320px) menjadi **`grid-cols-1 sm:grid-cols-2`** — mobile stack 1 kolom rapi, ≥2 kolom di `sm`+.

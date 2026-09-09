@@ -238,6 +238,11 @@ export default function DashboardPage() {
     setBudgetProps(data || [])
   }, [])
 
+  const hydrateFinancialProfile = useCallback(async () => {
+    const { profile } = await getFinancialProfile()
+    await loadBudgetProps(profile || null)
+  }, [loadBudgetProps])
+
   const loadBuyerData = useCallback(async () => {
     if (!user) return
 
@@ -250,15 +255,15 @@ export default function DashboardPage() {
       setSavedProps(data || [])
     }
 
-    const [{ data: searches }, { data: visitData }, { data: fp }] = await Promise.all([
+    const [searchesRes, visitsRes] = await Promise.allSettled([
       supabase.from('saved_searches').select('id, name, filters, active, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('site_visits').select('id, property_id, scheduled_date, scheduled_time, status, created_at, properties!property_id(title, image_url, price, price_period, category)').eq('buyer_id', user.id).order('scheduled_date', { ascending: false }),
-      getFinancialProfile(),
     ])
+    const searches = searchesRes.status === 'fulfilled' ? searchesRes.value?.data : null
+    const visitData = visitsRes.status === 'fulfilled' ? visitsRes.value?.data : null
     if (searches) setSavedSearches(searches)
     if (visitData) setVisits(visitData)
-    await loadBudgetProps(fp?.profile || null)
-  }, [user, loadBudgetProps])
+  }, [user])
 
   const loadSellerData = useCallback(async () => {
     if (!user) return
@@ -350,14 +355,14 @@ export default function DashboardPage() {
       setLoading(true)
       try {
         if (!user) return
-        await Promise.all([loadBuyerData(), loadSellerData()])
+        await Promise.all([loadBuyerData(), loadSellerData(), hydrateFinancialProfile()])
       } catch {
         /* non-critical */
       }
       if (!cancelled) setLoading(false)
     })()
     return () => { cancelled = true }
-  }, [user, loadSellerData, loadBuyerData])
+  }, [user, loadSellerData, loadBuyerData, hydrateFinancialProfile])
 
   const { totalNew: savedNewTotal, newMatches, loading: alertsLoading } = useSavedSearchAlerts()
 
