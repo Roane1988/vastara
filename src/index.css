@@ -107,39 +107,3 @@ html {
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
   animation: voice-rec-blink 1.1s ease-in-out infinite;
 }
-
-.voice-range {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 4px;
-  border-radius: 9999px;
-  outline: none;
-  cursor: pointer;
-  background: transparent;
-}
-
-.voice-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 13px;
-  height: 13px;
-  border-radius: 9999px;
-  background: var(--voice-thumb, #4a90e2);
-  border: 2px solid #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.voice-range::-moz-range-thumb {
-  width: 13px;
-  height: 13px;
-  border-radius: 9999px;
-  background: var(--voice-thumb, #4a90e2);
-  border: 2px solid #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.voice-range::-moz-range-track {
-  height: 4px;
-  border-radius: 9999px;
-  background: transparent;
-}

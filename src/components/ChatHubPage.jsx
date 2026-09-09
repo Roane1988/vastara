@@ -11,6 +11,8 @@ import { Mic, Send, Play, Pause, ArrowLeft, MessageCircle, Search, Trash2, Plus,
 import ConfirmModal from './ConfirmModal'
 import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
+import { recompressVoiceBlob, extractWaveformPeaks } from '../utils/audioCompression'
+import VoiceWaveform from './VoiceWaveform'
 
 const HUNIBOT_ID = 'hunibot'
 
@@ -193,7 +195,35 @@ const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ message, isOwn }) 
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [peaks, setPeaks] = useState(null)
   const audioRef = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    let ctx = null
+    ;(async () => {
+      try {
+        const res = await fetch(message.file_url)
+        if (!res.ok) return
+        const blob = await res.blob()
+        const Ctx = window.AudioContext || window.webkitAudioContext
+        ctx = Ctx ? new Ctx({ sampleRate: 16000 }) : null
+        if (!ctx) return
+        const buf = await ctx.decodeAudioData(await blob.arrayBuffer())
+        if (cancelled) return
+        setPeaks(extractWaveformPeaks(buf, 60))
+        setDuration((prev) => (Number.isFinite(prev) && prev > 0) ? prev : (Number.isFinite(buf.duration) ? buf.duration : prev))
+      } catch {
+        if (!cancelled) setPeaks([])
+      } finally {
+        if (ctx && !cancelled) { try { ctx.close() } catch { /* non-critical */ } }
+      }
+    })()
+    return () => {
+      cancelled = true
+      if (ctx) { try { ctx.close() } catch { /* non-critical */ } }
+    }
+  }, [message.file_url])
 
   useEffect(() => () => {
     const a = audioRef.current
@@ -241,18 +271,18 @@ const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ message, isOwn }) 
     }
   }
 
-  const onSeek = (e) => {
+  const onSeek = (ratio) => {
     const a = ensureAudio()
-    const v = Number(e.target.value)
-    setCurrentTime(v)
-    if (Number.isFinite(a.duration)) a.currentTime = v
+    const target = ratio * (duration || 0)
+    setCurrentTime(target)
+    if (Number.isFinite(a.duration)) a.currentTime = target
   }
 
   const max = duration || 0.01
   const progress = Math.min((currentTime / max) * 100, 100)
   const shownTime = isPlaying ? currentTime : (duration || 0)
   const accent = isOwn ? '#ffffff' : '#4A90E2'
-  const trackColor = isOwn ? 'rgba(255,255,255,0.3)' : 'rgba(28,39,51,0.15)'
+  const trackColor = isOwn ? 'rgba(255,255,255,0.35)' : 'rgba(28,39,51,0.18)'
 
   return (
     <div
@@ -272,19 +302,12 @@ const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ message, isOwn }) 
       >
         {isPlaying ? <Pause size={17} className="-ml-0.5" /> : <Play size={17} className="ml-0.5" />}
       </button>
-      <input
-        type="range"
-        min={0}
-        max={max}
-        step={0.05}
-        value={Math.min(currentTime, max)}
-        onChange={onSeek}
-        aria-label="Kemajuan pemutaran pesan suara"
-        className="voice-range flex-1 min-w-0"
-        style={{
-          '--voice-thumb': accent,
-          background: `linear-gradient(to right, ${accent} ${progress}%, ${trackColor} ${progress}%)`,
-        }}
+      <VoiceWaveform
+        peaks={peaks}
+        progress={progress}
+        accent={accent}
+        trackColor={trackColor}
+        onSeek={onSeek}
       />
       <span
         className="shrink-0 text-[11px] tabular-nums w-10 text-right"
@@ -2991,13 +3014,26 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       return
     }
 
-    const ext = voiceExtForMime(mime)
+    let uploadBlob = blob
+    let uploadMime = (mime || 'audio/webm').split(';')[0]
+    try {
+      const compressed = await recompressVoiceBlob(blob)
+      if (compressed.compressed && compressed.blob && compressed.blob.size > 0) {
+        uploadBlob = compressed.blob
+        if (compressed.mime) uploadMime = compressed.mime.split(';')[0]
+      }
+    } catch {
+      uploadBlob = blob
+      uploadMime = (mime || 'audio/webm').split(';')[0]
+    }
+
+    const ext = voiceExtForMime(uploadMime)
     const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-voicenote.${ext}`
     let publicUrl
     try {
       const { error: uploadErr } = await supabase.storage
         .from('CHAT_VOICE')
-        .upload(fileName, blob, { contentType: (mime || 'audio/webm').split(';')[0], upsert: false })
+        .upload(fileName, uploadBlob, { contentType: uploadMime, upsert: false })
       if (uploadErr) throw new Error(uploadErr.message)
       publicUrl = supabase.storage.from('CHAT_VOICE').getPublicUrl(fileName).data.publicUrl
     } catch (err) {
@@ -3019,8 +3055,8 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       reply_to_id: replyTo?.id || null,
       file_url: publicUrl,
       file_name: 'Pesan suara',
-      file_size: blob.size,
-      file_type: (mime || 'audio/webm').split(';')[0],
+      file_size: uploadBlob.size,
+      file_type: uploadMime,
       property_id: null,
     }
     setMessages((prev) => [...prev, optimisticMsg])
@@ -3041,8 +3077,8 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
         reply_to_id: replyTo?.id || null,
         file_url: publicUrl,
         file_name: 'Pesan suara',
-        file_size: blob.size,
-        file_type: (mime || 'audio/webm').split(';')[0],
+        file_size: uploadBlob.size,
+        file_type: uploadMime,
       }).select()
 
       if (!sendMountedRef.current) return
