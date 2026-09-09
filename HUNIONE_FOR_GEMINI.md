@@ -2,6 +2,16 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Fix: Starter Message Selalu Pre-Fill saat Deep-Link Properti, Terlepas dari Riwayat Thread (9 September 2026)
+- **Latar belakang**: perubahan sebelumnya hanya mengisi composer pesan pembuka ketika thread chat masih **benar-benar kosong** (`loaded.length === 0`). Akibatnya, jika buyer sudah punya riwayat chat dengan penjual/agen, kolom input tetap kosong saat tiba dari CTA "Chat di HuniOne" — buyer harus mengetik manual dari nol.
+- **Perubahan** (`src/components/ChatHubPage.jsx`, blok `fetchMessages` di dalam effect `activeContactId`):
+  - **Hapus syarat `loaded.length === 0`** → pre-fill kini berjalan selama `contextPrefillRef` masih `pending` dan `contactId`-nya cocok dengan percakapan aktif. Artinya starter message diisi **di semua kondisi** (thread baru maupun sudah ada riwayat), ketika user tiba via deep-link dengan param `property` di URL.
+  - **Selalu timpa draft**: `next[activeContactId] = starter` (sebelumnya `if (!next[activeContactId])`) → field composer pasti terisi starter message (bukan hanya jika kosong); pesan **tidak dikirim otomatis**, tetap bisa diedit/dikirim satu ketukan.
+  - **Sekali jalan saja (tidak reset berulang)**: `contextPrefillRef` dibersihkan (`= null`) tepat setelah penulisan pertama, dan `setSearchParams({}, { replace: true })` pada effect auto-select sudah menghapus param `property`/`user` dari URL — navigasi internal berikutnya tidak akan mengisi ulang field.
+  - Judul properti tetap diambil dari `contextProperty.title` (context card hasil param `property`) dengan fallback fetch `title` ke tabel `properties` bila belum termuat.
+- **Verifikasi**: lint bersih (`eslint`) + build sukses (`vite`).
+- Skope: `src/components/ChatHubPage.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — CTA "Chat di HuniOne" Terhubung Langsung ke Thread Chat Penjual (9 September 2026)
 - **Tujuan**: klik **"Chat di HuniOne"** di halaman properti (`PropertyDetailPage.jsx`) tidak lagi membuka `/chat` secara generik — kini langsung membuka/membuat thread percakapan dengan pemilik/agen properti tersebut, lengkap dengan pesan pembuka kontekstual.
 - **Redirect tertarget** (`src/components/PropertyDetailPage.jsx`, `handleChatClick`):

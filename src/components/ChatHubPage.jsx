@@ -1659,7 +1659,7 @@ export default function ChatHubPage() {
           scrollToLatest()
 
           const prefill = contextPrefillRef.current
-          if (loaded.length === 0 && prefill && prefill.pending && prefill.contactId === activeContactId) {
+          if (prefill && prefill.pending && prefill.contactId === activeContactId) {
             contextPrefillRef.current = null
             let title = contextProperty?.title || ''
             if (!title && prefill.propertyId) {
@@ -1677,7 +1677,7 @@ export default function ChatHubPage() {
               : 'Halo, saya tertarik dengan properti yang Anda tawarkan. Apakah masih tersedia?'
             setDrafts((prev) => {
               const next = { ...prev }
-              if (!next[activeContactId]) next[activeContactId] = starter
+              next[activeContactId] = starter
               return next
             })
           }
