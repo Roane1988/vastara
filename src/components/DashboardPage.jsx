@@ -8,7 +8,9 @@ import { useAuth } from '../context/AuthContext'
 import { getFavorites } from '../utils/favorites'
 import { getImageSrc, FALLBACK_IMAGE } from '../utils/images'
 import { formatPriceDisplay, formatCount } from '../utils/format'
-import { getFinancialProfile } from '../utils/financialProfile'
+import { getFinancialProfile, computeAffordability, maxAffordablePrice, BUYING_POWER_ASSUMPTION, formatRupiah } from '../utils/financialProfile'
+import { useSavedSearchAlerts } from '../context/SavedSearchAlertsContext'
+import FinancialProfileForm from './FinancialProfileForm'
 import {
   LayoutDashboard,
   Loader2,
@@ -29,6 +31,8 @@ import {
   X,
   ShoppingBag,
   Briefcase,
+  Sparkles,
+  BellRing,
 } from 'lucide-react'
 
 function StatCard({ icon: Icon, label, value, sub, accent, extra }) {
@@ -121,6 +125,9 @@ export default function DashboardPage() {
   const [savedSearches, setSavedSearches] = useState([])
   const [visits, setVisits] = useState([])
   const [financialProfile, setFinancialProfile] = useState(null)
+  const [budgetProps, setBudgetProps] = useState([])
+  const [budgetLimit, setBudgetLimit] = useState(null)
+  const [showFinanceForm, setShowFinanceForm] = useState(false)
 
   // Seller data
   const [listings, setListings] = useState([])
@@ -139,6 +146,32 @@ export default function DashboardPage() {
   const [buyerOptions, setBuyerOptions] = useState([])
 
   const firstName = user?.user_metadata?.first_name || ''
+
+  const loadBudgetProps = useCallback(async (profile) => {
+    setFinancialProfile(profile || null)
+    setBudgetLimit(null)
+    setBudgetProps([])
+    if (!profile) return
+    const affordability = computeAffordability(profile)
+    const maxInstallment = affordability?.maxInstallment || 0
+    if (maxInstallment <= 0) return
+    const limit = maxAffordablePrice(
+      maxInstallment,
+      BUYING_POWER_ASSUMPTION.interestRate,
+      BUYING_POWER_ASSUMPTION.tenorYears,
+      BUYING_POWER_ASSUMPTION.dpPercentage
+    )
+    setBudgetLimit(limit)
+    const { data } = await supabase
+      .from('properties')
+      .select('id, title, price, price_period, category, image_url, city, district, property_type')
+      .eq('status', 'verified')
+      .eq('category', 'Dijual')
+      .lte('price', Math.round(limit))
+      .order('created_at', { ascending: false })
+      .limit(5)
+    setBudgetProps(data || [])
+  }, [])
 
   const loadBuyerData = useCallback(async () => {
     if (!user) return
@@ -159,8 +192,8 @@ export default function DashboardPage() {
     ])
     if (searches) setSavedSearches(searches)
     if (visitData) setVisits(visitData)
-    if (fp?.profile) setFinancialProfile(fp.profile)
-  }, [user])
+    await loadBudgetProps(fp?.profile || null)
+  }, [user, loadBudgetProps])
 
   const loadSellerData = useCallback(async () => {
     if (!user) return
@@ -261,14 +294,16 @@ export default function DashboardPage() {
     return () => { cancelled = true }
   }, [user, loadSellerData, loadBuyerData])
 
+  const { totalNew: savedNewTotal, newMatches, loading: alertsLoading } = useSavedSearchAlerts()
+
   useEffect(() => {
     const onFinancialProfileSaved = async () => {
       const { profile } = await getFinancialProfile()
-      if (profile) setFinancialProfile(profile)
+      await loadBudgetProps(profile)
     }
     window.addEventListener('financial-profile-saved', onFinancialProfileSaved)
     return () => window.removeEventListener('financial-profile-saved', onFinancialProfileSaved)
-  }, [])
+  }, [loadBudgetProps])
 
   const openSellModal = (p) => {
     setSellTarget(p)
@@ -337,6 +372,12 @@ export default function DashboardPage() {
           activeSearches={activeSearches}
           visits={visits}
           financialProfile={financialProfile}
+          budgetProps={budgetProps}
+          budgetLimit={budgetLimit}
+          savedNewTotal={savedNewTotal}
+          newMatches={newMatches}
+          alertsLoading={alertsLoading}
+          onOpenFinanceForm={() => setShowFinanceForm(true)}
         />
       ) : (
         <SellerDashboard
@@ -363,6 +404,12 @@ export default function DashboardPage() {
         onConfirm={handleConfirmSold}
         onClose={() => { setSellTarget(null); setSoldBuyerId(''); setSoldSource('external') }}
       />
+
+      <FinanceProfileModal
+        open={showFinanceForm}
+        onClose={() => setShowFinanceForm(false)}
+        onSaved={() => setShowFinanceForm(false)}
+      />
     </div>
   )
 }
@@ -388,7 +435,27 @@ function RoleContextBanner({ activeRole }) {
   )
 }
 
-function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, financialProfile }) {
+function MiniPropCard({ p, badge }) {
+  return (
+    <Link
+      to={`/property/${p.id}`}
+      className="bg-brand-surface rounded-2xl border border-brand-border p-3 flex items-center gap-3 hover:shadow-md transition-shadow"
+    >
+      <img src={getImageSrc(p.image_url)} alt={p.title} className="w-16 h-16 rounded-xl object-cover shrink-0" onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }} />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-brand-text truncate">{p.title || 'Properti'}</p>
+        <p className="text-xs text-brand-muted truncate">{[p.city, p.district].filter(Boolean).join(', ') || ''}</p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <p className="text-sm font-bold text-brand-accent">{formatPriceDisplay(p)}</p>
+          {badge}
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, financialProfile, budgetProps, budgetLimit, savedNewTotal, newMatches, alertsLoading, onOpenFinanceForm }) {
+  const activeSavedSearches = (savedSearches || []).filter((s) => s.active)
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-2 gap-3">
@@ -421,6 +488,107 @@ function BuyerDashboard({ savedProps, savedSearches, activeSearches, visits, fin
           accent={financialProfile ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}
         />
       </div>
+
+      <section>
+        <div className="flex items-end justify-between gap-2 mb-3 flex-wrap">
+          <div>
+            <h2 className="text-base font-bold text-brand-text flex items-center gap-1.5">
+              <Sparkles size={15} className="text-brand-accent" />
+              Rekomendasi Sesuai Budget
+            </h2>
+            {budgetLimit > 0 && (
+              <p className="text-xs text-brand-muted mt-0.5">Daya beli kamu ± {formatRupiah(budgetLimit)} (DP {BUYING_POWER_ASSUMPTION.dpPercentage}% · {BUYING_POWER_ASSUMPTION.tenorYears} thn)</p>
+            )}
+          </div>
+          <Link to="/explore" className="text-xs font-semibold text-brand-accent hover:text-brand-primary inline-flex items-center gap-1 transition-colors">
+            Jelajahi semua <ArrowRight size={13} />
+          </Link>
+        </div>
+
+        {!financialProfile ? (
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
+              <Wallet size={22} className="text-emerald-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-brand-text">Rekomendasi properti sesuai budget kamu</p>
+              <p className="text-xs text-brand-muted mt-0.5">Lengkapi profil keuangan agar HuniOne menyarankan properti yang benar-benar terjangkau untuk KPR kamu.</p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenFinanceForm}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shrink-0"
+            >
+              <Wallet size={15} />
+              Lengkapi Profil Keuangan
+            </button>
+          </div>
+        ) : budgetProps.length === 0 ? (
+          <EmptyState
+            icon={Sparkles}
+            title="Belum ada properti dalam budget kamu"
+            desc={budgetLimit > 0
+              ? `Belum ada listing terjual yang sesuai daya beli kamu (± ${formatRupiah(budgetLimit)}). Coba sesuaikan target atau pantau pencarian tersimpan.`
+              : 'Lengkapi data pendapatan agar batas KPR kamu terhitung.'}
+            to="/explore"
+            cta="Lihat semua properti"
+          />
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-3">
+            {budgetProps.slice(0, 5).map((p) => (
+              <MiniPropCard
+                key={p.id}
+                p={p}
+                badge={<span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">Dalam budget</span>}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <SectionHeader title="Properti Baru dari Pencarian Aktif" to="/saved-searches" cta="Kelola" />
+        {activeSavedSearches.length === 0 ? (
+          <EmptyState
+            icon={BellRing}
+            title="Belum ada pencarian aktif"
+            desc="Simpan kriteria pencarian dan HuniOne akan memberitahumu saat ada properti baru yang cocok."
+            to="/explore"
+            cta="Simpan pencarian"
+          />
+        ) : alertsLoading && newMatches.length === 0 ? (
+          <div className="bg-brand-surface rounded-2xl border border-brand-border p-4 flex items-center gap-3">
+            <Loader2 size={18} className="animate-spin text-brand-muted shrink-0" />
+            <p className="text-xs text-brand-muted">Memeriksa properti baru untuk pencarian aktif kamu…</p>
+          </div>
+        ) : savedNewTotal === 0 && newMatches.length === 0 ? (
+          <div className="bg-brand-surface rounded-2xl border border-brand-border p-4 flex items-center gap-3">
+            <BellRing size={18} className="text-brand-muted shrink-0" />
+            <p className="text-xs text-brand-muted">Kamu akan diberi tahu saat ada properti baru yang cocok dengan pencarian aktif kamu.</p>
+          </div>
+        ) : (
+          <>
+            <div className="mb-3 inline-flex items-center gap-1.5 bg-brand-accent/10 text-brand-accent border border-brand-accent/25 text-xs font-bold px-3 py-1.5 rounded-full">
+              <TrendingUp size={13} />
+              {savedNewTotal} properti baru cocok dengan pencarian tersimpan kamu
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {newMatches.slice(0, 4).map((p) => (
+                <MiniPropCard
+                  key={p.id}
+                  p={p}
+                  badge={<span className="text-[10px] font-bold text-brand-accent bg-brand-highlight border border-brand-accent/25 px-1.5 py-0.5 rounded-full">Baru</span>}
+                />
+              ))}
+            </div>
+            {newMatches.length > 4 && (
+              <Link to="/saved-searches" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-accent hover:text-brand-primary transition-colors">
+                Lihat semua {savedNewTotal} properti baru <ArrowRight size={13} />
+              </Link>
+            )}
+          </>
+        )}
+      </section>
 
       <section>
         <SectionHeader title="Properti Tersimpan" to="/explore" cta="Jelajahi properti" />
@@ -851,6 +1019,34 @@ function MarkAsSoldModal({ target, source, setSource, buyerId, setBuyerId, buyer
                 Tandai Terjual
               </button>
             </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function FinanceProfileModal({ open, onClose, onSaved }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <button type="button" aria-label="Tutup" onClick={onClose} className="fixed inset-0 bg-black/40 z-40 cursor-default p-0 border-0" />
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ duration: 0.25 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl py-6 px-5 pb-8 max-h-[85vh] overflow-y-auto"
+          >
+            <button type="button" aria-label="Tutup" onClick={onClose} className="absolute top-4 right-4 text-brand-muted hover:text-brand-text">
+              <X size={20} />
+            </button>
+            <h3 className="text-lg font-bold text-brand-text flex items-center gap-2 mb-4">
+              <Wallet size={20} className="text-emerald-600" />
+              Profil Keuangan
+            </h3>
+            <FinancialProfileForm showTitle={false} onSaved={onSaved} />
           </motion.div>
         </>
       )}

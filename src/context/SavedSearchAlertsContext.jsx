@@ -4,17 +4,19 @@ import { matchesFilters } from '../utils/savedSearch'
 
 const SavedSearchAlertsContext = createContext(null)
 
-const PROPERTY_FIELDS = 'id, title, address, city, district, description_id, property_type, is_premium, price, category, bedrooms, created_at'
+const PROPERTY_FIELDS = 'id, title, address, city, district, description_id, property_type, is_premium, price, price_period, category, bedrooms, image_url, created_at'
 
 export function SavedSearchAlertsProvider({ children }) {
   const [userId, setUserId] = useState(null)
   const [totalNew, setTotalNew] = useState(0)
+  const [newMatches, setNewMatches] = useState([])
   const [loading, setLoading] = useState(false)
   const inFlight = useRef(false)
 
   const compute = useCallback(async () => {
     if (!userId) {
       setTotalNew(0)
+      setNewMatches([])
       return
     }
     if (inFlight.current) return
@@ -31,18 +33,25 @@ export function SavedSearchAlertsProvider({ children }) {
       if (sErr || pErr) return
 
       let count = 0
+      const matchMap = {}
       ;(searches || []).forEach((s) => {
         if (s.active === false) return
         const base = s.last_checked_at
           ? new Date(s.last_checked_at).getTime()
           : new Date(s.created_at).getTime()
         ;(props || []).forEach((p) => {
-          if (new Date(p.created_at).getTime() > base && matchesFilters(p, s.filters)) {
-            count += 1
-          }
+          if (new Date(p.created_at).getTime() <= base) return
+          if (!matchesFilters(p, s.filters)) return
+          count += 1
+          matchMap[p.id] = p
         })
       })
       setTotalNew(count)
+      setNewMatches(
+        Object.values(matchMap).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+      )
     } catch {
       /* keep last value on error */
     } finally {
@@ -88,7 +97,7 @@ export function SavedSearchAlertsProvider({ children }) {
   }, [compute])
 
   return (
-    <SavedSearchAlertsContext.Provider value={{ totalNew, loading, refresh }}>
+    <SavedSearchAlertsContext.Provider value={{ totalNew, newMatches, loading, refresh }}>
       {children}
     </SavedSearchAlertsContext.Provider>
   )

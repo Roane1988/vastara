@@ -36,6 +36,20 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **Keamanan**: RLS tidak dilemahkan — `activeRole` murni level UI; semua database write tetap dijaga `auth.uid()` + `profiles.role`.
 - Skope: `AuthContext.jsx`, `ProfileDrawer.jsx`, `DashboardPage.jsx`, `locales/id/translation.json`, `locales/en/translation.json`. Lint bersih (`eslint`) + build sukses (`vite`).
 
+## Changelog — Rekomendasi sesuai Budget & Alert Pencarian Baru (9 September 2026)
+- **Tier 1 · Item #1 — Rekomendasi Properti Sesuai Budget** (`DashboardPage.jsx`):
+  - `loadBudgetProps(profile)` callback baru: hitung daya beli dari profil keuangan (via `computeAffordability` + `maxAffordablePrice` + `BUYING_POWER_ASSUMPTION` 5,5% · 15 thn · DP 20%), lalu query `properties` — `status = 'verified'`, `category = 'Dijual'`, `price <= buyingPower` — di-sort `created_at desc`, `limit 5`.
+  - Dipanggil di `loadBuyerData` (saat mount) dan di listener event `financial-profile-saved` (sehingga rekomendasi ikut ter-update tanpa reload saat profil diubah).
+  - UI section "Rekomendasi Sesuai Budget" di Buyer Dashboard: subtitle menampilkan daya beli (`formatRupiah`); kartu properti baru ber-chip "Dalam budget"; `EmptyState` bila tidak ada yang cocok.
+  - **Belum punya profil keuangan**: banner CTA emerald "Lengkapi Profil Keuangan" membuka `FinanceProfileModal` (bottom-sheet, `FinancialProfileForm showTitle={false}`, reuses pola `MarkAsSoldModal`); setelah simpan, modal tertutup & section ter-update otomatis.
+- **Tier 1 · Item #3 — Properti Baru dari Pencarian Aktif** (`SavedSearchAlertsContext.jsx` + `DashboardPage.jsx`):
+  - `SavedSearchAlertsContext` kini mengekspos `newMatches` (properti deduplikasi antar-pencarian yang cocok `matchesFilters` & dibuat setelah `last_checked_at`/`created_at`), selain `totalNew` yang sudah ada. `PROPERTY_FIELDS` ditambah `image_url, price_period`.
+  - Section "Properti Baru dari Pencarian Aktif" di Buyer Dashboard: badge "{N} properti baru cocok dengan pencarian tersimpan kamu", kartu properti ber-chip "Baru" (`newMatches.slice(0,4)`), CTA "Lihat semua" → `/saved-searches`. State loading memakai `alertsLoading` dari context agar tidak flash.
+  - Tanpa pencarian aktif → `EmptyState` CTA simpan pencarian; ada pencarian tapi belum ada yang baru → notice tenang "akan diberi tahu".
+- **Ekstra**: helper `MiniPropCard` (kartu properti horizontal) dibagikan antar section untuk menghindari duplikasi markup.
+- **i18n**: mengikuti konvensi file `DashboardPage.jsx` yang memakai string Indonesia hardcoded; tidak ada perubahan translation file.
+- Skope: `DashboardPage.jsx`, `SavedSearchAlertsContext.jsx`. Lint bersih (`eslint`) + build sukses (`vite`).
+
 ## Analisis Arsitektur Fitur Chat — ChatHubPage.jsx (31 Agustus 2026)
 Ringkasan arsitektur & temuan dari analisis menyeluruh fitur chat realtime (2.490 baris, komponen multipanel: daftar kontak kiri + ruang chat kanan + panel kontak).
 
