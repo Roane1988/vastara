@@ -2922,18 +2922,6 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     })
   }
 
-  async function checkMicPermission() {
-    if (typeof navigator === 'undefined' || !navigator.permissions || typeof navigator.permissions.query !== 'function') {
-      return 'unknown'
-    }
-    try {
-      const status = await navigator.permissions.query({ name: 'microphone' })
-      return status?.state || 'unknown'
-    } catch {
-      return 'unknown'
-    }
-  }
-
   async function getAudioInputDevices() {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices || typeof navigator.mediaDevices.enumerateDevices !== 'function') {
       return { ok: true, count: -1 }
@@ -2947,22 +2935,14 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
   }
 
-  function micGuidanceFor(state, name) {
+  function micGuidanceFor(name) {
     if (name === 'TimeoutRequestingMicrophone') {
-      return { msg: 'Meminta mikrofon terlalu lama. Kami coba lagi otomatis... pastikan izin tidak diblokir lewat ikon gembok/🔒 di address bar.', retry: true }
+      return { msg: 'Meminta mikrofon terlalu lama. Jika muncul popup izin, pilih "Allow" lalu tekan Mic lagi.', retry: true }
     }
     if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-      return {
-        msg: state === 'denied'
-          ? 'Mikrofon diblokir di browser. Klik ikon gembok/🔒 di address bar → pilih "Allow on every visit" → muat ulang halaman, lalu tekan Mic lagi.'
-          : 'Izin mikrofon ditolak. Izinkan lewat ikon gembok/🔒 di address bar (atau pengaturan situs) → muat ulang, lalu tekan Mic lagi.',
-        retry: true,
-      }
+      return { msg: 'Mikrofon ditolak oleh sistem/browser. Klik ikon gembok/🔒 di address bar → izinkan mikrofon untuk situs ini → muat ulang, lalu tekan Mic lagi.', retry: true }
     }
-    if (state === 'prompt') {
-      return { msg: 'Browser sedang meminta izin mikrofon. Izinkan di popup jika muncul, lalu coba lagi.', retry: true }
-    }
-    return { msg: '', retry: false }
+    return null
   }
 
   function shouldRetryMic(err) {
@@ -2986,7 +2966,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     const name = err?.name || err?.message || ''
 
     if (name === 'TimeoutRequestingMicrophone') {
-      const msg = micGuidanceFor('unknown', name).msg
+      const msg = micGuidanceFor(name).msg
       setMicError(msg)
       showToast(msg, 'error')
       scheduleMicRetry(err)
@@ -3001,13 +2981,12 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       showToast(msg, 'error')
       return
     }
-    const state = await checkMicPermission()
     if (!sendMountedRef.current) return
-    const { msg, retry } = micGuidanceFor(state, name)
-    if (msg) {
-      setMicError(msg)
-      showToast(msg, 'error')
-      if (retry && micRetryCountRef.current < 1) scheduleMicRetry(err)
+    const guidance = micGuidanceFor(name)
+    if (guidance) {
+      setMicError(guidance.msg)
+      showToast(guidance.msg, 'error')
+      if (guidance.retry && micRetryCountRef.current < 1) scheduleMicRetry(err)
     } else {
       const fallback = 'Gagal mengakses mikrofon: ' + (err?.message || 'coba lagi')
       setMicError(fallback)
@@ -3027,25 +3006,6 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     if (isRecording || micPendingRef.current) return
 
     if (micError) setMicError('')
-
-    if (typeof window !== 'undefined' && window.location) {
-      const isHttps = window.isSecureContext === true && /^https:/.test(window.location.protocol)
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '::1'
-      if (!isHttps && !isLocalhost) {
-        const msg = 'Mikrofon diblokir karena koneksi tidak aman (bukan HTTPS). Browser tidak mengizinkan akses mikrofon di http://. Buka lewat https:// lalu coba lagi.'
-        setMicError(msg)
-        showToast(msg, 'error')
-        return
-      }
-    }
-
-    const { count } = await getAudioInputDevices()
-    if (count === 0) {
-      const msg = 'Tidak ditemukan mikrofon di perangkat ini. Periksa/colok mikrofon, lalu tekan Mic lagi.'
-      setMicError(msg)
-      showToast(msg, 'error')
-      return
-    }
 
     micPendingRef.current = true
 
