@@ -55,6 +55,18 @@ Kirim teks/gambar/properti/PDF-dokumen/**pesan suara** (voice note ala WhatsApp:
 - **`index.css`**: `.voice-range` (CSS range slider) dihapus karena tidak lagi dipakai — diganti canvas waveform. `.voice-rec-dot` tetap.
 - Skope hanya frontend (ChatHubPage, VoiceWaveform baru, audioCompression baru, index.css). Tanpa migration/DB (bucket `CHAT_VOICE` & kolom `direct_messages` sudah ada sejak changelog voice note sebelumnya). Lint bersih (`eslint`) + build sukses (`vite`). Commit: `9ab3eaf`.
 
+## Changelog — Chat: Deteksi & Petunjuk Izin Mikrofon yang Lebih Pintar (9 September 2026)
+- **Tujuan**: mengatasi kasus user (terutama desktop & mobile) yang sudah *Allow* tapi tetap "izin ditolak" atau tidak muncul popup — dengan memberi pesan yang spesifik tentang **di mana** harus memperbaiki, bukan sekadar toast generik.
+- **Cek HTTPS dulu** (`startRecording`): sebelum memanggil `getUserMedia`, jika `window.location.protocol !== 'https:'` (dan bukan `localhost`), tampilkan toast "Mikrofon hanya tersedia di koneksi aman (HTTPS). Buka lewat https:// lalu coba lagi." — karena `getUserMedia` diblokir total tanpa popup di `http://` non-aman.
+- **Pemicu popup otomatis + timeout anti-gantung**: `getUserMedia` dibungkus `withTimeout(promise, 10000)` — jika browser tidak pernah memunculkan popup (atau promise tidak settle dalam 10 detik), gagal dengan error `TimeoutRequestingMicrophone` → toast memberi tahu user bahwa izin mungkin diblokir lewat ikon gembok `🔒` di address bar. Ini mencegah tombol Mic "diam tanpa umpan balik" di desktop.
+- **Deteksi status izin proaktif**: helper `checkMicPermission()` memakai `navigator.permissions.query({ name: 'microphone' })` untuk membaca state `granted` / `prompt` / `denied`. Saat `getUserMedia` gagal, `detectMicError(err)` memanggil fungsi ini dan memberi **petunjuk kontekstual**:
+  - `denied` → "Mikrofon diblokir di browser. Klik ikon gembok/🔒 di address bar → izinkan mikrofon untuk situs ini → muat ulang, lalu tekan Mic lagi."
+  - `NotAllowedError`/`PermissionDeniedError`/`SecurityError` → pesan izin ditolak dengan arah ke ikon gembok/pengaturan situs.
+  - `NotFoundError`/`DevicesNotFoundError`/`OverconstrainedError` → "Tidak ada mikrofon yang terhubung. Periksa perangkat audio kamu."
+  - `timeout` → pesan khusus (di atas); error lain → fallback `Gagal mengakses mikrofon: <msg>`.
+- `micGuidanceFor(state, name)` memusatkan teks petunjuk; `detectMicError` memakai `sendMountedRef` sebagai guard async (hindari toast setelah unmount, mengikuti pola `cancelled`/`mounted` pada proyek ini).
+- Skope hanya `ChatHubPage.jsx` (helper lokal `withTimeout`, `checkMicPermission`, `micGuidanceFor`, `detectMicError` + modifikasi `startRecording`). Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: (lihat git).
+
 ## Changelog — Chat: Double Tap untuk Reaksi Cepat Hati (8 September 2026)
 - **Fitur baru**: ketuk 2x pada area pesan memunculkan reaksi `❤️` secara instan — di desktop lewat `onDoubleClick` pada bubble, di perangkat sentuh lewat deteksi double-tap bawaan (`handleTouchEnd`: dua ketukan ≤300ms, jarak antar ketukan <30px, pergerakan jari <10px).
 - Terintegrasi dengan swipe-to-reply tanpa konflik: deteksi tap hanya berjalan bila `swipeX` di bawah threshold; interaksi pada tombol/link/gambar diabaikan agar aksi lain tidak dibajak; di perangkat sentuh `onDoubleClick` browser dinonaktifkan (`IS_TOUCH`) supaya tidak dobel-trigger.

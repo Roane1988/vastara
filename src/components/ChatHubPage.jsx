@@ -2879,6 +2879,67 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
   }
 
+  function withTimeout(promise, ms) {
+    if (typeof promise?.then !== 'function') return promise
+    return new Promise((resolve, reject) => {
+      let timer = null
+      const t = setTimeout(() => {
+        if (timer) return
+        timer = true
+        reject(new Error('TimeoutRequestingMicrophone'))
+      }, ms)
+      promise.then(
+        (v) => { if (!timer) { timer = true; clearTimeout(t); resolve(v) } },
+        (e) => { if (!timer) { timer = true; clearTimeout(t); reject(e) } }
+      )
+    })
+  }
+
+  async function checkMicPermission() {
+    if (typeof navigator === 'undefined' || !navigator.permissions || typeof navigator.permissions.query !== 'function') {
+      return 'unknown'
+    }
+    try {
+      const status = await navigator.permissions.query({ name: 'microphone' })
+      return status?.state || 'unknown'
+    } catch {
+      return 'unknown'
+    }
+  }
+
+  function micGuidanceFor(state, name) {
+    if (state === 'denied') {
+      return 'Mikrofon diblokir di browser. Klik ikon gembok/🔒 di address bar → izinkan mikrofon untuk situs ini → muat ulang, lalu tekan Mic lagi.'
+    }
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+      return 'Izin mikrofon ditolak. Izinkan lewat ikon gembok/🔒 di address bar (atau pengaturan situs), lalu tekan Mic lagi.'
+    }
+    return ''
+  }
+
+  function detectMicError(err) {
+    const name = err?.name || err?.message || ''
+    if (name === 'TimeoutRequestingMicrophone') {
+      showToast('Meminta mikrofon terlalu lama. Pastikan izin tidak diblokir lewat ikon gembok/🔒 di address bar.', 'error')
+      return
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
+      showToast('Tidak ada mikrofon yang terhubung. Periksa perangkat audio kamu.', 'error')
+      return
+    }
+    checkMicPermission().then((state) => {
+      if (!sendMountedRef.current) return
+      const guidance = micGuidanceFor(state, name)
+      if (guidance) {
+        showToast(guidance, 'error')
+      } else if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+        showToast('Izin mikrofon ditolak. Coba lagi dari pengaturan browser.', 'error')
+      } else {
+        showToast('Gagal mengakses mikrofon: ' + (err?.message || 'coba lagi'), 'error')
+      }
+    })
+  }
+
   async function startRecording() {
     if (activeContactId === HUNIBOT_ID) {
       showToast('HuniBot tidak menerima pesan suara.', 'error')
@@ -2890,20 +2951,22 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
     if (isRecording || micPendingRef.current) return
 
+    if (typeof window !== 'undefined' && window.location && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      showToast('Mikrofon hanya tersedia di koneksi aman (HTTPS). Buka lewat https:// lalu coba lagi.', 'error')
+      return
+    }
+
     micPendingRef.current = true
+
     let stream
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream = await withTimeout(
+        navigator.mediaDevices.getUserMedia({ audio: true }),
+        10000
+      )
     } catch (err) {
       micPendingRef.current = false
-      const name = err?.name || err?.message || ''
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-        showToast('Izin mikrofon ditolak. Coba lagi dari pengaturan browser.', 'error')
-      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-        showToast('Tidak ada mikrofon yang terhubung.', 'error')
-      } else {
-        showToast('Gagal mengakses mikrofon: ' + (err?.message || 'coba lagi'), 'error')
-      }
+      detectMicError(err)
       return
     }
     micPendingRef.current = false
