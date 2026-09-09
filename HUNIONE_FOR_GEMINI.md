@@ -65,7 +65,7 @@ Kirim teks/gambar/properti/PDF-dokumen/**pesan suara** (voice note ala WhatsApp:
   - `NotFoundError`/`DevicesNotFoundError`/`OverconstrainedError` → "Tidak ada mikrofon yang terhubung. Periksa perangkat audio kamu."
   - `timeout` → pesan khusus (di atas); error lain → fallback `Gagal mengakses mikrofon: <msg>`.
 - `micGuidanceFor(state, name)` memusatkan teks petunjuk; `detectMicError` memakai `sendMountedRef` sebagai guard async (hindari toast setelah unmount, mengikuti pola `cancelled`/`mounted` pada proyek ini).
-- Skope hanya `ChatHubPage.jsx` (helper lokal `withTimeout`, `checkMicPermission`, `micGuidanceFor`, `detectMicError` + modifikasi `startRecording`). Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: (lihat git).
+- Skope hanya `ChatHubPage.jsx` (helper lokal `withTimeout`, `checkMicPermission`, `micGuidanceFor`, `detectMicError` + modifikasi `startRecording`). Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `1761c44`.
 
 ## Changelog — Chat: Double Tap untuk Reaksi Cepat Hati (8 September 2026)
 - **Fitur baru**: ketuk 2x pada area pesan memunculkan reaksi `❤️` secara instan — di desktop lewat `onDoubleClick` pada bubble, di perangkat sentuh lewat deteksi double-tap bawaan (`handleTouchEnd`: dua ketukan ≤300ms, jarak antar ketukan <30px, pergerakan jari <10px).
