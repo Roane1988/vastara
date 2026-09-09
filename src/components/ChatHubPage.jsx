@@ -3083,7 +3083,6 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     setRecordingSeconds(0)
     recordElapsedRef.current = 0
     recordStartRef.current = Date.now()
-    initRecVisualizer(stream)
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
     recordingTimerRef.current = setInterval(() => {
       if (isPausedRef.current) return
@@ -3445,6 +3444,14 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       mediaStreamRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    if (isRecording) {
+      initRecVisualizer(mediaStreamRef.current)
+    }
+    return () => stopRecVisualizer()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording])
 
   useEffect(() => {
     if (isRecording && lastRecordingContactRef.current && lastRecordingContactRef.current !== activeContactId) {
@@ -4226,9 +4233,8 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                         </button>
                         <canvas
                           ref={recCanvasRef}
-                          className="flex-1 min-w-0 h-8 shrink"
+                          className="flex-1 h-8 mx-2 min-w-0"
                           aria-hidden="true"
-                          style={{ maxWidth: 'none' }}
                         />
                         <span
                           className={`text-sm font-semibold tabular-nums shrink-0 ${isPaused ? 'text-brand-muted' : 'text-brand-danger'}`}
