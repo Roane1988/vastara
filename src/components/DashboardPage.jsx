@@ -1037,7 +1037,7 @@ function FinanceProfileModal({ open, onClose, onSaved }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.25 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-brand-surface rounded-t-3xl py-6 px-5 pb-8 max-h-[85vh] overflow-y-auto"
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl sm:rounded-3xl bg-brand-surface py-6 px-4 sm:px-6 pb-8 max-h-[85vh] overflow-y-auto sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90vh]"
           >
             <button type="button" aria-label="Tutup" onClick={onClose} className="absolute top-4 right-4 text-brand-muted hover:text-brand-text">
               <X size={20} />

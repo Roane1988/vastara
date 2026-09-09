@@ -50,6 +50,19 @@ Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receip
 - **i18n**: mengikuti konvensi file `DashboardPage.jsx` yang memakai string Indonesia hardcoded; tidak ada perubahan translation file.
 - Skope: `DashboardPage.jsx`, `SavedSearchAlertsContext.jsx`. Lint bersih (`eslint`) + build sukses (`vite`).
 
+## Changelog — UI Polish: Modal & Form Profil Keuangan Responsif (9 September 2026)
+- **Tujuan**: perbaiki layout modal/`FinancialProfileForm` yang melebar terlalu lebar di desktop dan berisiko pecah di layar kecil.
+- **`DashboardPage.jsx` — `FinanceProfileModal`**:
+  - Container di-constrain ke `max-w-xl` dengan `mx-auto w-full` — tidak lagi membentang selebar viewport di desktop.
+  - Mobile: bottom-sheet penuh (`inset-x-0 bottom-0 rounded-t-3xl`, `max-h-[85vh]`, padding `px-4`).
+  - Desktop (`sm+`): `sm:rounded-3xl`, terpusat penuh via `sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90vh]` (centering pakai margin, bukan `transform`, agar tidak bentrok dengan animasi Framer Motion `y`).
+- **`FinancialProfileForm.jsx`**:
+  - Inner padding card diperbesar & responsif: `p-6 sm:p-8`.
+  - Grid pill tujuan pembelian: `grid-cols-1 sm:grid-cols-2` — 1 kolom di mobile, 2 kolom di desktop.
+  - Tombol aksi "Simpan/Tersimpan" tetap `w-full` full-width, sejajar, dan konsisten.
+- **i18n**: tidak ada perubahan (hanya class Tailwind).
+- Skope: `DashboardPage.jsx`, `FinancialProfileForm.jsx`. Lint bersih (`eslint`) + build sukses (`vite`).
+
 ## Analisis Arsitektur Fitur Chat — ChatHubPage.jsx (31 Agustus 2026)
 Ringkasan arsitektur & temuan dari analisis menyeluruh fitur chat realtime (2.490 baris, komponen multipanel: daftar kontak kiri + ruang chat kanan + panel kontak).
 

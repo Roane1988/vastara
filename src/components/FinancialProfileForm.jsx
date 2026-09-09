@@ -210,7 +210,7 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
   }
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-white p-5">
+    <div className="rounded-2xl border border-brand-border bg-white p-6 sm:p-8">
       {showTitle && (
         <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -393,7 +393,7 @@ export default function FinancialProfileForm({ onSaved, showTitle = true }) {
 
         <div>
           <label className={labelClass}>Tujuan pembelian</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {PURCHASE_GOAL_OPTIONS.map(o => {
               const active = values.purchaseGoal === o.value
               return (
