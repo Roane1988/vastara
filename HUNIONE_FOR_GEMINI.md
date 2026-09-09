@@ -81,7 +81,7 @@ Kirim teks/gambar/properti/PDF-dokumen/**pesan suara** (voice note ala WhatsApp:
 - **(2) Tidak menjatuhkan vonis "diblokir" sebelum promise merespons**: `micGuidanceFor` tidak lagi menjadikan `permissions.query == 'denied'` sebagai **satu-satunya dasar** untuk menampilkan "Mikrofon diblokir". Vonis "Izin mikrofon ditolak/diblokir" hanya muncul ketika `getUserMedia` **benar-benar** menolak dengan `NotAllowedError`/`PermissionDeniedError`/`SecurityError`. Hasil `permissions.query` hanya dipakai untuk **memperkaya** pesan (mis. menyebut "Allow on every visit" saat state `denied`), bukan sebagai dasar vonis tunggal. `state==='prompt'` hanya menampilkan pesan "browser sedang meminta izin", bukan "diblokir".
 - **(3) Reset juga setelah sukses**: `micError` di-nol-kan lagi setelah `getUserMedia` berhasil memberikan stream (`if (micError) setMicError('')`), sehingga banner hilang begitu rekaman berjalan.
 - **(4) Retry otomatis tetap**: saat error retryable, `scheduleMicRetry` tetap memicu satu percobaan ulang ~1,5s lalu `startRecording()` yang juga melakukan reset state error — memberi layar kedua bagi `getUserMedia` untuk berhasil tanpa user harus menutup banner manual.
-- Skope hanya `ChatHubPage.jsx`. Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: (lihat git).
+- Skope hanya `ChatHubPage.jsx`. Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `0029718`.
 
 ## Changelog — Chat: Double Tap untuk Reaksi Cepat Hati (8 September 2026)
 - **Fitur baru**: ketuk 2x pada area pesan memunculkan reaksi `❤️` secara instan — di desktop lewat `onDoubleClick` pada bubble, di perangkat sentuh lewat deteksi double-tap bawaan (`handleTouchEnd`: dua ketukan ≤300ms, jarak antar ketukan <30px, pergerakan jari <10px).
