@@ -2,6 +2,28 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Mobile Sticky Bar WhatsApp/Favorite CTAs + Global Unread Chat Badge (9 September 2026)
+
+### 1. Mobile Sticky Bar Enhancements (`PropertyDetailPage.jsx`)
+- **Tujuan**: mobile sticky bar (`fixed bottom-0 lg:hidden`) yang sebelumnya hanya harga + "Chat di HuniOne" kini punya jalur kontak instan (WhatsApp) dan aksi simpan tanpa perlu gulir ke atas.
+- **Favorite/Save CTA**: tombol `<Heart>` round (`w-11 h-11`, aria-pressed, warna menyesuaikan saved state) menyetel `toggleFav(property.id)` (util `favorites.js` yang sudah ada, localStorage + Supabase `saved_properties`). Sama persis dengan tombol Save desktop tetapi compact dan touch-friendly 44px target.
+- **WhatsApp CTA**: tombol `<WhatsAppIcon>` (inline SVG WhatsApp glyph warna `#25D366`, `w-11 h-11`) muncul **hanya jika** `property.seller_whatsapp` tersedia & valid (`isValidWhatsAppNumber`). Membuka `https://wa.me/<normalized>?text=Halo...` di tab baru — kontak langsung tanpa registrasi/login. Pesan otomatis menyertakan judul properti untuk konteks.
+- **Layout compact responsif**: `px-4 py-3 gap-2.5` → ruang teroptimasi untuk iPhone SE (320px): price block shrink + 2 icon button (44px each) + Chat button flex-1. `/m²` line diturunkan ke `text-[10px]` untuk menyimpan ruang vertikal. Touch target ≥44px semua tombol.
+- **WhatsAppIcon**: komponen inline SVG (module-level) yang menampilkan WhatsApp brand glyph resmi, memakai `fill="currentColor"` + `aria-hidden="true"`.
+- **`normalizeWhatsAppNumber`** & **`isValidWhatsAppNumber`** diimpor dari `../utils/whatsapp` (bisa diganti untuk angka yang sudah `seller_whatsapp` yang tersimpan sebagai digit).
+
+### 2. Global Unread Chat Badge — Self-Healing (`useChatUnread.js`)
+- **Status**: badge unread sudah ada (`useChatUnread` → `TopNavbar` + `HamburgerMenu`), tetapi bergantung 100% pada realtime — bisa drift jika koneksi putus atau SELECT update terjadi dari tab lain tanpa INSERT.
+- **Self-healing re-sync**:
+  - **`visibilitychange` listener**: saat tab menjadi `visible` → `fetchCount()` ulang (sinkron jika user baca pesan di tab lain / multiple tabs).
+  - **`focus` listener**: saat window/tab aktif → re-fetch count.
+  - **DELETE channel** (`postgres_changes` event `DELETE`): `fetchCount()` untuk memastikan badge tidak ketinggalan jika thread dihapus di backend.
+- **`cancelledRef`** menggantikan `cancelled` boolean lokal agar async callbacks (termasuk re-fetch yang dipanggil dari event listeners) tetap aman terhadap unmount.
+- **Refactor `fetchCount()`** menjadi async function yang bisa dipanggil dari banyak titik (mount + event listeners + DELETE) — kode lebih bersih, tidak mengandung `cancelled` yang sudah tidak berlaku dari useEffect closure.
+- Badge tetap menampilkan `chatUnread > 0` → merah, `99+` cap. `HamburgerMenu` juga menampilkan badge yang sama (sumber data sama = `useChatUnread`).
+- **Verifikasi**: lint bersih (`eslint`), build sukses (`vite`).
+- Skope: `src/components/PropertyDetailPage.jsx`, `src/hooks/useChatUnread.js`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Chat: Context Property Banner + Klikable Link Properti di Pesan & Starter Message (9 September 2026)
 - **Tujuan**: memperkuat konteks properti di chat — banner properti pin di header thread, tautan properti langsung klikable di gelembung pesan, dan starter message yang menyertakan URL properti.
 - **1. Context header banner properti (pinned)** (`ChatHubPage.jsx`, blok `Property context card`):
