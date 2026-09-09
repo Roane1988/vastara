@@ -1225,6 +1225,7 @@ export default function ChatHubPage() {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingSeconds, setRecordingSeconds] = useState(0)
   const [voiceUploading, setVoiceUploading] = useState(false)
+  const [micError, setMicError] = useState('')
   const mediaRecorderRef = useRef(null)
   const mediaStreamRef = useRef(null)
   const mediaChunksRef = useRef([])
@@ -2947,14 +2948,19 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
   }
 
   function micGuidanceFor(state, name) {
-    if (state === 'denied') {
-      return { msg: 'Mikrofon diblokir di browser. Klik ikon gembok/🔒 di address bar → izinkan mikrofon untuk situs ini → muat ulang, lalu tekan Mic lagi. Sekarang kami coba lagi otomatis.', retry: true }
+    if (name === 'TimeoutRequestingMicrophone') {
+      return { msg: 'Meminta mikrofon terlalu lama. Kami coba lagi otomatis... pastikan izin tidak diblokir lewat ikon gembok/🔒 di address bar.', retry: true }
+    }
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+      return {
+        msg: state === 'denied'
+          ? 'Mikrofon diblokir di browser. Klik ikon gembok/🔒 di address bar → pilih "Allow on every visit" → muat ulang halaman, lalu tekan Mic lagi.'
+          : 'Izin mikrofon ditolak. Izinkan lewat ikon gembok/🔒 di address bar (atau pengaturan situs) → muat ulang, lalu tekan Mic lagi.',
+        retry: true,
+      }
     }
     if (state === 'prompt') {
       return { msg: 'Browser sedang meminta izin mikrofon. Izinkan di popup jika muncul, lalu coba lagi.', retry: true }
-    }
-    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-      return { msg: 'Izin mikrofon ditolak. Izinkan lewat ikon gembok/🔒 di address bar (atau pengaturan situs), lalu tekan Mic lagi.', retry: true }
     }
     return { msg: '', retry: false }
   }
@@ -2980,27 +2986,32 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     const name = err?.name || err?.message || ''
 
     if (name === 'TimeoutRequestingMicrophone') {
-      showToast('Meminta mikrofon terlalu lama. Kami coba lagi otomatis... pastikan izin tidak diblokir lewat ikon gembok/🔒 di address bar.', 'error')
+      const msg = micGuidanceFor('unknown', name).msg
+      setMicError(msg)
+      showToast(msg, 'error')
       scheduleMicRetry(err)
       return
     }
     if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
       const { count } = await getAudioInputDevices()
-      if (count === 0) {
-        showToast('Tidak ditemukan mikrofon di perangkat ini. Periksa/colok mikrofon, lalu tekan Mic lagi.', 'error')
-      } else {
-        showToast('Gagal mengakses mikrofon yang terhubung. Coba cabut & pasang ulang, lalu tekan Mic lagi.', 'error')
-      }
+      const msg = count === 0
+        ? 'Tidak ditemukan mikrofon di perangkat ini. Periksa/colok mikrofon, lalu tekan Mic lagi.'
+        : 'Gagal mengakses mikrofon yang terhubung. Coba cabut & pasang ulang, lalu tekan Mic lagi.'
+      setMicError(msg)
+      showToast(msg, 'error')
       return
     }
     const state = await checkMicPermission()
     if (!sendMountedRef.current) return
     const { msg, retry } = micGuidanceFor(state, name)
     if (msg) {
+      setMicError(msg)
       showToast(msg, 'error')
       if (retry && micRetryCountRef.current < 1) scheduleMicRetry(err)
     } else {
-      showToast('Gagal mengakses mikrofon: ' + (err?.message || 'coba lagi'), 'error')
+      const fallback = 'Gagal mengakses mikrofon: ' + (err?.message || 'coba lagi')
+      setMicError(fallback)
+      showToast(fallback, 'error')
     }
   }
 
@@ -3015,18 +3026,24 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
     if (isRecording || micPendingRef.current) return
 
+    if (micError) setMicError('')
+
     if (typeof window !== 'undefined' && window.location) {
       const isHttps = window.isSecureContext === true && /^https:/.test(window.location.protocol)
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '::1'
       if (!isHttps && !isLocalhost) {
-        showToast('Mikrofon diblokir karena koneksi tidak aman (bukan HTTPS). Browser tidak mengizinkan akses mikrofon di http://. Buka lewat https:// lalu coba lagi.', 'error')
+        const msg = 'Mikrofon diblokir karena koneksi tidak aman (bukan HTTPS). Browser tidak mengizinkan akses mikrofon di http://. Buka lewat https:// lalu coba lagi.'
+        setMicError(msg)
+        showToast(msg, 'error')
         return
       }
     }
 
     const { count } = await getAudioInputDevices()
     if (count === 0) {
-      showToast('Tidak ditemukan mikrofon di perangkat ini. Periksa/colok mikrofon, lalu tekan Mic lagi.', 'error')
+      const msg = 'Tidak ditemukan mikrofon di perangkat ini. Periksa/colok mikrofon, lalu tekan Mic lagi.'
+      setMicError(msg)
+      showToast(msg, 'error')
       return
     }
 
@@ -3045,6 +3062,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
     micPendingRef.current = false
     micRetryCountRef.current = 0
+    if (micError) setMicError('')
 
     mediaStreamRef.current = stream
 
@@ -3995,6 +4013,21 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
               )}
 
               {/* Input Bar */}
+              {micError && (
+                <div className="shrink-0 flex items-start gap-2 mx-4 mt-2 rounded-xl border border-brand-danger/30 bg-brand-danger/5 px-3 py-2.5 text-xs text-brand-danger animate-fadeIn">
+                  <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+                  <span className="flex-1 min-w-0 leading-snug">{micError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setMicError('')}
+                    aria-label="Tutup peringatan mikrofon"
+                    title="Tutup"
+                    className="shrink-0 text-brand-danger/70 hover:text-brand-danger transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
