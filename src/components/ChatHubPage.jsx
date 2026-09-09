@@ -1223,6 +1223,7 @@ export default function ChatHubPage() {
   const [fileStagingOpen, setFileStagingOpen] = useState(false)
   const [stagingUploading, setStagingUploading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
   const [recordingSeconds, setRecordingSeconds] = useState(0)
   const [voiceUploading, setVoiceUploading] = useState(false)
   const [micError, setMicError] = useState('')
@@ -1236,6 +1237,13 @@ export default function ChatHubPage() {
   const micRetryTimerRef = useRef(null)
   const micRetryCountRef = useRef(0)
   const recordStartRef = useRef(0)
+  const recordElapsedRef = useRef(0)
+  const isPausedRef = useRef(false)
+  const recCanvasRef = useRef(null)
+  const recAudioCtxRef = useRef(null)
+  const recAnalyserRef = useRef(null)
+  const recSourceRef = useRef(null)
+  const recRafRef = useRef(null)
   const pendingStagingUrlsRef = useRef([])
   const [shareProperty, setShareProperty] = useState(null)
   const [showPropertyPicker, setShowPropertyPicker] = useState(false)
@@ -3069,18 +3077,26 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
 
     recordingPendingRef.current = true
     setIsRecording(true)
+    setIsPaused(false)
+    isPausedRef.current = false
     setPlusMenuOpen(false)
     setRecordingSeconds(0)
+    recordElapsedRef.current = 0
     recordStartRef.current = Date.now()
+    initRecVisualizer(stream)
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
     recordingTimerRef.current = setInterval(() => {
-      const elapsed = Math.min(Math.floor((Date.now() - recordStartRef.current) / 1000), 600)
+      if (isPausedRef.current) return
+      const elapsed = Math.min(recordElapsedRef.current + Math.floor((Date.now() - recordStartRef.current) / 1000), 600)
       setRecordingSeconds(elapsed)
       if (elapsed >= 600) {
         if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
         recordingTimerRef.current = null
         recordingPendingRef.current = false
         setIsRecording(false)
+        setIsPaused(false)
+        isPausedRef.current = false
+        stopRecVisualizer()
         const mr = mediaRecorderRef.current
         if (mr && mr.state !== 'inactive') {
           try { mr.cancel() } catch { try { mr.stop() } catch { /* non-critical */ } }
@@ -3101,11 +3117,14 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
     recordingPendingRef.current = false
     setIsRecording(false)
+    setIsPaused(false)
+    isPausedRef.current = false
     setPlusMenuOpen(false)
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current)
       recordingTimerRef.current = null
     }
+    stopRecVisualizer()
     setVoiceUploading(true)
 
     await new Promise((resolve) => {
@@ -3245,6 +3264,148 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
   }
 
+  function initRecVisualizer(stream) {
+    stopRecVisualizer()
+    const canvas = recCanvasRef.current
+    if (!canvas || typeof AudioContext === 'undefined') return
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext
+      const ctx = new AC()
+      const source = ctx.createMediaStreamSource(stream)
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 256
+      analyser.smoothingTimeConstant = 0.75
+      source.connect(analyser)
+      recAudioCtxRef.current = ctx
+      recSourceRef.current = source
+      recAnalyserRef.current = analyser
+      const rafLoop = () => {
+        if (!isPausedRef.current) drawRecVisualizer()
+        recRafRef.current = requestAnimationFrame(rafLoop)
+      }
+      recRafRef.current = requestAnimationFrame(rafLoop)
+    } catch {
+      stopRecVisualizer()
+    }
+  }
+
+  function drawRecVisualizer() {
+    const canvas = recCanvasRef.current
+    const analyser = recAnalyserRef.current
+    if (!canvas || !analyser) return
+    const dpr = window.devicePixelRatio || 1
+    const width = canvas.clientWidth
+    const height = canvas.clientHeight
+    if (!width || !height) return
+    canvas.width = Math.max(1, width * dpr)
+    canvas.height = Math.max(1, height * dpr)
+    const g = canvas.getContext('2d')
+    g.scale(dpr, dpr)
+    g.clearRect(0, 0, width, height)
+
+    const data = new Uint8Array(analyser.frequencyBinCount)
+    analyser.getByteFrequencyData(data)
+
+    const bars = 42
+    const gap = 1.5
+    const barW = Math.max(1.5, (width - gap * (bars - 1)) / bars)
+    const mid = height / 2
+
+    for (let i = 0; i < bars; i++) {
+      const idx = Math.floor((i / bars) * data.length * 0.7)
+      const v = data[idx] || 0
+      const amp = Math.min(1, Math.max(0.06, v / 255))
+      const barH = Math.max(2, amp * (height - 4))
+      const x = i * (barW + gap)
+      const grad = g.createLinearGradient(0, mid - barH / 2, 0, mid + barH / 2)
+      grad.addColorStop(0, '#e11d48')
+      grad.addColorStop(1, '#f43f5e')
+      g.fillStyle = grad
+      g.beginPath()
+      if (typeof g.roundRect === 'function') {
+        g.roundRect(x, mid - barH / 2, barW, barH, barW / 2)
+      } else {
+        g.rect(x, mid - barH / 2, barW, barH)
+      }
+      g.fill()
+    }
+  }
+
+  function stopRecVisualizer() {
+    if (recRafRef.current) {
+      cancelAnimationFrame(recRafRef.current)
+      recRafRef.current = null
+    }
+    try {
+      if (recSourceRef.current) recSourceRef.current.disconnect()
+    } catch { /* non-critical */ }
+    try {
+      if (recAudioCtxRef.current && recAudioCtxRef.current.state !== 'closed') recAudioCtxRef.current.close()
+    } catch { /* non-critical */ }
+    recSourceRef.current = null
+    recAnalyserRef.current = null
+    recAudioCtxRef.current = null
+    const canvas = recCanvasRef.current
+    if (canvas) {
+      const g = canvas.getContext('2d')
+      if (g) g.clearRect(0, 0, canvas.width, canvas.height)
+    }
+  }
+
+  function handlePauseRecording() {
+    if (!recordingPendingRef.current || !isRecording || isPaused) return
+    const mr = mediaRecorderRef.current
+    if (mr && mr.state === 'recording') {
+      try {
+        mr.pause()
+      } catch { /* non-critical */ }
+    }
+    isPausedRef.current = true
+    setIsPaused(true)
+    recordElapsedRef.current = Math.min(recordElapsedRef.current + Math.floor((Date.now() - recordStartRef.current) / 1000), 600)
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
+  }
+
+  function handleResumeRecording() {
+    if (!recordingPendingRef.current || !isRecording || !isPaused) return
+    const mr = mediaRecorderRef.current
+    if (mr && mr.state === 'paused') {
+      try {
+        mr.resume()
+      } catch { /* non-critical */ }
+    }
+    isPausedRef.current = false
+    setIsPaused(false)
+    recordStartRef.current = Date.now()
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
+    recordingTimerRef.current = setInterval(() => {
+      if (isPausedRef.current) return
+      const elapsed = Math.min(recordElapsedRef.current + Math.floor((Date.now() - recordStartRef.current) / 1000), 600)
+      setRecordingSeconds(elapsed)
+      if (elapsed >= 600) {
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
+        recordingTimerRef.current = null
+        recordingPendingRef.current = false
+        setIsRecording(false)
+        setIsPaused(false)
+        isPausedRef.current = false
+        stopRecVisualizer()
+        const mr2 = mediaRecorderRef.current
+        if (mr2 && mr2.state !== 'inactive') {
+          try { mr2.cancel() } catch { try { mr2.stop() } catch { /* non-critical */ } }
+        }
+        mediaRecorderRef.current = null
+        mediaChunksRef.current = []
+        forceStopMediaStream(mediaStreamRef.current)
+        mediaStreamRef.current = null
+        showToast('Rekaman dibatasi maksimal 10 menit.', 'info')
+      }
+    }, 200)
+  }
+
   const handleDiscardRecording = useCallback(() => {
     if (!recordingPendingRef.current || !isRecording) return
     const mr = mediaRecorderRef.current
@@ -3259,12 +3420,16 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
     recordingPendingRef.current = false
     setIsRecording(false)
+    setIsPaused(false)
+    isPausedRef.current = false
     setPlusMenuOpen(false)
     setRecordingSeconds(0)
+    recordElapsedRef.current = 0
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current)
       recordingTimerRef.current = null
     }
+    stopRecVisualizer()
     forceStopMediaStream(mediaStreamRef.current)
     mediaStreamRef.current = null
     mediaChunksRef.current = []
@@ -3278,6 +3443,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     return () => {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
       recordingTimerRef.current = null
+      stopRecVisualizer()
       forceStopMediaStream(mediaStreamRef.current)
       mediaStreamRef.current = null
     }
@@ -4042,24 +4208,41 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                   )}
                   <div className="flex items-end gap-1 rounded-full border border-brand-border bg-brand-bg pl-1.5 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-brand-accent/30 focus-within:border-brand-accent transition-colors">
                     {isRecording ? (
-                      <>
-                        <div className="flex items-center gap-1.5 py-1 min-w-0">
-                          <button
-                            type="button"
-                            onClick={handleDiscardRecording}
-                            aria-label="Batalkan perekaman suara"
-                            title="Batalkan perekaman"
-                            className="w-9 h-9 shrink-0 rounded-full text-brand-danger hover:bg-brand-danger/10 flex items-center justify-center transition-colors"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                          <span className="voice-rec-dot shrink-0" aria-hidden="true" />
-                          <span className="text-sm font-semibold text-brand-danger tabular-nums shrink-0" role="timer">
-                            {formatVoiceTime(Math.floor(Math.min(recordingSeconds, 600)))}
-                          </span>
-                          <span className="text-xs text-brand-muted truncate">sedang merekam</span>
-                        </div>
-                      </>
+                      <div className="flex items-center gap-1.5 py-1 pl-1 pr-1 min-w-0 w-full">
+                        <button
+                          type="button"
+                          onClick={handleDiscardRecording}
+                          aria-label="Batal dan hapus rekaman suara"
+                          title="Hapus rekaman"
+                          className="w-9 h-9 shrink-0 rounded-full text-brand-danger hover:bg-brand-danger/10 flex items-center justify-center transition-colors"
+                        >
+                          <Trash2 size={19} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={isPaused ? handleResumeRecording : handlePauseRecording}
+                          aria-label={isPaused ? 'Lanjutkan perekaman' : 'Jeda perekaman'}
+                          title={isPaused ? 'Lanjutkan' : 'Jeda'}
+                          className="w-9 h-9 shrink-0 rounded-full text-brand-muted hover:text-brand-accent hover:bg-brand-accent/10 flex items-center justify-center transition-colors"
+                        >
+                          {isPaused ? <Play size={19} className="ml-0.5" /> : <Pause size={19} />}
+                        </button>
+                        <canvas
+                          ref={recCanvasRef}
+                          className="flex-1 min-w-0 h-8 shrink"
+                          aria-hidden="true"
+                          style={{ maxWidth: 'none' }}
+                        />
+                        <span
+                          className={`text-sm font-semibold tabular-nums shrink-0 ${isPaused ? 'text-brand-muted' : 'text-brand-danger'}`}
+                          role="timer"
+                        >
+                          {formatVoiceTime(Math.floor(Math.min(recordingSeconds, 600)))}
+                        </span>
+                        {isPaused && (
+                          <span className="text-[11px] font-medium text-brand-muted shrink-0">dijeda</span>
+                        )}
+                      </div>
                     ) : (
                       <>
                     <textarea
