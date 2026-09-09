@@ -2,6 +2,18 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Remove WhatsApp CTA dari Mobile Sticky Bar (Enforce In-App Communication Loop) (9 September 2026)
+- **Alasan (keputusan bisnis)**: menghapus tombol WhatsApp yang baru ditambahkan di commit `f46ddba` pada mobile sticky bar `PropertyDetailPage.jsx`. Ekspos link `wa.me` ke buyer memungkinkan transaksi **off-platform (disintermediation)** — komunikasi keluar dari sistem chat tertutup HuniOne, sehingga platform kehilangan kemampuan melacak lead, memonitor funnel konversi, dan mengamankan potensi komisi perantara. **Semua komunikasi wajib di dalam sistem chat internal HuniOne.**
+- **Penghapusan lengkap** (`PropertyDetailPage.jsx`):
+  - Tombol `<a href={waLink}>` WhatsApp di sticky bar (icon `#25D366`) — dihapus total.
+  - Komponen `WhatsAppIcon` (inline SVG WhatsApp glyph) — dihapus.
+  - Variabel `waLink`/`waNumber`/`rawWa` dan pembuatan URL `https://wa.me/<no>?text=...` — dihapus.
+  - Import `normalizeWhatsAppNumber` & `isValidWhatsAppNumber` dari `../utils/whatsapp` — dihapus (tidak ada unused import).
+- **Re-adjust layout sticky bar**: tombol "Chat di HuniOne" memakai **`flex-1 min-w-0`** sehingga mengisi penuh ruang yang ditinggalkan tombol WhatsApp — distribusi bersih: [Price block (shrink)] + [Save/Heart 44px] + [Chat di HuniOne flex-1]. Label CTA dikembalikan ke teks penuh **"Chat di HuniOne"** (sebelumnya dicekik menjadi "Chat" karena sempit) dengan `gap-2.5`.
+- **Catatan**: fitur Save/Heart (dari commit `f46ddba`) tetap dipertahankan. Global unread badge (`useChatUnread.js`) dari commit yang sama juga tetap — hanya WhatsApp yang dibuang.
+- **Verifikasi**: zero reference WhatsApp tersisa di file (`grep -cE "25D366|wa\.me|waLink|WhatsApp"` → 0), lint bersih (`eslint`), build sukses (`vite`).
+- Skope: `src/components/PropertyDetailPage.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Mobile Sticky Bar WhatsApp/Favorite CTAs + Global Unread Chat Badge (9 September 2026)
 
 ### 1. Mobile Sticky Bar Enhancements (`PropertyDetailPage.jsx`)
