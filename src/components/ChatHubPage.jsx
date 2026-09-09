@@ -3317,10 +3317,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       const amp = Math.min(1, Math.max(0.06, v / 255))
       const barH = Math.max(2, amp * (height - 4))
       const x = i * (barW + gap)
-      const grad = g.createLinearGradient(0, mid - barH / 2, 0, mid + barH / 2)
-      grad.addColorStop(0, '#e11d48')
-      grad.addColorStop(1, '#f43f5e')
-      g.fillStyle = grad
+      g.fillStyle = '#DC2626'
       g.beginPath()
       if (typeof g.roundRect === 'function') {
         g.roundRect(x, mid - barH / 2, barW, barH, barW / 2)
