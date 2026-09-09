@@ -83,6 +83,11 @@ Kirim teks/gambar/properti/PDF-dokumen/**pesan suara** (voice note ala WhatsApp:
 - **(4) Retry otomatis tetap**: saat error retryable, `scheduleMicRetry` tetap memicu satu percobaan ulang ~1,5s lalu `startRecording()` yang juga melakukan reset state error — memberi layar kedua bagi `getUserMedia` untuk berhasil tanpa user harus menutup banner manual.
 - Skope hanya `ChatHubPage.jsx`. Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `0029718`.
 
+## Changelog — Chat: Enhance Visibility Waveform Perekaman di Latar Putih (9 September 2026)
+- **Tujuan**: bar gelombang suara saat merekam sebelumnya hampir tak terlihat di atas latar komposer yang putih karena warnanya terlalu terang (gradien rose `#e11d48`→`#f43f5e`).
+- **Perbaikan**: di `drawRecVisualizer` (tiap `ctx.fillStyle` untuk bar vertikal canvas), warna diganti dari gradien terang menjadi **solid merah tua `#DC2626`** (brand-danger) sehingga kontras tegas terhadap background putih — tetap konsisten dengan warna timer rekaman.
+- Skope hanya `ChatHubPage.jsx`. Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `60425f0`.
+
 ## Changelog — Chat: Voice Note UI ala WhatsApp — Waveform Real-time, Pause/Resume & Delete (9 September 2026)
 - **Tujuan**: meningkatkan pengalaman merekam pesan suara agar persis seperti WhatsApp — ada **visualizer gelombang real-time**, bisa **jeda/lanjutkan** perekaman, dan **batal/hapus** tanpa mengirim.
 - **(1) State `isPaused`**: ditambahkan state `isPaused` + ref `isPausedRef` untuk mengontrol alur jeda/resume secara sinkron.
