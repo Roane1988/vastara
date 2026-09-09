@@ -7,7 +7,7 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Mic, Send, Play, Pause, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File, Smile } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File, Smile, ArrowRight } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
@@ -466,15 +466,24 @@ function normalizePhone(num) {
 
 function tokenizeMessage(text) {
   const tokens = []
-  const re = /(\bhttps?:\/\/[^\s<]+)|(\b0\d{8,12}\b|\b62\d{8,13}\b)/g
+  const re = /(\bhttps?:\/\/(?:www\.)?hunione\.com\/property\/[A-Za-z0-9-]+)|(\/property\/[A-Za-z0-9-]+)|\bhttps?:\/\/[^\s<]+|\b0\d{8,12}\b|\b62\d{8,13}\b/g
   let last = 0
   let m
   while ((m = re.exec(text)) !== null) {
+    const raw = m[0]
+    if (m[2] && (text[m.index - 1] || '').match(/\w/)) {
+      re.lastIndex = m.index + 1
+      continue
+    }
     if (m.index > last) tokens.push({ type: 'text', value: text.slice(last, m.index) })
     if (m[1]) {
-      tokens.push({ type: 'link', value: m[1].replace(/[.,;:!?\])]+$/g, '') })
+      tokens.push({ type: 'property', value: m[1].replace(/[.,;:!?\])]+$/g, '') })
     } else if (m[2]) {
-      tokens.push({ type: 'phone', value: m[2] })
+      tokens.push({ type: 'property', value: m[2].replace(/[.,;:!?\])]+$/g, '') })
+    } else if (/^https?:\/\//.test(raw)) {
+      tokens.push({ type: 'link', value: raw.replace(/[.,;:!?\])]+$/g, '') })
+    } else {
+      tokens.push({ type: 'phone', value: raw })
     }
     last = m.index + m[0].length
   }
@@ -488,6 +497,20 @@ function MessageText({ text, query, className }) {
     return <HighlightText text={text} query={query} className={className} />
   }
   return tokens.map((t, i) => {
+    if (t.type === 'property') {
+      const idMatch = t.value.match(/(?:hunione\.com)?\/property\/([A-Za-z0-9-]+)/)
+      if (idMatch?.[1]) {
+        return (
+          <Link
+            key={i}
+            to={`/property/${idMatch[1]}`}
+            className="text-blue-500 underline underline-offset-2 hover:text-blue-600 break-all"
+          >
+            {t.value}
+          </Link>
+        )
+      }
+    }
     if (t.type === 'link') {
       return (
         <a
@@ -495,7 +518,7 @@ function MessageText({ text, query, className }) {
           href={t.value}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline underline-offset-2 font-medium break-all hover:opacity-80"
+          className="text-blue-500 underline underline-offset-2 hover:text-blue-600 break-all"
         >
           {t.value}
         </a>
@@ -508,7 +531,7 @@ function MessageText({ text, query, className }) {
           href={`https://wa.me/${normalizePhone(t.value)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline underline-offset-2 font-medium hover:opacity-80"
+          className="text-blue-500 underline underline-offset-2 hover:text-blue-600 break-all"
         >
           {t.value}
         </a>
@@ -1546,6 +1569,7 @@ export default function ChatHubPage() {
   const didAutoSelectRef = useRef(false)
   const openUserFetchRef = useRef(false)
   const contextPrefillRef = useRef(null)
+  const contextContactIdRef = useRef(null)
   const handleSelectContact = useCallback((contactId) => {
     setActiveContactId(contactId)
     loadedContactRef.current = null
@@ -1583,6 +1607,7 @@ export default function ChatHubPage() {
     if (found) {
       didAutoSelectRef.current = true
       contextPrefillRef.current = { contactId: openUserId, pending: true, propertyId }
+      contextContactIdRef.current = openUserId
       handleSelectContact(openUserId)
       setSearchParams({}, { replace: true })
       return
@@ -1605,6 +1630,7 @@ export default function ChatHubPage() {
       }
       didAutoSelectRef.current = true
       contextPrefillRef.current = { contactId: data.id, pending: true, propertyId }
+      contextContactIdRef.current = data.id
       setContacts((prev) => {
         if (prev.some((c) => c.id === data.id)) return prev
         return [{ ...data, last_message: null, last_message_at: null }, ...prev]
@@ -1672,9 +1698,17 @@ export default function ChatHubPage() {
                 title = propData?.title || ''
               } catch { /* non-blocking */ }
             }
-            const starter = title
-              ? `Halo, saya tertarik dengan properti "${title}" ini. Apakah masih tersedia?`
-              : 'Halo, saya tertarik dengan properti yang Anda tawarkan. Apakah masih tersedia?'
+            const propertyUrl = prefill.propertyId ? `https://hunione.com/property/${prefill.propertyId}` : ''
+            let starter
+            if (title && propertyUrl) {
+              starter = `Halo, saya tertarik dengan properti "${title}" ini: ${propertyUrl}. Apakah masih tersedia?`
+            } else if (title) {
+              starter = `Halo, saya tertarik dengan properti "${title}" ini. Apakah masih tersedia?`
+            } else if (propertyUrl) {
+              starter = `Halo, saya tertarik dengan properti yang Anda tawarkan ini: ${propertyUrl}. Apakah masih tersedia?`
+            } else {
+              starter = 'Halo, saya tertarik dengan properti yang Anda tawarkan. Apakah masih tersedia?'
+            }
             setDrafts((prev) => {
               const next = { ...prev }
               next[activeContactId] = starter
@@ -3918,9 +3952,12 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
               ) : (
               <>
               {/* Property context card */}
-              {contextProperty && showContextCard && (
-                <div className="shrink-0 px-4 py-3 border-b border-brand-border bg-brand-bg/60">
-                  <div className="flex items-center gap-3 rounded-xl border border-brand-border bg-brand-surface p-2.5 pr-1">
+              {contextProperty && showContextCard && contextContactIdRef.current === activeContactId && (
+                <div className="shrink-0 px-4 pt-3 pb-2 border-b border-brand-border bg-brand-bg/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-muted mb-1.5">
+                    Properti yang ditanyakan
+                  </p>
+                  <div className="flex items-center gap-2.5 rounded-xl border border-brand-border bg-brand-surface p-2.5 pr-2">
                     <Link
                       to={`/property/${contextProperty.id}`}
                       className="flex items-center gap-3 flex-1 min-w-0 group"
@@ -3943,6 +3980,13 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                           {contextProperty.address || [contextProperty.city].filter(Boolean).join(', ') || 'Lokasi tersedia'}
                         </p>
                       </div>
+                    </Link>
+                    <Link
+                      to={`/property/${contextProperty.id}`}
+                      className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-brand-accent/40 bg-brand-accent/5 px-3 py-2 text-xs font-bold text-brand-accent hover:bg-brand-accent/10 hover:border-brand-accent transition-colors"
+                    >
+                      Lihat Properti
+                      <ArrowRight size={13} />
                     </Link>
                     <button
                       type="button"

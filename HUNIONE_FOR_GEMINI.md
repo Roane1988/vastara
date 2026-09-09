@@ -2,6 +2,23 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Chat: Context Property Banner + Klikable Link Properti di Pesan & Starter Message (9 September 2026)
+- **Tujuan**: memperkuat konteks properti di chat — banner properti pin di header thread, tautan properti langsung klikable di gelembung pesan, dan starter message yang menyertakan URL properti.
+- **1. Context header banner properti (pinned)** (`ChatHubPage.jsx`, blok `Property context card`):
+  - Banner di **atas area pesan** (shrink-0, border-b, tetap tampil saat scroll = pinned) hanya muncul saat thread dibuka via **property deep-link** (`/chat?user=...&property=...`) dan hanya untuk kontak pemilik thread tsb — pakai ref baru **`contextContactIdRef`** (di-set di kedua cabang auto-select: kontak ditemukan / profil baru di-fetch) sebagai penjaga kabupaten thread, jadi banner tidak ikut tampil di thread lain saat user pindah kontak.
+  - Isi banner: label mini "**Properti yang ditanyakan**", thumbnail (`getImageSrc`), judul, harga (`formatPriceDisplay` / "Harga Hubungi"), lokasi, plus **CTA eksplisit "Lihat Properti"** (`ArrowRight`) → `Link to /property/:id` (selain area thumbnail/judul yang sudah menjadi link). Tetap bisa ditutup via tombol X (`setShowContextCard(false)`).
+- **2. Starter message kini menyertakan URL properti** (blok pre-fill `fetchMessages`):
+  - Draft otomatis menjadi: `Halo, saya tertarik dengan properti "<judul>" ini: https://hunione.com/property/<propertyId>. Apakah masih tersedia?`
+  - `propertyUrl` diambil dari `prefill.propertyId` yang tersimpan di `contextPrefillRef`; kombinasi kondisional tetap menangani kasus tanpa judul ataupun tanpa propertyId (fallback teks lama). Tidak dikirim otomatis — tetap pre-fill di composer.
+- **3. Link parsing di gelembung pesan** (`tokenizeMessage` + `MessageText`):
+  - **Token baru `property`**: regex mendeteksi (a) URL penuh `https://(www.)?hunione.com/property/<id>` dan (b) path relatif `/property/<id>` → dirender sebagai **`Link` react-router** menuju halaman properti (navigasi in-app, bukan new tab). Guard `\w` sebelum path menghindari salah-deteksi kata yang mengandung `/property/`.
+  - **Token `link` (URL eksternal)**: tetap `<a target="_blank" rel="noopener noreferrer">`.
+  - **Token `phone`**: tetap wa.me link.
+  - Styling link baru dipaksa sesuai requirement: **`text-blue-500 underline underline-offset-2 hover:text-blue-600 break-all`** (sebelumnya hanya underline transparan + hover opacity) untuk property link, URL eksternal, dan phone.
+  - `Link` (react-router) sudah diimpor (baris 2); ikon baru `ArrowRight` ditambah ke import lucide.
+- **Verifikasi**: lint bersih (`eslint`), build sukses (`vite`), dan tokenizer diverifikasi manual via `node` (starter message → token property; URL eksternal → link; `081234567890` → phone; `a/property/x` kata biasa → tetap teks).
+- Skope: `src/components/ChatHubPage.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Fix: Starter Message Selalu Pre-Fill saat Deep-Link Properti, Terlepas dari Riwayat Thread (9 September 2026)
 - **Latar belakang**: perubahan sebelumnya hanya mengisi composer pesan pembuka ketika thread chat masih **benar-benar kosong** (`loaded.length === 0`). Akibatnya, jika buyer sudah punya riwayat chat dengan penjual/agen, kolom input tetap kosong saat tiba dari CTA "Chat di HuniOne" — buyer harus mengetik manual dari nol.
 - **Perubahan** (`src/components/ChatHubPage.jsx`, blok `fetchMessages` di dalam effect `activeContactId`):
