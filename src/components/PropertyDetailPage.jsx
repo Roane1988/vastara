@@ -737,6 +737,10 @@ export default function PropertyDetailPage() {
       navigate('/login', { state: { from: window.location.pathname } })
       return
     }
+    if (property.seller_id === user.id) {
+      navigate('/chat')
+      return
+    }
     navigate(`/chat?user=${property.seller_id}&property=${property.id}`)
   }
 

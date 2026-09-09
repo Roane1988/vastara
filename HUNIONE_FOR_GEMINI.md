@@ -2,6 +2,23 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — CTA "Chat di HuniOne" Terhubung Langsung ke Thread Chat Penjual (9 September 2026)
+- **Tujuan**: klik **"Chat di HuniOne"** di halaman properti (`PropertyDetailPage.jsx`) tidak lagi membuka `/chat` secara generik — kini langsung membuka/membuat thread percakapan dengan pemilik/agen properti tersebut, lengkap dengan pesan pembuka kontekstual.
+- **Redirect tertarget** (`src/components/PropertyDetailPage.jsx`, `handleChatClick`):
+  - Meneruskan `seller_id` properti sebagai `?user=` dan `property.id` sebagai `?property=` (nama param `user`/`property` dipertahankan demi konsistensi dengan deep-link lain yang sudah ada: `AgentsPage.jsx`, `AgentDetailPage.jsx`, `SellerProfilePage.jsx`).
+  - **Guard self-chat**: jika `property.seller_id === user.id` (pemilik melihat propertinya sendiri) → `navigate('/chat')` tanpa auto-select, menghindari membuka percakapan dengan diri sendiri.
+  - Tetap redirect ke `/login` dengan `state.from` bila belum login.
+- **Auto-selection / auto-creation thread** (`src/components/ChatHubPage.jsx`, effect `openUserId`):
+  - Sudah ada & tetap berfungsi: `searchParams.get('user')` dibaca → jika kontak sudah ada di daftar = **auto-select**; jika belum (mis. pemilik baru tanpa riwayat pesan) = **fetch profil** ke tabel `profiles`, sisipkan ke daftar kontak, lalu buka thread-nya. Thread bersifat implisit per pasangan pengguna di `direct_messages` (sender/receiver) — "membuat thread" berarti membuka percakapan tersebut.
+- **Pesan pembuka kontekstual (pre-fill, baru)** (`ChatHubPage.jsx`):
+  - Ref baru **`contextPrefillRef`** ditandai saat auto-select yang berasal dari deep-link properti (tiap cabang: kontak ditemukan / profil baru di-fetch), membawa `contactId` + `propertyId` + `pending`.
+  - Saat `fetchMessages` menyelesaikan loading dan **thread ternyata kosong** (`loaded.length === 0`) untuk kontak tsb → **pre-fill composer** dengan draft `Halo, saya tertarik dengan properti "<judul properti>" ini. Apakah masih tersedia?` via state `drafts` (persisted ke localStorage per pengguna, key `hunione-chat-drafts-{userId}`).
+  - Judul diambil dari `contextProperty.title` (context card yang sudah di-load dari param `property`); fallback fetch `title` dari tabel `properties` bila belum sempat termuat.
+  - Guard: tidak menimpa draft yang sudah ada (`if (!next[activeContactId])`), tidak pre-fill bila thread sudah punya riwayat pesan, dan ref dibersihkan setelah dipakai.
+- **Catatan**: tidak perlu `sellerId`/`propertyId` sebagai nama param baru — persyaratan fungsionalnya (kirim `seller_id` & `property_id`, auto-select/auto-create, starter message kontekstual) sudah terpenuhi; param `user`/`property` dipakai agar tidak memecah deep-link lama.
+- **Verifikasi**: lint bersih (`eslint`) + build sukses (`vite`).
+- Skope: `src/components/PropertyDetailPage.jsx`, `src/components/ChatHubPage.jsx`, `HUNIONE_FOR_GEMINI.md`.
+
 ## Changelog — Sembunyikan "Penilaian Harga Wajar" (Fair Price Benchmark) Saat Fase MVP (9 September 2026)
 - **Alasan**: dataset properti internal masih terbatas di fase MVP. Benchmark harga per m² terhadap hanya sedikit properti pembanding menghasilkan statistik pasar yang miring (mis. deviasi median +97%) dan merusak kredibilitas AI.
 - **Solusi (feature flag / sample-size guard)** (`src/components/FairPriceAnalyzer.jsx`):

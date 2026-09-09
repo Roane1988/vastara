@@ -1545,6 +1545,7 @@ export default function ChatHubPage() {
 
   const didAutoSelectRef = useRef(false)
   const openUserFetchRef = useRef(false)
+  const contextPrefillRef = useRef(null)
   const handleSelectContact = useCallback((contactId) => {
     setActiveContactId(contactId)
     loadedContactRef.current = null
@@ -1581,6 +1582,7 @@ export default function ChatHubPage() {
     const found = contacts.some((c) => c.id === openUserId)
     if (found) {
       didAutoSelectRef.current = true
+      contextPrefillRef.current = { contactId: openUserId, pending: true, propertyId }
       handleSelectContact(openUserId)
       setSearchParams({}, { replace: true })
       return
@@ -1602,6 +1604,7 @@ export default function ChatHubPage() {
         return
       }
       didAutoSelectRef.current = true
+      contextPrefillRef.current = { contactId: data.id, pending: true, propertyId }
       setContacts((prev) => {
         if (prev.some((c) => c.id === data.id)) return prev
         return [{ ...data, last_message: null, last_message_at: null }, ...prev]
@@ -1610,7 +1613,7 @@ export default function ChatHubPage() {
       setSearchParams({}, { replace: true })
     })()
     return () => { cancelled = true }
-  }, [openUserId, contacts, setSearchParams, handleSelectContact])
+  }, [openUserId, contacts, setSearchParams, handleSelectContact, propertyId])
 
   useEffect(() => {
     const cleanupRoom = activeContactId && userId ? [userId, activeContactId].sort().join('-') : null
@@ -1654,6 +1657,30 @@ export default function ChatHubPage() {
           fetchReactionsFor(loaded.map((m) => m.id), [userId, activeContactId].sort().join('-'))
           // Paksa scroll ke pesan terbaru setelah data kontak selesai dimuat
           scrollToLatest()
+
+          const prefill = contextPrefillRef.current
+          if (loaded.length === 0 && prefill && prefill.pending && prefill.contactId === activeContactId) {
+            contextPrefillRef.current = null
+            let title = contextProperty?.title || ''
+            if (!title && prefill.propertyId) {
+              try {
+                const { data: propData } = await supabase
+                  .from('properties')
+                  .select('title')
+                  .eq('id', prefill.propertyId)
+                  .maybeSingle()
+                title = propData?.title || ''
+              } catch { /* non-blocking */ }
+            }
+            const starter = title
+              ? `Halo, saya tertarik dengan properti "${title}" ini. Apakah masih tersedia?`
+              : 'Halo, saya tertarik dengan properti yang Anda tawarkan. Apakah masih tersedia?'
+            setDrafts((prev) => {
+              const next = { ...prev }
+              if (!next[activeContactId]) next[activeContactId] = starter
+              return next
+            })
+          }
         }
       } catch (err) {
         if (!messagesCancelledRef.current) {
