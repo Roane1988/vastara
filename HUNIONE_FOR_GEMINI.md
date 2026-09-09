@@ -83,6 +83,13 @@ Kirim teks/gambar/properti/PDF-dokumen/**pesan suara** (voice note ala WhatsApp:
 - **(4) Retry otomatis tetap**: saat error retryable, `scheduleMicRetry` tetap memicu satu percobaan ulang ~1,5s lalu `startRecording()` yang juga melakukan reset state error — memberi layar kedua bagi `getUserMedia` untuk berhasil tanpa user harus menutup banner manual.
 - Skope hanya `ChatHubPage.jsx`. Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `0029718`.
 
+## Changelog — Deploy: Buka Izin Mikrofon via Permissions-Policy Header (9 September 2026)
+- **Tujuan**: memperbaiki voice note (mikrofon) gagal di production Vercel dengan error konsol `[Violation] Permissions policy violation: microphone is not allowed in this document.` Masalahnya bukan di `getUserMedia` melainkan **header HTTP** yang memblokir mikrofon di level dokumen.
+- **(1) `vercel.json` line 14 — `Permissions-Policy`**: nilai `microphone=()` (yang **memblokir total**) diubah menjadi `microphone=(self)` sehingga origin aplikasi sendiri (`hunione.com`) diizinkan memakai mikrofon. Camera/geolocation tetap diblokir.
+- **(2) CSP `media-src` ditambahkan**: `media-src 'self' data: blob: https://*.supabase.co` — tanpanya, `media-src` jatuh ke `default-src 'self'`, yang **memblokir pemutaran** voice note yang di-host di Supabase Storage (`*.supabase.co`) dan audio dari `blob:`. Menjaga fitur voice note berfungsi end-to-end.
+- **Catatan**: perubahan header hanya berlaku di production Vercel (setelah redeploy); dev/localhost via Vite tidak menerapkan header ini, jadi tes mikrofon final harus di `hunione.com`.
+- Hanya mengubah `vercel.json` (valid JSON). Tanpa migration/DB. Lint bersih (`eslint`) + build sukses (`vite`). Commit: `8414b22`.
+
 ## Changelog — Chat: Bypass Total Pengecekan Permission Mikrofon (9 September 2026)
 - **Tujuan**: menghilangkan filter izin yang *rewel* dan sering *false-positive* (mis. user sudah memilih "Allow on every visit" tapi tetap dianggap diblokir). Sekarang aplikasi **langsung mencoba merekam** dan hanya menampilkan error bila `getUserMedia` **benar-benar** ditolak sistem.
 - **(1) `navigator.permissions.query` dihapus total**: helper `checkMicPermission()` beserta semua pemanggilan `navigator.permissions.query({ name: 'microphone' })` dihapus dari `ChatHubPage.jsx` (tidak ada lagi referensi). Aplikasi tidak lagi memakai status permission untuk men-judge diblokir/tidak.
