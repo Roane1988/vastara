@@ -2,6 +2,16 @@
 
 Platform properti (jual/beli/sewa) dengan AI chatbot, realtime chat (read receipt), forum komunitas, bandingkan properti, **direktori agen publik**, pendaftaran agen, **dukungan properti sewa penuh**, **lapor iklan**, admin dashboard, **role switcher multi-mode**. Deploy di Vercel (SPA + serverless) — domain **hunione.com**. Pembaruan terakhir: 9 September 2026.
 
+## Changelog — Sinkronisasi Profil Keuangan ↔ Buyer Dashboard (9 September 2026)
+- **Bug fix**: Setelah user menyimpan profil keuangan di modal, Buyer Dashboard tetap menampilkan "Belum diisi" hingga hard reload — sekarang sudah sinkron.
+- **Root cause**: `FinancialProfileForm` sudah meng-dispatch event `window` (`financial-profile-saved`) setelah save berhasil (`FinancialProfileForm.jsx:166`), namun `DashboardPage` tidak memiliki listener untuk event tersebut.
+- **Fix** (`DashboardPage.jsx`):
+  - Tambah `useEffect` yang mendengarkan event `financial-profile-saved` — saat event diterima, panggil `getFinancialProfile()` dan update `setFinancialProfile(profile)`.
+  - Listener di-mount sekali, cleanup otomatis saat unmount, tanpa dependencies tambahan.
+  - Buyer Dashboard card sekarang langsung berubah dari "Belum diisi" ke data budget/income aktif tanpa perlu reload halaman.
+- **Tidak ada perubahan**: `FinancialProfileForm.jsx` sudah benar (event dispatch ada di `handleSave` setelah save success). Tidak ada perubahan ke RLS atau schema database — fix murni level UI.
+- Skope: `DashboardPage.jsx`. Build sukses (`vite`).
+
 ## Changelog — Role Switcher: Multi-Mode UI (Buyer/Owner/Agent) (9 September 2026)
 - **Fitur baru**: user bisa beralih konteks UI antara **Mode Pembeli** (menjelajahi properti), **Mode Pemilik** (mengelola iklan sendiri), dan **Mode Agen** (mengelola portofolio klien) — mirip Tokopedia merchant/buyer toggle.
 - **State & Persistence** (`AuthContext.jsx`):

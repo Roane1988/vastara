@@ -261,6 +261,15 @@ export default function DashboardPage() {
     return () => { cancelled = true }
   }, [user, loadSellerData, loadBuyerData])
 
+  useEffect(() => {
+    const onFinancialProfileSaved = async () => {
+      const { profile } = await getFinancialProfile()
+      if (profile) setFinancialProfile(profile)
+    }
+    window.addEventListener('financial-profile-saved', onFinancialProfileSaved)
+    return () => window.removeEventListener('financial-profile-saved', onFinancialProfileSaved)
+  }, [])
+
   const openSellModal = (p) => {
     setSellTarget(p)
     setSoldSource('external')
