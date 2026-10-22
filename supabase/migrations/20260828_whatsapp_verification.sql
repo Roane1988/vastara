@@ -59,7 +59,12 @@ $$;
 
 -- ----------------------------------------------------------------------------
 -- 4. RPC get_my_profile — kembalikan juga whatsapp_verified
+--    Catatan: `create or replace` TIDAK bisa mengubah tipe return / kolom OUT.
+--    Versi sebelumnya (20260808) hanya punya (email, whatsapp), jadi fungsi
+--    lama harus di-drop dulu sebelum dibuat ulang dengan kolom baru.
 -- ----------------------------------------------------------------------------
+drop function if exists public.get_my_profile();
+
 create or replace function public.get_my_profile()
 returns table (email text, whatsapp text, whatsapp_verified boolean)
 language sql

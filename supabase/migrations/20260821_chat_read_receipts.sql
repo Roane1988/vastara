@@ -15,6 +15,9 @@ exception when duplicate_object then null;
 end $$;
 
 do $$ begin
-  alter publication supabase_realtime add table public.direct_messages;
+  -- Publication supabase_realtime hanya ada di project Supabase; lewati bila tidak ada.
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    alter publication supabase_realtime add table public.direct_messages;
+  end if;
 exception when duplicate_object then null;
 end $$;

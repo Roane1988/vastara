@@ -26,6 +26,7 @@ create index if not exists message_reactions_message_idx
 alter table public.message_reactions enable row level security;
 
 -- Baca reaksi: hanya user yang terlibat dalam direct_message terkait yang boleh membaca.
+drop policy if exists "Reactions: read participants" on public.message_reactions;
 create policy "Reactions: read participants"
   on public.message_reactions for select
   using (
@@ -36,19 +37,23 @@ create policy "Reactions: read participants"
     )
   );
 
--- Tambah reaksi: siapa pun yang login boleh memberi reaksi (pembatas id unik di atas).
-create policy "Reactions: insert own"
-  on public.message_reactions for insert
-  with check (auth.uid() = user_id);
+-- Tambah reaksi: policy INSERT (party restricted) dibuat oleh migration lanjutan
+-- 20260831_chat_reactions_rls_participant.sql supaya hanya partisipan percakapan
+-- yang bisa memberi reaksi. Sengaja TIDAK didefinisikan di sini agar policy
+-- lemah "Reactions: insert own" tidak pernah dibuat / dihidupkan ulang.
 
 -- Hapus reaksi: hanya pemilik reaksi itu.
+drop policy if exists "Reactions: delete own" on public.message_reactions;
 create policy "Reactions: delete own"
   on public.message_reactions for delete
   using (auth.uid() = user_id);
 
 -- Ekspos realtime perubahan reaksi (client filter sisi sendiri).
 do $$ begin
-  alter publication supabase_realtime add table public.message_reactions;
+  -- Publication supabase_realtime hanya ada di project Supabase; lewati bila tidak ada.
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    alter publication supabase_realtime add table public.message_reactions;
+  end if;
 exception when duplicate_object then null;
 end $$;
 
@@ -71,19 +76,23 @@ create table if not exists public.user_contact_settings (
 
 alter table public.user_contact_settings enable row level security;
 
+drop policy if exists "Contact settings: own select" on public.user_contact_settings;
 create policy "Contact settings: own select"
   on public.user_contact_settings for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Contact settings: own upsert" on public.user_contact_settings;
 create policy "Contact settings: own upsert"
   on public.user_contact_settings for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Contact settings: own update" on public.user_contact_settings;
 create policy "Contact settings: own update"
   on public.user_contact_settings for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "Contact settings: own delete" on public.user_contact_settings;
 create policy "Contact settings: own delete"
   on public.user_contact_settings for delete
   using (auth.uid() = user_id);

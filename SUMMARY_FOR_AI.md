@@ -412,6 +412,19 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - Public URL via `getPublicUrl()`.
 - Perlu RLS policy untuk INSERT (authenticated) + SELECT (public) agar bisa upload & tampilkan gambar.
 
+### Migrations (`supabase/migrations/`) — 60 file, replay-safe
+- **Base schema**: `20260726_base_schema.sql` (BARU) membuat 4 tabel inti dengan **kolom original saja**:
+  `profiles`, `properties`, `forum_posts`, `forum_replies`. Semula tabel ini hanya dibuat manual di dashboard Supabase, jadi riwayat migration tidak bisa di-replay di DB kosong. RLS diaktifkan di base; **policy**-nya tetap dibuat oleh `20260730_profiles_rls_policies.sql`, `20260730_properties_rls_policies.sql`, `20260810_forum_rls_and_handle_new_user.sql`.
+- Kolom yang ditambahkan migration lain **TIDAK** ikut di base schema (biar tiap migration tetap menjalankan perannya). Lihat komentar header base schema untuk pemetaannya.
+- Index base schema memakai nama baru (tidak bentrok dengan 29 index lain): `profiles_role_idx`, `properties_seller_id_idx`, `properties_status_idx`, `forum_posts_author_id_idx`, `forum_posts_created_at_idx`, `forum_replies_post_id_idx`, `forum_replies_author_id_idx`.
+- **Bug yang sudah diperbaiki** (2026-10-22):
+  1. `20260828_whatsapp_verification.sql` — `create or replace function get_my_profile()` gagal dengan *"cannot change return type of existing function"* karena versi lama (20260808) punya kolom OUT berbeda. Fix: `drop function if exists public.get_my_profile();` sebelum `create or replace`.
+  2. `20260831_whatsapp_chat_features.sql` **di-rename** → `20260831_chat_features_whatsapp.sql` karena `message_reactions` harus dibuat **sebelum** `20260831_chat_reactions_rls_participant.sql` (urutan file = urutan apply). Policy INSERT lemah "Reactions: insert own" dihapus dari file features; policy final dibuat oleh file RLS (party-restricted).
+  3. `alter publication supabase_realtime add table ...` di 3 file dibungkus cek `pg_publication` (publication hanya ada di project Supabase; error sebelumnya = *"publication supabase_realtime does not exist"*).
+  4. `supabase/seed_properties.sql` — 2 baris memakai `property_type = 'Kost'` yang **tidak valid** (constraint hanya menerima Rumah/Apartemen/Villa/Tanah/Kantor/Ruko) → seed gagal. Sudah diganti ke `Apartemen`.
+- **Repair production**: `20261022_repair_production_state.sql` (idempotent) — jalankan file ini di Supabase SQL Editor untuk menyamakan DB production dengan hasil replay: pastikan `get_my_profile()` mengembalikan 3 kolom, `profiles.whatsapp_verified` & `last_seen_at` ada, tabel + policy `message_reactions` benar (policy INSERT party-restricted), dan `user_contact_settings` lengkap.
+- **Cara validasi**: replay semua migration di atas PostgreSQL lokal dengan bootstrap stub (`auth.users`, `auth.uid()`, `storage.*`, roles `anon`/`authenticated`/`service_role`) → hasil saat ini **60/60 ok, 0 failure**.
+
 ---
 
 ## Catatan Penting untuk AI

@@ -17,6 +17,9 @@
 drop policy if exists "Reactions: insert own"
   on public.message_reactions;
 
+drop policy if exists "Reactions: insert own participant only"
+  on public.message_reactions;
+
 create policy "Reactions: insert own participant only"
   on public.message_reactions for insert
   with check (

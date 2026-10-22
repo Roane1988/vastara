@@ -42,6 +42,9 @@ end $$;
 -- Realtime: izinkan channel Notifikasi masuk untuk baris site_visits
 -- ----------------------------------------------------------------------------
 do $$ begin
-  alter publication supabase_realtime add table public.site_visits;
+  -- Publication supabase_realtime hanya ada di project Supabase; lewati bila tidak ada.
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    alter publication supabase_realtime add table public.site_visits;
+  end if;
 exception when duplicate_object then null;
 end $$;
