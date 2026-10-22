@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { setSupabase, initFavorites } from '../utils/favorites'
 import { resetScrollLock } from '../utils/scrollLock'
+import { clearSignedUrlCache } from '../utils/signedUrl'
 import Toast from '../components/Toast'
 
 const AuthContext = createContext(null)
@@ -55,6 +56,7 @@ export function AuthProvider({ children }) {
   const [activeRole, setActiveRoleState] = useState(() => readStoredRole(null))
   const [ownerListingCount, setOwnerListingCount] = useState(0)
   const [listingOnboarded, setListingOnboarded] = useState(() => readOnboarding(null))
+  const activeUserIdRef = useRef(null)
 
   const showToast = useCallback((message, type = 'error', action = null) => {
     setToast({ message, type, action })
@@ -115,6 +117,7 @@ export function AuthProvider({ children }) {
       /* sign-out failure is non-critical */
     }
     resetScrollLock()
+    clearSignedUrlCache()
     persistRole(user?.id, null)
     setSession(null)
     setUser(null)
@@ -177,6 +180,12 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) return
+      // Signed URL terikat pada sesi pengguna: cache dibersihkan setiap kali
+      // akun yang aktif berubah supaya tidak ada lampiran yang "bocor" antar
+      // akun di browser yang sama.
+      const nextUserId = session?.user?.id ?? null
+      if (activeUserIdRef.current && activeUserIdRef.current !== nextUserId) clearSignedUrlCache()
+      activeUserIdRef.current = nextUserId
       setSession(session)
       setUser(session?.user ?? null)
       fetchRole(session?.user?.id)

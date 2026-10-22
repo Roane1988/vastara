@@ -7,11 +7,13 @@ import { getAvatarColor, getInitials } from '../utils/avatar'
 import { timeAgo } from '../utils/time'
 import { getImageSrc } from '../utils/images'
 import { formatPriceDisplay } from '../utils/format'
-import { Mic, Send, Play, Pause, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File, Smile, ArrowRight } from 'lucide-react'
+import { Mic, Send, Play, Pause, ArrowLeft, MessageCircle, Search, Trash2, Plus, X, Loader2, ImagePlus, ImageOff, Building2, CornerUpLeft, ChevronDown, ChevronUp, Paperclip, Pin, PinOff, Download, MoreHorizontal, Copy, CheckCheck, Bot, Star, Volume2, UploadCloud, AlertTriangle, RefreshCw, Bell, FileText, FileSpreadsheet, FileArchive, File, Smile, ArrowRight } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 import HuniBotRoom from './HuniBotRoom'
 import { compressImage } from '../utils/imageCompression'
 import { recompressVoiceBlob, extractWaveformPeaks } from '../utils/audioCompression'
+import { CHAT_BUCKET, basenameFromPath, resolveMessageFile, resolveMessageImage } from '../utils/chatStorage'
+import { requestSignedUrl, useSignedUrl } from '../utils/signedUrl'
 import VoiceWaveform from './VoiceWaveform'
 
 const HUNIBOT_ID = 'hunibot'
@@ -154,6 +156,12 @@ function getDownloadFileName(url) {
   return 'gambar-hunione.jpg'
 }
 
+function revokeObjectUrl(url) {
+  if (!url || typeof url !== 'string') return
+  if (!url.startsWith('blob:')) return
+  try { URL.revokeObjectURL(url) } catch { /* noop */ }
+}
+
 function formatFileSize(bytes) {
   if (!bytes || bytes <= 0) return ''
   if (bytes < 1024) return `${bytes} B`
@@ -224,12 +232,16 @@ const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ message, isOwn }) 
   const [peaks, setPeaks] = useState(null)
   const audioRef = useRef(null)
 
+  const fileRef = resolveMessageFile(message)
+  const { url: signedUrl } = useSignedUrl(fileRef?.bucket, fileRef?.path)
+
   useEffect(() => {
     let cancelled = false
     let ctx = null
+    if (!signedUrl) return undefined
     ;(async () => {
       try {
-        const res = await fetch(message.file_url)
+        const res = await fetch(signedUrl)
         if (!res.ok) return
         const blob = await res.blob()
         const Ctx = window.AudioContext || window.webkitAudioContext
@@ -249,7 +261,20 @@ const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ message, isOwn }) 
       cancelled = true
       if (ctx) { try { ctx.close() } catch { /* non-critical */ } }
     }
-  }, [message.file_url])
+  }, [signedUrl])
+
+  useEffect(() => {
+    const a = audioRef.current
+    if (!a || !signedUrl) return
+    if (a.getAttribute('src') === signedUrl) return
+    try {
+      a.pause()
+      a.src = signedUrl
+      a.load()
+    } catch {
+      /* non-critical */
+    }
+  }, [signedUrl])
 
   useEffect(() => () => {
     const a = audioRef.current
@@ -268,7 +293,7 @@ const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ message, isOwn }) 
     if (!audioRef.current) {
       const a = new Audio()
       a.preload = 'metadata'
-      a.src = message.file_url
+      a.src = signedUrl || ''
       audioRef.current = a
       a.addEventListener('loadedmetadata', () => {
         setDuration(Number.isFinite(a.duration) ? a.duration : 0)
@@ -283,6 +308,7 @@ const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ message, isOwn }) 
   }
 
   const togglePlay = async () => {
+    if (!signedUrl) return
     const a = ensureAudio()
     if (isPlaying) {
       a.pause()
@@ -370,18 +396,25 @@ const TypingDots = memo(function TypingDots({ color }) {
 })
 
 function ReplySnippet({ message, className }) {
+  const imageRef = resolveMessageImage(message)
+  const { url: imageUrl } = useSignedUrl(imageRef?.bucket, imageRef?.path)
+
   if (!message || message.deleted_at) {
     return <p className={className}>Pesan ini telah dihapus</p>
   }
-  if (message.image_url) {
+  if (message.image_url || imageRef) {
     return (
       <span className={`flex items-center gap-1.5 min-w-0 ${className || ''}`}>
-        <img
-          src={message.image_url}
-          alt=""
-          className="w-5 h-5 rounded object-cover shrink-0"
-          onError={(e) => { e.currentTarget.style.display = 'none' }}
-        />
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt=""
+            className="w-5 h-5 rounded object-cover shrink-0"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+          />
+        ) : (
+          <ImageOff size={12} className="shrink-0" />
+        )}
         {message.content ? (
           <span className="min-w-0 truncate">{message.content}</span>
         ) : (
@@ -603,6 +636,10 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
 
   useEffect(() => () => { if (popTimeoutRef.current) clearTimeout(popTimeoutRef.current) }, [])
 
+  const imageRef = message.localPreview ? null : resolveMessageImage(message)
+  const { url: signedImageUrl, status: imageStatus } = useSignedUrl(imageRef?.bucket, imageRef?.path)
+  const previewUrl = message.localPreview || signedImageUrl
+
   const fireDoubleTapReaction = (e) => {
     if (!onReact) return
     if (e && e.target?.closest && e.target.closest('button, a, img, input, textarea')) return
@@ -745,13 +782,34 @@ const MessageBubble = memo(function MessageBubble({ message, isOwn, onDelete, on
                 <PropertyMessage propertyId={message.property_id} />
               </ChatErrorBoundary>
             )}
-            {message.image_url && (
+            {(imageRef || message.localPreview) && previewUrl && (
               <img
-                src={message.image_url}
+                src={previewUrl}
                 alt="Lampiran"
-                onClick={() => onImageClick?.(message.image_url)}
+                onClick={() => onImageClick?.(message, previewUrl)}
                 className="mt-1 w-full h-auto max-h-72 object-cover rounded-xl cursor-pointer"
               />
+            )}
+            {(imageRef || message.localPreview) && !previewUrl && (
+              <div
+                className="mt-1 flex items-center gap-2 rounded-xl border px-3 py-4 text-xs"
+                style={{
+                  borderColor: isOwn ? 'rgba(255,255,255,0.22)' : 'var(--color-brand-border)',
+                  color: isOwn ? 'rgba(255,255,255,0.85)' : 'var(--color-brand-muted)',
+                }}
+              >
+                {imageStatus === 'error' ? (
+                  <>
+                    <ImageOff size={14} className="shrink-0" />
+                    Lampiran tidak dapat dimuat
+                  </>
+                ) : (
+                  <>
+                    <Loader2 size={14} className="animate-spin shrink-0" />
+                    Memuat lampiran…
+                  </>
+                )}
+              </div>
             )}
             {(message.file_url && (message.file_type || '').toLowerCase().startsWith('audio/')) && (
               <VoiceMessagePlayer message={message} isOwn={isOwn} />
@@ -2300,16 +2358,35 @@ export default function ChatHubPage() {
     }
   }
 
+  // Insert pesan dengan kolom path baru. Bila migrasi DB belum dijalankan
+  // (kolom image_path/file_path/file_bucket belum ada), insert diulang tanpa
+  // kolom tersebut supaya chat tetap berfungsi saat deploy berurutan.
+  async function insertMessage(payload) {
+    const first = await supabase.from('direct_messages').insert(payload).select()
+    const error = first.error
+    if (!error) return first
+
+    const message = error.message || ''
+    const missingColumn = error.code === '42703' || /column .* does not exist/i.test(message)
+    if (!missingColumn) return first
+
+    const legacy = { ...payload }
+    delete legacy.image_path
+    delete legacy.file_path
+    delete legacy.file_bucket
+    return supabase.from('direct_messages').insert(legacy).select()
+  }
+
   async function uploadChatImage(file) {
     const compressed = await compressImage(file)
     const safeName = (file.name || 'image').replace(/[^a-zA-Z0-9._-]/g, '_')
     const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`
     const { error: uploadErr } = await supabase.storage
-      .from('CHAT_IMAGES')
+      .from(CHAT_BUCKET.image)
       .upload(fileName, compressed, { contentType: compressed.type || file.type, upsert: false })
     if (uploadErr) throw new Error(uploadErr.message)
-    const { data: { publicUrl } } = supabase.storage.from('CHAT_IMAGES').getPublicUrl(fileName)
-    return publicUrl
+    const { data: { publicUrl } } = supabase.storage.from(CHAT_BUCKET.image).getPublicUrl(fileName)
+    return { path: fileName, url: publicUrl }
   }
 
   function openImagePicker() {
@@ -2610,13 +2687,13 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     if (!selectedImage || downloading) return
     setDownloading(true)
     try {
-      const res = await fetch(selectedImage)
+      const res = await fetch(selectedImage.url)
       if (!res.ok) throw new Error('Gagal mengambil gambar')
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = getDownloadFileName(selectedImage)
+      a.download = selectedImage.name || getDownloadFileName(selectedImage.url)
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -2697,10 +2774,10 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     setSending(true)
     setImageUploading(true)
 
-    let imageUrl = null
+    let imageUpload = null
     if (pendingImage) {
       try {
-        imageUrl = await uploadChatImage(pendingImage)
+        imageUpload = await uploadChatImage(pendingImage)
       } catch (err) {
         showToast('Gagal mengunggah gambar: ' + (err.message || 'coba lagi'), 'error')
         setSending(false)
@@ -2709,6 +2786,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       }
     }
 
+    const localPreview = pendingImage ? URL.createObjectURL(pendingImage) : null
     const optimisticMsg = {
       id: `temp-${Date.now()}`,
       sender_id: userId,
@@ -2717,7 +2795,9 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       created_at: new Date().toISOString(),
       read_at: null,
       reply_to_id: replyTo?.id || null,
-      image_url: imageUrl,
+      image_url: imageUpload?.url || null,
+      image_path: imageUpload?.path || null,
+      localPreview,
       property_id: shareProperty?.id || null,
     }
     setMessages(prev => [...prev, optimisticMsg])
@@ -2738,21 +2818,24 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     inputRef.current?.focus()
 
     try {
-      const { data, error } = await supabase.from('direct_messages').insert({
+      const { data, error } = await insertMessage({
         sender_id: userId,
         receiver_id: activeContactId,
         content: text,
         reply_to_id: optimisticMsg.reply_to_id,
         image_url: optimisticMsg.image_url,
+        image_path: optimisticMsg.image_path,
         property_id: optimisticMsg.property_id,
-      }).select()
+      })
 
       if (!sendMountedRef.current) return
 
       if (error) {
         showToast(error.message, 'error')
+        revokeObjectUrl(localPreview)
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       } else if (data?.[0]) {
+        revokeObjectUrl(localPreview)
         setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
         scrollToLatest()
         notifyChatRead()
@@ -2760,6 +2843,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     } catch (err) {
       if (sendMountedRef.current) {
         showToast(err.message || 'Gagal mengirim pesan', 'error')
+        revokeObjectUrl(localPreview)
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       }
     } finally {
@@ -2779,9 +2863,9 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     setSending(true)
     setImageUploading(true)
 
-    let imageUrl
+    let imageUpload
     try {
-      imageUrl = await uploadChatImage(pendingImage)
+      imageUpload = await uploadChatImage(pendingImage)
     } catch (err) {
       showToast('Gagal mengunggah gambar: ' + (err.message || 'coba lagi'), 'error')
       setSending(false)
@@ -2790,6 +2874,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
 
     const text = caption.trim()
+    const localPreview = URL.createObjectURL(pendingImage)
     const optimisticMsg = {
       id: `temp-${Date.now()}`,
       sender_id: userId,
@@ -2798,7 +2883,9 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       created_at: new Date().toISOString(),
       read_at: null,
       reply_to_id: replyTo?.id || null,
-      image_url: imageUrl,
+      image_url: imageUpload.url,
+      image_path: imageUpload.path,
+      localPreview,
       property_id: null,
     }
     setMessages(prev => [...prev, optimisticMsg])
@@ -2808,20 +2895,23 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     inputRef.current?.focus()
 
     try {
-      const { data, error } = await supabase.from('direct_messages').insert({
+      const { data, error } = await insertMessage({
         sender_id: userId,
         receiver_id: activeContactId,
         content: text,
         reply_to_id: optimisticMsg.reply_to_id,
         image_url: optimisticMsg.image_url,
-      }).select()
+        image_path: optimisticMsg.image_path,
+      })
 
       if (!sendMountedRef.current) return
 
       if (error) {
         showToast(error.message, 'error')
+        revokeObjectUrl(localPreview)
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       } else if (data?.[0]) {
+        revokeObjectUrl(localPreview)
         setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
         scrollToLatest()
         notifyChatRead()
@@ -2829,6 +2919,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     } catch (err) {
       if (sendMountedRef.current) {
         showToast(err.message || 'Gagal mengirim pesan', 'error')
+        revokeObjectUrl(localPreview)
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id))
       }
     } finally {
@@ -2916,11 +3007,12 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       for (const sf of files) {
         let uploaded
         if (sf.type === 'image') {
-          const publicUrl = await uploadChatImage(sf.file)
-          uploaded = { url: publicUrl, name: sf.file.name, size: sf.file.size, type: sf.file.type || 'image/*' }
+          const result = await uploadChatImage(sf.file)
+          uploaded = { ...result, name: sf.file.name, size: sf.file.size, type: sf.file.type || 'image/*' }
         } else {
           uploaded = await uploadChatFile(sf.file)
         }
+        const localPreview = sf.type === 'image' ? URL.createObjectURL(sf.file) : null
         const optimisticMsg = {
           id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           sender_id: userId,
@@ -2930,32 +3022,41 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
           read_at: null,
           reply_to_id: replyTo?.id || null,
           image_url: sf.type === 'image' ? uploaded.url : null,
+          image_path: sf.type === 'image' ? uploaded.path : null,
           file_url: sf.type === 'image' ? null : uploaded.url,
+          file_path: sf.type === 'image' ? null : uploaded.path,
+          file_bucket: sf.type === 'image' ? null : CHAT_BUCKET.file,
           file_name: sf.type === 'image' ? null : uploaded.name,
           file_size: sf.type === 'image' ? null : uploaded.size,
           file_type: sf.type === 'image' ? null : uploaded.type,
+          localPreview,
           property_id: null,
           stagedCaption: captionText,
         }
         setMessages((prev) => [...prev, optimisticMsg])
         scrollToLatest()
 
-        const { data, error } = await supabase.from('direct_messages').insert({
+        const { data, error } = await insertMessage({
           sender_id: userId,
           receiver_id: activeContactId,
           content: captionText,
           reply_to_id: optimisticMsg.reply_to_id,
           image_url: optimisticMsg.image_url,
+          image_path: optimisticMsg.image_path,
           file_url: optimisticMsg.file_url,
+          file_path: optimisticMsg.file_path,
+          file_bucket: optimisticMsg.file_bucket,
           file_name: optimisticMsg.file_name,
           file_size: optimisticMsg.file_size,
           file_type: optimisticMsg.file_type,
-        }).select()
+        })
         if (!sendMountedRef.current) return
         if (error) {
           showToast(error.message, 'error')
+          revokeObjectUrl(localPreview)
           setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id))
         } else if (data?.[0]) {
+          revokeObjectUrl(localPreview)
           setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data[0] : m))
           scrollToLatest()
           notifyChatRead()
@@ -2983,11 +3084,11 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     const safeName = (file.name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_')
     const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`
     const { error: uploadErr } = await supabase.storage
-      .from('CHAT_FILES')
+      .from(CHAT_BUCKET.file)
       .upload(fileName, file, { contentType: file.type || 'application/octet-stream', upsert: false })
     if (uploadErr) throw new Error(uploadErr.message)
-    const { data: { publicUrl } } = supabase.storage.from('CHAT_FILES').getPublicUrl(fileName)
-    return { url: publicUrl, name: file.name, size: file.size, type: file.type || '' }
+    const { data: { publicUrl } } = supabase.storage.from(CHAT_BUCKET.file).getPublicUrl(fileName)
+    return { path: fileName, url: publicUrl, name: file.name, size: file.size, type: file.type || '' }
   }
 
   function forceStopMediaStream(stream) {
@@ -3273,10 +3374,10 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     let publicUrl
     try {
       const { error: uploadErr } = await supabase.storage
-        .from('CHAT_VOICE')
+        .from(CHAT_BUCKET.voice)
         .upload(fileName, uploadBlob, { contentType: uploadMime, upsert: false })
       if (uploadErr) throw new Error(uploadErr.message)
-      publicUrl = supabase.storage.from('CHAT_VOICE').getPublicUrl(fileName).data.publicUrl
+      publicUrl = supabase.storage.from(CHAT_BUCKET.voice).getPublicUrl(fileName).data.publicUrl
     } catch (err) {
       forceStopMediaStream(mediaStreamRef.current)
       mediaStreamRef.current = null
@@ -3295,6 +3396,8 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
       read_at: null,
       reply_to_id: replyTo?.id || null,
       file_url: publicUrl,
+      file_path: fileName,
+      file_bucket: CHAT_BUCKET.voice,
       file_name: 'Pesan suara',
       file_size: uploadBlob.size,
       file_type: uploadMime,
@@ -3311,16 +3414,18 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     })
 
     try {
-      const { data, error } = await supabase.from('direct_messages').insert({
+      const { data, error } = await insertMessage({
         sender_id: userId,
         receiver_id: activeContactId,
         content: '',
         reply_to_id: replyTo?.id || null,
         file_url: publicUrl,
+        file_path: fileName,
+        file_bucket: CHAT_BUCKET.voice,
         file_name: 'Pesan suara',
         file_size: uploadBlob.size,
         file_type: uploadMime,
-      }).select()
+      })
 
       if (!sendMountedRef.current) return
 
@@ -3553,10 +3658,45 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
     }
   }
 
-  const handleOpenFile = useCallback((message) => {
-    if (!message?.file_url) return
-    window.open(message.file_url, '_blank', 'noopener,noreferrer')
-  }, [])
+  const handleImageClick = useCallback(async (message, resolvedUrl) => {
+    const ref = resolveMessageImage(message)
+    const fallbackName = basenameFromPath(ref?.path || message?.image_path) || 'gambar-hunione.jpg'
+
+    if (resolvedUrl) {
+      setSelectedImage({ url: resolvedUrl, name: fallbackName })
+      return
+    }
+
+    if (!ref) {
+      if (message?.image_url) setSelectedImage({ url: message.image_url, name: fallbackName })
+      return
+    }
+
+    try {
+      const url = await requestSignedUrl(ref.bucket, ref.path)
+      setSelectedImage({ url, name: fallbackName })
+    } catch (err) {
+      showToast('Gagal memuat gambar: ' + (err?.message || 'coba lagi'), 'error')
+    }
+  }, [showToast])
+
+  const handleOpenFile = useCallback(async (message) => {
+    const ref = resolveMessageFile(message)
+    if (!ref) {
+      if (message?.file_url) window.open(message.file_url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    // Buka jendela lebih dulu (sinkron) supaya tidak diblokir popup blocker.
+    const win = window.open('', '_blank')
+    try {
+      const url = await requestSignedUrl(ref.bucket, ref.path)
+      if (win) win.location.href = url
+      else window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      if (win) win.close()
+      showToast('Gagal membuka lampiran: ' + (err?.message || 'coba lagi'), 'error')
+    }
+  }, [showToast])
 
   function handleInputChange(e) {
     const val = e.target.value
@@ -4151,7 +4291,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
                               highlight={chatSearchQ}
                               onPin={handleTogglePin}
                               isPinned={!!pinnedMessages[[userId, activeContactId].sort().join('-')]?.[msg.id]}
-                              onImageClick={setSelectedImage}
+                              onImageClick={handleImageClick}
                               isSearchActive={msg.id === searchMatches[currentSearchIndex]?.id}
                               onMoreClick={(msg, e) => openMessageMenu(msg, e)}
                               onCopy={handleCopyMessage}
@@ -4781,7 +4921,7 @@ const openReactionPicker = useCallback((msg, e, fallbackPos) => {
           </button>
         </div>
         <img
-          src={selectedImage}
+          src={selectedImage.url}
           alt="Lampiran"
           onClick={(e) => e.stopPropagation()}
           className="max-w-full max-h-full object-contain p-4"

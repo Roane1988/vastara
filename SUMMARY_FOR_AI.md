@@ -139,6 +139,8 @@ Deploy: **Vercel** (SPA + serverless functions) — domain: **hunione.com**
 - **imageCompression.js**: Kompresi gambar client-side sebelum upload ke Supabase Storage (via `browser-image-compression`).
 - **wilayah.js**: Data wilayah Indonesia untuk LocationAutocomplete (kota & kecamatan).
 - **agentApplicationSchema.js**: Zod schema untuk validasi form pendaftaran agen.
+- **signedUrl.js**: Signed URL untuk bucket privat. Cache modul (TTL 1 jam, refresh 5 menit sebelum kedaluwarsa), batch `createSignedUrls` (max 50 path, window 60ms), dedupe in-flight, retry otomatis saat gagal. API: `requestSignedUrl(bucket, path)`, `peekSignedUrl`, `clearSignedUrlCache`, hook `useSignedUrl(bucket, path)` → `{ url, status }` (`idle`/`loading`/`ready`/`error`).
+- **chatStorage.js**: Konstanta bucket chat (`CHAT_BUCKET.image/file/voice`) + parsing rujukan objek storage (`parseStorageRef`, `basenameFromPath`) + resolusi lampiran pesan (`resolveMessageImage`, `resolveMessageFile`).
 
 ### `locales/`
 - `id/translation.json` — Bahasa Indonesia (238 baris)
@@ -300,9 +302,22 @@ Dev server proxy middleware untuk `/api/groq` — membaca `env.GROQ_API_KEY` via
 - `content` (TEXT, NOT NULL)
 - `created_at` (TIMESTAMPTZ, default now())
 - `read_at` (TIMESTAMPTZ — read receipt: receiver menandai pesan dibaca)
+- `deleted_at` (TIMESTAMPTZ — soft delete oleh pengirim)
+- `image_url` / `file_url` (TEXT — pointer URL lama, dipertahankan sebagai fallback)
+- `image_path` (TEXT — object path bucket `CHAT_IMAGES`, tanpa bucket)
+- `file_path` (TEXT — object path bucket `CHAT_FILES` / `CHAT_VOICE`)
+- `file_bucket` (TEXT — `CHAT_FILES` | `CHAT_VOICE`)
 - RLS: select where user is sender or receiver; insert where user is sender; update receiver untuk `read_at`.
 - Realtime: INSERT + UPDATE on `direct_messages`.
 - Dipakai oleh: `ChatHubPage` — fetch contacts, fetch messages, send message, read receipts, typing indicator, paginasi.
+
+### Storage: bucket chat (`CHAT_IMAGES` / `CHAT_FILES` / `CHAT_VOICE`)
+- Bucket **PRIVATE** (sebelumnya `public = true` → URL `/object/public/...` bisa diunduh siapa pun).
+- Migrasi: `supabase/migrations/20260909_secure_chat_storage.sql`.
+- Kolom path (`image_path` / `file_path` / `file_bucket`) adalah penunjuk kanonik; di-backfill dari URL lama.
+- RLS `storage.objects` (bucket chat): SELECT hanya jika objek terikat ke pesan yang `sender_id`/`receiver_id` = user (fungsi `public.chat_attachment_visible`, security invoker, pesan soft-deleted tidak termasuk); INSERT hanya folder milik `auth.uid()`; DELETE oleh peserta percakapan atau pemilik folder; **tidak ada** policy UPDATE (objek immutable).
+- Frontend wajib memakai `createSignedUrl()` → `src/utils/signedUrl.js` (cache TTL 1 jam, batch, auto-refresh) + `src/utils/chatStorage.js` (parsing rujukan objek). JANGAN pernah merender URL storage mentah.
+- Bucket `PROPERTIES_IMAGE` tetap **public** (gambar listing memang untuk publik).
 
 ### Table: `saved_properties`
 - `id` (UUID, PK)
