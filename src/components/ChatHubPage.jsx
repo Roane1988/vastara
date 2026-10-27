@@ -15,7 +15,7 @@ import { recompressVoiceBlob, extractWaveformPeaks } from '../utils/audioCompres
 import { CHAT_BUCKET, basenameFromPath, resolveMessageFile, resolveMessageImage } from '../utils/chatStorage'
 import { requestSignedUrl, useSignedUrl } from '../utils/signedUrl'
 import VoiceWaveform from './VoiceWaveform'
-import { getOtherId, getRoomId } from '../hooks/chat/constants'
+import { HUNIBOT_ID, HUNIBOT_CONTACT, getOtherId, getRoomId } from '../hooks/chat/constants'
 import { useChatContacts, useChatMessages, useChatRealtime } from '../hooks/chat'
 import { ChatContactList, ChatMessageThread, ChatComposer } from './chat'
 
