@@ -124,9 +124,8 @@ export default function ExplorePage() {
     setLoadError(false)
     try {
       const { data, error } = await supabase
-        .from('properties')
+        .from('properties_public')
         .select('*')
-        .eq('status', 'verified')
         .order('created_at', { ascending: false })
 
       if (cancelledRef.current) return
