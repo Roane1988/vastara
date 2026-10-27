@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Globe, Check, MessageCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -22,13 +22,13 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
   const [langOpen, setLangOpen] = useState(false)
   const langRef = useRef(null)
   const navigate = useNavigate()
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname } = location
 
-  const handleLogoClick = () => {
-    if (pathname === '/') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    } else {
-      navigate('/')
+  const handleLogoClick = (e) => {
+    if (pathname === '/' || pathname === '/explore') {
+      e.preventDefault()
+      window.location.reload()
     }
   }
 
@@ -48,14 +48,14 @@ export default function TopNavbar({ isAuth, userName, onProfileOpen, onLogout })
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-brand-surface border-b border-brand-border">
         <div className="max-w-7xl mx-auto flex items-center justify-between h-14 px-4 sm:px-6">
-          <button
-            type="button"
+          <Link
+            to="/"
             onClick={handleLogoClick}
             aria-label="HuniOne beranda"
             className="flex items-center"
           >
-            <img src="/huniOne.svg" alt="HuniOne" className="h-20 w-auto object-contain" />
-          </button>
+            <img src="/huniOne.svg" alt="HuniOne" className="h-9 sm:h-10 w-auto object-contain" />
+          </Link>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
             {isAuth && (
