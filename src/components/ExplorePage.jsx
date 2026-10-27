@@ -135,12 +135,12 @@ export default function ExplorePage() {
         setProperties(data)
       } else if (error) {
         if (cancelledRef.current) return
-        console.warn('Gagal memuat properti:', error.message)
+        console.error('[ExplorePage] Gagal memuat properti:', error)
         setLoadError(true)
       }
     } catch (err) {
       if (cancelledRef.current) return
-      console.warn('Gagal memuat properti:', err.message)
+      console.error('[ExplorePage] Gagal memuat properti (exception):', err)
       setLoadError(true)
     }
     if (!cancelledRef.current) setLoadingProperties(false)
@@ -230,9 +230,8 @@ export default function ExplorePage() {
       if (!isLatest()) return
 
       let query = supabase
-        .from('properties')
+        .from('properties_public')
         .select('*')
-        .eq('status', 'verified')
 
       if (parsed.maxPrice) query = query.lte('price', parsed.maxPrice)
       if (parsed.minPrice) query = query.gte('price', parsed.minPrice)
@@ -260,18 +259,17 @@ export default function ExplorePage() {
       }
     } catch {
       if (!isLatest()) return
-      try {
-        const { data: fallback, error } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('status', 'verified')
-          .ilike('title', `%${text.trim()}%`)
-          .order('created_at', { ascending: false })
-        if (!error && fallback && isLatest()) {
-          setIsAiSearch(true)
-          setProperties(fallback)
-        }
-      } catch { /* silent */ }
+        try {
+          const { data: fallback, error } = await supabase
+            .from('properties_public')
+            .select('*')
+            .ilike('title', `%${text.trim()}%`)
+            .order('created_at', { ascending: false })
+          if (!error && fallback && isLatest()) {
+            setIsAiSearch(true)
+            setProperties(fallback)
+          }
+        } catch { /* silent */ }
       if (isLatest()) showToast('Gagal memproses pencarian AI. Menampilkan hasil pencarian biasa.', 'error')
     }
     if (isLatest()) setIsSmartSearching(false)
