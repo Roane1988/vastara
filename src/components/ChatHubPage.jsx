@@ -15,8 +15,9 @@ import { recompressVoiceBlob, extractWaveformPeaks } from '../utils/audioCompres
 import { CHAT_BUCKET, basenameFromPath, resolveMessageFile, resolveMessageImage } from '../utils/chatStorage'
 import { requestSignedUrl, useSignedUrl } from '../utils/signedUrl'
 import VoiceWaveform from './VoiceWaveform'
-
-const HUNIBOT_ID = 'hunibot'
+import { getOtherId, getRoomId } from '../hooks/chat/constants'
+import { useChatContacts, useChatMessages, useChatRealtime } from '../hooks/chat'
+import { ChatContactList, ChatMessageThread, ChatComposer } from './chat'
 
 const EMPTY_ARRAY = []
 
@@ -55,15 +56,6 @@ class ChatErrorBoundary extends Component {
     }
     return this.props.children
   }
-}
-
-const HUNIBOT_CONTACT = {
-  id: HUNIBOT_ID,
-  first_name: 'HuniBot',
-  role: 'ai',
-  is_hunibot: true,
-  last_message: 'Asisten properti AI · Online',
-  last_message_at: null,
 }
 
 const SETTINGS_KEY = 'hunione-chat-settings'
@@ -1066,9 +1058,7 @@ function LoginPrompt() {
   )
 }
 
-function getOtherId(message, userId) {
-  return message.sender_id === userId ? message.receiver_id : message.sender_id
-}
+// getOtherId moved to hooks/chat/constants.js
 
 function aggregateReactions(reactions, myId) {
   const map = {}

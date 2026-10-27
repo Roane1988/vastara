@@ -37,6 +37,11 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage'))
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'))
 
+// Heavy routes: code-split explicitly for better bundling
+const LazyChatHubPage = lazy(() => import('./components/ChatHubPage'))
+const LazyForumDetailPage = lazy(() => import('./components/ForumDetailPage'))
+const LazyAdminDashboardPage = lazy(() => import('./components/AdminDashboardPage'))
+
 function PageLoader() {
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
@@ -126,11 +131,11 @@ function AppContent() {
               <Route path="/sell" element={<ProtectedRoute isAuth={isAuth} location={location}><SellPropertyPage /></ProtectedRoute>} />
               <Route path="/my-listings" element={<ProtectedRoute isAuth={isAuth} location={location}><MyListingsPage /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute isAuth={isAuth} location={location}><DashboardPage /></ProtectedRoute>} />
-              <Route path="/chat" element={<ProtectedRoute isAuth={isAuth} location={location}><ChatHubPage onNavigate={onNavigate} /></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute isAuth={isAuth} location={location}><LazyChatHubPage onNavigate={onNavigate} /></ProtectedRoute>} />
               <Route path="/forum" element={<ForumPage />} />
-              <Route path="/forum/:id" element={<ForumDetailPage />} />
+              <Route path="/forum/:id" element={<LazyForumDetailPage />} />
               <Route path="/property/:id" element={<PropertyDetailPage />} />
-              <Route path="/admin" element={<AdminRoute isAuth={isAuth} role={role} location={location}><AdminDashboardPage /></AdminRoute>} />
+              <Route path="/admin" element={<AdminRoute isAuth={isAuth} role={role} location={location}><LazyAdminDashboardPage /></AdminRoute>} />
               <Route path="/coming-soon" element={<ComingSoonPage />} />
               <Route path="/packages" element={<PackagesPage />} />
               {/* <Route path="/kpr" element={<KprCalculatorPage />} /> */}
