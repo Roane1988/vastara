@@ -21,6 +21,35 @@ import ScheduleVisit from './ScheduleVisit'
 import ReportListingModal from './ReportListingModal'
 import { DUMMY_PROPERTIES } from '../data/dummyProperties'
 
+// Kolom publik yang boleh dibaca anon/authenticated (column-level RLS).
+// JANGAN memakai `select('*')`: kolom privat (mis. seller_whatsapp, rt/rw) tidak
+// di-grant untuk publik sehingga `*` gagal dengan "permission denied for table properties".
+const PROPERTY_DETAIL_FIELDS = [
+  'id',
+  'title',
+  'price',
+  'original_price',
+  'price_period',
+  'category',
+  'property_type',
+  'bedrooms',
+  'bathrooms',
+  'area_sqm',
+  'land_area_sqm',
+  'furnished',
+  'description_id',
+  'description_en',
+  'address',
+  'city',
+  'district',
+  'certificate_status',
+  'image_url',
+  'seller_id',
+  'seller_type',
+  'is_premium',
+  'status',
+].join(', ')
+
 function ArrowLeftIcon() {  return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="19" y1="12" x2="5" y2="12" />
@@ -589,7 +618,7 @@ export default function PropertyDetailPage() {
       try {
         const { data, error: fetchError } = await supabase
           .from('properties')
-          .select('*, profiles!seller_id(first_name, role)')
+          .select(`${PROPERTY_DETAIL_FIELDS}, profiles!seller_id(first_name, role)`)
           .eq('id', id)
           .maybeSingle()
 
