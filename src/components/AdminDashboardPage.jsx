@@ -33,6 +33,28 @@ const FILTERS = [
 
 const PAGE_SIZE = 10
 
+const ADMIN_PROPERTY_FIELDS = [
+  'id',
+  'title',
+  'price',
+  'status',
+  'city',
+  'district',
+  'address',
+  'category',
+  'property_type',
+  'created_at',
+  'seller_id',
+  'seller_type',
+  'is_premium',
+  'image_url',
+  'area_sqm',
+  'bedrooms',
+  'bathrooms',
+  'certificate_status',
+  'description_id',
+].join(', ')
+
 function statusBadgeClass(status) {
   if (status === 'verified') return 'bg-emerald-50 text-emerald-700'
   if (status === 'in_review') return 'bg-indigo-50 text-indigo-700'
@@ -178,9 +200,9 @@ export default function AdminDashboardPage() {
   const fetchStatusCounts = useCallback(async () => {
     try {
       const [verified, pending, sold] = await Promise.all([
-        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
-        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'sold'),
+        supabase.from('properties').select('id', { count: 'exact', head: true }).eq('status', 'verified'),
+        supabase.from('properties').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('properties').select('id', { count: 'exact', head: true }).eq('status', 'sold'),
       ])
       if (cancelledRef.current) return
       setStatusCounts({
@@ -207,7 +229,7 @@ export default function AdminDashboardPage() {
     try {
       let query = supabase
         .from('properties')
-        .select('*, profiles!seller_id(first_name)')
+        .select(`${ADMIN_PROPERTY_FIELDS}, profiles!seller_id(first_name)`)
         .order('created_at', { ascending: false })
 
       if (filterTab !== 'all') {
@@ -220,23 +242,33 @@ export default function AdminDashboardPage() {
         if (error) {
           setLoadError(error.message)
         } else {
-          setProperties(data || [])
-          const ids = (data || []).map((p) => p.id)
+          const rows = data || []
+          const ids = rows.map((p) => p.id)
           if (ids.length > 0) {
-            const { data: leads, error: leadsError } = await supabase
-              .from('whatsapp_leads')
-              .select('property_id')
-              .in('property_id', ids)
-            if (!cancelledRef.current && !leadsError && leads) {
-              const counts = {}
-              leads.forEach((l) => {
-                counts[l.property_id] = (counts[l.property_id] || 0) + 1
-              })
-              setLeadCounts(counts)
+            const [{ data: leads, error: leadsError }, { data: contacts, error: contactsError }] = await Promise.all([
+              supabase.from('whatsapp_leads').select('property_id').in('property_id', ids),
+              supabase.from('properties').select('id, seller_whatsapp').in('id', ids),
+            ])
+            if (!cancelledRef.current) {
+              if (!leadsError && leads) {
+                const counts = {}
+                leads.forEach((l) => {
+                  counts[l.property_id] = (counts[l.property_id] || 0) + 1
+                })
+                setLeadCounts(counts)
+              } else {
+                setLeadCounts({})
+              }
+              if (!contactsError && contacts) {
+                const contactById = {}
+                contacts.forEach((c) => { contactById[c.id] = c.seller_whatsapp || '' })
+                rows.forEach((p) => { p.seller_whatsapp = contactById[p.id] || '' })
+              }
             }
           } else {
             setLeadCounts({})
           }
+          if (!cancelledRef.current) setProperties(rows)
         }
         setLoading(false)
       }

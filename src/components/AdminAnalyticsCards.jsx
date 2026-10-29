@@ -66,8 +66,8 @@ export default function AdminAnalyticsCards() {
           { count: totalUsers, error: err3 },
           { count: agentCount, error: err4 },
         ] = await Promise.all([
-          supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
-          supabase.from('properties').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('properties').select('id', { count: 'exact', head: true }).eq('status', 'verified'),
+          supabase.from('properties').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['agent', 'developer']),
         ])
