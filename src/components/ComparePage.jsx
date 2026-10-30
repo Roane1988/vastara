@@ -17,6 +17,26 @@ import {
   formatRupiah,
 } from '../utils/financialProfile'
 
+const COMPARE_PROPERTY_FIELDS = [
+  'id',
+  'title',
+  'price',
+  'price_period',
+  'category',
+  'property_type',
+  'bedrooms',
+  'bathrooms',
+  'area_sqm',
+  'land_area_sqm',
+  'address',
+  'city',
+  'district',
+  'certificate_status',
+  'image_url',
+  'description_id',
+  'status',
+].join(', ')
+
 const isRent = (p) => isRentalProperty(p)
 
 function CompareSkeleton() {
@@ -188,7 +208,7 @@ export default function ComparePage() {
         if (ids.length > 0) {
           const { data, error } = await supabase
             .from('properties')
-            .select('*')
+            .select(COMPARE_PROPERTY_FIELDS)
             .in('id', ids.map(p => p.id))
           if (error) {
             if (!cancelled && requestId === requestRef.current) {
